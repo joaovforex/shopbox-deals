@@ -71,6 +71,13 @@ export type Database = {
           delivery_method: string
           fulfillment_status: string
           id: string
+          label_generated_at: string | null
+          label_generated_by: string | null
+          label_generated_by_name: string | null
+          label_printed_at: string | null
+          label_printed_by: string | null
+          label_printed_by_name: string | null
+          label_status: string
           payment_method: string
           shipping_address: string | null
           shipping_city: string | null
@@ -93,6 +100,13 @@ export type Database = {
           delivery_method?: string
           fulfillment_status?: string
           id?: string
+          label_generated_at?: string | null
+          label_generated_by?: string | null
+          label_generated_by_name?: string | null
+          label_printed_at?: string | null
+          label_printed_by?: string | null
+          label_printed_by_name?: string | null
+          label_status?: string
           payment_method?: string
           shipping_address?: string | null
           shipping_city?: string | null
@@ -115,6 +129,13 @@ export type Database = {
           delivery_method?: string
           fulfillment_status?: string
           id?: string
+          label_generated_at?: string | null
+          label_generated_by?: string | null
+          label_generated_by_name?: string | null
+          label_printed_at?: string | null
+          label_printed_by?: string | null
+          label_printed_by_name?: string | null
+          label_status?: string
           payment_method?: string
           shipping_address?: string | null
           shipping_city?: string | null
@@ -233,6 +254,10 @@ export type Database = {
       has_role_name: {
         Args: { _role: string; _user_id: string }
         Returns: boolean
+      }
+      mark_label_event: {
+        Args: { p_event: string; p_order_id: string }
+        Returns: undefined
       }
       place_order: {
         Args: {
