@@ -1,11 +1,12 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Share2, ShoppingCart, MessageCircle, Minus, Plus, ArrowLeft, Copy } from "lucide-react";
+import { Share2, ShoppingCart, MessageCircle, Minus, Plus, ArrowLeft, Copy, CreditCard } from "lucide-react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
+import { ProductCarousel } from "@/components/ProductCarousel";
 import { brl, discountPct } from "@/lib/format";
-import { fetchProduct, isAdmin } from "@/lib/products";
+import { fetchProduct, isAdmin, productImages } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 
 export const Route = createFileRoute("/produto/$id")({
