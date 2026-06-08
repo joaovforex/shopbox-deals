@@ -46,9 +46,9 @@ export function Header() {
       </div>
 
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b-4 border-primary">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2">
-            <img src={logo} alt="shopbox" className="h-10 w-auto" width={160} height={48} />
+        <div className="container mx-auto px-4 h-20 flex items-center justify-between gap-4">
+          <Link to="/" className="flex items-center gap-2 bg-background rounded-xl px-4 py-1.5 border-2 border-primary/30 shadow-[0_0_15px_rgba(255,193,7,0.35)]">
+            <img src={logo} alt="shopbox" className="h-14 w-auto drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)]" width={224} height={72} />
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-sm font-semibold uppercase tracking-wider">
