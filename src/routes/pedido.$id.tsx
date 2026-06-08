@@ -67,7 +67,8 @@ function OrderPage() {
               <div className="text-xs text-muted-foreground space-y-1 border-t border-border pt-4">
                 <div><strong>Cliente:</strong> {data.order.customer_name}</div>
                 {data.order.customer_email && <div><strong>Email:</strong> {data.order.customer_email}</div>}
-                {data.order.shipping_address && <div><strong>Entrega:</strong> {data.order.shipping_address}</div>}
+                {data.order.customer_phone && <div><strong>WhatsApp:</strong> {data.order.customer_phone}</div>}
+                <div><strong>{data.order.delivery_method === "pickup" ? "Retirada" : "Entrega"}:</strong> {data.order.shipping_address}</div>
                 <div><strong>Pagamento:</strong> {data.order.payment_method.toUpperCase()}</div>
               </div>
             </div>

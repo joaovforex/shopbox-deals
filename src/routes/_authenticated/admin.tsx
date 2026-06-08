@@ -1,9 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useRouterState, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Upload, Crown } from "lucide-react";
+import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Upload, Crown, BarChart3 } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchProducts, isAdmin, uploadProductImage, type Product } from "@/lib/products";
@@ -19,9 +19,13 @@ function AdminPage() {
   const [admin, setAdmin] = useState<boolean | null>(null);
   const claim = useServerFn(claimFirstAdmin);
   const qc = useQueryClient();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isChildRoute = pathname !== "/admin" && pathname.startsWith("/admin/");
 
   const refresh = () => isAdmin().then(setAdmin);
   useEffect(() => { refresh(); }, []);
+
+  if (isChildRoute) return <Outlet />;
 
   const { data: products = [], refetch } = useQuery({
     queryKey: ["admin", "products"],
@@ -112,12 +116,20 @@ function AdminPage() {
             <h1 className="display text-4xl">Produtos</h1>
             <p className="text-sm text-muted-foreground">{products.length} cadastrados</p>
           </div>
-          <button
-            onClick={() => { setEditing(null); setShowForm(true); }}
-            className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-5 py-3 rounded-md shadow-deal hover:scale-[1.02]"
-          >
-            <Plus className="h-5 w-5" /> Novo produto
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/admin/pedidos"
+              className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-black uppercase tracking-wider px-5 py-3 rounded-md hover:opacity-90"
+            >
+              <BarChart3 className="h-5 w-5" /> Pedidos & Relatórios
+            </Link>
+            <button
+              onClick={() => { setEditing(null); setShowForm(true); }}
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-5 py-3 rounded-md shadow-deal hover:scale-[1.02]"
+            >
+              <Plus className="h-5 w-5" /> Novo produto
+            </button>
+          </div>
         </div>
       </section>
 
