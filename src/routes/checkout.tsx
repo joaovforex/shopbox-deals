@@ -72,18 +72,10 @@ function CheckoutPage() {
     const phoneDigits = phone.replace(/\D/g, "");
     if (phoneDigits.length < 10 || phoneDigits.length > 11) return toast.error("WhatsApp inválido — inclua o DDD");
 
-    let shippingAddress = "Retirada na loja";
     if (delivery === "delivery") {
       if (!street.trim() || !number.trim() || !city.trim() || !stateUf.trim() || !zip.trim()) {
         return toast.error("Preencha o endereço completo de entrega");
       }
-      shippingAddress = [
-        `${street.trim()}, ${number.trim()}`,
-        complement.trim(),
-        district.trim(),
-        `${city.trim()} / ${stateUf.trim().toUpperCase()}`,
-        `CEP ${zip.trim()}`,
-      ].filter(Boolean).join(" · ");
     }
 
     if (payment === "card") {
@@ -99,11 +91,17 @@ function CheckoutPage() {
         p_customer_name: name.trim(),
         p_customer_email: email.trim(),
         p_customer_phone: phoneDigits,
-        p_shipping_address: shippingAddress,
         p_payment_method: payment,
         p_delivery_method: delivery,
         p_items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
-      });
+        p_zip: delivery === "delivery" ? zip.trim() : null,
+        p_street: delivery === "delivery" ? street.trim() : null,
+        p_number: delivery === "delivery" ? number.trim() : null,
+        p_complement: delivery === "delivery" ? complement.trim() : null,
+        p_district: delivery === "delivery" ? district.trim() : null,
+        p_city: delivery === "delivery" ? city.trim() : null,
+        p_state: delivery === "delivery" ? stateUf.trim().toUpperCase() : null,
+      } as never);
       if (error) throw error;
       const orderId = data as string;
       clear();

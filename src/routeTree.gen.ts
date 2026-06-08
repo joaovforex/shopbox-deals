@@ -17,8 +17,11 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProdutoIdRouteImport } from './routes/produto.$id'
 import { Route as PedidoIdRouteImport } from './routes/pedido.$id'
+import { Route as EtiquetaIdRouteImport } from './routes/etiqueta.$id'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminPedidosRouteImport } from './routes/_authenticated/admin.pedidos'
+import { Route as AuthenticatedAdminExpedicaoRouteImport } from './routes/_authenticated/admin.expedicao'
+import { Route as AuthenticatedAdminEquipeRouteImport } from './routes/_authenticated/admin.equipe'
 
 const LojaRoute = LojaRouteImport.update({
   id: '/loja',
@@ -59,6 +62,11 @@ const PedidoIdRoute = PedidoIdRouteImport.update({
   path: '/pedido/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EtiquetaIdRoute = EtiquetaIdRouteImport.update({
+  id: '/etiqueta/$id',
+  path: '/etiqueta/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -70,6 +78,18 @@ const AuthenticatedAdminPedidosRoute =
     path: '/pedidos',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminExpedicaoRoute =
+  AuthenticatedAdminExpedicaoRouteImport.update({
+    id: '/expedicao',
+    path: '/expedicao',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminEquipeRoute =
+  AuthenticatedAdminEquipeRouteImport.update({
+    id: '/equipe',
+    path: '/equipe',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -78,8 +98,11 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/loja': typeof LojaRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/etiqueta/$id': typeof EtiquetaIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
+  '/admin/equipe': typeof AuthenticatedAdminEquipeRoute
+  '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
 }
 export interface FileRoutesByTo {
@@ -89,8 +112,11 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/loja': typeof LojaRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/etiqueta/$id': typeof EtiquetaIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
+  '/admin/equipe': typeof AuthenticatedAdminEquipeRoute
+  '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
 }
 export interface FileRoutesById {
@@ -102,8 +128,11 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/loja': typeof LojaRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/etiqueta/$id': typeof EtiquetaIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
+  '/_authenticated/admin/equipe': typeof AuthenticatedAdminEquipeRoute
+  '/_authenticated/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/_authenticated/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
 }
 export interface FileRouteTypes {
@@ -115,8 +144,11 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/loja'
     | '/admin'
+    | '/etiqueta/$id'
     | '/pedido/$id'
     | '/produto/$id'
+    | '/admin/equipe'
+    | '/admin/expedicao'
     | '/admin/pedidos'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -126,8 +158,11 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/loja'
     | '/admin'
+    | '/etiqueta/$id'
     | '/pedido/$id'
     | '/produto/$id'
+    | '/admin/equipe'
+    | '/admin/expedicao'
     | '/admin/pedidos'
   id:
     | '__root__'
@@ -138,8 +173,11 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/loja'
     | '/_authenticated/admin'
+    | '/etiqueta/$id'
     | '/pedido/$id'
     | '/produto/$id'
+    | '/_authenticated/admin/equipe'
+    | '/_authenticated/admin/expedicao'
     | '/_authenticated/admin/pedidos'
   fileRoutesById: FileRoutesById
 }
@@ -150,6 +188,7 @@ export interface RootRouteChildren {
   CarrinhoRoute: typeof CarrinhoRoute
   CheckoutRoute: typeof CheckoutRoute
   LojaRoute: typeof LojaRoute
+  EtiquetaIdRoute: typeof EtiquetaIdRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
 }
@@ -212,6 +251,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PedidoIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/etiqueta/$id': {
+      id: '/etiqueta/$id'
+      path: '/etiqueta/$id'
+      fullPath: '/etiqueta/$id'
+      preLoaderRoute: typeof EtiquetaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -226,14 +272,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPedidosRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/expedicao': {
+      id: '/_authenticated/admin/expedicao'
+      path: '/expedicao'
+      fullPath: '/admin/expedicao'
+      preLoaderRoute: typeof AuthenticatedAdminExpedicaoRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/equipe': {
+      id: '/_authenticated/admin/equipe'
+      path: '/equipe'
+      fullPath: '/admin/equipe'
+      preLoaderRoute: typeof AuthenticatedAdminEquipeRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
   }
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminEquipeRoute: typeof AuthenticatedAdminEquipeRoute
+  AuthenticatedAdminExpedicaoRoute: typeof AuthenticatedAdminExpedicaoRoute
   AuthenticatedAdminPedidosRoute: typeof AuthenticatedAdminPedidosRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminEquipeRoute: AuthenticatedAdminEquipeRoute,
+  AuthenticatedAdminExpedicaoRoute: AuthenticatedAdminExpedicaoRoute,
   AuthenticatedAdminPedidosRoute: AuthenticatedAdminPedidosRoute,
 }
 
@@ -258,9 +322,20 @@ const rootRouteChildren: RootRouteChildren = {
   CarrinhoRoute: CarrinhoRoute,
   CheckoutRoute: CheckoutRoute,
   LojaRoute: LojaRoute,
+  EtiquetaIdRoute: EtiquetaIdRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
