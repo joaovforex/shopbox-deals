@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Trash2, Minus, Plus, MessageCircle, ShoppingBag } from "lucide-react";
+import { Trash2, Minus, Plus, CreditCard, ShoppingBag } from "lucide-react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { useCart } from "@/lib/cart";
 import { brl } from "@/lib/format";
@@ -11,11 +11,6 @@ export const Route = createFileRoute("/carrinho")({
 
 function CartPage() {
   const { items, setQty, remove, total, clear } = useCart();
-
-  const waMessage = `Olá! Quero finalizar este pedido na shopbox:\n\n${items
-    .map((i) => `• ${i.quantity}x ${i.name} — ${brl(i.price * i.quantity)}`)
-    .join("\n")}\n\n*Total: ${brl(total)}*\n\nForma de pagamento: (Pix / Cartão)`;
-  const waUrl = `https://wa.me/?text=${encodeURIComponent(waMessage)}`;
 
   return (
     <div className="min-h-screen flex flex-col">
