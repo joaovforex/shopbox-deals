@@ -64,16 +64,37 @@ function Home() {
             </div>
           </div>
 
-          <div className="relative">
-            <div className="aspect-square bg-gradient-to-br from-primary to-accent rounded-3xl p-8 shadow-deal rotate-3">
-              <div className="bg-background h-full rounded-2xl flex flex-col items-center justify-center text-center p-6">
-                <div className="text-7xl md:text-9xl display text-deal">70%</div>
-                <div className="text-2xl display">OFF</div>
-                <div className="mt-3 text-sm text-muted-foreground">em produtos selecionados</div>
+          <div className="relative w-full max-w-[280px] sm:max-w-xs mx-auto md:ml-auto md:mr-0">
+            {/* Coupon ticket */}
+            <div className="relative bg-gradient-to-br from-primary via-primary to-accent rounded-2xl p-[2px] shadow-deal animate-float">
+              <div className="relative bg-background rounded-[14px] px-5 py-5 overflow-hidden">
+                <div className="absolute -left-2 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-background border border-border" />
+                <div className="absolute -right-2 top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-background border border-border" />
+                <div className="absolute inset-0 opacity-20 pointer-events-none" style={{background: "radial-gradient(circle at 30% 120%, var(--primary), transparent 60%)"}} />
+
+                <div className="relative flex items-center gap-3">
+                  <div className="flex items-baseline leading-none">
+                    <span className="text-5xl sm:text-6xl display text-deal drop-shadow-[0_2px_10px_rgba(255,60,40,0.45)]">70</span>
+                    <span className="text-2xl display text-deal">%</span>
+                  </div>
+                  <div className="flex-1 border-l-2 border-dashed border-border pl-3">
+                    <div className="display text-2xl text-primary leading-none">OFF</div>
+                    <div className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider font-semibold">
+                      Produtos selecionados
+                    </div>
+                    <div className="text-[10px] text-accent font-bold mt-0.5 flex items-center gap-1">
+                      <Zap className="h-3 w-3" /> Tempo limitado
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="absolute -top-4 -left-4 bg-deal text-deal-foreground px-4 py-2 rounded-full font-black -rotate-12 shadow-lg">
+
+            <div className="absolute -top-3 -left-2 bg-deal text-deal-foreground px-3 py-1 rounded-full text-[10px] sm:text-xs font-black shadow-lg animate-pulse-deal whitespace-nowrap">
               IMPERDÍVEL
+            </div>
+            <div className="absolute -bottom-2 -right-2 bg-accent text-accent-foreground p-2 rounded-full shadow-lg">
+              <Sparkles className="h-3.5 w-3.5" />
             </div>
           </div>
         </div>
