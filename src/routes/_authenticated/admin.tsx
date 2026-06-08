@@ -3,10 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Upload, Crown, BarChart3 } from "lucide-react";
+import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Upload, Crown, BarChart3, Truck, Users } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchProducts, isAdmin, uploadProductImage, type Product } from "@/lib/products";
+import { fetchProducts, hasAnyRole, isAdmin, uploadProductImage, type Product, type TeamRole } from "@/lib/products";
 import { claimFirstAdmin } from "@/lib/admin.functions";
 import { brl, discountPct } from "@/lib/format";
 
@@ -16,13 +16,19 @@ export const Route = createFileRoute("/_authenticated/admin")({
 });
 
 function AdminPage() {
-  const [admin, setAdmin] = useState<boolean | null>(null);
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const claim = useServerFn(claimFirstAdmin);
   const qc = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isChildRoute = pathname !== "/admin" && pathname.startsWith("/admin/");
 
-  const refresh = () => isAdmin().then(setAdmin);
+  const refresh = async () => {
+    const roles: TeamRole[] = ["admin", "catalog"];
+    const [ok, admin] = await Promise.all([hasAnyRole(roles), isAdmin()]);
+    setAllowed(ok);
+    setIsAdminUser(admin);
+  };
   useEffect(() => { refresh(); }, []);
 
   if (isChildRoute) return <Outlet />;
@@ -30,13 +36,13 @@ function AdminPage() {
   const { data: products = [], refetch } = useQuery({
     queryKey: ["admin", "products"],
     queryFn: () => fetchProducts(),
-    enabled: admin === true,
+    enabled: allowed === true,
   });
 
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  if (admin === null) {
+  if (allowed === null) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
@@ -45,7 +51,7 @@ function AdminPage() {
     );
   }
 
-  if (!admin) {
+  if (!allowed) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
@@ -118,16 +124,30 @@ function AdminPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
-              to="/admin/pedidos"
-              className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-black uppercase tracking-wider px-5 py-3 rounded-md hover:opacity-90"
+              to="/admin/expedicao"
+              className="inline-flex items-center gap-2 bg-card border-2 border-primary text-primary font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-primary hover:text-primary-foreground text-sm"
             >
-              <BarChart3 className="h-5 w-5" /> Pedidos & Relatórios
+              <Truck className="h-4 w-4" /> Expedição
             </Link>
+            <Link
+              to="/admin/pedidos"
+              className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md hover:opacity-90 text-sm"
+            >
+              <BarChart3 className="h-4 w-4" /> Pedidos
+            </Link>
+            {isAdminUser && (
+              <Link
+                to="/admin/equipe"
+                className="inline-flex items-center gap-2 bg-card border border-border font-black uppercase tracking-wider px-4 py-3 rounded-md hover:border-primary text-sm"
+              >
+                <Users className="h-4 w-4" /> Equipe
+              </Link>
+            )}
             <button
               onClick={() => { setEditing(null); setShowForm(true); }}
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-5 py-3 rounded-md shadow-deal hover:scale-[1.02]"
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] text-sm"
             >
-              <Plus className="h-5 w-5" /> Novo produto
+              <Plus className="h-4 w-4" /> Novo produto
             </button>
           </div>
         </div>
