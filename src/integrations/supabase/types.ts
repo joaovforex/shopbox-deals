@@ -65,6 +65,7 @@ export type Database = {
           customer_email: string | null
           customer_name: string
           customer_phone: string | null
+          delivery_method: string
           id: string
           payment_method: string
           shipping_address: string | null
@@ -78,6 +79,7 @@ export type Database = {
           customer_email?: string | null
           customer_name: string
           customer_phone?: string | null
+          delivery_method?: string
           id?: string
           payment_method?: string
           shipping_address?: string | null
@@ -91,6 +93,7 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string | null
+          delivery_method?: string
           id?: string
           payment_method?: string
           shipping_address?: string | null
@@ -200,17 +203,30 @@ export type Database = {
         }
         Returns: boolean
       }
-      place_order: {
-        Args: {
-          p_customer_email: string
-          p_customer_name: string
-          p_customer_phone: string
-          p_items: Json
-          p_payment_method: string
-          p_shipping_address: string
-        }
-        Returns: string
-      }
+      place_order:
+        | {
+            Args: {
+              p_customer_email: string
+              p_customer_name: string
+              p_customer_phone: string
+              p_items: Json
+              p_payment_method: string
+              p_shipping_address: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_customer_email: string
+              p_customer_name: string
+              p_customer_phone: string
+              p_delivery_method?: string
+              p_items: Json
+              p_payment_method: string
+              p_shipping_address: string
+            }
+            Returns: string
+          }
     }
     Enums: {
       app_role: "admin" | "user"
