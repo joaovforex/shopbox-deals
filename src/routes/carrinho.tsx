@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Trash2, Minus, Plus, MessageCircle, ShoppingBag } from "lucide-react";
-import { Header, Footer } from "@/components/Header";
+import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { useCart } from "@/lib/cart";
 import { brl } from "@/lib/format";
 
@@ -95,6 +95,7 @@ function CartPage() {
       </section>
 
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 }
