@@ -218,22 +218,39 @@ function ProductForm({
   );
   const [category, setCategory] = useState(product?.category ?? "");
   const [stock, setStock] = useState(product ? String(product.stock) : "0");
-  const [imageUrl, setImageUrl] = useState(product?.image_url ?? "");
+  const [images, setImages] = useState<string[]>(
+    product ? (product.images?.length ? product.images : product.image_url ? [product.image_url] : []) : [],
+  );
   const [active, setActive] = useState(product?.active ?? true);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const handleFile = async (file: File) => {
+  const handleFiles = async (files: FileList) => {
     setUploading(true);
     try {
-      const url = await uploadProductImage(file);
-      setImageUrl(url);
-      toast.success("Imagem enviada");
+      const urls: string[] = [];
+      for (const file of Array.from(files)) {
+        const url = await uploadProductImage(file);
+        urls.push(url);
+      }
+      setImages((p) => [...p, ...urls]);
+      toast.success(`${urls.length} imagem(ns) enviada(s)`);
     } catch (e: any) {
       toast.error(e.message ?? "Erro no upload");
     } finally {
       setUploading(false);
     }
+  };
+
+  const removeImage = (idx: number) => setImages((p) => p.filter((_, i) => i !== idx));
+  const moveImage = (idx: number, dir: -1 | 1) => {
+    setImages((p) => {
+      const next = [...p];
+      const j = idx + dir;
+      if (j < 0 || j >= next.length) return p;
+      [next[idx], next[j]] = [next[j], next[idx]];
+      return next;
+    });
   };
 
   const save = async (e: React.FormEvent) => {
@@ -248,7 +265,8 @@ function ProductForm({
         original_price: originalPrice ? Number(originalPrice) : null,
         category: category.trim() || null,
         stock: Number(stock),
-        image_url: imageUrl || null,
+        image_url: images[0] ?? null,
+        images,
         active,
         created_by: user?.id ?? null,
       };
@@ -280,28 +298,59 @@ function ProductForm({
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">✕</button>
         </div>
 
-        <div className="grid md:grid-cols-[160px_1fr] gap-4">
-          <label className="aspect-square rounded-lg border-2 border-dashed border-border bg-muted overflow-hidden flex items-center justify-center cursor-pointer hover:border-primary relative">
-            {imageUrl ? (
-              <img src={imageUrl} alt="" className="w-full h-full object-cover" />
-            ) : (
-              <div className="text-center text-xs text-muted-foreground p-2">
-                <Upload className="h-6 w-6 mx-auto mb-1" />
-                {uploading ? "Enviando..." : "Foto"}
-              </div>
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-            />
-          </label>
-
-          <div className="space-y-3">
-            <Input label="Nome" value={name} onChange={setName} required />
-            <Input label="Categoria" value={category} onChange={setCategory} placeholder="Ex: Eletrônicos" />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Fotos do produto ({images.length})
+            </label>
+            <label className="inline-flex items-center gap-1.5 text-xs bg-secondary hover:bg-muted px-3 py-1.5 rounded cursor-pointer">
+              <Upload className="h-3.5 w-3.5" /> {uploading ? "Enviando..." : "Adicionar fotos"}
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => e.target.files?.length && handleFiles(e.target.files)}
+              />
+            </label>
           </div>
+
+          {images.length === 0 ? (
+            <label className="block aspect-[4/1] rounded-lg border-2 border-dashed border-border bg-muted flex items-center justify-center cursor-pointer hover:border-primary">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => e.target.files?.length && handleFiles(e.target.files)}
+              />
+              <div className="text-center text-xs text-muted-foreground">
+                <Upload className="h-6 w-6 mx-auto mb-1" />
+                Clique para enviar uma ou mais imagens
+              </div>
+            </label>
+          ) : (
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+              {images.map((src, idx) => (
+                <div key={src} className="relative aspect-square rounded-md overflow-hidden border border-border group">
+                  <img src={src} alt="" className="w-full h-full object-cover" />
+                  {idx === 0 && (
+                    <span className="absolute top-1 left-1 bg-primary text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded">CAPA</span>
+                  )}
+                  <div className="absolute inset-0 bg-background/70 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1">
+                    <button type="button" onClick={() => moveImage(idx, -1)} className="bg-secondary text-xs px-1.5 py-0.5 rounded" disabled={idx === 0}>←</button>
+                    <button type="button" onClick={() => moveImage(idx, 1)} className="bg-secondary text-xs px-1.5 py-0.5 rounded" disabled={idx === images.length - 1}>→</button>
+                    <button type="button" onClick={() => removeImage(idx)} className="bg-destructive text-destructive-foreground text-xs px-1.5 py-0.5 rounded">✕</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          <Input label="Nome" value={name} onChange={setName} required />
+          <Input label="Categoria" value={category} onChange={setCategory} placeholder="Ex: Eletrônicos" />
         </div>
 
         <div>
