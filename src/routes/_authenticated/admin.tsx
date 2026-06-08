@@ -42,7 +42,7 @@ function AdminPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  if (admin === null) {
+  if (allowed === null) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
@@ -51,7 +51,7 @@ function AdminPage() {
     );
   }
 
-  if (!admin) {
+  if (!allowed) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
