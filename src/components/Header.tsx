@@ -107,7 +107,7 @@ export function Footer() {
     <footer className="mt-20 border-t-4 border-primary bg-card">
       <div className="container mx-auto px-4 py-10 grid md:grid-cols-3 gap-8">
         <div>
-          <img src={logo} alt="shopbox" className="h-10 w-auto mb-3" />
+          <img src={logo} alt="shopbox" className="h-12 w-auto mb-3 drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)]" />
           <p className="text-sm text-muted-foreground">
             Sua loja de super descontos em Colombo. Preços de atacado, atendimento de bairro.
           </p>
