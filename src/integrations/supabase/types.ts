@@ -66,9 +66,17 @@ export type Database = {
           customer_name: string
           customer_phone: string | null
           delivery_method: string
+          fulfillment_status: string
           id: string
           payment_method: string
           shipping_address: string | null
+          shipping_city: string | null
+          shipping_complement: string | null
+          shipping_district: string | null
+          shipping_number: string | null
+          shipping_state: string | null
+          shipping_street: string | null
+          shipping_zip: string | null
           status: string
           total: number
           updated_at: string
@@ -80,9 +88,17 @@ export type Database = {
           customer_name: string
           customer_phone?: string | null
           delivery_method?: string
+          fulfillment_status?: string
           id?: string
           payment_method?: string
           shipping_address?: string | null
+          shipping_city?: string | null
+          shipping_complement?: string | null
+          shipping_district?: string | null
+          shipping_number?: string | null
+          shipping_state?: string | null
+          shipping_street?: string | null
+          shipping_zip?: string | null
           status?: string
           total: number
           updated_at?: string
@@ -94,9 +110,17 @@ export type Database = {
           customer_name?: string
           customer_phone?: string | null
           delivery_method?: string
+          fulfillment_status?: string
           id?: string
           payment_method?: string
           shipping_address?: string | null
+          shipping_city?: string | null
+          shipping_complement?: string | null
+          shipping_district?: string | null
+          shipping_number?: string | null
+          shipping_state?: string | null
+          shipping_street?: string | null
+          shipping_zip?: string | null
           status?: string
           total?: number
           updated_at?: string
@@ -203,33 +227,31 @@ export type Database = {
         }
         Returns: boolean
       }
-      place_order:
-        | {
-            Args: {
-              p_customer_email: string
-              p_customer_name: string
-              p_customer_phone: string
-              p_items: Json
-              p_payment_method: string
-              p_shipping_address: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_customer_email: string
-              p_customer_name: string
-              p_customer_phone: string
-              p_delivery_method?: string
-              p_items: Json
-              p_payment_method: string
-              p_shipping_address: string
-            }
-            Returns: string
-          }
+      has_role_name: {
+        Args: { _role: string; _user_id: string }
+        Returns: boolean
+      }
+      place_order: {
+        Args: {
+          p_city?: string
+          p_complement?: string
+          p_customer_email: string
+          p_customer_name: string
+          p_customer_phone: string
+          p_delivery_method: string
+          p_district?: string
+          p_items: Json
+          p_number?: string
+          p_payment_method: string
+          p_state?: string
+          p_street?: string
+          p_zip?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "catalog" | "fulfillment"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -357,7 +379,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "catalog", "fulfillment"],
     },
   },
 } as const
