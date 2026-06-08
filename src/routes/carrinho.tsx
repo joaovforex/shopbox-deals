@@ -73,16 +73,14 @@ function CartPage() {
                 <span className="font-bold">Total</span>
                 <span className="display text-2xl text-price">{brl(total)}</span>
               </div>
-              <a
-                href={waUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full inline-flex items-center justify-center gap-2 bg-[#25D366] text-black font-black uppercase tracking-wider px-4 py-3 rounded-md hover:opacity-90"
+              <Link
+                to="/checkout"
+                className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md hover:scale-[1.02] transition-transform shadow-deal"
               >
-                <MessageCircle className="h-5 w-5" /> Finalizar no WhatsApp
-              </a>
+                <CreditCard className="h-5 w-5" /> Finalizar compra
+              </Link>
               <p className="text-xs text-muted-foreground text-center">
-                Pagamento via Pix, cartão ou parcelado direto com o vendedor.
+                Pague com Pix, cartão ou boleto · ambiente de teste (sandbox)
               </p>
             </aside>
           </div>
