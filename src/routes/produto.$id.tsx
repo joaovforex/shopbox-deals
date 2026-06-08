@@ -1,0 +1,212 @@
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Share2, ShoppingCart, MessageCircle, Minus, Plus, ArrowLeft, Copy } from "lucide-react";
+import { Header, Footer } from "@/components/Header";
+import { brl, discountPct } from "@/lib/format";
+import { fetchProduct } from "@/lib/products";
+import { useCart } from "@/lib/cart";
+
+export const Route = createFileRoute("/produto/$id")({
+  component: ProductPage,
+  errorComponent: ({ error }) => (
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <p className="text-muted-foreground">Erro ao carregar produto: {error.message}</p>
+    </div>
+  ),
+  notFoundComponent: () => (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="text-center">
+          <h1 className="display text-4xl mb-2">Produto não encontrado</h1>
+          <Link to="/loja" className="text-primary hover:underline">Voltar para a loja</Link>
+        </div>
+      </div>
+      <Footer />
+    </div>
+  ),
+});
+
+function ProductPage() {
+  const { id } = Route.useParams();
+  const { data: product, isLoading } = useQuery({
+    queryKey: ["product", id],
+    queryFn: async () => {
+      const p = await fetchProduct(id);
+      if (!p) throw notFound();
+      return p;
+    },
+  });
+  const { add } = useCart();
+  const [qty, setQty] = useState(1);
+
+  if (isLoading || !product) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="container mx-auto px-4 py-10 grid md:grid-cols-2 gap-8">
+          <div className="aspect-square bg-card rounded-lg animate-pulse" />
+          <div className="space-y-4">
+            <div className="h-8 bg-card rounded animate-pulse" />
+            <div className="h-12 bg-card rounded animate-pulse w-1/2" />
+            <div className="h-32 bg-card rounded animate-pulse" />
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  const off = discountPct(product.original_price, product.price);
+  const url = typeof window !== "undefined" ? window.location.href : "";
+  const shareText = `🔥 *${product.name}* na shopbox por apenas ${brl(product.price)}${off > 0 ? ` (${off}% OFF!)` : ""}\n\n${product.description ?? ""}\n\n👉 ${url}`;
+  const waShare = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copiado!");
+    } catch {
+      toast.error("Não consegui copiar o link");
+    }
+  };
+
+  const nativeShare = async () => {
+    if (typeof navigator !== "undefined" && (navigator as any).share) {
+      try {
+        await (navigator as any).share({ title: product.name, text: shareText, url });
+      } catch {}
+    } else {
+      copyLink();
+    }
+  };
+
+  const addToCart = () => {
+    add({ id: product.id, name: product.name, price: product.price, image_url: product.image_url }, qty);
+    toast.success(`Adicionado ao carrinho (${qty}x)`);
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+
+      <div className="container mx-auto px-4 py-6">
+        <Link to="/loja" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-4">
+          <ArrowLeft className="h-4 w-4" /> Voltar para a loja
+        </Link>
+
+        <div className="grid md:grid-cols-2 gap-8">
+          <div className="relative aspect-square bg-card rounded-xl overflow-hidden border border-border">
+            {product.image_url ? (
+              <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-muted-foreground">Sem imagem</div>
+            )}
+            {off > 0 && (
+              <div className="absolute top-4 left-4 bg-deal text-deal-foreground px-4 py-2 rounded-lg font-black text-xl shadow-lg -rotate-6">
+                -{off}%
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {product.category && (
+              <span className="text-xs font-bold uppercase tracking-widest text-accent">{product.category}</span>
+            )}
+            <h1 className="display text-3xl md:text-4xl leading-tight">{product.name}</h1>
+
+            <div className="bg-card rounded-xl p-5 border border-border">
+              {product.original_price && product.original_price > product.price && (
+                <div className="text-sm text-muted-foreground line-through">
+                  De {brl(product.original_price)}
+                </div>
+              )}
+              <div className="flex items-baseline gap-3">
+                <span className="text-5xl display text-price">{brl(product.price)}</span>
+                {off > 0 && <span className="text-deal font-black">-{off}%</span>}
+              </div>
+              <div className="text-sm text-muted-foreground mt-1">
+                ou no Pix com desconto · cartão em até 12x
+              </div>
+            </div>
+
+            {product.description && (
+              <div>
+                <h3 className="font-bold uppercase text-xs tracking-wider text-muted-foreground mb-2">Descrição</h3>
+                <p className="text-sm whitespace-pre-line text-foreground/90">{product.description}</p>
+              </div>
+            )}
+
+            <div className="text-sm">
+              {product.stock > 0 ? (
+                <span className="text-primary font-semibold">✓ Em estoque ({product.stock} disponíveis)</span>
+              ) : (
+                <span className="text-destructive font-semibold">Esgotado</span>
+              )}
+            </div>
+
+            {product.stock > 0 && (
+              <div className="flex items-center gap-3">
+                <div className="inline-flex items-center bg-secondary rounded-md">
+                  <button
+                    onClick={() => setQty((q) => Math.max(1, q - 1))}
+                    className="p-2 hover:bg-muted rounded-l-md"
+                    aria-label="Diminuir"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="px-4 font-bold">{qty}</span>
+                  <button
+                    onClick={() => setQty((q) => Math.min(product.stock, q + 1))}
+                    className="p-2 hover:bg-muted rounded-r-md"
+                    aria-label="Aumentar"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+                <button
+                  onClick={addToCart}
+                  className="flex-1 inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:scale-[1.02] transition-transform shadow-deal"
+                >
+                  <ShoppingCart className="h-5 w-5" /> Adicionar
+                </button>
+              </div>
+            )}
+
+            <div className="border-t border-border pt-4">
+              <h3 className="font-bold uppercase text-xs tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                <Share2 className="h-4 w-4" /> Compartilhar este produto
+              </h3>
+              <div className="grid grid-cols-3 gap-2">
+                <a
+                  href={waShare}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-2 bg-[#25D366] text-black font-bold px-3 py-3 rounded-md hover:opacity-90 text-sm"
+                >
+                  <MessageCircle className="h-4 w-4" /> WhatsApp
+                </a>
+                <button
+                  onClick={nativeShare}
+                  className="inline-flex items-center justify-center gap-2 bg-accent text-accent-foreground font-bold px-3 py-3 rounded-md hover:opacity-90 text-sm"
+                >
+                  <Share2 className="h-4 w-4" /> Compartilhar
+                </button>
+                <button
+                  onClick={copyLink}
+                  className="inline-flex items-center justify-center gap-2 bg-secondary font-bold px-3 py-3 rounded-md hover:bg-muted text-sm"
+                >
+                  <Copy className="h-4 w-4" /> Copiar link
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Footer />
+    </div>
+  );
+}
