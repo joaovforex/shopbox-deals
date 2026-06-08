@@ -26,6 +26,12 @@ function Home() {
   const featured = products.slice(0, 8);
   const rest = products.slice(8);
 
+  // Produtos com maiores descontos para o carrossel
+  const superDiscounts = [...products]
+    .filter((p) => p.original_price && p.original_price > p.price)
+    .sort((a, b) => discountPct(b.original_price, b.price) - discountPct(a.original_price, a.price))
+    .slice(0, 12);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
