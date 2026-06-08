@@ -60,9 +60,9 @@ function CheckoutPage() {
 
       const { data, error } = await supabase.rpc("place_order", {
         p_customer_name: name.trim(),
-        p_customer_email: email.trim() || null,
-        p_customer_phone: phone.trim() || null,
-        p_shipping_address: address.trim() || null,
+        p_customer_email: email.trim() || "",
+        p_customer_phone: phone.trim() || "",
+        p_shipping_address: address.trim() || "",
         p_payment_method: payment,
         p_items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
       });
