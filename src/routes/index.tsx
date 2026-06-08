@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Zap, Flame, Truck, ShieldCheck, Sparkles } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
+import { DiscountCarousel } from "@/components/DiscountCarousel";
 import { fetchProducts } from "@/lib/products";
+import { discountPct } from "@/lib/format";
 
 export const Route = createFileRoute("/")({
   head: () => ({
