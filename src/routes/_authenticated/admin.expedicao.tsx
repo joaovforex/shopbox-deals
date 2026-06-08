@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Truck, Store, Printer, Package, CheckCircle2, Clock } from "lucide-react";
+import { ArrowLeft, Truck, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { hasAnyRole } from "@/lib/products";
@@ -59,9 +59,26 @@ function nextStatus(current: string, delivery: string): string {
   return flow[i + 1];
 }
 
+function hoursSince(iso?: string | null) {
+  if (!iso) return Infinity;
+  return (Date.now() - new Date(iso).getTime()) / 36e5;
+}
+
+function isDelayed(o: OrderRow) {
+  if (o.fulfillment_status === "completed") return false;
+  // Pendente há mais de 2h
+  if (o.fulfillment_status === "pending" && hoursSince(o.created_at) > 2) return true;
+  // Etiqueta gerada mas não impressa há mais de 1h
+  if (o.label_status === "generated" && hoursSince(o.label_generated_at) > 1) return true;
+  // Sem etiqueta e não é retirada já pronta há mais de 4h
+  if (!o.label_status && hoursSince(o.created_at) > 4) return true;
+  return false;
+}
+
 function FulfillmentPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [tab, setTab] = useState<"delivery" | "pickup">("delivery");
+  const [labelFilter, setLabelFilter] = useState<"all" | "none" | "generated" | "printed">("all");
   const qc = useQueryClient();
 
   useEffect(() => {
@@ -107,9 +124,26 @@ function FulfillmentPage() {
     return map;
   }, [data]);
 
-  const orders = (data?.orders ?? []).filter((o) =>
-    tab === "delivery" ? o.delivery_method === "delivery" : o.delivery_method === "pickup",
-  );
+  const orders = useMemo(() => {
+    let list = (data?.orders ?? []).filter((o) =>
+      tab === "delivery" ? o.delivery_method === "delivery" : o.delivery_method === "pickup",
+    );
+    if (labelFilter !== "all") {
+      list = list.filter((o) => {
+        if (labelFilter === "none") return !o.label_status;
+        if (labelFilter === "generated") return o.label_status === "generated";
+        if (labelFilter === "printed") return o.label_status === "printed";
+        return true;
+      });
+    }
+    // atrasados primeiro, depois mais antigos
+    return list.sort((a, b) => {
+      const da = isDelayed(a) ? -1 : 0;
+      const db = isDelayed(b) ? -1 : 0;
+      if (da !== db) return da - db;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
+  }, [data, tab, labelFilter]);
 
   if (allowed === null) {
     return <Shell><div className="flex-1 flex items-center justify-center">Carregando...</div></Shell>;
@@ -117,6 +151,8 @@ function FulfillmentPage() {
   if (!allowed) {
     return <Shell><div className="flex-1 flex items-center justify-center p-6 text-muted-foreground">Acesso restrito à equipe de Expedição.</div></Shell>;
   }
+
+  const delayedCount = orders.filter(isDelayed).length;
 
   return (
     <Shell>
@@ -134,13 +170,37 @@ function FulfillmentPage() {
       </section>
 
       <section className="container mx-auto px-4 py-6 flex-1 space-y-4">
-        <div className="inline-flex bg-secondary rounded-md p-1">
-          <TabBtn active={tab === "delivery"} onClick={() => setTab("delivery")} icon={<Truck className="h-4 w-4" />}>
-            Envio ({(data?.orders ?? []).filter((o) => o.delivery_method === "delivery").length})
-          </TabBtn>
-          <TabBtn active={tab === "pickup"} onClick={() => setTab("pickup")} icon={<Store className="h-4 w-4" />}>
-            Retirada na loja ({(data?.orders ?? []).filter((o) => o.delivery_method === "pickup").length})
-          </TabBtn>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex bg-secondary rounded-md p-1">
+            <TabBtn active={tab === "delivery"} onClick={() => setTab("delivery")} icon={<Truck className="h-4 w-4" />}>
+              Envio ({(data?.orders ?? []).filter((o) => o.delivery_method === "delivery").length})
+            </TabBtn>
+            <TabBtn active={tab === "pickup"} onClick={() => setTab("pickup")} icon={<Store className="h-4 w-4" />}>
+              Retirada na loja ({(data?.orders ?? []).filter((o) => o.delivery_method === "pickup").length})
+            </TabBtn>
+          </div>
+
+          <div className="inline-flex items-center gap-1 bg-secondary rounded-md p-1">
+            <Filter className="h-3.5 w-3.5 text-muted-foreground ml-2" />
+            {(["all", "none", "generated", "printed"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setLabelFilter(f)}
+                className={`px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded ${
+                  labelFilter === f ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {f === "all" ? "Todas" : f === "none" ? "Não gerada" : f === "generated" ? "Gerada" : "Impressa"}
+              </button>
+            ))}
+          </div>
+
+          {delayedCount > 0 && (
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-destructive bg-destructive/10 px-3 py-1.5 rounded-md">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {delayedCount} pedido{delayedCount > 1 ? "s" : ""} atrasado{delayedCount > 1 ? "s" : ""}
+            </div>
+          )}
         </div>
 
         {isLoading ? (
@@ -155,8 +215,9 @@ function FulfillmentPage() {
             {orders.map((o) => {
               const items = itemsByOrder.get(o.id) ?? [];
               const labelType = o.delivery_method === "pickup" ? "retirada" : "envio";
+              const delayed = isDelayed(o);
               return (
-                <article key={o.id} className="bg-card border border-border rounded-lg p-4 flex flex-col gap-3">
+                <article key={o.id} className={`bg-card border rounded-lg p-4 flex flex-col gap-3 ${delayed ? "border-destructive ring-1 ring-destructive/30" : "border-border"}`}>
                   <header className="flex items-start justify-between gap-2">
                     <div>
                       <div className="font-mono text-xs text-muted-foreground">#{o.id.slice(0, 8).toUpperCase()}</div>
@@ -165,15 +226,22 @@ function FulfillmentPage() {
                         {new Date(o.created_at).toLocaleString("pt-BR")}
                       </div>
                     </div>
-                    <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded ${
-                      o.fulfillment_status === "pending" ? "bg-muted text-muted-foreground" :
-                      o.fulfillment_status === "preparing" ? "bg-accent/20 text-accent" :
-                      o.fulfillment_status === "ready" ? "bg-primary/20 text-primary" :
-                      "bg-[#25D366]/20 text-[#25D366]"
-                    }`}>
-                      <Clock className="inline h-3 w-3 mr-1" />
-                      {STATUS_LABEL[o.fulfillment_status] ?? o.fulfillment_status}
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      {delayed && (
+                        <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded bg-destructive text-destructive-foreground">
+                          <AlertTriangle className="h-3 w-3" /> Atrasado
+                        </span>
+                      )}
+                      <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded ${
+                        o.fulfillment_status === "pending" ? "bg-muted text-muted-foreground" :
+                        o.fulfillment_status === "preparing" ? "bg-accent/20 text-accent" :
+                        o.fulfillment_status === "ready" ? "bg-primary/20 text-primary" :
+                        "bg-[#25D366]/20 text-[#25D366]"
+                      }`}>
+                        <Clock className="inline h-3 w-3 mr-1" />
+                        {STATUS_LABEL[o.fulfillment_status] ?? o.fulfillment_status}
+                      </span>
+                    </div>
                   </header>
 
                   <div className="text-xs text-muted-foreground border-y border-border py-2">
