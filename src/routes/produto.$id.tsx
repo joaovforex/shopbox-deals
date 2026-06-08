@@ -1,11 +1,12 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Share2, ShoppingCart, MessageCircle, Minus, Plus, ArrowLeft, Copy } from "lucide-react";
+import { Share2, ShoppingCart, MessageCircle, Minus, Plus, ArrowLeft, Copy, CreditCard } from "lucide-react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
+import { ProductCarousel } from "@/components/ProductCarousel";
 import { brl, discountPct } from "@/lib/format";
-import { fetchProduct, isAdmin } from "@/lib/products";
+import { fetchProduct, isAdmin, productImages } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 
 export const Route = createFileRoute("/produto/$id")({
@@ -45,6 +46,7 @@ function ProductPage() {
     staleTime: 60_000,
   });
   const { add } = useCart();
+  const navigate = useNavigate();
   const [qty, setQty] = useState(1);
 
   if (isLoading || !product) {
@@ -103,14 +105,10 @@ function ProductPage() {
         </Link>
 
         <div className="grid md:grid-cols-2 gap-8">
-          <div className="relative aspect-square bg-card rounded-xl overflow-hidden border border-border">
-            {product.image_url ? (
-              <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-muted-foreground">Sem imagem</div>
-            )}
+          <div className="relative">
+            <ProductCarousel images={productImages(product)} alt={product.name} />
             {off > 0 && (
-              <div className="absolute top-4 left-4 bg-deal text-deal-foreground px-4 py-2 rounded-lg font-black text-xl shadow-lg -rotate-6">
+              <div className="absolute top-4 left-4 z-10 bg-deal text-deal-foreground px-4 py-2 rounded-lg font-black text-xl shadow-lg -rotate-6">
                 -{off}%
               </div>
             )}
@@ -153,29 +151,40 @@ function ProductPage() {
             </div>
 
             {product.stock > 0 && (
-              <div className="flex items-center gap-3">
-                <div className="inline-flex items-center bg-secondary rounded-md">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="inline-flex items-center bg-secondary rounded-md">
+                    <button
+                      onClick={() => setQty((q) => Math.max(1, q - 1))}
+                      className="p-2 hover:bg-muted rounded-l-md"
+                      aria-label="Diminuir"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <span className="px-4 font-bold">{qty}</span>
+                    <button
+                      onClick={() => setQty((q) => Math.min(product.stock, q + 1))}
+                      className="p-2 hover:bg-muted rounded-r-md"
+                      aria-label="Aumentar"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
                   <button
-                    onClick={() => setQty((q) => Math.max(1, q - 1))}
-                    className="p-2 hover:bg-muted rounded-l-md"
-                    aria-label="Diminuir"
+                    onClick={addToCart}
+                    className="flex-1 inline-flex items-center justify-center gap-2 bg-secondary text-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:bg-muted transition-colors"
                   >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <span className="px-4 font-bold">{qty}</span>
-                  <button
-                    onClick={() => setQty((q) => Math.min(product.stock, q + 1))}
-                    className="p-2 hover:bg-muted rounded-r-md"
-                    aria-label="Aumentar"
-                  >
-                    <Plus className="h-4 w-4" />
+                    <ShoppingCart className="h-5 w-5" /> Adicionar
                   </button>
                 </div>
                 <button
-                  onClick={addToCart}
-                  className="flex-1 inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:scale-[1.02] transition-transform shadow-deal"
+                  onClick={() => {
+                    add({ id: product.id, name: product.name, price: product.price, image_url: productImages(product)[0] ?? null }, qty);
+                    navigate({ to: "/checkout" });
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:scale-[1.02] transition-transform shadow-deal"
                 >
-                  <ShoppingCart className="h-5 w-5" /> Adicionar
+                  <CreditCard className="h-5 w-5" /> Comprar agora
                 </button>
               </div>
             )}

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Trash2, Minus, Plus, MessageCircle, ShoppingBag } from "lucide-react";
+import { Trash2, Minus, Plus, CreditCard, ShoppingBag } from "lucide-react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { useCart } from "@/lib/cart";
 import { brl } from "@/lib/format";
@@ -11,11 +11,6 @@ export const Route = createFileRoute("/carrinho")({
 
 function CartPage() {
   const { items, setQty, remove, total, clear } = useCart();
-
-  const waMessage = `Olá! Quero finalizar este pedido na shopbox:\n\n${items
-    .map((i) => `• ${i.quantity}x ${i.name} — ${brl(i.price * i.quantity)}`)
-    .join("\n")}\n\n*Total: ${brl(total)}*\n\nForma de pagamento: (Pix / Cartão)`;
-  const waUrl = `https://wa.me/?text=${encodeURIComponent(waMessage)}`;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -78,16 +73,14 @@ function CartPage() {
                 <span className="font-bold">Total</span>
                 <span className="display text-2xl text-price">{brl(total)}</span>
               </div>
-              <a
-                href={waUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full inline-flex items-center justify-center gap-2 bg-[#25D366] text-black font-black uppercase tracking-wider px-4 py-3 rounded-md hover:opacity-90"
+              <Link
+                to="/checkout"
+                className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md hover:scale-[1.02] transition-transform shadow-deal"
               >
-                <MessageCircle className="h-5 w-5" /> Finalizar no WhatsApp
-              </a>
+                <CreditCard className="h-5 w-5" /> Finalizar compra
+              </Link>
               <p className="text-xs text-muted-foreground text-center">
-                Pagamento via Pix, cartão ou parcelado direto com o vendedor.
+                Pague com Pix, cartão ou boleto · ambiente de teste (sandbox)
               </p>
             </aside>
           </div>

@@ -8,10 +8,17 @@ export type Product = {
   original_price: number | null;
   category: string | null;
   image_url: string | null;
+  images: string[];
   stock: number;
   active: boolean;
   created_at: string;
 };
+
+export function productImages(p: Pick<Product, "images" | "image_url">): string[] {
+  const arr = (p.images ?? []).filter(Boolean);
+  if (arr.length > 0) return arr;
+  return p.image_url ? [p.image_url] : [];
+}
 
 export async function fetchProducts(opts: { onlyActive?: boolean } = {}) {
   let q = supabase.from("products").select("*").order("created_at", { ascending: false });
@@ -35,7 +42,6 @@ export async function uploadProductImage(file: File) {
     upsert: false,
   });
   if (error) throw error;
-  // Use a very long signed URL (1 year). Bucket é privado, mas a policy permite leitura pública.
   const { data, error: signErr } = await supabase.storage
     .from("product-images")
     .createSignedUrl(path, 60 * 60 * 24 * 365 * 5);

@@ -1,10 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { brl, discountPct } from "@/lib/format";
-import type { Product } from "@/lib/products";
+import { productImages, type Product } from "@/lib/products";
 
 export function ProductCard({ product }: { product: Product }) {
   const off = discountPct(product.original_price, product.price);
   const installments = product.price >= 50 ? Math.min(10, Math.floor(product.price / 20)) : 0;
+  const imgs = productImages(product);
+  const cover = imgs[0];
 
   return (
     <Link
@@ -13,9 +15,9 @@ export function ProductCard({ product }: { product: Product }) {
       className="group relative flex flex-col bg-card rounded-xl overflow-hidden border border-border hover:border-primary transition-all duration-300 hover:shadow-deal hover:-translate-y-1 active:scale-[0.98]"
     >
       <div className="aspect-square bg-muted overflow-hidden relative">
-        {product.image_url ? (
+        {cover ? (
           <img
-            src={product.image_url}
+            src={cover}
             alt={product.name}
             loading="lazy"
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
@@ -23,6 +25,11 @@ export function ProductCard({ product }: { product: Product }) {
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
             Sem imagem
+          </div>
+        )}
+        {imgs.length > 1 && (
+          <div className="absolute bottom-2 right-2 bg-background/80 backdrop-blur text-[10px] font-bold px-1.5 py-0.5 rounded">
+            +{imgs.length - 1} fotos
           </div>
         )}
 
