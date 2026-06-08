@@ -67,7 +67,32 @@ export async function isAdmin(): Promise<boolean> {
   return roles.includes("admin");
 }
 
+/** Super Admin (Dono) = papel `admin`. Único com acesso a métricas e equipe. */
+export async function isSuperAdmin(): Promise<boolean> {
+  return isAdmin();
+}
+
 export async function hasAnyRole(roles: TeamRole[]): Promise<boolean> {
   const mine = await getMyRoles();
   return mine.some((r) => roles.includes(r));
+}
+
+export type RoleSummary = {
+  isSuperAdmin: boolean;
+  isCatalog: boolean;
+  isFulfillment: boolean;
+  hasAnyTeamRole: boolean;
+};
+
+export async function getRoleSummary(): Promise<RoleSummary> {
+  const roles = await getMyRoles();
+  const isSuperAdmin = roles.includes("admin");
+  const isCatalog = roles.includes("catalog");
+  const isFulfillment = roles.includes("fulfillment");
+  return {
+    isSuperAdmin,
+    isCatalog,
+    isFulfillment,
+    hasAnyTeamRole: isSuperAdmin || isCatalog || isFulfillment,
+  };
 }

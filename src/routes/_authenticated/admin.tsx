@@ -1,12 +1,12 @@
-import { createFileRoute, Outlet, useRouterState, Link } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useRouterState, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Upload, Crown, BarChart3, Truck, Users } from "lucide-react";
+import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Upload, Crown, BarChart3, Truck, Users, Package, ShieldAlert } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchProducts, hasAnyRole, isAdmin, uploadProductImage, type Product, type TeamRole } from "@/lib/products";
+import { fetchProducts, getRoleSummary, uploadProductImage, type Product, type RoleSummary } from "@/lib/products";
 import { claimFirstAdmin } from "@/lib/admin.functions";
 import { brl, discountPct } from "@/lib/format";
 
@@ -16,33 +16,37 @@ export const Route = createFileRoute("/_authenticated/admin")({
 });
 
 function AdminPage() {
-  const [allowed, setAllowed] = useState<boolean | null>(null);
-  const [isAdminUser, setIsAdminUser] = useState(false);
+  const [roles, setRoles] = useState<RoleSummary | null>(null);
   const claim = useServerFn(claimFirstAdmin);
   const qc = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
   const isChildRoute = pathname !== "/admin" && pathname.startsWith("/admin/");
 
-  const refresh = async () => {
-    const roles: TeamRole[] = ["admin", "catalog"];
-    const [ok, admin] = await Promise.all([hasAnyRole(roles), isAdmin()]);
-    setAllowed(ok);
-    setIsAdminUser(admin);
-  };
+  const refresh = async () => setRoles(await getRoleSummary());
   useEffect(() => { refresh(); }, []);
 
+  // Expedição-only é redirecionado para sua área
+  useEffect(() => {
+    if (!isChildRoute && roles && !roles.isSuperAdmin && !roles.isCatalog && roles.isFulfillment) {
+      navigate({ to: "/admin/expedicao", replace: true });
+    }
+  }, [roles, isChildRoute, navigate]);
+
   if (isChildRoute) return <Outlet />;
+
+  const canManageProducts = !!roles && (roles.isSuperAdmin || roles.isCatalog);
 
   const { data: products = [], refetch } = useQuery({
     queryKey: ["admin", "products"],
     queryFn: () => fetchProducts(),
-    enabled: allowed === true,
+    enabled: canManageProducts,
   });
 
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  if (allowed === null) {
+  if (roles === null) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
@@ -51,7 +55,7 @@ function AdminPage() {
     );
   }
 
-  if (!allowed) {
+  if (!roles.hasAnyTeamRole) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
@@ -60,27 +64,43 @@ function AdminPage() {
             <Crown className="h-12 w-12 mx-auto mb-3 text-primary" />
             <h1 className="display text-2xl mb-2">Área restrita</h1>
             <p className="text-sm text-muted-foreground mb-5">
-              Você precisa ser administrador. Se for o primeiro acesso da loja, clique abaixo para
-              se tornar o administrador inicial.
+              Você precisa ser o Super Admin (dono) ou ter uma função interna. Se for o primeiro
+              acesso da loja, clique abaixo para se tornar o Super Admin inicial.
             </p>
             <button
               onClick={async () => {
                 try {
                   const r = await claim({});
-                  if (r.ok) {
-                    toast.success("Você agora é administrador!");
-                    refresh();
-                  } else {
-                    toast.error("Já existe um administrador. Peça acesso a ele.");
-                  }
-                } catch (e: any) {
-                  toast.error(e.message ?? "Erro");
-                }
+                  if (r.ok) { toast.success("Você agora é o Super Admin (Dono)!"); refresh(); }
+                  else toast.error("Já existe um Super Admin. Peça acesso a ele.");
+                } catch (e: any) { toast.error(e.message ?? "Erro"); }
               }}
               className="bg-primary text-primary-foreground font-black uppercase tracking-wider px-6 py-3 rounded-md shadow-deal"
             >
-              Tornar-me administrador
+              Tornar-me Super Admin
             </button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!canManageProducts) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="max-w-md text-center bg-card border border-border rounded-xl p-8">
+            <Truck className="h-12 w-12 mx-auto mb-3 text-primary" />
+            <h1 className="display text-2xl mb-2">Sua área é Expedição</h1>
+            <p className="text-sm text-muted-foreground mb-5">
+              Você é responsável pelo envio e retirada dos pedidos. Catálogo e relatórios são
+              restritos ao Super Admin.
+            </p>
+            <Link to="/admin/expedicao" className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-5 py-3 rounded-md">
+              <Truck className="h-4 w-4" /> Ir para Expedição
+            </Link>
           </div>
         </div>
         <Footer />
@@ -118,30 +138,39 @@ function AdminPage() {
       <section className="bg-card border-b-4 border-primary">
         <div className="container mx-auto px-4 py-8 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <div className="text-xs uppercase tracking-widest text-accent font-bold">Painel do vendedor</div>
+            <div className="text-xs uppercase tracking-widest text-accent font-bold flex items-center gap-2">
+              {roles.isSuperAdmin ? (<><Crown className="h-3.5 w-3.5" /> Super Admin · Dono</>) : (<><Package className="h-3.5 w-3.5" /> Catálogo</>)}
+            </div>
             <h1 className="display text-4xl">Produtos</h1>
             <p className="text-sm text-muted-foreground">{products.length} cadastrados</p>
+            {!roles.isSuperAdmin && (
+              <p className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
+                <ShieldAlert className="h-3 w-3" /> Você só pode gerenciar produtos. Pedidos, expedição e métricas são restritos ao Super Admin.
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link
-              to="/admin/expedicao"
-              className="inline-flex items-center gap-2 bg-card border-2 border-primary text-primary font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-primary hover:text-primary-foreground text-sm"
-            >
-              <Truck className="h-4 w-4" /> Expedição
-            </Link>
-            <Link
-              to="/admin/pedidos"
-              className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md hover:opacity-90 text-sm"
-            >
-              <BarChart3 className="h-4 w-4" /> Pedidos
-            </Link>
-            {isAdminUser && (
-              <Link
-                to="/admin/equipe"
-                className="inline-flex items-center gap-2 bg-card border border-border font-black uppercase tracking-wider px-4 py-3 rounded-md hover:border-primary text-sm"
-              >
-                <Users className="h-4 w-4" /> Equipe
-              </Link>
+            {roles.isSuperAdmin && (
+              <>
+                <Link
+                  to="/admin/expedicao"
+                  className="inline-flex items-center gap-2 bg-card border-2 border-primary text-primary font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-primary hover:text-primary-foreground text-sm"
+                >
+                  <Truck className="h-4 w-4" /> Expedição
+                </Link>
+                <Link
+                  to="/admin/pedidos"
+                  className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md hover:opacity-90 text-sm"
+                >
+                  <BarChart3 className="h-4 w-4" /> Pedidos & Métricas
+                </Link>
+                <Link
+                  to="/admin/equipe"
+                  className="inline-flex items-center gap-2 bg-card border border-border font-black uppercase tracking-wider px-4 py-3 rounded-md hover:border-primary text-sm"
+                >
+                  <Users className="h-4 w-4" /> Equipe
+                </Link>
+              </>
             )}
             <button
               onClick={() => { setEditing(null); setShowForm(true); }}
@@ -152,6 +181,7 @@ function AdminPage() {
           </div>
         </div>
       </section>
+
 
       <section className="container mx-auto px-4 py-8 flex-1">
         {products.length === 0 ? (

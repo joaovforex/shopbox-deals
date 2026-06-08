@@ -19,9 +19,9 @@ type Member = {
 };
 
 const ROLE_LABEL: Record<TeamRole, string> = {
-  admin: "Administrador",
-  catalog: "Catálogo",
-  fulfillment: "Expedição",
+  admin: "Super Admin (Dono)",
+  catalog: "Catálogo (produtos e preços)",
+  fulfillment: "Expedição (envio e retirada)",
   user: "Cliente",
 };
 
@@ -91,6 +91,7 @@ function TeamPage() {
   };
 
   const assignRole = async (user_id: string, role: TeamRole) => {
+    if (role === "admin" && !confirm("Atribuir SUPER ADMIN dá controle TOTAL da loja (produtos, pedidos, métricas e equipe). Confirma?")) return;
     const { error } = await supabase.from("user_roles").insert({ user_id, role } as never);
     if (error) {
       if (error.code === "23505") return toast.info("Essa função já está atribuída");

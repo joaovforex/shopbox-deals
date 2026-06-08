@@ -3,25 +3,27 @@ import { ShoppingCart, User, LogOut, LayoutDashboard, Home, Store, Search } from
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/lib/cart";
-import { isAdmin } from "@/lib/products";
+import { getRoleSummary } from "@/lib/products";
 import logo from "@/assets/shopbox-logo.png";
 
 export function Header() {
   const { count } = useCart();
   const [user, setUser] = useState<{ email?: string } | null>(null);
-  const [admin, setAdmin] = useState(false);
+  const [hasTeamRole, setHasTeamRole] = useState(false);
 
   useEffect(() => {
+    const sync = () => getRoleSummary().then((r) => setHasTeamRole(r.hasAnyTeamRole));
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user ? { email: data.user.email ?? undefined } : null);
-      isAdmin().then(setAdmin);
+      if (data.user) sync(); else setHasTeamRole(false);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ? { email: session.user.email ?? undefined } : null);
-      isAdmin().then(setAdmin);
+      if (session?.user) sync(); else setHasTeamRole(false);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -58,7 +60,7 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {admin && (
+            {hasTeamRole && (
               <Link
                 to="/admin"
                 className="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-md bg-accent text-accent-foreground text-sm font-bold hover:opacity-90 transition-opacity"
