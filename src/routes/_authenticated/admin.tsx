@@ -3,10 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Upload, Crown, BarChart3 } from "lucide-react";
+import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Upload, Crown, BarChart3, Truck, Users } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchProducts, isAdmin, uploadProductImage, type Product } from "@/lib/products";
+import { fetchProducts, hasAnyRole, isAdmin, uploadProductImage, type Product, type TeamRole } from "@/lib/products";
 import { claimFirstAdmin } from "@/lib/admin.functions";
 import { brl, discountPct } from "@/lib/format";
 
@@ -16,13 +16,19 @@ export const Route = createFileRoute("/_authenticated/admin")({
 });
 
 function AdminPage() {
-  const [admin, setAdmin] = useState<boolean | null>(null);
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const claim = useServerFn(claimFirstAdmin);
   const qc = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isChildRoute = pathname !== "/admin" && pathname.startsWith("/admin/");
 
-  const refresh = () => isAdmin().then(setAdmin);
+  const refresh = async () => {
+    const roles: TeamRole[] = ["admin", "catalog"];
+    const [ok, admin] = await Promise.all([hasAnyRole(roles), isAdmin()]);
+    setAllowed(ok);
+    setIsAdminUser(admin);
+  };
   useEffect(() => { refresh(); }, []);
 
   if (isChildRoute) return <Outlet />;
@@ -30,7 +36,7 @@ function AdminPage() {
   const { data: products = [], refetch } = useQuery({
     queryKey: ["admin", "products"],
     queryFn: () => fetchProducts(),
-    enabled: admin === true,
+    enabled: allowed === true,
   });
 
   const [editing, setEditing] = useState<Product | null>(null);
