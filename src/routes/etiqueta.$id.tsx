@@ -39,7 +39,7 @@ const STORE = {
 function LabelPage() {
   const { id } = Route.useParams();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ["label", id],
     queryFn: async () => {
       const { data: order, error } = await supabase.from("orders").select("*").eq("id", id).maybeSingle();
@@ -51,6 +51,25 @@ function LabelPage() {
 
   const labelRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
+  const generatedOnce = useRef(false);
+
+  // Mark "generated" the first time the label is opened by a team member.
+  useEffect(() => {
+    if (!data?.order || generatedOnce.current) return;
+    generatedOnce.current = true;
+    supabase.rpc("mark_label_event" as never, { p_order_id: id, p_event: "generated" } as never)
+      .then(() => refetch());
+  }, [data, id, refetch]);
+
+  // Detect actual print and record it.
+  useEffect(() => {
+    const onAfter = () => {
+      supabase.rpc("mark_label_event" as never, { p_order_id: id, p_event: "printed" } as never)
+        .then(() => refetch());
+    };
+    window.addEventListener("afterprint", onAfter);
+    return () => window.removeEventListener("afterprint", onAfter);
+  }, [id, refetch]);
 
   useEffect(() => {
     if (data?.order) {
@@ -75,7 +94,6 @@ function LabelPage() {
         useCORS: true,
       });
       const img = canvas.toDataURL("image/jpeg", 0.95);
-      // A6: 105 x 148 mm
       const pdf = new jsPDF({ unit: "mm", format: "a6", orientation: "portrait" });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
@@ -88,10 +106,14 @@ function LabelPage() {
       if (h > maxH) { h = maxH; w = h * ratio; }
       pdf.addImage(img, "JPEG", (pageW - w) / 2, margin, w, h);
       pdf.save(`etiqueta-${isPickup ? "retirada" : "envio"}-${o.id.slice(0, 8)}.pdf`);
+      await supabase.rpc("mark_label_event" as never, { p_order_id: id, p_event: "generated" } as never);
+      refetch();
     } finally {
       setDownloading(false);
     }
   };
+
+  const fmt = (d?: string | null) => (d ? new Date(d).toLocaleString("pt-BR") : "—");
 
   return (
     <>
@@ -105,8 +127,8 @@ function LabelPage() {
       `}</style>
 
       <div className="min-h-screen bg-muted py-6 px-4">
-        <div className="max-w-md mx-auto">
-          <div className="no-print mb-4 flex items-center justify-between gap-2">
+        <div className="max-w-md mx-auto space-y-3">
+          <div className="no-print flex items-center justify-between gap-2">
             <div className="text-sm text-muted-foreground">
               Etiqueta de {isPickup ? "retirada" : "envio (padrão Correios)"}
             </div>
@@ -124,6 +146,27 @@ function LabelPage() {
               >
                 <Printer className="h-3.5 w-3.5" /> Imprimir
               </button>
+            </div>
+          </div>
+
+          <div className="no-print bg-card border border-border rounded-md p-3 text-xs space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="font-bold uppercase tracking-wider text-muted-foreground">Status da etiqueta</span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                o.label_status === "printed" ? "bg-[#25D366]/20 text-[#25D366]" :
+                o.label_status === "generated" ? "bg-accent/20 text-accent" :
+                "bg-muted text-muted-foreground"
+              }`}>
+                {o.label_status === "printed" ? "Impressa" : o.label_status === "generated" ? "Gerada" : "Não gerada"}
+              </span>
+            </div>
+            <div className="text-muted-foreground">
+              <strong className="text-foreground">Gerada:</strong> {fmt(o.label_generated_at)}
+              {o.label_generated_by_name ? ` por ${o.label_generated_by_name}` : ""}
+            </div>
+            <div className="text-muted-foreground">
+              <strong className="text-foreground">Impressa:</strong> {fmt(o.label_printed_at)}
+              {o.label_printed_by_name ? ` por ${o.label_printed_by_name}` : ""}
             </div>
           </div>
 
