@@ -3,7 +3,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Zap, Flame, Truck, ShieldCheck, Sparkles } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
+import { DiscountCarousel } from "@/components/DiscountCarousel";
 import { fetchProducts } from "@/lib/products";
+import { discountPct } from "@/lib/format";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,6 +25,12 @@ function Home() {
 
   const featured = products.slice(0, 8);
   const rest = products.slice(8);
+
+  // Produtos com maiores descontos para o carrossel
+  const superDiscounts = [...products]
+    .filter((p) => p.original_price && p.original_price > p.price)
+    .sort((a, b) => discountPct(b.original_price, b.price) - discountPct(a.original_price, a.price))
+    .slice(0, 12);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -118,6 +126,11 @@ function Home() {
           ))}
         </div>
       </section>
+
+      {/* Super discounts carousel */}
+      {superDiscounts.length > 0 && (
+        <DiscountCarousel products={superDiscounts} />
+      )}
 
       {/* Featured */}
       <section className="container mx-auto px-4 py-12">
