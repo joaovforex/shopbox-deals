@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
-import { Header, Footer } from "@/components/Header";
+import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
 import { fetchProducts } from "@/lib/products";
 import { Search } from "lucide-react";
@@ -41,14 +41,14 @@ function Loja() {
       <Header />
 
       <section className="bg-card border-b-4 border-primary">
-        <div className="container mx-auto px-4 py-10">
-          <h1 className="display text-4xl md:text-5xl mb-2">Todas as ofertas</h1>
-          <p className="text-muted-foreground">{products.length} produtos disponíveis</p>
+        <div className="container mx-auto px-4 py-6 sm:py-10">
+          <h1 className="display text-3xl sm:text-4xl md:text-5xl mb-1 sm:mb-2">Todas as ofertas</h1>
+          <p className="text-muted-foreground text-sm">{products.length} produtos disponíveis</p>
         </div>
       </section>
 
-      <section className="container mx-auto px-4 py-6">
-        <div className="flex flex-col md:flex-row gap-3 mb-6">
+      <section className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4 sm:mb-6">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
@@ -62,7 +62,7 @@ function Loja() {
             <select
               value={cat}
               onChange={(e) => setCat(e.target.value)}
-              className="bg-input rounded-md px-3 py-2.5 border border-border focus:outline-none focus:border-primary"
+              className="bg-input rounded-md px-3 py-2.5 border border-border focus:outline-none focus:border-primary text-sm"
             >
               <option value="">Todas categorias</option>
               {categories.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -71,17 +71,18 @@ function Loja() {
         </div>
 
         {filtered.length === 0 ? (
-          <div className="text-center py-20 bg-card rounded-lg border border-border">
+          <div className="text-center py-16 sm:py-20 bg-card rounded-xl border border-border">
             <p className="text-muted-foreground">Nenhum produto encontrado.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
             {filtered.map((p) => <ProductCard key={p.id} product={p} />)}
           </div>
         )}
       </section>
 
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 }
