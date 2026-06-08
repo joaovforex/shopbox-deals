@@ -19,9 +19,9 @@ type Member = {
 };
 
 const ROLE_LABEL: Record<TeamRole, string> = {
-  admin: "Administrador",
-  catalog: "Catálogo",
-  fulfillment: "Expedição",
+  admin: "Super Admin (Dono)",
+  catalog: "Catálogo (produtos e preços)",
+  fulfillment: "Expedição (envio e retirada)",
   user: "Cliente",
 };
 
