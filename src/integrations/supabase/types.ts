@@ -22,6 +22,7 @@ export type Database = {
           product_id: string
           product_name: string
           quantity: number
+          reserved: boolean
           unit_price: number
         }
         Insert: {
@@ -31,6 +32,7 @@ export type Database = {
           product_id: string
           product_name: string
           quantity: number
+          reserved?: boolean
           unit_price: number
         }
         Update: {
@@ -40,6 +42,7 @@ export type Database = {
           product_id?: string
           product_name?: string
           quantity?: number
+          reserved?: boolean
           unit_price?: number
         }
         Relationships: [
