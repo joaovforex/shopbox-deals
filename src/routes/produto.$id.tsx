@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Share2, ShoppingCart, MessageCircle, Minus, Plus, ArrowLeft, Copy } from "lucide-react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { brl, discountPct } from "@/lib/format";
-import { fetchProduct } from "@/lib/products";
+import { fetchProduct, isAdmin } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 
 export const Route = createFileRoute("/produto/$id")({
@@ -38,6 +38,11 @@ function ProductPage() {
       if (!p) throw notFound();
       return p;
     },
+  });
+  const { data: admin = false } = useQuery({
+    queryKey: ["is-admin"],
+    queryFn: isAdmin,
+    staleTime: 60_000,
   });
   const { add } = useCart();
   const [qty, setQty] = useState(1);
@@ -175,33 +180,35 @@ function ProductPage() {
               </div>
             )}
 
-            <div className="border-t border-border pt-4">
-              <h3 className="font-bold uppercase text-xs tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-                <Share2 className="h-4 w-4" /> Compartilhar este produto
-              </h3>
-              <div className="grid grid-cols-3 gap-2">
-                <a
-                  href={waShare}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-2 bg-[#25D366] text-black font-bold px-3 py-3 rounded-md hover:opacity-90 text-sm"
-                >
-                  <MessageCircle className="h-4 w-4" /> WhatsApp
-                </a>
-                <button
-                  onClick={nativeShare}
-                  className="inline-flex items-center justify-center gap-2 bg-accent text-accent-foreground font-bold px-3 py-3 rounded-md hover:opacity-90 text-sm"
-                >
-                  <Share2 className="h-4 w-4" /> Compartilhar
-                </button>
-                <button
-                  onClick={copyLink}
-                  className="inline-flex items-center justify-center gap-2 bg-secondary font-bold px-3 py-3 rounded-md hover:bg-muted text-sm"
-                >
-                  <Copy className="h-4 w-4" /> Copiar link
-                </button>
+            {admin && (
+              <div className="border-t border-border pt-4">
+                <h3 className="font-bold uppercase text-xs tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                  <Share2 className="h-4 w-4" /> Compartilhar (admin)
+                </h3>
+                <div className="grid grid-cols-3 gap-2">
+                  <a
+                    href={waShare}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center gap-2 bg-[#25D366] text-black font-bold px-3 py-3 rounded-md hover:opacity-90 text-sm"
+                  >
+                    <MessageCircle className="h-4 w-4" /> WhatsApp
+                  </a>
+                  <button
+                    onClick={nativeShare}
+                    className="inline-flex items-center justify-center gap-2 bg-accent text-accent-foreground font-bold px-3 py-3 rounded-md hover:opacity-90 text-sm"
+                  >
+                    <Share2 className="h-4 w-4" /> Compartilhar
+                  </button>
+                  <button
+                    onClick={copyLink}
+                    className="inline-flex items-center justify-center gap-2 bg-secondary font-bold px-3 py-3 rounded-md hover:bg-muted text-sm"
+                  >
+                    <Copy className="h-4 w-4" /> Copiar link
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
