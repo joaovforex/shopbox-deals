@@ -1,12 +1,40 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { ShoppingCart, Zap } from "lucide-react";
+import { toast } from "sonner";
 import { brl, discountPct } from "@/lib/format";
 import { productImages, type Product } from "@/lib/products";
+import { useCart } from "@/lib/cart";
 
 export function ProductCard({ product }: { product: Product }) {
   const off = discountPct(product.original_price, product.price);
   const installments = product.price >= 50 ? Math.min(10, Math.floor(product.price / 20)) : 0;
   const imgs = productImages(product);
   const cover = imgs[0];
+  const { add } = useCart();
+  const navigate = useNavigate();
+
+  const cartItem = {
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    image_url: cover ?? null,
+  };
+
+  const addToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (product.stock === 0) return;
+    add(cartItem, 1);
+    toast.success("Adicionado ao carrinho");
+  };
+
+  const buyNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (product.stock === 0) return;
+    add(cartItem, 1);
+    navigate({ to: "/checkout" });
+  };
 
   return (
     <Link
@@ -47,7 +75,6 @@ export function ProductCard({ product }: { product: Product }) {
           </div>
         )}
 
-        {/* gradient overlay on hover */}
         <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-background/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
 
@@ -66,6 +93,29 @@ export function ProductCard({ product }: { product: Product }) {
         <div className="text-[10px] sm:text-[11px] text-muted-foreground leading-tight">
           {installments > 0 ? `${installments}x sem juros` : "ou no Pix com desconto"}
         </div>
+
+        {product.stock > 0 && (
+          <div className="mt-2 grid grid-cols-2 gap-1.5">
+            <button
+              type="button"
+              onClick={addToCart}
+              className="inline-flex items-center justify-center gap-1 bg-secondary hover:bg-muted text-foreground text-[11px] font-bold uppercase tracking-wider py-2 rounded-md transition-colors"
+              aria-label="Adicionar ao carrinho"
+            >
+              <ShoppingCart className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Carrinho</span>
+            </button>
+            <button
+              type="button"
+              onClick={buyNow}
+              className="inline-flex items-center justify-center gap-1 bg-primary hover:scale-[1.02] text-primary-foreground text-[11px] font-black uppercase tracking-wider py-2 rounded-md shadow-deal transition-transform"
+              aria-label="Comprar agora"
+            >
+              <Zap className="h-3.5 w-3.5" />
+              <span>Comprar</span>
+            </button>
+          </div>
+        )}
       </div>
     </Link>
   );

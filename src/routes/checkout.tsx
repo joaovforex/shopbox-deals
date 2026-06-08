@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CreditCard, QrCode, FileText, Lock, ArrowLeft } from "lucide-react";
+import { CreditCard, QrCode, FileText, Lock, ArrowLeft, Truck, Store } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { useCart } from "@/lib/cart";
 import { brl } from "@/lib/format";
@@ -13,6 +13,15 @@ export const Route = createFileRoute("/checkout")({
 });
 
 type Payment = "pix" | "card" | "boleto";
+type Delivery = "delivery" | "pickup";
+
+// (00) 00000-0000 — DDD + número
+function maskPhone(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
 
 function CheckoutPage() {
   const { items, total, clear } = useCart();
@@ -22,7 +31,17 @@ function CheckoutPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
+  const [delivery, setDelivery] = useState<Delivery>("delivery");
+
+  // address fields
+  const [street, setStreet] = useState("");
+  const [number, setNumber] = useState("");
+  const [district, setDistrict] = useState("");
+  const [city, setCity] = useState("");
+  const [stateUf, setStateUf] = useState("");
+  const [zip, setZip] = useState("");
+  const [complement, setComplement] = useState("");
+
   const [payment, setPayment] = useState<Payment>("pix");
 
   // sandbox card fields
@@ -48,22 +67,41 @@ function CheckoutPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return toast.error("Informe seu nome");
+    if (!name.trim() || name.trim().length < 3) return toast.error("Informe seu nome completo");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return toast.error("Informe um email válido");
+    const phoneDigits = phone.replace(/\D/g, "");
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) return toast.error("WhatsApp inválido — inclua o DDD");
+
+    let shippingAddress = "Retirada na loja";
+    if (delivery === "delivery") {
+      if (!street.trim() || !number.trim() || !city.trim() || !stateUf.trim() || !zip.trim()) {
+        return toast.error("Preencha o endereço completo de entrega");
+      }
+      shippingAddress = [
+        `${street.trim()}, ${number.trim()}`,
+        complement.trim(),
+        district.trim(),
+        `${city.trim()} / ${stateUf.trim().toUpperCase()}`,
+        `CEP ${zip.trim()}`,
+      ].filter(Boolean).join(" · ");
+    }
+
     if (payment === "card") {
       if (cardNumber.replace(/\s/g, "").length < 13) return toast.error("Número do cartão inválido");
       if (cardCvv.length < 3) return toast.error("CVV inválido");
     }
+
     setBusy(true);
     try {
-      // Simulação de processamento de pagamento (sandbox)
       await new Promise((r) => setTimeout(r, 900));
 
       const { data, error } = await supabase.rpc("place_order", {
         p_customer_name: name.trim(),
-        p_customer_email: email.trim() || "",
-        p_customer_phone: phone.trim() || "",
-        p_shipping_address: address.trim() || "",
+        p_customer_email: email.trim(),
+        p_customer_phone: phoneDigits,
+        p_shipping_address: shippingAddress,
         p_payment_method: payment,
+        p_delivery_method: delivery,
         p_items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
       });
       if (error) throw error;
@@ -97,12 +135,44 @@ function CheckoutPage() {
       <form onSubmit={submit} className="container mx-auto px-4 py-6 grid lg:grid-cols-[1fr_380px] gap-6 flex-1">
         <div className="space-y-5">
           <Section title="Dados do cliente">
-            <Field label="Nome completo *" value={name} onChange={setName} required />
+            <Field label="Nome completo *" value={name} onChange={setName} required placeholder="Como aparece no documento" />
             <div className="grid sm:grid-cols-2 gap-3">
-              <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="voce@email.com" />
-              <Field label="Telefone" value={phone} onChange={setPhone} placeholder="(00) 00000-0000" />
+              <Field label="Email *" type="email" value={email} onChange={setEmail} required placeholder="voce@email.com" />
+              <Field label="WhatsApp (com DDD) *" value={phone} onChange={(v) => setPhone(maskPhone(v))} required placeholder="(41) 99999-9999" />
             </div>
-            <Field label="Endereço de entrega" value={address} onChange={setAddress} placeholder="Rua, número, bairro, cidade" />
+          </Section>
+
+          <Section title="Entrega ou retirada">
+            <div className="grid grid-cols-2 gap-2">
+              <DeliveryOption icon={<Truck className="h-5 w-5" />} label="Entrega" hint="Receba em casa" active={delivery === "delivery"} onClick={() => setDelivery("delivery")} />
+              <DeliveryOption icon={<Store className="h-5 w-5" />} label="Retirar na loja" hint="Colombo / PR" active={delivery === "pickup"} onClick={() => setDelivery("pickup")} />
+            </div>
+
+            {delivery === "delivery" && (
+              <div className="mt-4 space-y-3">
+                <div className="grid grid-cols-[1fr_120px] gap-3">
+                  <Field label="Rua / Avenida *" value={street} onChange={setStreet} required />
+                  <Field label="Número *" value={number} onChange={setNumber} required />
+                </div>
+                <Field label="Complemento" value={complement} onChange={setComplement} placeholder="Apto, bloco, referência" />
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <Field label="Bairro" value={district} onChange={setDistrict} />
+                  <Field label="CEP *" value={zip} onChange={setZip} required placeholder="00000-000" />
+                </div>
+                <div className="grid grid-cols-[1fr_80px] gap-3">
+                  <Field label="Cidade *" value={city} onChange={setCity} required />
+                  <Field label="UF *" value={stateUf} onChange={(v) => setStateUf(v.toUpperCase().slice(0, 2))} required placeholder="PR" />
+                </div>
+              </div>
+            )}
+
+            {delivery === "pickup" && (
+              <div className="mt-4 bg-secondary rounded-md p-4 text-sm">
+                <p className="font-semibold">Retire na loja</p>
+                <p className="text-muted-foreground mt-1">Rua, 2996 — Colombo / PR · Seg a Sáb · 9h às 18h</p>
+                <p className="text-xs text-muted-foreground mt-2">Avisaremos pelo WhatsApp quando o pedido estiver pronto.</p>
+              </div>
+            )}
           </Section>
 
           <Section title="Forma de pagamento">
@@ -158,7 +228,7 @@ function CheckoutPage() {
             <span className="font-semibold">{brl(total)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Frete</span>
+            <span className="text-muted-foreground">{delivery === "pickup" ? "Retirada" : "Frete"}</span>
             <span className="font-semibold">Grátis</span>
           </div>
           <div className="border-t border-border pt-3 flex justify-between items-baseline">
@@ -217,6 +287,22 @@ function PaymentOption({ icon, label, active, onClick }: { icon: React.ReactNode
     >
       {icon}
       <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
+    </button>
+  );
+}
+
+function DeliveryOption({ icon, label, hint, active, onClick }: { icon: React.ReactNode; label: string; hint: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-3 p-4 rounded-md border-2 text-left transition-all ${active ? "border-primary bg-primary/10" : "border-border hover:border-muted-foreground"}`}
+    >
+      <div className={active ? "text-primary" : "text-muted-foreground"}>{icon}</div>
+      <div>
+        <div className="text-sm font-bold uppercase tracking-wider">{label}</div>
+        <div className="text-[11px] text-muted-foreground">{hint}</div>
+      </div>
     </button>
   );
 }
