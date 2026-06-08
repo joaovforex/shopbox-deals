@@ -28,6 +28,11 @@ type OrderRow = {
   status: string;
   fulfillment_status: string;
   total: number;
+  label_status?: string | null;
+  label_generated_at?: string | null;
+  label_generated_by_name?: string | null;
+  label_printed_at?: string | null;
+  label_printed_by_name?: string | null;
 };
 
 type ItemRow = {
