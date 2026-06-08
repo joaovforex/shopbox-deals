@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Share2, ShoppingCart, MessageCircle, Minus, Plus, ArrowLeft, Copy } from "lucide-react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { brl, discountPct } from "@/lib/format";
-import { fetchProduct } from "@/lib/products";
+import { fetchProduct, isAdmin } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 
 export const Route = createFileRoute("/produto/$id")({
