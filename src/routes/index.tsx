@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Zap, Flame, Truck, ShieldCheck } from "lucide-react";
+import { Zap, Flame, Truck, ShieldCheck, Sparkles } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
 import { fetchProducts } from "@/lib/products";
