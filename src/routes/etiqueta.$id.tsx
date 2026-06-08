@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { Printer, Truck, Store } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Printer, Truck, Store, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 export const Route = createFileRoute("/etiqueta/$id")({
   head: () => ({ meta: [{ title: "Etiqueta · shopbox" }] }),
