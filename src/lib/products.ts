@@ -14,6 +14,8 @@ export type Product = {
   created_at: string;
 };
 
+export type TeamRole = "admin" | "catalog" | "fulfillment" | "user";
+
 export function productImages(p: Pick<Product, "images" | "image_url">): string[] {
   const arr = (p.images ?? []).filter(Boolean);
   if (arr.length > 0) return arr;
@@ -49,15 +51,23 @@ export async function uploadProductImage(file: File) {
   return data.signedUrl;
 }
 
-export async function isAdmin(): Promise<boolean> {
+export async function getMyRoles(): Promise<TeamRole[]> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
+  if (!user) return [];
   const { data, error } = await supabase
     .from("user_roles")
     .select("role")
-    .eq("user_id", user.id)
-    .eq("role", "admin")
-    .maybeSingle();
-  if (error) return false;
-  return !!data;
+    .eq("user_id", user.id);
+  if (error) return [];
+  return (data ?? []).map((r) => r.role as TeamRole);
+}
+
+export async function isAdmin(): Promise<boolean> {
+  const roles = await getMyRoles();
+  return roles.includes("admin");
+}
+
+export async function hasAnyRole(roles: TeamRole[]): Promise<boolean> {
+  const mine = await getMyRoles();
+  return mine.some((r) => roles.includes(r));
 }
