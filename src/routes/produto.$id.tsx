@@ -151,29 +151,40 @@ function ProductPage() {
             </div>
 
             {product.stock > 0 && (
-              <div className="flex items-center gap-3">
-                <div className="inline-flex items-center bg-secondary rounded-md">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="inline-flex items-center bg-secondary rounded-md">
+                    <button
+                      onClick={() => setQty((q) => Math.max(1, q - 1))}
+                      className="p-2 hover:bg-muted rounded-l-md"
+                      aria-label="Diminuir"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <span className="px-4 font-bold">{qty}</span>
+                    <button
+                      onClick={() => setQty((q) => Math.min(product.stock, q + 1))}
+                      className="p-2 hover:bg-muted rounded-r-md"
+                      aria-label="Aumentar"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
                   <button
-                    onClick={() => setQty((q) => Math.max(1, q - 1))}
-                    className="p-2 hover:bg-muted rounded-l-md"
-                    aria-label="Diminuir"
+                    onClick={addToCart}
+                    className="flex-1 inline-flex items-center justify-center gap-2 bg-secondary text-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:bg-muted transition-colors"
                   >
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <span className="px-4 font-bold">{qty}</span>
-                  <button
-                    onClick={() => setQty((q) => Math.min(product.stock, q + 1))}
-                    className="p-2 hover:bg-muted rounded-r-md"
-                    aria-label="Aumentar"
-                  >
-                    <Plus className="h-4 w-4" />
+                    <ShoppingCart className="h-5 w-5" /> Adicionar
                   </button>
                 </div>
                 <button
-                  onClick={addToCart}
-                  className="flex-1 inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:scale-[1.02] transition-transform shadow-deal"
+                  onClick={() => {
+                    add({ id: product.id, name: product.name, price: product.price, image_url: productImages(product)[0] ?? null }, qty);
+                    navigate({ to: "/checkout" });
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:scale-[1.02] transition-transform shadow-deal"
                 >
-                  <ShoppingCart className="h-5 w-5" /> Adicionar
+                  <CreditCard className="h-5 w-5" /> Comprar agora
                 </button>
               </div>
             )}
