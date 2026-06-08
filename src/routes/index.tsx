@@ -127,6 +127,11 @@ function Home() {
         </div>
       </section>
 
+      {/* Super discounts carousel */}
+      {superDiscounts.length > 0 && (
+        <DiscountCarousel products={superDiscounts} />
+      )}
+
       {/* Featured */}
       <section className="container mx-auto px-4 py-12">
         <div className="flex items-end justify-between mb-6">
