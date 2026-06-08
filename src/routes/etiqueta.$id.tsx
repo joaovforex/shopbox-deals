@@ -49,9 +49,12 @@ function LabelPage() {
     },
   });
 
+  const labelRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
+
   useEffect(() => {
     if (data?.order) {
-      const t = setTimeout(() => window.print(), 600);
+      const t = setTimeout(() => window.print(), 800);
       return () => clearTimeout(t);
     }
   }, [data]);
@@ -61,8 +64,6 @@ function LabelPage() {
 
   const o = data.order as any;
   const isPickup = o.delivery_method === "pickup";
-  const labelRef = useRef<HTMLDivElement>(null);
-  const [downloading, setDownloading] = useState(false);
 
   const handleDownloadPdf = async () => {
     if (!labelRef.current) return;
