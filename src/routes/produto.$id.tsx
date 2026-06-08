@@ -46,6 +46,7 @@ function ProductPage() {
     staleTime: 60_000,
   });
   const { add } = useCart();
+  const navigate = useNavigate();
   const [qty, setQty] = useState(1);
 
   if (isLoading || !product) {
