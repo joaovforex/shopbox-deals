@@ -39,6 +39,11 @@ function ProductPage() {
       return p;
     },
   });
+  const { data: admin = false } = useQuery({
+    queryKey: ["is-admin"],
+    queryFn: isAdmin,
+    staleTime: 60_000,
+  });
   const { add } = useCart();
   const [qty, setQty] = useState(1);
 
