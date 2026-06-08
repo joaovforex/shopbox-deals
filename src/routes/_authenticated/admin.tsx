@@ -342,7 +342,7 @@ function ProductForm({
 
 function Input({
   label, value, onChange, ...rest
-}: { label: string; value: string; onChange: (v: string) => void } & React.InputHTMLAttributes<HTMLInputElement>) {
+}: { label: string; value: string; onChange: (v: string) => void } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange" | "value">) {
   return (
     <label className="block">
       <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
