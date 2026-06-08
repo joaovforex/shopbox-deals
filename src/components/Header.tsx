@@ -60,7 +60,7 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {admin && (
+            {hasTeamRole && (
               <Link
                 to="/admin"
                 className="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-md bg-accent text-accent-foreground text-sm font-bold hover:opacity-90 transition-opacity"
