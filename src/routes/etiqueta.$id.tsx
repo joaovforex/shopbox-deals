@@ -61,6 +61,36 @@ function LabelPage() {
 
   const o = data.order as any;
   const isPickup = o.delivery_method === "pickup";
+  const labelRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (!labelRef.current) return;
+    setDownloading(true);
+    try {
+      const canvas = await html2canvas(labelRef.current, {
+        backgroundColor: "#ffffff",
+        scale: 3,
+        useCORS: true,
+      });
+      const img = canvas.toDataURL("image/jpeg", 0.95);
+      // A6: 105 x 148 mm
+      const pdf = new jsPDF({ unit: "mm", format: "a6", orientation: "portrait" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 6;
+      const maxW = pageW - margin * 2;
+      const maxH = pageH - margin * 2;
+      const ratio = canvas.width / canvas.height;
+      let w = maxW;
+      let h = w / ratio;
+      if (h > maxH) { h = maxH; w = h * ratio; }
+      pdf.addImage(img, "JPEG", (pageW - w) / 2, margin, w, h);
+      pdf.save(`etiqueta-${isPickup ? "retirada" : "envio"}-${o.id.slice(0, 8)}.pdf`);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <>
@@ -75,19 +105,30 @@ function LabelPage() {
 
       <div className="min-h-screen bg-muted py-6 px-4">
         <div className="max-w-md mx-auto">
-          <div className="no-print mb-4 flex items-center justify-between">
+          <div className="no-print mb-4 flex items-center justify-between gap-2">
             <div className="text-sm text-muted-foreground">
               Etiqueta de {isPickup ? "retirada" : "envio (padrão Correios)"}
             </div>
-            <button
-              onClick={() => window.print()}
-              className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground font-bold text-xs uppercase tracking-wider px-3 py-2 rounded"
-            >
-              <Printer className="h-3.5 w-3.5" /> Imprimir
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDownloadPdf}
+                disabled={downloading}
+                className="inline-flex items-center gap-1.5 bg-secondary hover:bg-muted text-foreground font-bold text-xs uppercase tracking-wider px-3 py-2 rounded disabled:opacity-50"
+              >
+                <Download className="h-3.5 w-3.5" /> {downloading ? "Gerando..." : "PDF"}
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="inline-flex items-center gap-1.5 bg-primary text-primary-foreground font-bold text-xs uppercase tracking-wider px-3 py-2 rounded"
+              >
+                <Printer className="h-3.5 w-3.5" /> Imprimir
+              </button>
+            </div>
           </div>
 
-          {isPickup ? <PickupLabel o={o} items={data.items} /> : <ShippingLabel o={o} items={data.items} />}
+          <div ref={labelRef}>
+            {isPickup ? <PickupLabel o={o} items={data.items} /> : <ShippingLabel o={o} items={data.items} />}
+          </div>
         </div>
       </div>
     </>
