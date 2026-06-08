@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Truck, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter } from "lucide-react";
+import { ArrowLeft, Truck, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { hasAnyRole } from "@/lib/products";
@@ -299,8 +299,19 @@ function FulfillmentPage() {
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 text-xs bg-secondary hover:bg-muted px-3 py-2 rounded font-bold uppercase tracking-wider"
                     >
-                      <Printer className="h-3.5 w-3.5" /> Etiqueta {labelType}
+                      <Printer className="h-3.5 w-3.5" /> {o.label_status === "generated" ? "Reimprimir" : "Etiqueta"} {labelType}
                     </a>
+                    {o.label_status === "generated" && (
+                      <a
+                        href={`/etiqueta/${o.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs bg-accent/20 text-accent hover:bg-accent/30 px-3 py-2 rounded font-bold uppercase tracking-wider"
+                        title="Abrir etiqueta novamente para reimpressão"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" /> Reimprimir
+                      </a>
+                    )}
                     {o.fulfillment_status !== "completed" && (
                       <button
                         onClick={() => advance(o)}
