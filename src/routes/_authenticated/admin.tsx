@@ -124,16 +124,30 @@ function AdminPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
-              to="/admin/pedidos"
-              className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-black uppercase tracking-wider px-5 py-3 rounded-md hover:opacity-90"
+              to="/admin/expedicao"
+              className="inline-flex items-center gap-2 bg-card border-2 border-primary text-primary font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-primary hover:text-primary-foreground text-sm"
             >
-              <BarChart3 className="h-5 w-5" /> Pedidos & Relatórios
+              <Truck className="h-4 w-4" /> Expedição
             </Link>
+            <Link
+              to="/admin/pedidos"
+              className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md hover:opacity-90 text-sm"
+            >
+              <BarChart3 className="h-4 w-4" /> Pedidos
+            </Link>
+            {isAdminUser && (
+              <Link
+                to="/admin/equipe"
+                className="inline-flex items-center gap-2 bg-card border border-border font-black uppercase tracking-wider px-4 py-3 rounded-md hover:border-primary text-sm"
+              >
+                <Users className="h-4 w-4" /> Equipe
+              </Link>
+            )}
             <button
               onClick={() => { setEditing(null); setShowForm(true); }}
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-5 py-3 rounded-md shadow-deal hover:scale-[1.02]"
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] text-sm"
             >
-              <Plus className="h-5 w-5" /> Novo produto
+              <Plus className="h-4 w-4" /> Novo produto
             </button>
           </div>
         </div>
