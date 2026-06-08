@@ -128,8 +128,38 @@
   .ticker {
     animation: ticker 30s linear infinite;
   }
+  .safe-area {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .glow-primary {
+    box-shadow: 0 0 40px -8px color-mix(in oklab, var(--primary) 60%, transparent);
+  }
   @keyframes ticker {
     from { transform: translateX(0); }
     to   { transform: translateX(-50%); }
+  }
+  @keyframes float-slow {
+    0%, 100% { transform: translateY(0) rotate(3deg); }
+    50% { transform: translateY(-12px) rotate(3deg); }
+  }
+  .animate-float { animation: float-slow 5s ease-in-out infinite; }
+
+  @keyframes pulse-deal {
+    0%, 100% { transform: scale(1) rotate(-12deg); }
+    50% { transform: scale(1.08) rotate(-12deg); }
+  }
+  .animate-pulse-deal { animation: pulse-deal 1.6s ease-in-out infinite; }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .shimmer-text {
+    background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 25%, var(--primary) 50%, var(--accent) 75%, var(--primary) 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 4s linear infinite;
   }
 }

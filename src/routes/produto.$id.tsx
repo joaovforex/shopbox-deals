@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Share2, ShoppingCart, MessageCircle, Minus, Plus, ArrowLeft, Copy } from "lucide-react";
-import { Header, Footer } from "@/components/Header";
+import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { brl, discountPct } from "@/lib/format";
 import { fetchProduct } from "@/lib/products";
 import { useCart } from "@/lib/cart";
@@ -207,6 +207,7 @@ function ProductPage() {
       </div>
 
       <Footer />
+      <MobileBottomNav />
     </div>
   );
 }
