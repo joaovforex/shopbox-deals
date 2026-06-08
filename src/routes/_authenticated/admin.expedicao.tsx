@@ -205,6 +205,25 @@ function FulfillmentPage() {
                     <span className="font-bold text-price">{brl(Number(o.total))}</span>
                   </div>
 
+                  <div className="text-[11px] text-muted-foreground bg-secondary/40 rounded px-2 py-1.5 space-y-0.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold uppercase tracking-wider text-[10px]">Etiqueta</span>
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                        o.label_status === "printed" ? "bg-[#25D366]/20 text-[#25D366]" :
+                        o.label_status === "generated" ? "bg-accent/20 text-accent" :
+                        "bg-muted text-muted-foreground"
+                      }`}>
+                        {o.label_status === "printed" ? "Impressa" : o.label_status === "generated" ? "Gerada" : "Não gerada"}
+                      </span>
+                    </div>
+                    {o.label_generated_at && (
+                      <div>Gerada {new Date(o.label_generated_at).toLocaleString("pt-BR")}{o.label_generated_by_name ? ` · ${o.label_generated_by_name}` : ""}</div>
+                    )}
+                    {o.label_printed_at && (
+                      <div>Impressa {new Date(o.label_printed_at).toLocaleString("pt-BR")}{o.label_printed_by_name ? ` · ${o.label_printed_by_name}` : ""}</div>
+                    )}
+                  </div>
+
                   <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
                     <a
                       href={`/etiqueta/${o.id}`}
