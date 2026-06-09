@@ -281,7 +281,7 @@ function OrdersPanel() {
                     <th className="p-3">Entrega</th>
                     <th className="p-3">Pagamento</th>
                     <th className="p-3 text-right">Total</th>
-                    <th className="p-3 text-right">Ações</th>
+                    {superAdmin && <th className="p-3 text-right">Ações</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -305,16 +305,18 @@ function OrdersPanel() {
                       </td>
                       <td className="p-3 text-xs uppercase">{o.payment_method}</td>
                       <td className="p-3 text-right font-bold text-price">{brl(Number(o.total))}</td>
-                      <td className="p-3 text-right">
-                        <button
-                          onClick={() => deleteOrder(o.id)}
-                          disabled={busy}
-                          title="Excluir pedido"
-                          className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-destructive hover:bg-destructive/10 px-2 py-1 rounded disabled:opacity-50"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" /> Excluir
-                        </button>
-                      </td>
+                      {superAdmin && (
+                        <td className="p-3 text-right">
+                          <button
+                            onClick={() => deleteOrder(o.id)}
+                            disabled={busy}
+                            title="Excluir pedido"
+                            className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-destructive hover:bg-destructive/10 px-2 py-1 rounded disabled:opacity-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Excluir
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
