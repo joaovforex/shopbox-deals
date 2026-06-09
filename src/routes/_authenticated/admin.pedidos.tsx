@@ -109,6 +109,45 @@ function OrdersPanel() {
 
   const insight = useMemo(() => generateInsight(stats.ranking, stats.orders.length, period), [stats, period]);
 
+  async function deleteOrder(id: string) {
+    if (!confirm("Excluir este pedido? Esta ação não pode ser desfeita.")) return;
+    setBusy(true);
+    try {
+      const { error: e1 } = await supabase.from("order_items").delete().eq("order_id", id);
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.from("orders").delete().eq("id", id);
+      if (e2) throw e2;
+      toast.success("Pedido excluído");
+      qc.invalidateQueries({ queryKey: ["admin-orders"] });
+    } catch (err: any) {
+      toast.error("Falha ao excluir: " + (err?.message ?? "erro"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function wipeAll() {
+    if (wipeConfirm !== "EXCLUIR TUDO") {
+      toast.error('Digite "EXCLUIR TUDO" para confirmar');
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error: e1 } = await supabase.from("order_items").delete().not("id", "is", null);
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.from("orders").delete().not("id", "is", null);
+      if (e2) throw e2;
+      toast.success("Todos os pedidos foram excluídos");
+      setWipeOpen(false);
+      setWipeConfirm("");
+      qc.invalidateQueries({ queryKey: ["admin-orders"] });
+    } catch (err: any) {
+      toast.error("Falha ao limpar: " + (err?.message ?? "erro"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (admin === null) {
     return <Shell><div className="flex-1 flex items-center justify-center">Carregando...</div></Shell>;
   }
