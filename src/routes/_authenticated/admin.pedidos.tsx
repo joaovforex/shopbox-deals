@@ -5,7 +5,7 @@ import { ArrowLeft, TrendingUp, Package, DollarSign, ShoppingBag, Sparkles, Truc
 import { toast } from "sonner";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
-import { isAdmin } from "@/lib/products";
+import { isAdmin, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/admin/pedidos")({
@@ -48,13 +48,17 @@ function startOf(period: Period): Date | null {
 
 function OrdersPanel() {
   const [admin, setAdmin] = useState<boolean | null>(null);
+  const [superAdmin, setSuperAdmin] = useState<boolean | null>(null);
   const [period, setPeriod] = useState<Period>("day");
   const [wipeOpen, setWipeOpen] = useState(false);
   const [wipeConfirm, setWipeConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
 
-  useEffect(() => { isAdmin().then(setAdmin); }, []);
+  useEffect(() => {
+    isAdmin().then(setAdmin);
+    isSuperAdmin().then(setSuperAdmin);
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-orders", period],
@@ -277,7 +281,7 @@ function OrdersPanel() {
                     <th className="p-3">Entrega</th>
                     <th className="p-3">Pagamento</th>
                     <th className="p-3 text-right">Total</th>
-                    <th className="p-3 text-right">Ações</th>
+                    {superAdmin && <th className="p-3 text-right">Ações</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -301,16 +305,18 @@ function OrdersPanel() {
                       </td>
                       <td className="p-3 text-xs uppercase">{o.payment_method}</td>
                       <td className="p-3 text-right font-bold text-price">{brl(Number(o.total))}</td>
-                      <td className="p-3 text-right">
-                        <button
-                          onClick={() => deleteOrder(o.id)}
-                          disabled={busy}
-                          title="Excluir pedido"
-                          className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-destructive hover:bg-destructive/10 px-2 py-1 rounded disabled:opacity-50"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" /> Excluir
-                        </button>
-                      </td>
+                      {superAdmin && (
+                        <td className="p-3 text-right">
+                          <button
+                            onClick={() => deleteOrder(o.id)}
+                            disabled={busy}
+                            title="Excluir pedido"
+                            className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-destructive hover:bg-destructive/10 px-2 py-1 rounded disabled:opacity-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Excluir
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -320,56 +326,58 @@ function OrdersPanel() {
         </div>
 
         {/* Danger zone */}
-        <div className="border-2 border-destructive/40 rounded-lg p-5 bg-destructive/5">
-          <div className="flex items-start gap-3">
-            <div className="bg-destructive text-destructive-foreground rounded-md p-2 flex-shrink-0">
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-            <div className="flex-1">
-              <h2 className="display text-xl mb-1 text-destructive">Zona de perigo</h2>
-              <p className="text-sm text-muted-foreground mb-3">
-                Apaga TODOS os pedidos e itens da base. As métricas serão zeradas. Não pode ser desfeito.
-              </p>
-              {!wipeOpen ? (
-                <button
-                  onClick={() => setWipeOpen(true)}
-                  className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-bold uppercase tracking-wider text-xs px-4 py-2 rounded hover:opacity-90"
-                >
-                  <Trash2 className="h-4 w-4" /> Limpar todos os pedidos
-                </button>
-              ) : (
-                <div className="space-y-2 max-w-md">
-                  <label className="text-xs font-bold uppercase tracking-wider text-destructive">
-                    Digite <span className="font-mono">EXCLUIR TUDO</span> para confirmar:
-                  </label>
-                  <input
-                    type="text"
-                    value={wipeConfirm}
-                    onChange={(e) => setWipeConfirm(e.target.value)}
-                    placeholder="EXCLUIR TUDO"
-                    className="w-full px-3 py-2 rounded border border-destructive/40 bg-background font-mono text-sm focus:outline-none focus:ring-2 focus:ring-destructive"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={wipeAll}
-                      disabled={busy || wipeConfirm !== "EXCLUIR TUDO"}
-                      className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-bold uppercase tracking-wider text-xs px-4 py-2 rounded hover:opacity-90 disabled:opacity-50"
-                    >
-                      <Trash2 className="h-4 w-4" /> Confirmar exclusão total
-                    </button>
-                    <button
-                      onClick={() => { setWipeOpen(false); setWipeConfirm(""); }}
-                      disabled={busy}
-                      className="text-xs font-bold uppercase tracking-wider px-4 py-2 rounded border border-border hover:bg-secondary"
-                    >
-                      Cancelar
-                    </button>
+        {superAdmin && (
+          <div className="border-2 border-destructive/40 rounded-lg p-5 bg-destructive/5">
+            <div className="flex items-start gap-3">
+              <div className="bg-destructive text-destructive-foreground rounded-md p-2 flex-shrink-0">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <h2 className="display text-xl mb-1 text-destructive">Zona de perigo</h2>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Apaga TODOS os pedidos e itens da base. As métricas serão zeradas. Não pode ser desfeito.
+                </p>
+                {!wipeOpen ? (
+                  <button
+                    onClick={() => setWipeOpen(true)}
+                    className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-bold uppercase tracking-wider text-xs px-4 py-2 rounded hover:opacity-90"
+                  >
+                    <Trash2 className="h-4 w-4" /> Limpar todos os pedidos
+                  </button>
+                ) : (
+                  <div className="space-y-2 max-w-md">
+                    <label className="text-xs font-bold uppercase tracking-wider text-destructive">
+                      Digite <span className="font-mono">EXCLUIR TUDO</span> para confirmar:
+                    </label>
+                    <input
+                      type="text"
+                      value={wipeConfirm}
+                      onChange={(e) => setWipeConfirm(e.target.value)}
+                      placeholder="EXCLUIR TUDO"
+                      className="w-full px-3 py-2 rounded border border-destructive/40 bg-background font-mono text-sm focus:outline-none focus:ring-2 focus:ring-destructive"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={wipeAll}
+                        disabled={busy || wipeConfirm !== "EXCLUIR TUDO"}
+                        className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-bold uppercase tracking-wider text-xs px-4 py-2 rounded hover:opacity-90 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-4 w-4" /> Confirmar exclusão total
+                      </button>
+                      <button
+                        onClick={() => { setWipeOpen(false); setWipeConfirm(""); }}
+                        disabled={busy}
+                        className="text-xs font-bold uppercase tracking-wider px-4 py-2 rounded border border-border hover:bg-secondary"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </section>
     </Shell>
   );
