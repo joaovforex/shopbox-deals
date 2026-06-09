@@ -48,13 +48,17 @@ function startOf(period: Period): Date | null {
 
 function OrdersPanel() {
   const [admin, setAdmin] = useState<boolean | null>(null);
+  const [superAdmin, setSuperAdmin] = useState<boolean | null>(null);
   const [period, setPeriod] = useState<Period>("day");
   const [wipeOpen, setWipeOpen] = useState(false);
   const [wipeConfirm, setWipeConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
 
-  useEffect(() => { isAdmin().then(setAdmin); }, []);
+  useEffect(() => {
+    isAdmin().then(setAdmin);
+    isSuperAdmin().then(setSuperAdmin);
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-orders", period],
