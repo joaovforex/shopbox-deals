@@ -28,23 +28,31 @@ export const Route = createFileRoute("/produto/$id")({
     const rawImage = imgs[0] ?? "";
     const image = rawImage.startsWith("http") ? rawImage : rawImage ? `${origin}${rawImage}` : "";
     const off = discountPct(product.original_price, product.price);
-    const priceLabel = off > 0
-      ? `${product.name} — ${brl(product.price)} (${off}% OFF)`
-      : `${product.name} — ${brl(product.price)}`;
+    const hasDiscount = !!(product.original_price && product.original_price > product.price);
+    const priceLine = hasDiscount
+      ? `De ${brl(product.original_price!)} Por ${brl(product.price)} 🤑${off > 0 ? ` (${off}% OFF)` : ""}`
+      : `Por ${brl(product.price)} 🤑`;
+    const descBody = product.description ? `\n\n${product.description}` : "";
+    const ogDescription = `${priceLine}${descBody}`;
     return {
       meta: [
         { title: `${product.name} — Shopbox` },
-        { name: "description", content: product.description || `Compre ${product.name} na Shopbox.` },
-        { property: "og:title", content: priceLabel },
-        { property: "og:description", content: product.description || "" },
+        { name: "description", content: priceLine + (product.description ? ` — ${product.description}` : "") },
+        { property: "og:title", content: product.name },
+        { property: "og:description", content: ogDescription },
         { property: "og:image", content: image },
+        { property: "og:image:secure_url", content: image },
+        { property: "og:image:alt", content: product.name },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
         { property: "og:type", content: "product" },
+        { property: "og:site_name", content: "Shopbox" },
         { property: "og:url", content: `${origin}/produto/${product.id}` },
         { property: "product:price:amount", content: String(product.price) },
         { property: "product:price:currency", content: "BRL" },
         { name: "twitter:card", content: "summary_large_image" },
-        { name: "twitter:title", content: priceLabel },
-        { name: "twitter:description", content: product.description || "" },
+        { name: "twitter:title", content: product.name },
+        { name: "twitter:description", content: ogDescription },
         { name: "twitter:image", content: image },
       ],
     };
