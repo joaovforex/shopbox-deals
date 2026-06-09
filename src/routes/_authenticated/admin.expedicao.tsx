@@ -2,11 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw } from "lucide-react";
+import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, Bell, CheckCheck } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { hasAnyRole } from "@/lib/products";
 import { brl } from "@/lib/format";
+import { openWhatsApp, orderReminderMessage, orderDeliveredMessage } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/_authenticated/admin/expedicao")({
   head: () => ({ meta: [{ title: "Expedição · Admin" }] }),
@@ -105,6 +106,30 @@ function FulfillmentPage() {
     },
   });
 
+  // Atualização em tempo real: novos pedidos + mudanças
+  useEffect(() => {
+    if (allowed !== true) return;
+    const channel = supabase
+      .channel("expedicao-orders")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orders" },
+        (payload) => {
+          qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
+          if (payload.eventType === "INSERT") {
+            const row = payload.new as { customer_name?: string; delivery_method?: string };
+            if (row.delivery_method === "pickup") {
+              toast.success(`Novo pedido de ${row.customer_name ?? "cliente"}`);
+            }
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [allowed, qc]);
+
   const advance = async (o: OrderRow) => {
     const ns = nextStatus(o.fulfillment_status, o.delivery_method);
     if (ns === o.fulfillment_status) return;
@@ -112,6 +137,19 @@ function FulfillmentPage() {
     if (error) return toast.error(error.message);
     toast.success(`Status atualizado para "${STATUS_LABEL[ns]}"`);
     qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
+  };
+
+  const markDelivered = async (o: OrderRow) => {
+    const { error } = await supabase.from("orders").update({ fulfillment_status: "completed" } as never).eq("id", o.id);
+    if (error) return toast.error(error.message);
+    openWhatsApp(o.customer_phone, orderDeliveredMessage(o.customer_name, o.id));
+    toast.success("Pedido marcado como entregue. Mensagem de agradecimento aberta.");
+    qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
+  };
+
+  const remindCustomer = (o: OrderRow) => {
+    if (!o.customer_phone) return toast.error("Cliente sem telefone cadastrado.");
+    openWhatsApp(o.customer_phone, orderReminderMessage(o.customer_name, o.id));
   };
 
   const itemsByOrder = useMemo(() => {
@@ -321,6 +359,24 @@ function FulfillmentPage() {
                         className="inline-flex items-center gap-1.5 text-xs bg-primary text-primary-foreground hover:opacity-90 px-3 py-2 rounded font-bold uppercase tracking-wider"
                       >
                         Avançar → {STATUS_LABEL[nextStatus(o.fulfillment_status, o.delivery_method)]}
+                      </button>
+                    )}
+                    {o.fulfillment_status === "ready" && o.customer_phone && (
+                      <button
+                        onClick={() => remindCustomer(o)}
+                        className="inline-flex items-center gap-1.5 text-xs bg-accent/20 text-accent hover:bg-accent/30 px-3 py-2 rounded font-bold uppercase tracking-wider"
+                        title="Enviar lembrete via WhatsApp"
+                      >
+                        <Bell className="h-3.5 w-3.5" /> Lembrar cliente
+                      </button>
+                    )}
+                    {o.fulfillment_status !== "completed" && (
+                      <button
+                        onClick={() => markDelivered(o)}
+                        className="inline-flex items-center gap-1.5 text-xs bg-[#25D366] text-white hover:opacity-90 px-3 py-2 rounded font-bold uppercase tracking-wider"
+                        title="Confirmar entrega ao cliente e enviar agradecimento"
+                      >
+                        <CheckCheck className="h-3.5 w-3.5" /> Entregue
                       </button>
                     )}
                   </div>

@@ -49,3 +49,30 @@ export function orderReadyMessage(customerName: string, orderId: string) {
     `Te esperamos!`,
   ].join("\n");
 }
+
+export function orderReminderMessage(customerName: string, orderId: string) {
+  const shortId = orderId.slice(0, 8).toUpperCase();
+  return [
+    `Olá, ${customerName}!`,
+    ``,
+    `Passando para lembrar que seu pedido *#${shortId}* já está *separado e aguardando retirada* na nossa loja.`,
+    ``,
+    `Endereço: ${STORE_ADDRESS}`,
+    `Horário: ${STORE_HOURS}`,
+    ``,
+    `Qualquer dúvida é só responder por aqui.`,
+  ].join("\n");
+}
+
+export function orderDeliveredMessage(customerName: string, orderId: string) {
+  const shortId = orderId.slice(0, 8).toUpperCase();
+  return [
+    `Olá, ${customerName}!`,
+    ``,
+    `Confirmamos a *retirada do seu pedido #${shortId}*.`,
+    ``,
+    `Muito obrigado pela compra! Esperamos te ver novamente em breve.`,
+    ``,
+    `Se puder, conte para a gente como foi sua experiência — sua opinião é muito importante!`,
+  ].join("\n");
+}
