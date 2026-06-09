@@ -23,29 +23,29 @@ export function openWhatsApp(phone: string | null | undefined, message: string) 
 export function orderPaidMessage(customerName: string, orderId: string) {
   const shortId = orderId.slice(0, 8).toUpperCase();
   return [
-    `Olá, ${customerName}! ✅`,
+    `Olá, ${customerName}!`,
     ``,
     `Seu pedido *#${shortId}* foi confirmado e já está em *separação*.`,
     ``,
     `Assim que estiver pronto, você receberá um novo aviso para retirada.`,
     ``,
-    `📍 ${STORE_ADDRESS}`,
-    `🕒 ${STORE_HOURS}`,
+    `Endereço: ${STORE_ADDRESS}`,
+    `Horário: ${STORE_HOURS}`,
     ``,
-    `Obrigado pela compra! 💛`,
+    `Obrigado pela compra!`,
   ].join("\n");
 }
 
 export function orderReadyMessage(customerName: string, orderId: string) {
   const shortId = orderId.slice(0, 8).toUpperCase();
   return [
-    `Olá, ${customerName}! 📦`,
+    `Olá, ${customerName}!`,
     ``,
     `Seu pedido *#${shortId}* já está *separado e pronto para retirada* em até *1 hora*.`,
     ``,
-    `📍 ${STORE_ADDRESS}`,
-    `🕒 ${STORE_HOURS}`,
+    `Endereço: ${STORE_ADDRESS}`,
+    `Horário: ${STORE_HOURS}`,
     ``,
-    `Te esperamos! 💛`,
+    `Te esperamos!`,
   ].join("\n");
 }
