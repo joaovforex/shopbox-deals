@@ -278,14 +278,12 @@ function ProductPage() {
                   <Share2 className="h-4 w-4" /> Compartilhar (admin)
                 </h3>
                 <div className="grid grid-cols-3 gap-2">
-                  <a
-                    href={waShare}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    onClick={shareWithImage}
                     className="inline-flex items-center justify-center gap-2 bg-[#25D366] text-black font-bold px-3 py-3 rounded-md hover:opacity-90 text-sm"
                   >
                     <MessageCircle className="h-4 w-4" /> WhatsApp
-                  </a>
+                  </button>
                   <button
                     onClick={nativeShare}
                     className="inline-flex items-center justify-center gap-2 bg-accent text-accent-foreground font-bold px-3 py-3 rounded-md hover:opacity-90 text-sm"
