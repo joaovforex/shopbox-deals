@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CreditCard, QrCode, FileText, Lock, ArrowLeft, Truck, Store } from "lucide-react";
+import { CreditCard, QrCode, Lock, ArrowLeft, Truck, Store } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { useCart } from "@/lib/cart";
 import { brl } from "@/lib/format";
@@ -12,7 +12,7 @@ export const Route = createFileRoute("/checkout")({
   component: CheckoutPage,
 });
 
-type Payment = "pix" | "card" | "boleto";
+type Payment = "pix" | "card";
 type Delivery = "delivery" | "pickup";
 
 // (00) 00000-0000 — DDD + número
@@ -174,10 +174,9 @@ function CheckoutPage() {
           </Section>
 
           <Section title="Forma de pagamento">
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <PaymentOption icon={<QrCode className="h-5 w-5" />} label="Pix" active={payment === "pix"} onClick={() => setPayment("pix")} />
               <PaymentOption icon={<CreditCard className="h-5 w-5" />} label="Cartão" active={payment === "card"} onClick={() => setPayment("card")} />
-              <PaymentOption icon={<FileText className="h-5 w-5" />} label="Boleto" active={payment === "boleto"} onClick={() => setPayment("boleto")} />
             </div>
 
             {payment === "pix" && (
@@ -202,12 +201,6 @@ function CheckoutPage() {
               </div>
             )}
 
-            {payment === "boleto" && (
-              <div className="mt-4 bg-secondary rounded-md p-4 text-sm">
-                <p>Boleto será gerado após confirmar. Vencimento em 3 dias úteis.</p>
-                <p className="text-xs text-muted-foreground mt-2">No sandbox o pagamento é aprovado automaticamente.</p>
-              </div>
-            )}
           </Section>
         </div>
 
