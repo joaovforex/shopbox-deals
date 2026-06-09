@@ -56,7 +56,11 @@ function OrdersPanel() {
     enabled: admin === true,
     queryFn: async () => {
       const since = startOf(period);
-      let q = supabase.from("orders").select("*").order("created_at", { ascending: false });
+      let q = supabase
+        .from("orders")
+        .select("*")
+        .neq("status", "cancelled")
+        .order("created_at", { ascending: false });
       if (since) q = q.gte("created_at", since.toISOString());
       const { data: orders, error } = await q;
       if (error) throw error;
