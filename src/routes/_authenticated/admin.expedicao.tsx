@@ -361,6 +361,24 @@ function FulfillmentPage() {
                         Avançar → {STATUS_LABEL[nextStatus(o.fulfillment_status, o.delivery_method)]}
                       </button>
                     )}
+                    {o.fulfillment_status === "ready" && o.customer_phone && (
+                      <button
+                        onClick={() => remindCustomer(o)}
+                        className="inline-flex items-center gap-1.5 text-xs bg-accent/20 text-accent hover:bg-accent/30 px-3 py-2 rounded font-bold uppercase tracking-wider"
+                        title="Enviar lembrete via WhatsApp"
+                      >
+                        <Bell className="h-3.5 w-3.5" /> Lembrar cliente
+                      </button>
+                    )}
+                    {o.fulfillment_status !== "completed" && (
+                      <button
+                        onClick={() => markDelivered(o)}
+                        className="inline-flex items-center gap-1.5 text-xs bg-[#25D366] text-white hover:opacity-90 px-3 py-2 rounded font-bold uppercase tracking-wider"
+                        title="Confirmar entrega ao cliente e enviar agradecimento"
+                      >
+                        <CheckCheck className="h-3.5 w-3.5" /> Entregue
+                      </button>
+                    )}
                   </div>
                 </article>
               );
