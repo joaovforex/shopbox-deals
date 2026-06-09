@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CreditCard, QrCode, Lock, ArrowLeft, Truck, Store } from "lucide-react";
+import { CreditCard, QrCode, Lock, ArrowLeft, Store } from "lucide-react";
+import { openWhatsApp, orderPaidMessage, STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
 import { Header, Footer } from "@/components/Header";
 import { useCart } from "@/lib/cart";
 import { brl } from "@/lib/format";
@@ -13,7 +14,7 @@ export const Route = createFileRoute("/checkout")({
 });
 
 type Payment = "pix" | "card";
-type Delivery = "delivery" | "pickup";
+const delivery = "pickup" as const;
 
 // (00) 00000-0000 — DDD + número
 function maskPhone(v: string) {
@@ -31,16 +32,6 @@ function CheckoutPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [delivery, setDelivery] = useState<Delivery>("delivery");
-
-  // address fields
-  const [street, setStreet] = useState("");
-  const [number, setNumber] = useState("");
-  const [district, setDistrict] = useState("");
-  const [city, setCity] = useState("");
-  const [stateUf, setStateUf] = useState("");
-  const [zip, setZip] = useState("");
-  const [complement, setComplement] = useState("");
 
   const [payment, setPayment] = useState<Payment>("pix");
 
@@ -72,12 +63,6 @@ function CheckoutPage() {
     const phoneDigits = phone.replace(/\D/g, "");
     if (phoneDigits.length < 10 || phoneDigits.length > 11) return toast.error("WhatsApp inválido — inclua o DDD");
 
-    if (delivery === "delivery") {
-      if (!street.trim() || !number.trim() || !city.trim() || !stateUf.trim() || !zip.trim()) {
-        return toast.error("Preencha o endereço completo de entrega");
-      }
-    }
-
     if (payment === "card") {
       if (cardNumber.replace(/\s/g, "").length < 13) return toast.error("Número do cartão inválido");
       if (cardCvv.length < 3) return toast.error("CVV inválido");
@@ -94,18 +79,19 @@ function CheckoutPage() {
         p_payment_method: payment,
         p_delivery_method: delivery,
         p_items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
-        p_zip: delivery === "delivery" ? zip.trim() : null,
-        p_street: delivery === "delivery" ? street.trim() : null,
-        p_number: delivery === "delivery" ? number.trim() : null,
-        p_complement: delivery === "delivery" ? complement.trim() : null,
-        p_district: delivery === "delivery" ? district.trim() : null,
-        p_city: delivery === "delivery" ? city.trim() : null,
-        p_state: delivery === "delivery" ? stateUf.trim().toUpperCase() : null,
+        p_zip: null,
+        p_street: null,
+        p_number: null,
+        p_complement: null,
+        p_district: null,
+        p_city: null,
+        p_state: null,
       } as never);
       if (error) throw error;
       const orderId = data as string;
       clear();
       toast.success("Pagamento aprovado!");
+      openWhatsApp(phoneDigits, orderPaidMessage(name.trim(), orderId));
       navigate({ to: "/pedido/$id", params: { id: orderId } });
     } catch (err: any) {
       toast.error(err.message ?? "Erro ao finalizar pedido");
@@ -140,37 +126,18 @@ function CheckoutPage() {
             </div>
           </Section>
 
-          <Section title="Entrega ou retirada">
-            <div className="grid grid-cols-2 gap-2">
-              <DeliveryOption icon={<Truck className="h-5 w-5" />} label="Entrega" hint="Receba em casa" active={delivery === "delivery"} onClick={() => setDelivery("delivery")} />
-              <DeliveryOption icon={<Store className="h-5 w-5" />} label="Retirar na loja" hint="Colombo / PR" active={delivery === "pickup"} onClick={() => setDelivery("pickup")} />
-            </div>
-
-            {delivery === "delivery" && (
-              <div className="mt-4 space-y-3">
-                <div className="grid grid-cols-[1fr_120px] gap-3">
-                  <Field label="Rua / Avenida *" value={street} onChange={setStreet} required />
-                  <Field label="Número *" value={number} onChange={setNumber} required />
-                </div>
-                <Field label="Complemento" value={complement} onChange={setComplement} placeholder="Apto, bloco, referência" />
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <Field label="Bairro" value={district} onChange={setDistrict} />
-                  <Field label="CEP *" value={zip} onChange={setZip} required placeholder="00000-000" />
-                </div>
-                <div className="grid grid-cols-[1fr_80px] gap-3">
-                  <Field label="Cidade *" value={city} onChange={setCity} required />
-                  <Field label="UF *" value={stateUf} onChange={(v) => setStateUf(v.toUpperCase().slice(0, 2))} required placeholder="PR" />
-                </div>
-              </div>
-            )}
-
-            {delivery === "pickup" && (
-              <div className="mt-4 bg-secondary rounded-md p-4 text-sm">
+          <Section title="Retirada na loja">
+            <div className="bg-secondary rounded-md p-4 text-sm flex gap-3">
+              <Store className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div>
                 <p className="font-semibold">Retire na loja</p>
-                <p className="text-muted-foreground mt-1">Rua, 2996 — Colombo / PR · Seg a Sáb · 9h às 18h</p>
-                <p className="text-xs text-muted-foreground mt-2">Avisaremos pelo WhatsApp quando o pedido estiver pronto.</p>
+                <p className="text-muted-foreground mt-1">{STORE_ADDRESS}</p>
+                <p className="text-muted-foreground">{STORE_HOURS}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Você receberá um aviso no WhatsApp assim que o pedido for confirmado e novamente quando estiver pronto para retirada (em até 1h após separação).
+                </p>
               </div>
-            )}
+            </div>
           </Section>
 
           <Section title="Forma de pagamento">
@@ -278,22 +245,6 @@ function PaymentOption({ icon, label, active, onClick }: { icon: React.ReactNode
     >
       {icon}
       <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
-    </button>
-  );
-}
-
-function DeliveryOption({ icon, label, hint, active, onClick }: { icon: React.ReactNode; label: string; hint: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center gap-3 p-4 rounded-md border-2 text-left transition-all ${active ? "border-primary bg-primary/10" : "border-border hover:border-muted-foreground"}`}
-    >
-      <div className={active ? "text-primary" : "text-muted-foreground"}>{icon}</div>
-      <div>
-        <div className="text-sm font-bold uppercase tracking-wider">{label}</div>
-        <div className="text-[11px] text-muted-foreground">{hint}</div>
-      </div>
     </button>
   );
 }

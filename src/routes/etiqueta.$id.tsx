@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Printer, Truck, Store, Download } from "lucide-react";
+import { Printer, Truck, Store, Download, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
+import { openWhatsApp, orderReadyMessage } from "@/lib/whatsapp";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
@@ -28,7 +29,7 @@ function formatCep(z: string | null) {
 
 const STORE = {
   name: "shopbox",
-  street: "Rua Principal",
+  street: "Rua Abel Scuissiato",
   number: "2996",
   district: "Centro",
   city: "Colombo",
@@ -132,7 +133,16 @@ function LabelPage() {
             <div className="text-sm text-muted-foreground">
               Etiqueta de {isPickup ? "retirada" : "envio (padrão Correios)"}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap justify-end">
+              {isPickup && o.customer_phone && (
+                <button
+                  onClick={() => openWhatsApp(o.customer_phone, orderReadyMessage(o.customer_name, o.id))}
+                  className="inline-flex items-center gap-1.5 bg-[#25D366] text-white font-bold text-xs uppercase tracking-wider px-3 py-2 rounded hover:opacity-90"
+                  title="Avisar o cliente que o pedido está pronto para retirada"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" /> Avisar cliente
+                </button>
+              )}
               <button
                 onClick={handleDownloadPdf}
                 disabled={downloading}
