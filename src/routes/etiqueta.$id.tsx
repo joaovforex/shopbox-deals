@@ -133,7 +133,16 @@ function LabelPage() {
             <div className="text-sm text-muted-foreground">
               Etiqueta de {isPickup ? "retirada" : "envio (padrão Correios)"}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap justify-end">
+              {isPickup && o.customer_phone && (
+                <button
+                  onClick={() => openWhatsApp(o.customer_phone, orderReadyMessage(o.customer_name, o.id))}
+                  className="inline-flex items-center gap-1.5 bg-[#25D366] text-white font-bold text-xs uppercase tracking-wider px-3 py-2 rounded hover:opacity-90"
+                  title="Avisar o cliente que o pedido está pronto para retirada"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" /> Avisar cliente
+                </button>
+              )}
               <button
                 onClick={handleDownloadPdf}
                 disabled={downloading}
