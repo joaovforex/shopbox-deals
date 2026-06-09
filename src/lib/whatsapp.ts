@@ -23,29 +23,29 @@ export function openWhatsApp(phone: string | null | undefined, message: string) 
 export function orderPaidMessage(customerName: string, orderId: string) {
   const shortId = orderId.slice(0, 8).toUpperCase();
   return [
-    `Olá, ${customerName}! ✅`,
+    `Ola, ${customerName}!`,
     ``,
-    `Seu pedido *#${shortId}* foi confirmado e já está em *separação*.`,
+    `Seu pedido *#${shortId}* foi confirmado e ja esta em *separacao*.`,
     ``,
-    `Assim que estiver pronto, você receberá um novo aviso para retirada.`,
+    `Assim que estiver pronto, voce recebera um novo aviso para retirada.`,
     ``,
-    `📍 ${STORE_ADDRESS}`,
-    `🕒 ${STORE_HOURS}`,
+    `Endereco: ${STORE_ADDRESS}`,
+    `Horario: ${STORE_HOURS}`,
     ``,
-    `Obrigado pela compra! 💛`,
+    `Obrigado pela compra!`,
   ].join("\n");
 }
 
 export function orderReadyMessage(customerName: string, orderId: string) {
   const shortId = orderId.slice(0, 8).toUpperCase();
   return [
-    `Olá, ${customerName}! 📦`,
+    `Ola, ${customerName}!`,
     ``,
-    `Seu pedido *#${shortId}* já está *separado e pronto para retirada* em até *1 hora*.`,
+    `Seu pedido *#${shortId}* ja esta *separado e pronto para retirada* em ate *1 hora*.`,
     ``,
-    `📍 ${STORE_ADDRESS}`,
-    `🕒 ${STORE_HOURS}`,
+    `Endereco: ${STORE_ADDRESS}`,
+    `Horario: ${STORE_HOURS}`,
     ``,
-    `Te esperamos! 💛`,
+    `Te esperamos!`,
   ].join("\n");
 }
