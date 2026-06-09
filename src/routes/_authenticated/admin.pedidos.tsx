@@ -5,7 +5,7 @@ import { ArrowLeft, TrendingUp, Package, DollarSign, ShoppingBag, Sparkles, Truc
 import { toast } from "sonner";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
-import { isAdmin } from "@/lib/products";
+import { isAdmin, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/admin/pedidos")({
