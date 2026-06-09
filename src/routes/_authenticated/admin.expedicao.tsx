@@ -92,8 +92,8 @@ function FulfillmentPage() {
       const { data: orders, error } = await supabase
         .from("orders")
         .select("*")
-        .neq("fulfillment_status", "completed")
-        .order("created_at", { ascending: true });
+        .eq("delivery_method", "pickup")
+        .order("created_at", { ascending: false });
       if (error) throw error;
       const ids = (orders ?? []).map((o) => o.id);
       let items: ItemRow[] = [];
