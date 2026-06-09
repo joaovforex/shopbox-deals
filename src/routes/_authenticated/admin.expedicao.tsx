@@ -106,6 +106,30 @@ function FulfillmentPage() {
     },
   });
 
+  // Atualização em tempo real: novos pedidos + mudanças
+  useEffect(() => {
+    if (allowed !== true) return;
+    const channel = supabase
+      .channel("expedicao-orders")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orders" },
+        (payload) => {
+          qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
+          if (payload.eventType === "INSERT") {
+            const row = payload.new as { customer_name?: string; delivery_method?: string };
+            if (row.delivery_method === "pickup") {
+              toast.success(`Novo pedido de ${row.customer_name ?? "cliente"}`);
+            }
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [allowed, qc]);
+
   const advance = async (o: OrderRow) => {
     const ns = nextStatus(o.fulfillment_status, o.delivery_method);
     if (ns === o.fulfillment_status) return;
@@ -113,6 +137,19 @@ function FulfillmentPage() {
     if (error) return toast.error(error.message);
     toast.success(`Status atualizado para "${STATUS_LABEL[ns]}"`);
     qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
+  };
+
+  const markDelivered = async (o: OrderRow) => {
+    const { error } = await supabase.from("orders").update({ fulfillment_status: "completed" } as never).eq("id", o.id);
+    if (error) return toast.error(error.message);
+    openWhatsApp(o.customer_phone, orderDeliveredMessage(o.customer_name, o.id));
+    toast.success("Pedido marcado como entregue. Mensagem de agradecimento aberta.");
+    qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
+  };
+
+  const remindCustomer = (o: OrderRow) => {
+    if (!o.customer_phone) return toast.error("Cliente sem telefone cadastrado.");
+    openWhatsApp(o.customer_phone, orderReminderMessage(o.customer_name, o.id));
   };
 
   const itemsByOrder = useMemo(() => {
