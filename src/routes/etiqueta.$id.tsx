@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Printer, Truck, Store, Download } from "lucide-react";
+import { Printer, Truck, Store, Download, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
+import { openWhatsApp, orderReadyMessage } from "@/lib/whatsapp";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
