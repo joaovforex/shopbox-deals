@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Truck, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw } from "lucide-react";
+import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { hasAnyRole } from "@/lib/products";
