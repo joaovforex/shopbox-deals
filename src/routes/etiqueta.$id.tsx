@@ -28,7 +28,7 @@ function formatCep(z: string | null) {
 
 const STORE = {
   name: "shopbox",
-  street: "Rua Principal",
+  street: "Rua Abel Scuissiato",
   number: "2996",
   district: "Centro",
   city: "Colombo",

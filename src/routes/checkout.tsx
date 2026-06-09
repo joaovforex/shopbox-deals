@@ -248,19 +248,3 @@ function PaymentOption({ icon, label, active, onClick }: { icon: React.ReactNode
     </button>
   );
 }
-
-function DeliveryOption({ icon, label, hint, active, onClick }: { icon: React.ReactNode; label: string; hint: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center gap-3 p-4 rounded-md border-2 text-left transition-all ${active ? "border-primary bg-primary/10" : "border-border hover:border-muted-foreground"}`}
-    >
-      <div className={active ? "text-primary" : "text-muted-foreground"}>{icon}</div>
-      <div>
-        <div className="text-sm font-bold uppercase tracking-wider">{label}</div>
-        <div className="text-[11px] text-muted-foreground">{hint}</div>
-      </div>
-    </button>
-  );
-}
