@@ -117,7 +117,19 @@ function ProductPage() {
 
   const off = discountPct(product.original_price, product.price);
   const url = typeof window !== "undefined" ? window.location.href : "";
-  const shareText = `🔥 *${product.name}* na shopbox por apenas ${brl(product.price)}${off > 0 ? ` (${off}% OFF!)` : ""}\n\n${product.description ?? ""}\n\n👉 ${url}`;
+  const installments = product.price >= 50 ? Math.min(10, Math.floor(product.price / 20)) : 0;
+  const hasDiscount = !!(product.original_price && product.original_price > product.price);
+  const shareText = [
+    `✅ ${product.name}`,
+    "",
+    hasDiscount ? `DE ~${brl(product.original_price!)}~` : null,
+    `🔥 POR ${brl(product.price)} 🔥${off > 0 ? ` (${off}% OFF)` : ""}`,
+    installments > 0 ? `Em até ${installments}x de ${brl(product.price / installments)} sem juros` : null,
+    product.description ? "" : null,
+    product.description ?? null,
+    "",
+    `🔗 ${url}`,
+  ].filter((l) => l !== null).join("\n");
   const waShare = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 
   const copyLink = async () => {
@@ -129,15 +141,37 @@ function ProductPage() {
     }
   };
 
-  const nativeShare = async () => {
-    if (typeof navigator !== "undefined" && (navigator as any).share) {
-      try {
-        await (navigator as any).share({ title: product.name, text: shareText, url });
-      } catch {}
-    } else {
-      copyLink();
+  const fetchImageFile = async (): Promise<File | null> => {
+    const src = productImages(product)[0];
+    if (!src) return null;
+    try {
+      const res = await fetch(src);
+      const blob = await res.blob();
+      const ext = (blob.type.split("/")[1] || "jpg").split("+")[0];
+      const safe = product.name.replace(/[^\w]+/g, "-").toLowerCase().slice(0, 40) || "produto";
+      return new File([blob], `${safe}.${ext}`, { type: blob.type || "image/jpeg" });
+    } catch {
+      return null;
     }
   };
+
+  const shareWithImage = async () => {
+    const nav = typeof navigator !== "undefined" ? (navigator as any) : null;
+    if (nav?.share) {
+      const file = await fetchImageFile();
+      try {
+        if (file && nav.canShare?.({ files: [file] })) {
+          await nav.share({ files: [file], text: shareText, title: product.name });
+          return;
+        }
+        await nav.share({ title: product.name, text: shareText, url });
+        return;
+      } catch {}
+    }
+    window.open(waShare, "_blank", "noopener,noreferrer");
+  };
+
+  const nativeShare = shareWithImage;
 
   const addToCart = () => {
     add({ id: product.id, name: product.name, price: product.price, image_url: product.image_url }, qty);
@@ -244,14 +278,12 @@ function ProductPage() {
                   <Share2 className="h-4 w-4" /> Compartilhar (admin)
                 </h3>
                 <div className="grid grid-cols-3 gap-2">
-                  <a
-                    href={waShare}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    onClick={shareWithImage}
                     className="inline-flex items-center justify-center gap-2 bg-[#25D366] text-black font-bold px-3 py-3 rounded-md hover:opacity-90 text-sm"
                   >
                     <MessageCircle className="h-4 w-4" /> WhatsApp
-                  </a>
+                  </button>
                   <button
                     onClick={nativeShare}
                     className="inline-flex items-center justify-center gap-2 bg-accent text-accent-foreground font-bold px-3 py-3 rounded-md hover:opacity-90 text-sm"
