@@ -91,7 +91,7 @@ function CheckoutPage() {
       const orderId = data as string;
       clear();
       toast.success("Pagamento aprovado!");
-      openWhatsApp(phoneDigits, orderPaidMessage(name.trim(), orderId));
+
       navigate({ to: "/pedido/$id", params: { id: orderId } });
     } catch (err: any) {
       toast.error(err.message ?? "Erro ao finalizar pedido");
