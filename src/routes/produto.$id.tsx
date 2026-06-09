@@ -12,17 +12,21 @@ import { useCart } from "@/lib/cart";
 
 export const Route = createFileRoute("/produto/$id")({
   loader: async ({ params, context }) => {
-    const product = await context.queryClient.ensureQueryData({
-      queryKey: ["product", params.id],
-      queryFn: () => fetchProduct(params.id),
-    });
+    const [product, origin] = await Promise.all([
+      context.queryClient.ensureQueryData({
+        queryKey: ["product", params.id],
+        queryFn: () => fetchProduct(params.id),
+      }),
+      getRequestOrigin(),
+    ]);
     if (!product) throw notFound();
-    return product;
+    return { product, origin };
   },
   head: ({ loaderData }) => {
-    const product = loaderData as Product;
+    const { product, origin } = loaderData as { product: Product; origin: string };
     const imgs = productImages(product);
-    const image = imgs[0] ?? "";
+    const rawImage = imgs[0] ?? "";
+    const image = rawImage.startsWith("http") ? rawImage : rawImage ? `${origin}${rawImage}` : "";
     const off = discountPct(product.original_price, product.price);
     const priceLabel = off > 0
       ? `${product.name} — ${brl(product.price)} (${off}% OFF)`
@@ -35,7 +39,7 @@ export const Route = createFileRoute("/produto/$id")({
         { property: "og:description", content: product.description || "" },
         { property: "og:image", content: image },
         { property: "og:type", content: "product" },
-        { property: "og:url", content: `/produto/${product.id}` },
+        { property: "og:url", content: `${origin}/produto/${product.id}` },
         { property: "product:price:amount", content: String(product.price) },
         { property: "product:price:currency", content: "BRL" },
         { name: "twitter:card", content: "summary_large_image" },
