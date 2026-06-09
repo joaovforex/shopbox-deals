@@ -166,7 +166,7 @@ function FulfillmentPage() {
           <div className="text-xs uppercase tracking-widest text-accent font-bold">Departamento</div>
           <h1 className="display text-3xl md:text-4xl">Expedição</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Cada pedido cai automaticamente na fila certa: <strong>envio</strong> ou <strong>retirada</strong>. Imprima a etiqueta e avance o status conforme prepara.
+            Acompanhe os pedidos de <strong>retirada na loja</strong>. Imprima a etiqueta, avise o cliente e marque como entregue.
           </p>
         </div>
       </section>
@@ -174,13 +174,14 @@ function FulfillmentPage() {
       <section className="container mx-auto px-4 py-6 flex-1 space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex bg-secondary rounded-md p-1">
-            <TabBtn active={tab === "delivery"} onClick={() => setTab("delivery")} icon={<Truck className="h-4 w-4" />}>
-              Envio ({(data?.orders ?? []).filter((o) => o.delivery_method === "delivery").length})
-            </TabBtn>
             <TabBtn active={tab === "pickup"} onClick={() => setTab("pickup")} icon={<Store className="h-4 w-4" />}>
-              Retirada na loja ({(data?.orders ?? []).filter((o) => o.delivery_method === "pickup").length})
+              Em aberto ({(data?.orders ?? []).filter((o) => o.fulfillment_status !== "completed").length})
+            </TabBtn>
+            <TabBtn active={tab === "done"} onClick={() => setTab("done")} icon={<CheckCircle2 className="h-4 w-4" />}>
+              Prontos / Entregues ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "completed").length})
             </TabBtn>
           </div>
+
 
           <div className="inline-flex items-center gap-1 bg-secondary rounded-md p-1">
             <Filter className="h-3.5 w-3.5 text-muted-foreground ml-2" />
