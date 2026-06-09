@@ -72,12 +72,6 @@ function LabelPage() {
     return () => window.removeEventListener("afterprint", onAfter);
   }, [id, refetch]);
 
-  useEffect(() => {
-    if (data?.order) {
-      const t = setTimeout(() => window.print(), 800);
-      return () => clearTimeout(t);
-    }
-  }, [data]);
 
   if (isLoading) return <div className="p-10 text-center">Carregando etiqueta...</div>;
   if (!data?.order) return <div className="p-10 text-center">Pedido não encontrado.</div>;
