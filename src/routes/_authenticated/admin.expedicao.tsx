@@ -126,7 +126,7 @@ function FulfillmentPage() {
 
   const orders = useMemo(() => {
     let list = (data?.orders ?? []).filter((o) =>
-      tab === "delivery" ? o.delivery_method === "delivery" : o.delivery_method === "pickup",
+      tab === "done" ? o.fulfillment_status === "completed" : o.fulfillment_status !== "completed",
     );
     if (labelFilter !== "all") {
       list = list.filter((o) => {
@@ -136,7 +136,9 @@ function FulfillmentPage() {
         return true;
       });
     }
-    // atrasados primeiro, depois mais antigos
+    if (tab === "done") {
+      return list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
     return list.sort((a, b) => {
       const da = isDelayed(a) ? -1 : 0;
       const db = isDelayed(b) ? -1 : 0;
