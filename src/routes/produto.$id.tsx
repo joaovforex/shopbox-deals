@@ -7,6 +7,7 @@ import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { ProductCarousel } from "@/components/ProductCarousel";
 import { brl, discountPct } from "@/lib/format";
 import { fetchProduct, isAdmin, productImages, type Product } from "@/lib/products";
+import { getRequestOrigin } from "@/lib/origin.functions";
 import { useCart } from "@/lib/cart";
 
 export const Route = createFileRoute("/produto/$id")({
