@@ -326,56 +326,58 @@ function OrdersPanel() {
         </div>
 
         {/* Danger zone */}
-        <div className="border-2 border-destructive/40 rounded-lg p-5 bg-destructive/5">
-          <div className="flex items-start gap-3">
-            <div className="bg-destructive text-destructive-foreground rounded-md p-2 flex-shrink-0">
-              <AlertTriangle className="h-5 w-5" />
-            </div>
-            <div className="flex-1">
-              <h2 className="display text-xl mb-1 text-destructive">Zona de perigo</h2>
-              <p className="text-sm text-muted-foreground mb-3">
-                Apaga TODOS os pedidos e itens da base. As métricas serão zeradas. Não pode ser desfeito.
-              </p>
-              {!wipeOpen ? (
-                <button
-                  onClick={() => setWipeOpen(true)}
-                  className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-bold uppercase tracking-wider text-xs px-4 py-2 rounded hover:opacity-90"
-                >
-                  <Trash2 className="h-4 w-4" /> Limpar todos os pedidos
-                </button>
-              ) : (
-                <div className="space-y-2 max-w-md">
-                  <label className="text-xs font-bold uppercase tracking-wider text-destructive">
-                    Digite <span className="font-mono">EXCLUIR TUDO</span> para confirmar:
-                  </label>
-                  <input
-                    type="text"
-                    value={wipeConfirm}
-                    onChange={(e) => setWipeConfirm(e.target.value)}
-                    placeholder="EXCLUIR TUDO"
-                    className="w-full px-3 py-2 rounded border border-destructive/40 bg-background font-mono text-sm focus:outline-none focus:ring-2 focus:ring-destructive"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={wipeAll}
-                      disabled={busy || wipeConfirm !== "EXCLUIR TUDO"}
-                      className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-bold uppercase tracking-wider text-xs px-4 py-2 rounded hover:opacity-90 disabled:opacity-50"
-                    >
-                      <Trash2 className="h-4 w-4" /> Confirmar exclusão total
-                    </button>
-                    <button
-                      onClick={() => { setWipeOpen(false); setWipeConfirm(""); }}
-                      disabled={busy}
-                      className="text-xs font-bold uppercase tracking-wider px-4 py-2 rounded border border-border hover:bg-secondary"
-                    >
-                      Cancelar
-                    </button>
+        {superAdmin && (
+          <div className="border-2 border-destructive/40 rounded-lg p-5 bg-destructive/5">
+            <div className="flex items-start gap-3">
+              <div className="bg-destructive text-destructive-foreground rounded-md p-2 flex-shrink-0">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <h2 className="display text-xl mb-1 text-destructive">Zona de perigo</h2>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Apaga TODOS os pedidos e itens da base. As métricas serão zeradas. Não pode ser desfeito.
+                </p>
+                {!wipeOpen ? (
+                  <button
+                    onClick={() => setWipeOpen(true)}
+                    className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-bold uppercase tracking-wider text-xs px-4 py-2 rounded hover:opacity-90"
+                  >
+                    <Trash2 className="h-4 w-4" /> Limpar todos os pedidos
+                  </button>
+                ) : (
+                  <div className="space-y-2 max-w-md">
+                    <label className="text-xs font-bold uppercase tracking-wider text-destructive">
+                      Digite <span className="font-mono">EXCLUIR TUDO</span> para confirmar:
+                    </label>
+                    <input
+                      type="text"
+                      value={wipeConfirm}
+                      onChange={(e) => setWipeConfirm(e.target.value)}
+                      placeholder="EXCLUIR TUDO"
+                      className="w-full px-3 py-2 rounded border border-destructive/40 bg-background font-mono text-sm focus:outline-none focus:ring-2 focus:ring-destructive"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={wipeAll}
+                        disabled={busy || wipeConfirm !== "EXCLUIR TUDO"}
+                        className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-bold uppercase tracking-wider text-xs px-4 py-2 rounded hover:opacity-90 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-4 w-4" /> Confirmar exclusão total
+                      </button>
+                      <button
+                        onClick={() => { setWipeOpen(false); setWipeConfirm(""); }}
+                        disabled={busy}
+                        className="text-xs font-bold uppercase tracking-wider px-4 py-2 rounded border border-border hover:bg-secondary"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </section>
     </Shell>
   );
