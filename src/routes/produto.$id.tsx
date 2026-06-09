@@ -6,10 +6,44 @@ import { Share2, ShoppingCart, MessageCircle, Minus, Plus, ArrowLeft, Copy, Cred
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { ProductCarousel } from "@/components/ProductCarousel";
 import { brl, discountPct } from "@/lib/format";
-import { fetchProduct, isAdmin, productImages } from "@/lib/products";
+import { fetchProduct, isAdmin, productImages, type Product } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 
 export const Route = createFileRoute("/produto/$id")({
+  loader: async ({ params, context }) => {
+    const product = await context.queryClient.ensureQueryData({
+      queryKey: ["product", params.id],
+      queryFn: () => fetchProduct(params.id),
+    });
+    if (!product) throw notFound();
+    return product;
+  },
+  head: ({ loaderData }) => {
+    const product = loaderData as Product;
+    const imgs = productImages(product);
+    const image = imgs[0] ?? "";
+    const off = discountPct(product.original_price, product.price);
+    const priceLabel = off > 0
+      ? `${product.name} — ${brl(product.price)} (${off}% OFF)`
+      : `${product.name} — ${brl(product.price)}`;
+    return {
+      meta: [
+        { title: `${product.name} — Shopbox` },
+        { name: "description", content: product.description || `Compre ${product.name} na Shopbox.` },
+        { property: "og:title", content: priceLabel },
+        { property: "og:description", content: product.description || "" },
+        { property: "og:image", content: image },
+        { property: "og:type", content: "product" },
+        { property: "og:url", content: `/produto/${product.id}` },
+        { property: "product:price:amount", content: String(product.price) },
+        { property: "product:price:currency", content: "BRL" },
+        { name: "twitter:card", content: "summary_large_image" },
+        { name: "twitter:title", content: priceLabel },
+        { name: "twitter:description", content: product.description || "" },
+        { name: "twitter:image", content: image },
+      ],
+    };
+  },
   component: ProductPage,
   errorComponent: ({ error }) => (
     <div className="min-h-screen flex items-center justify-center p-6">
