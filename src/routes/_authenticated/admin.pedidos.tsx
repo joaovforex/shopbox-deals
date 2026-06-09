@@ -56,7 +56,11 @@ function OrdersPanel() {
     enabled: admin === true,
     queryFn: async () => {
       const since = startOf(period);
-      let q = supabase.from("orders").select("*").order("created_at", { ascending: false });
+      let q = supabase
+        .from("orders")
+        .select("*")
+        .neq("status", "cancelled")
+        .order("created_at", { ascending: false });
       if (since) q = q.gte("created_at", since.toISOString());
       const { data: orders, error } = await q;
       if (error) throw error;
@@ -74,15 +78,17 @@ function OrdersPanel() {
   const stats = useMemo(() => {
     const orders = data?.orders ?? [];
     const items = data?.items ?? [];
-    const revenue = orders.reduce((s, o) => s + Number(o.total), 0);
-    const unitsSold = items.reduce((s, i) => s + i.quantity, 0);
+    // Receita total agregada (soma de unit_price * quantity de TODOS os itens, independente de cliente)
+    const revenue = items.reduce((s, i) => s + Number(i.unit_price) * Number(i.quantity), 0);
+    // Total de unidades vendidas (somando quantidade item a item)
+    const unitsSold = items.reduce((s, i) => s + Number(i.quantity), 0);
 
-    // Aggregate per product
+    // Agregação precisa por produto: soma todas as unidades vendidas em todos os pedidos
     const byProduct = new Map<string, { name: string; qty: number; revenue: number }>();
     for (const it of items) {
       const cur = byProduct.get(it.product_id) ?? { name: it.product_name, qty: 0, revenue: 0 };
-      cur.qty += it.quantity;
-      cur.revenue += Number(it.unit_price) * it.quantity;
+      cur.qty += Number(it.quantity);
+      cur.revenue += Number(it.unit_price) * Number(it.quantity);
       byProduct.set(it.product_id, cur);
     }
     const ranking = [...byProduct.entries()]
