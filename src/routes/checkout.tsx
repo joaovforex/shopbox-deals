@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CreditCard, QrCode, Lock, ArrowLeft, Truck, Store } from "lucide-react";
+import { CreditCard, QrCode, Lock, ArrowLeft, Store } from "lucide-react";
+import { openWhatsApp, orderPaidMessage, STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
 import { Header, Footer } from "@/components/Header";
 import { useCart } from "@/lib/cart";
 import { brl } from "@/lib/format";
