@@ -18,7 +18,8 @@ export const Route = createFileRoute("/produto/$id")({
     if (!product) throw notFound();
     return product;
   },
-  head: ({ loaderData: product }) => {
+  head: ({ loaderData }) => {
+    const product = loaderData as Product;
     const imgs = productImages(product);
     const image = imgs[0] ?? "";
     const off = discountPct(product.original_price, product.price);
