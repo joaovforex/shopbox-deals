@@ -32,14 +32,6 @@ function CheckoutPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  // retirada na loja — endereço/entrega não são usados
-  const street = "";
-  const number = "";
-  const district = "";
-  const city = "";
-  const stateUf = "";
-  const zip = "";
-  const complement = "";
 
   const [payment, setPayment] = useState<Payment>("pix");
 
