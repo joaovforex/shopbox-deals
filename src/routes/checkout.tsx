@@ -14,7 +14,7 @@ export const Route = createFileRoute("/checkout")({
 });
 
 type Payment = "pix" | "card";
-type Delivery = "delivery" | "pickup";
+const delivery = "pickup" as const;
 
 // (00) 00000-0000 — DDD + número
 function maskPhone(v: string) {
@@ -32,16 +32,14 @@ function CheckoutPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [delivery, setDelivery] = useState<Delivery>("delivery");
-
-  // address fields
-  const [street, setStreet] = useState("");
-  const [number, setNumber] = useState("");
-  const [district, setDistrict] = useState("");
-  const [city, setCity] = useState("");
-  const [stateUf, setStateUf] = useState("");
-  const [zip, setZip] = useState("");
-  const [complement, setComplement] = useState("");
+  // retirada na loja — endereço/entrega não são usados
+  const street = "";
+  const number = "";
+  const district = "";
+  const city = "";
+  const stateUf = "";
+  const zip = "";
+  const complement = "";
 
   const [payment, setPayment] = useState<Payment>("pix");
 
@@ -107,6 +105,7 @@ function CheckoutPage() {
       const orderId = data as string;
       clear();
       toast.success("Pagamento aprovado!");
+      openWhatsApp(phoneDigits, orderPaidMessage(name.trim(), orderId));
       navigate({ to: "/pedido/$id", params: { id: orderId } });
     } catch (err: any) {
       toast.error(err.message ?? "Erro ao finalizar pedido");
@@ -141,37 +140,18 @@ function CheckoutPage() {
             </div>
           </Section>
 
-          <Section title="Entrega ou retirada">
-            <div className="grid grid-cols-2 gap-2">
-              <DeliveryOption icon={<Truck className="h-5 w-5" />} label="Entrega" hint="Receba em casa" active={delivery === "delivery"} onClick={() => setDelivery("delivery")} />
-              <DeliveryOption icon={<Store className="h-5 w-5" />} label="Retirar na loja" hint="Colombo / PR" active={delivery === "pickup"} onClick={() => setDelivery("pickup")} />
-            </div>
-
-            {delivery === "delivery" && (
-              <div className="mt-4 space-y-3">
-                <div className="grid grid-cols-[1fr_120px] gap-3">
-                  <Field label="Rua / Avenida *" value={street} onChange={setStreet} required />
-                  <Field label="Número *" value={number} onChange={setNumber} required />
-                </div>
-                <Field label="Complemento" value={complement} onChange={setComplement} placeholder="Apto, bloco, referência" />
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <Field label="Bairro" value={district} onChange={setDistrict} />
-                  <Field label="CEP *" value={zip} onChange={setZip} required placeholder="00000-000" />
-                </div>
-                <div className="grid grid-cols-[1fr_80px] gap-3">
-                  <Field label="Cidade *" value={city} onChange={setCity} required />
-                  <Field label="UF *" value={stateUf} onChange={(v) => setStateUf(v.toUpperCase().slice(0, 2))} required placeholder="PR" />
-                </div>
-              </div>
-            )}
-
-            {delivery === "pickup" && (
-              <div className="mt-4 bg-secondary rounded-md p-4 text-sm">
+          <Section title="Retirada na loja">
+            <div className="bg-secondary rounded-md p-4 text-sm flex gap-3">
+              <Store className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div>
                 <p className="font-semibold">Retire na loja</p>
-                <p className="text-muted-foreground mt-1">Rua, 2996 — Colombo / PR · Seg a Sáb · 9h às 18h</p>
-                <p className="text-xs text-muted-foreground mt-2">Avisaremos pelo WhatsApp quando o pedido estiver pronto.</p>
+                <p className="text-muted-foreground mt-1">{STORE_ADDRESS}</p>
+                <p className="text-muted-foreground">{STORE_HOURS}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Você receberá um aviso no WhatsApp assim que o pedido for confirmado e novamente quando estiver pronto para retirada (em até 1h após separação).
+                </p>
               </div>
-            )}
+            </div>
           </Section>
 
           <Section title="Forma de pagamento">
