@@ -71,12 +71,6 @@ function CheckoutPage() {
     const phoneDigits = phone.replace(/\D/g, "");
     if (phoneDigits.length < 10 || phoneDigits.length > 11) return toast.error("WhatsApp inválido — inclua o DDD");
 
-    if (delivery === "delivery") {
-      if (!street.trim() || !number.trim() || !city.trim() || !stateUf.trim() || !zip.trim()) {
-        return toast.error("Preencha o endereço completo de entrega");
-      }
-    }
-
     if (payment === "card") {
       if (cardNumber.replace(/\s/g, "").length < 13) return toast.error("Número do cartão inválido");
       if (cardCvv.length < 3) return toast.error("CVV inválido");
@@ -93,13 +87,13 @@ function CheckoutPage() {
         p_payment_method: payment,
         p_delivery_method: delivery,
         p_items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
-        p_zip: delivery === "delivery" ? zip.trim() : null,
-        p_street: delivery === "delivery" ? street.trim() : null,
-        p_number: delivery === "delivery" ? number.trim() : null,
-        p_complement: delivery === "delivery" ? complement.trim() : null,
-        p_district: delivery === "delivery" ? district.trim() : null,
-        p_city: delivery === "delivery" ? city.trim() : null,
-        p_state: delivery === "delivery" ? stateUf.trim().toUpperCase() : null,
+        p_zip: null,
+        p_street: null,
+        p_number: null,
+        p_complement: null,
+        p_district: null,
+        p_city: null,
+        p_state: null,
       } as never);
       if (error) throw error;
       const orderId = data as string;
