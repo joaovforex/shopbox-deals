@@ -49,7 +49,7 @@ export function Header() {
 
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b-4 border-primary">
         <div className="container mx-auto px-3 sm:px-4 h-16 sm:h-20 flex items-center justify-between gap-3">
-          <Link to="/" className="flex items-center gap-2 shrink-0">
+          <Link to="/loja" className="flex items-center gap-2 shrink-0">
             <img src={logo} alt="shopbox" className="h-11 sm:h-14 w-auto" width={224} height={72} />
           </Link>
 
