@@ -70,6 +70,34 @@ function TeamPage() {
   const doSearch = useServerFn(searchTeamCandidates);
   const doAssign = useServerFn(assignTeamRole);
   const doRemove = useServerFn(removeTeamRole);
+  const doResetPassword = useServerFn(adminResetPassword);
+  const doDeleteUser = useServerFn(adminDeleteUser);
+
+  const resetPassword = async (user_id: string, label: string) => {
+    const pw = prompt(`Nova senha para ${label} (mínimo 8 caracteres):`);
+    if (!pw) return;
+    if (pw.length < 8) return toast.error("Senha precisa ter ao menos 8 caracteres");
+    try {
+      await doResetPassword({ data: { user_id, new_password: pw } });
+      toast.success("Senha redefinida. Avise o usuário.");
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao redefinir senha");
+    }
+  };
+
+  const deleteUser = async (user_id: string, label: string) => {
+    if (!confirm(`EXCLUIR a conta de "${label}" permanentemente? Esta ação não pode ser desfeita.`)) return;
+    if (!confirm("Tem certeza absoluta? Todos os dados associados serão removidos.")) return;
+    try {
+      await doDeleteUser({ data: { user_id } });
+      toast.success("Conta excluída");
+      qc.invalidateQueries({ queryKey: ["team-members"] });
+      refetch();
+      setSearchResults((prev) => prev.filter((u) => u.id !== user_id));
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao excluir");
+    }
+  };
 
   const findUser = async () => {
     const term = search.trim();
