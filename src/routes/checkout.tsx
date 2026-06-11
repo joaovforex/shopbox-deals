@@ -146,9 +146,10 @@ function CheckoutPage() {
           <Section title="Dados do cliente">
             <Field label="Nome completo *" value={name} onChange={setName} required placeholder="Como aparece no documento" />
             <div className="grid sm:grid-cols-2 gap-3">
-              <Field label="Email *" type="email" value={email} onChange={setEmail} required placeholder="voce@email.com" />
-              <Field label="WhatsApp (com DDD) *" value={phone} onChange={(v) => setPhone(maskPhone(v))} required placeholder="(41) 99999-9999" />
+              <Field label="Email *" type="email" value={email} onChange={setEmail} required placeholder="voce@email.com" inputMode="email" autoComplete="email" />
+              <Field label="WhatsApp (com DDD) *" value={phone} onChange={(v) => setPhone(maskPhone(v))} required placeholder="(41) 99999-9999" inputMode="tel" autoComplete="tel" />
             </div>
+            <Field label="CPF *" value={cpf} onChange={(v) => setCpf(maskCpf(v))} required placeholder="000.000.000-00" inputMode="numeric" autoComplete="off" />
           </Section>
 
           <Section title="Retirada na loja">
