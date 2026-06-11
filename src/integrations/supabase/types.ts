@@ -65,6 +65,7 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          customer_cpf: string | null
           customer_email: string | null
           customer_name: string
           customer_phone: string | null
@@ -94,6 +95,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          customer_cpf?: string | null
           customer_email?: string | null
           customer_name: string
           customer_phone?: string | null
@@ -123,6 +125,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          customer_cpf?: string | null
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string | null
@@ -259,24 +262,44 @@ export type Database = {
         Args: { p_event: string; p_order_id: string }
         Returns: undefined
       }
-      place_order: {
-        Args: {
-          p_city?: string
-          p_complement?: string
-          p_customer_email: string
-          p_customer_name: string
-          p_customer_phone: string
-          p_delivery_method: string
-          p_district?: string
-          p_items: Json
-          p_number?: string
-          p_payment_method: string
-          p_state?: string
-          p_street?: string
-          p_zip?: string
-        }
-        Returns: string
-      }
+      place_order:
+        | {
+            Args: {
+              p_city?: string
+              p_complement?: string
+              p_customer_email: string
+              p_customer_name: string
+              p_customer_phone: string
+              p_delivery_method: string
+              p_district?: string
+              p_items: Json
+              p_number?: string
+              p_payment_method: string
+              p_state?: string
+              p_street?: string
+              p_zip?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_city?: string
+              p_complement?: string
+              p_customer_cpf?: string
+              p_customer_email: string
+              p_customer_name: string
+              p_customer_phone: string
+              p_delivery_method: string
+              p_district?: string
+              p_items: Json
+              p_number?: string
+              p_payment_method: string
+              p_state?: string
+              p_street?: string
+              p_zip?: string
+            }
+            Returns: string
+          }
     }
     Enums: {
       app_role: "admin" | "user" | "catalog" | "fulfillment"
