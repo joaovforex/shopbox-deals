@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
-import { fetchProducts } from "@/lib/products";
+import { activeProductsQuery, productImages } from "@/lib/products";
 import { Search } from "lucide-react";
 
 export const Route = createFileRoute("/loja")({
@@ -13,14 +13,13 @@ export const Route = createFileRoute("/loja")({
       { name: "description", content: "Catálogo completo da shopbox com todas as ofertas." },
     ],
   }),
+  loader: ({ context }) => context.queryClient.ensureQueryData(activeProductsQuery()),
   component: Loja,
+  pendingMs: 0,
 });
 
 function Loja() {
-  const { data: products = [] } = useQuery({
-    queryKey: ["products", "active"],
-    queryFn: () => fetchProducts({ onlyActive: true }),
-  });
+  const { data: products } = useSuspenseQuery(activeProductsQuery());
 
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("");
@@ -36,8 +35,17 @@ function Loja() {
     return true;
   });
 
+  // Pré-carrega as primeiras imagens visíveis para resposta instantânea
+  const preloadImgs = useMemo(
+    () => filtered.slice(0, 8).map((p) => productImages(p)[0]).filter(Boolean) as string[],
+    [filtered],
+  );
+
   return (
     <div className="min-h-screen flex flex-col">
+      {preloadImgs.map((src) => (
+        <link key={src} rel="preload" as="image" href={src} />
+      ))}
       <Header />
 
       <section className="bg-card border-b-4 border-primary">
@@ -76,7 +84,7 @@ function Loja() {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            {filtered.map((p) => <ProductCard key={p.id} product={p} />)}
+            {filtered.map((p, i) => <ProductCard key={p.id} product={p} priority={i < 8} />)}
           </div>
         )}
       </section>

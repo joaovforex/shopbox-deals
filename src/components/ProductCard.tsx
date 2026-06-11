@@ -4,7 +4,7 @@ import { brl, discountPct } from "@/lib/format";
 import { productImages, type Product } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({ product, priority = false }: { product: Product; priority?: boolean }) {
   const off = discountPct(product.original_price, product.price);
   const installments = product.price >= 50 ? Math.min(10, Math.floor(product.price / 20)) : 0;
   const imgs = productImages(product);
@@ -46,7 +46,9 @@ export function ProductCard({ product }: { product: Product }) {
           <img
             src={cover}
             alt={product.name}
-            loading="lazy"
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : "auto"}
+            decoding="async"
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           />
         ) : (
