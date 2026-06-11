@@ -79,6 +79,8 @@ export type Database = {
           label_printed_by: string | null
           label_printed_by_name: string | null
           label_status: string
+          mp_payment_id: string | null
+          mp_preference_id: string | null
           payment_method: string
           shipping_address: string | null
           shipping_city: string | null
@@ -109,6 +111,8 @@ export type Database = {
           label_printed_by?: string | null
           label_printed_by_name?: string | null
           label_status?: string
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
           payment_method?: string
           shipping_address?: string | null
           shipping_city?: string | null
@@ -139,6 +143,8 @@ export type Database = {
           label_printed_by?: string | null
           label_printed_by_name?: string | null
           label_status?: string
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
           payment_method?: string
           shipping_address?: string | null
           shipping_city?: string | null
@@ -255,6 +261,18 @@ export type Database = {
         Returns: string
       }
       claim_first_admin_if_none: { Args: never; Returns: boolean }
+      create_pending_order: {
+        Args: {
+          p_customer_cpf: string
+          p_customer_email: string
+          p_customer_name: string
+          p_customer_phone: string
+          p_delivery_method: string
+          p_items: Json
+          p_payment_method: string
+        }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
