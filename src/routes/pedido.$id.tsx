@@ -22,7 +22,15 @@ function OrderPage() {
       const { data: items } = await supabase.from("order_items").select("*").eq("order_id", id);
       return { order, items: items ?? [] };
     },
+    refetchInterval: (q) => {
+      const s = (q.state.data as { order?: { status?: string } } | undefined)?.order?.status;
+      return s === "pending" ? 3000 : false;
+    },
   });
+
+  const status = data?.order?.status;
+  const isPending = status === "pending";
+  const isCancelled = status === "cancelled";
 
   const shortId = id.slice(0, 8).toUpperCase();
 
@@ -42,8 +50,16 @@ function OrderPage() {
               <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-accent" />
             </div>
 
-            <h1 className="display text-3xl md:text-5xl mb-2">Pagamento confirmado!</h1>
-            <p className="text-muted-foreground">Recebemos seu pedido com sucesso 🎉</p>
+            <h1 className="display text-3xl md:text-5xl mb-2">
+              {isCancelled ? "Pagamento não concluído" : isPending ? "Aguardando pagamento" : "Pagamento confirmado!"}
+            </h1>
+            <p className="text-muted-foreground">
+              {isCancelled
+                ? "Não recebemos a confirmação do Mercado Pago."
+                : isPending
+                  ? "Assim que o Mercado Pago confirmar, atualizamos esta página automaticamente."
+                  : "Recebemos seu pedido com sucesso 🎉"}
+            </p>
 
             <div className="inline-flex items-center gap-2 mt-4 bg-background/60 backdrop-blur border border-border px-4 py-2 rounded-full">
               <Package className="h-4 w-4 text-primary" />

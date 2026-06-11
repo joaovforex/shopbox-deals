@@ -44,7 +44,7 @@ function isValidCpf(v: string) {
 }
 
 function CheckoutPage() {
-  const { items, total } = useCart();
+  const { items, total, clear } = useCart();
   const [busy, setBusy] = useState(false);
   const createPref = useServerFn(createMpPreference);
 
@@ -89,6 +89,7 @@ function CheckoutPage() {
           items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
         },
       });
+      clear();
       // Redireciona para o Checkout Pro do Mercado Pago
       window.location.href = res.initPoint;
     } catch (err: unknown) {
