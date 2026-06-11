@@ -21,6 +21,7 @@ type OrderRow = {
   customer_name: string;
   customer_email: string | null;
   customer_phone: string | null;
+  customer_cpf: string | null;
   shipping_address: string | null;
   payment_method: string;
   delivery_method: string;
@@ -270,58 +271,101 @@ function OrdersPanel() {
           ) : stats.orders.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">Nenhum pedido neste período.</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
-                  <tr>
-                    <th className="p-3">Pedido</th>
-                    <th className="p-3">Data</th>
-                    <th className="p-3">Cliente</th>
-                    <th className="p-3">Contato</th>
-                    <th className="p-3">Entrega</th>
-                    <th className="p-3">Pagamento</th>
-                    <th className="p-3 text-right">Total</th>
-                    {superAdmin && <th className="p-3 text-right">Ações</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {stats.orders.map((o) => (
-                    <tr key={o.id} className="border-t border-border hover:bg-secondary/40">
-                      <td className="p-3 font-mono text-xs">
-                        <Link to="/pedido/$id" params={{ id: o.id }} className="text-primary hover:underline">
-                          {o.id.slice(0, 8).toUpperCase()}
-                        </Link>
-                      </td>
-                      <td className="p-3 text-xs">{new Date(o.created_at).toLocaleString("pt-BR")}</td>
-                      <td className="p-3">{o.customer_name}</td>
-                      <td className="p-3 text-xs">
-                        {o.customer_phone && <div>{formatPhone(o.customer_phone)}</div>}
-                        {o.customer_email && <div className="text-muted-foreground">{o.customer_email}</div>}
-                      </td>
-                      <td className="p-3 text-xs uppercase">
-                        <span className={`px-2 py-0.5 rounded font-bold ${o.delivery_method === "pickup" ? "bg-accent/20 text-accent" : "bg-primary/15 text-primary"}`}>
-                          {o.delivery_method === "pickup" ? "Retirada" : "Entrega"}
-                        </span>
-                      </td>
-                      <td className="p-3 text-xs uppercase">{o.payment_method}</td>
-                      <td className="p-3 text-right font-bold text-price">{brl(Number(o.total))}</td>
-                      {superAdmin && (
-                        <td className="p-3 text-right">
-                          <button
-                            onClick={() => deleteOrder(o.id)}
-                            disabled={busy}
-                            title="Excluir pedido"
-                            className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-destructive hover:bg-destructive/10 px-2 py-1 rounded disabled:opacity-50"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" /> Excluir
-                          </button>
-                        </td>
-                      )}
+            <>
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+                    <tr>
+                      <th className="p-3">Pedido</th>
+                      <th className="p-3">Data</th>
+                      <th className="p-3">Cliente</th>
+                      <th className="p-3">CPF</th>
+                      <th className="p-3">Contato</th>
+                      <th className="p-3">Entrega</th>
+                      <th className="p-3">Pagamento</th>
+                      <th className="p-3 text-right">Total</th>
+                      {superAdmin && <th className="p-3 text-right">Ações</th>}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {stats.orders.map((o) => (
+                      <tr key={o.id} className="border-t border-border hover:bg-secondary/40">
+                        <td className="p-3 font-mono text-xs">
+                          <Link to="/pedido/$id" params={{ id: o.id }} className="text-primary hover:underline">
+                            {o.id.slice(0, 8).toUpperCase()}
+                          </Link>
+                        </td>
+                        <td className="p-3 text-xs">{new Date(o.created_at).toLocaleString("pt-BR")}</td>
+                        <td className="p-3">{o.customer_name}</td>
+                        <td className="p-3 text-xs font-mono">{formatCpf(o.customer_cpf)}</td>
+                        <td className="p-3 text-xs">
+                          {o.customer_phone && <div>{formatPhone(o.customer_phone)}</div>}
+                          {o.customer_email && <div className="text-muted-foreground">{o.customer_email}</div>}
+                        </td>
+                        <td className="p-3 text-xs uppercase">
+                          <span className={`px-2 py-0.5 rounded font-bold ${o.delivery_method === "pickup" ? "bg-accent/20 text-accent" : "bg-primary/15 text-primary"}`}>
+                            {o.delivery_method === "pickup" ? "Retirada" : "Entrega"}
+                          </span>
+                        </td>
+                        <td className="p-3 text-xs uppercase">{o.payment_method}</td>
+                        <td className="p-3 text-right font-bold text-price">{brl(Number(o.total))}</td>
+                        {superAdmin && (
+                          <td className="p-3 text-right">
+                            <button
+                              onClick={() => deleteOrder(o.id)}
+                              disabled={busy}
+                              title="Excluir pedido"
+                              className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-destructive hover:bg-destructive/10 px-2 py-1 rounded disabled:opacity-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> Excluir
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile cards */}
+              <ul className="md:hidden divide-y divide-border">
+                {stats.orders.map((o) => (
+                  <li key={o.id} className="p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <Link to="/pedido/$id" params={{ id: o.id }} className="font-mono text-xs text-primary font-bold">
+                        #{o.id.slice(0, 8).toUpperCase()}
+                      </Link>
+                      <span className="font-black text-price text-base">{brl(Number(o.total))}</span>
+                    </div>
+                    <div className="text-sm font-semibold break-words">{o.customer_name}</div>
+                    {o.customer_cpf && (
+                      <div className="text-[11px] font-mono text-muted-foreground">CPF: {formatCpf(o.customer_cpf)}</div>
+                    )}
+                    <div className="text-xs text-muted-foreground space-y-0.5">
+                      {o.customer_phone && <div>📱 {formatPhone(o.customer_phone)}</div>}
+                      {o.customer_email && <div className="break-all">✉️ {o.customer_email}</div>}
+                      <div>🕒 {new Date(o.created_at).toLocaleString("pt-BR")}</div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${o.delivery_method === "pickup" ? "bg-accent/20 text-accent" : "bg-primary/15 text-primary"}`}>
+                        {o.delivery_method === "pickup" ? "Retirada" : "Entrega"}
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-secondary">{o.payment_method}</span>
+                      {superAdmin && (
+                        <button
+                          onClick={() => deleteOrder(o.id)}
+                          disabled={busy}
+                          className="ml-auto inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-destructive border border-destructive/40 px-2 py-1 rounded disabled:opacity-50"
+                        >
+                          <Trash2 className="h-3 w-3" /> Excluir
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </div>
 
@@ -388,6 +432,12 @@ function formatPhone(d: string) {
   if (s.length === 11) return `(${s.slice(0, 2)}) ${s.slice(2, 7)}-${s.slice(7)}`;
   if (s.length === 10) return `(${s.slice(0, 2)}) ${s.slice(2, 6)}-${s.slice(6)}`;
   return d;
+}
+
+function formatCpf(c: string | null) {
+  if (!c) return "—";
+  const d = c.replace(/\D/g, "").padStart(11, "0").slice(0, 11);
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
 }
 
 function generateInsight(
