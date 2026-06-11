@@ -257,7 +257,7 @@ function ProductPage() {
                     onClick={addToCart}
                     className="flex-1 inline-flex items-center justify-center gap-2 bg-secondary text-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:bg-muted transition-colors"
                   >
-                    <ShoppingCart className="h-5 w-5" /> Adicionar
+                    Adicionar
                   </button>
                 </div>
                 <button
@@ -267,7 +267,7 @@ function ProductPage() {
                   }}
                   className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:scale-[1.02] transition-transform shadow-deal"
                 >
-                  <CreditCard className="h-5 w-5" /> Comprar agora
+                  Comprar agora
                 </button>
               </div>
             )}
