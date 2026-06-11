@@ -22,6 +22,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAdminPedidosRouteImport } from './routes/_authenticated/admin.pedidos'
 import { Route as AuthenticatedAdminExpedicaoRouteImport } from './routes/_authenticated/admin.expedicao'
 import { Route as AuthenticatedAdminEquipeRouteImport } from './routes/_authenticated/admin.equipe'
+import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp.webhook'
 
 const LojaRoute = LojaRouteImport.update({
   id: '/loja',
@@ -90,6 +91,11 @@ const AuthenticatedAdminEquipeRoute =
     path: '/equipe',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const ApiPublicMpWebhookRoute = ApiPublicMpWebhookRouteImport.update({
+  id: '/api/public/mp/webhook',
+  path: '/api/public/mp/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/admin/equipe': typeof AuthenticatedAdminEquipeRoute
   '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
+  '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/admin/equipe': typeof AuthenticatedAdminEquipeRoute
   '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
+  '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/equipe': typeof AuthenticatedAdminEquipeRoute
   '/_authenticated/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/_authenticated/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
+  '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/admin/equipe'
     | '/admin/expedicao'
     | '/admin/pedidos'
+    | '/api/public/mp/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/admin/equipe'
     | '/admin/expedicao'
     | '/admin/pedidos'
+    | '/api/public/mp/webhook'
   id:
     | '__root__'
     | '/'
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/equipe'
     | '/_authenticated/admin/expedicao'
     | '/_authenticated/admin/pedidos'
+    | '/api/public/mp/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -191,6 +203,7 @@ export interface RootRouteChildren {
   EtiquetaIdRoute: typeof EtiquetaIdRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
+  ApiPublicMpWebhookRoute: typeof ApiPublicMpWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -286,6 +299,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminEquipeRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/api/public/mp/webhook': {
+      id: '/api/public/mp/webhook'
+      path: '/api/public/mp/webhook'
+      fullPath: '/api/public/mp/webhook'
+      preLoaderRoute: typeof ApiPublicMpWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -325,17 +345,8 @@ const rootRouteChildren: RootRouteChildren = {
   EtiquetaIdRoute: EtiquetaIdRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
+  ApiPublicMpWebhookRoute: ApiPublicMpWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
