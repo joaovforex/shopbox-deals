@@ -1,5 +1,4 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ShoppingCart, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { brl, discountPct } from "@/lib/format";
 import { productImages, type Product } from "@/lib/products";
@@ -102,8 +101,8 @@ export function ProductCard({ product }: { product: Product }) {
               className="inline-flex items-center justify-center gap-1 bg-secondary hover:bg-muted text-foreground text-[11px] font-bold uppercase tracking-wider py-2 rounded-md transition-colors"
               aria-label="Adicionar ao carrinho"
             >
-              <ShoppingCart className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Carrinho</span>
+              <span className="sm:hidden">Add</span>
             </button>
             <button
               type="button"
@@ -111,7 +110,6 @@ export function ProductCard({ product }: { product: Product }) {
               className="inline-flex items-center justify-center gap-1 bg-primary hover:scale-[1.02] text-primary-foreground text-[11px] font-black uppercase tracking-wider py-2 rounded-md shadow-deal transition-transform"
               aria-label="Comprar agora"
             >
-              <Zap className="h-3.5 w-3.5" />
               <span>Comprar</span>
             </button>
           </div>
