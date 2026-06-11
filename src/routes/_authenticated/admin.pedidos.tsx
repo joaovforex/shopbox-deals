@@ -283,14 +283,83 @@ function OrdersPanel() {
 
         {/* Orders list */}
         <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-border bg-secondary flex items-center justify-between gap-2">
-            <h2 className="display text-lg">Pedidos</h2>
-            <span className="text-xs text-muted-foreground">{stats.orders.length} no período</span>
+          <div className="px-4 py-3 border-b border-border bg-secondary flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="display text-lg">Pedidos</h2>
+              <span className="text-xs text-muted-foreground">{stats.orders.length} no período</span>
+            </div>
+
+            {/* Search & Filters */}
+            <div className="space-y-2">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={searchCpf}
+                    onChange={(e) => setSearchCpf(e.target.value)}
+                    placeholder="Buscar por CPF..."
+                    className="w-full pl-9 pr-8 py-2 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  {searchCpf && (
+                    <button
+                      onClick={() => setSearchCpf("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowFilters((s) => !s)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded border text-xs font-bold uppercase tracking-wider shrink-0 ${showFilters ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"}`}
+                >
+                  <Filter className="h-3.5 w-3.5" /> Filtros
+                </button>
+              </div>
+
+              {showFilters && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <select
+                    value={filterDelivery}
+                    onChange={(e) => setFilterDelivery(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="all">Todos os tipos de entrega</option>
+                    <option value="delivery">Entrega</option>
+                    <option value="pickup">Retirada</option>
+                  </select>
+                  <select
+                    value={filterPayment}
+                    onChange={(e) => setFilterPayment(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="all">Todos os pagamentos</option>
+                    <option value="pix">Pix</option>
+                    <option value="card">Cartão</option>
+                  </select>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="all">Todos os status</option>
+                    <option value="paid">Pago</option>
+                    <option value="cancelled">Cancelado</option>
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
           {isLoading ? (
             <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
           ) : stats.orders.length === 0 ? (
-            <div className="p-6 text-sm text-muted-foreground">Nenhum pedido neste período.</div>
+            <div className="p-6 text-sm text-muted-foreground">
+              {searchCpf || filterDelivery !== "all" || filterPayment !== "all" || filterStatus !== "all"
+                ? "Nenhum pedido encontrado com os filtros aplicados."
+                : "Nenhum pedido neste período."}
+            </div>
           ) : (
             <>
               {/* Desktop table */}
