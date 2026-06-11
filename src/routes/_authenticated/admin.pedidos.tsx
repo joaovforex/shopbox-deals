@@ -434,6 +434,12 @@ function formatPhone(d: string) {
   return d;
 }
 
+function formatCpf(c: string | null) {
+  if (!c) return "—";
+  const d = c.replace(/\D/g, "").padStart(11, "0").slice(0, 11);
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
+
 function generateInsight(
   ranking: { name: string; qty: number; revenue: number }[],
   orderCount: number,
