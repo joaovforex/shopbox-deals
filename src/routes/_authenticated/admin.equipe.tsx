@@ -275,6 +275,20 @@ function TeamPage() {
                             <Trash2 className="h-3 w-3" /> {ROLE_LABEL[r]}
                           </button>
                         ))}
+                        <button
+                          onClick={() => resetPassword(m.user_id, m.full_name ?? m.user_id.slice(0,8))}
+                          className="inline-flex items-center gap-1 text-xs hover:bg-accent/10 text-accent rounded px-2 py-1"
+                          title="Resetar senha"
+                        >
+                          <KeyRound className="h-3 w-3" /> Senha
+                        </button>
+                        <button
+                          onClick={() => deleteUser(m.user_id, m.full_name ?? m.user_id.slice(0,8))}
+                          className="inline-flex items-center gap-1 text-xs hover:bg-destructive/20 text-destructive rounded px-2 py-1"
+                          title="Excluir cadastro"
+                        >
+                          <UserX className="h-3 w-3" /> Excluir
+                        </button>
                       </div>
                     </td>
                   </tr>
