@@ -247,6 +247,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_team_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+        }
+        Returns: string
+      }
+      claim_first_admin_if_none: { Args: never; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -300,6 +308,21 @@ export type Database = {
             }
             Returns: string
           }
+      remove_team_role: {
+        Args: {
+          p_role: Database["public"]["Enums"]["app_role"]
+          p_user_id: string
+        }
+        Returns: boolean
+      }
+      search_team_candidates: {
+        Args: { p_term: string }
+        Returns: {
+          email: string
+          full_name: string
+          id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "catalog" | "fulfillment"

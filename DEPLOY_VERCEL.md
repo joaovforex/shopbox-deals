@@ -13,7 +13,7 @@ Este projeto está configurado para deploy na Vercel usando o preset `vercel` do
 
 ## Variáveis de ambiente obrigatórias
 
-Copie os valores do seu `.env` local (Lovable Cloud / Supabase):
+Copie os valores do seu `.env` local:
 
 ### Client (build-time, prefixo `VITE_`)
 - `VITE_SUPABASE_URL`
@@ -23,8 +23,8 @@ Copie os valores do seu `.env` local (Lovable Cloud / Supabase):
 ### Server (runtime)
 - `SUPABASE_URL`
 - `SUPABASE_PUBLISHABLE_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY` ⚠️ secreta — nunca exponha no client
-- `LOVABLE_API_KEY` (se usar Lovable AI Gateway)
+
+> `SUPABASE_SERVICE_ROLE_KEY` não é mais obrigatória para buscar equipe ou dar/remover cargos. Essas ações agora usam funções seguras do banco autenticadas pelo usuário logado.
 
 Aplique todas em **Production**, **Preview** e **Development**.
 
