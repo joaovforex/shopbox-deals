@@ -149,7 +149,7 @@ function TeamPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Nome cadastrado"
+              placeholder="Nome ou email"
               className="flex-1 bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary"
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), findUser())}
             />
@@ -161,6 +161,30 @@ function TeamPage() {
               {searching ? "..." : "Buscar"}
             </button>
           </div>
+          {searchResults.length > 0 && (
+            <div className="space-y-2">
+              {searchResults.map((u) => (
+                <div key={u.id} className="bg-secondary rounded-md p-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-sm truncate">{u.full_name ?? "(sem nome)"}</div>
+                    <div className="text-xs text-muted-foreground truncate">{u.email ?? "(sem email)"}</div>
+                    <div className="text-[10px] text-muted-foreground font-mono">{u.id.slice(0, 8)}...</div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ASSIGNABLE.map((r) => (
+                      <button
+                        key={r}
+                        onClick={() => assignRole(u.id, r)}
+                        className="inline-flex items-center gap-1 text-xs bg-card border border-border hover:border-primary rounded px-2.5 py-1.5"
+                      >
+                        {ROLE_ICON[r]} {ROLE_LABEL[r]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           {searchResult && (
             <div className="bg-secondary rounded-md p-3 flex flex-wrap items-center justify-between gap-2">
               <div>
