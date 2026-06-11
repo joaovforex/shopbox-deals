@@ -1,21 +1,20 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
 import { Header, Footer } from "@/components/Header";
 import { useCart } from "@/lib/cart";
 import { brl } from "@/lib/format";
-import { supabase } from "@/integrations/supabase/client";
+import { createMpPreference } from "@/lib/mercadopago.functions";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Finalizar compra · shopbox" }] }),
   component: CheckoutPage,
 });
 
-type Payment = "pix" | "card";
 const delivery = "pickup" as const;
 
-// (00) 00000-0000 — DDD + número
 function maskPhone(v: string) {
   const d = v.replace(/\D/g, "").slice(0, 11);
   if (d.length <= 2) return d.length ? `(${d}` : "";
@@ -45,22 +44,14 @@ function isValidCpf(v: string) {
 }
 
 function CheckoutPage() {
-  const { items, total, clear } = useCart();
-  const navigate = useNavigate();
+  const { items, total } = useCart();
   const [busy, setBusy] = useState(false);
+  const createPref = useServerFn(createMpPreference);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [cpf, setCpf] = useState("");
-
-  const [payment, setPayment] = useState<Payment>("pix");
-
-  // sandbox card fields
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [cardExp, setCardExp] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
 
   if (items.length === 0) {
     return (
@@ -86,40 +77,23 @@ function CheckoutPage() {
     const cpfDigits = cpf.replace(/\D/g, "");
     if (!isValidCpf(cpfDigits)) return toast.error("CPF inválido");
 
-    if (payment === "card") {
-      if (cardNumber.replace(/\s/g, "").length < 13) return toast.error("Número do cartão inválido");
-      if (cardCvv.length < 3) return toast.error("CVV inválido");
-    }
-
     setBusy(true);
     try {
-      await new Promise((r) => setTimeout(r, 900));
-
-      const { data, error } = await supabase.rpc("place_order", {
-        p_customer_name: name.trim(),
-        p_customer_email: email.trim(),
-        p_customer_phone: phoneDigits,
-        p_customer_cpf: cpfDigits,
-        p_payment_method: payment,
-        p_delivery_method: delivery,
-        p_items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
-        p_zip: null,
-        p_street: null,
-        p_number: null,
-        p_complement: null,
-        p_district: null,
-        p_city: null,
-        p_state: null,
-      } as never);
-      if (error) throw error;
-      const orderId = data as string;
-      clear();
-      toast.success("Pagamento aprovado!");
-
-      navigate({ to: "/pedido/$id", params: { id: orderId } });
-    } catch (err: any) {
-      toast.error(err.message ?? "Erro ao finalizar pedido");
-    } finally {
+      const res = await createPref({
+        data: {
+          customer_name: name.trim(),
+          customer_email: email.trim(),
+          customer_phone: phoneDigits,
+          customer_cpf: cpfDigits,
+          delivery_method: delivery,
+          items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
+        },
+      });
+      // Redireciona para o Checkout Pro do Mercado Pago
+      window.location.href = res.initPoint;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao iniciar pagamento";
+      toast.error(msg);
       setBusy(false);
     }
   };
@@ -135,7 +109,7 @@ function CheckoutPage() {
           </Link>
           <h1 className="display text-3xl md:text-4xl">Finalizar compra</h1>
           <div className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
-            Ambiente sandbox · pagamento simulado
+            Pagamento seguro via Mercado Pago
           </div>
         </div>
       </section>
@@ -153,45 +127,25 @@ function CheckoutPage() {
 
           <Section title="Retirada na loja">
             <div className="bg-secondary rounded-md p-4 text-sm">
-              <div>
-                <p className="font-semibold">Retire na loja</p>
-                <p className="text-muted-foreground mt-1">{STORE_ADDRESS}</p>
-                <p className="text-muted-foreground">{STORE_HOURS}</p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Você receberá um aviso no WhatsApp assim que o pedido for confirmado e novamente quando estiver pronto para retirada (em até 1h após separação).
-                </p>
-              </div>
+              <p className="font-semibold">Retire na loja</p>
+              <p className="text-muted-foreground mt-1">{STORE_ADDRESS}</p>
+              <p className="text-muted-foreground">{STORE_HOURS}</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Você receberá um aviso no WhatsApp assim que o pagamento for confirmado e novamente quando o pedido estiver pronto para retirada.
+              </p>
             </div>
           </Section>
 
-          <Section title="Forma de pagamento">
-            <div className="grid grid-cols-2 gap-2">
-              <PaymentOption label="Pix" active={payment === "pix"} onClick={() => setPayment("pix")} />
-              <PaymentOption label="Cartao" active={payment === "card"} onClick={() => setPayment("card")} />
+          <Section title="Pagamento">
+            <div className="bg-secondary rounded-md p-4 text-sm space-y-2">
+              <p className="font-semibold">Você será redirecionado ao Mercado Pago</p>
+              <p className="text-muted-foreground">
+                Após confirmar, abrimos o checkout seguro do Mercado Pago. Lá você escolhe entre <strong>Pix, cartão de crédito, débito ou boleto</strong>.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                O pedido fica reservado por alguns minutos enquanto aguardamos a confirmação do pagamento.
+              </p>
             </div>
-
-            {payment === "pix" && (
-              <div className="mt-4 bg-secondary rounded-md p-4 text-sm">
-                <p className="font-semibold mb-1">Chave Pix</p>
-                <code className="block bg-background px-3 py-2 rounded text-xs break-all">
-                  00020126360014BR.GOV.BCB.PIX0114SANDBOX-{Date.now()}5204000053039865802BR
-                </code>
-                <p className="text-xs text-muted-foreground mt-2">No sandbox o pagamento é aprovado automaticamente ao confirmar.</p>
-              </div>
-            )}
-
-            {payment === "card" && (
-              <div className="mt-4 space-y-3">
-                <Field label="Numero do cartao" value={cardNumber} onChange={(v) => setCardNumber(v.replace(/\D/g, "").slice(0, 19))} placeholder="0000 0000 0000 0000" />
-                <Field label="Nome no cartao" value={cardName} onChange={setCardName} placeholder="Como esta no cartao" />
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Validade" value={cardExp} onChange={setCardExp} placeholder="MM/AA" />
-                  <Field label="Codigo de seguranca" value={cardCvv} onChange={(v) => setCardCvv(v.replace(/\D/g, "").slice(0, 4))} placeholder="000" />
-                </div>
-                <p className="text-xs text-muted-foreground">Use qualquer numero de teste. Nada é cobrado.</p>
-              </div>
-            )}
-
           </Section>
         </div>
 
@@ -210,7 +164,7 @@ function CheckoutPage() {
             <span className="font-semibold">{brl(total)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">{delivery === "pickup" ? "Retirada" : "Frete"}</span>
+            <span className="text-muted-foreground">Retirada</span>
             <span className="font-semibold">Grátis</span>
           </div>
           <div className="border-t border-border pt-3 flex justify-between items-baseline">
@@ -222,10 +176,10 @@ function CheckoutPage() {
             disabled={busy}
             className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] transition-transform disabled:opacity-60 disabled:scale-100"
           >
-            {busy ? "Processando..." : `Pagar ${brl(total)}`}
+            {busy ? "Redirecionando..." : `Pagar ${brl(total)}`}
           </button>
           <p className="text-[11px] text-muted-foreground text-center">
-            Ao confirmar você aceita os termos da loja. Pagamento simulado para testes.
+            Ao confirmar você aceita os termos da loja. Pagamento processado pelo Mercado Pago.
           </p>
         </aside>
       </form>
@@ -257,17 +211,5 @@ function Field({
         className="w-full bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary mt-1"
       />
     </label>
-  );
-}
-
-function PaymentOption({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex flex-col items-center gap-1.5 py-3 rounded-md border-2 transition-all ${active ? "border-primary bg-primary/10" : "border-border hover:border-muted-foreground"}`}
-    >
-      <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
-    </button>
   );
 }
