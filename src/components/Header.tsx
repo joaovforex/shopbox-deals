@@ -37,11 +37,11 @@ export function Header() {
         <div className="ticker flex gap-8 sm:gap-12 whitespace-nowrap w-max">
           {Array.from({ length: 2 }).map((_, k) => (
             <div key={k} className="flex gap-8 sm:gap-12">
-              <span>🔥 SUPER OFERTAS DA SEMANA</span>
-              <span>⚡ FRETE COMBINADO NO WHATSAPP</span>
-              <span>💳 PIX, CARTÃO E PARCELADO</span>
-              <span>🎁 ATÉ 70% OFF</span>
-              <span>📦 RETIRE NA LOJA EM COLOMBO</span>
+              <span>SUPER OFERTAS DA SEMANA</span>
+              <span>FRETE COMBINADO NO WHATSAPP</span>
+              <span>PIX, CARTAO E PARCELADO</span>
+              <span>ATE 70% OFF</span>
+              <span>RETIRE NA LOJA EM COLOMBO</span>
             </div>
           ))}
         </div>

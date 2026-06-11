@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CreditCard, QrCode, Lock, ArrowLeft, Store } from "lucide-react";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
 import { Header, Footer } from "@/components/Header";
 import { useCart } from "@/lib/cart";
@@ -132,11 +131,11 @@ function CheckoutPage() {
       <section className="bg-card border-b-4 border-primary">
         <div className="container mx-auto px-4 py-6">
           <Link to="/carrinho" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-2">
-            <ArrowLeft className="h-4 w-4" /> Voltar ao carrinho
+            Voltar ao carrinho
           </Link>
           <h1 className="display text-3xl md:text-4xl">Finalizar compra</h1>
           <div className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
-            <Lock className="h-3 w-3" /> Ambiente sandbox · pagamento simulado
+            Ambiente sandbox · pagamento simulado
           </div>
         </div>
       </section>
@@ -153,8 +152,7 @@ function CheckoutPage() {
           </Section>
 
           <Section title="Retirada na loja">
-            <div className="bg-secondary rounded-md p-4 text-sm flex gap-3">
-              <Store className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+            <div className="bg-secondary rounded-md p-4 text-sm">
               <div>
                 <p className="font-semibold">Retire na loja</p>
                 <p className="text-muted-foreground mt-1">{STORE_ADDRESS}</p>
@@ -168,13 +166,13 @@ function CheckoutPage() {
 
           <Section title="Forma de pagamento">
             <div className="grid grid-cols-2 gap-2">
-              <PaymentOption icon={<QrCode className="h-5 w-5" />} label="Pix" active={payment === "pix"} onClick={() => setPayment("pix")} />
-              <PaymentOption icon={<CreditCard className="h-5 w-5" />} label="Cartão" active={payment === "card"} onClick={() => setPayment("card")} />
+              <PaymentOption label="Pix" active={payment === "pix"} onClick={() => setPayment("pix")} />
+              <PaymentOption label="Cartao" active={payment === "card"} onClick={() => setPayment("card")} />
             </div>
 
             {payment === "pix" && (
               <div className="mt-4 bg-secondary rounded-md p-4 text-sm">
-                <p className="font-semibold mb-1">Pix copia e cola (simulado)</p>
+                <p className="font-semibold mb-1">Chave Pix</p>
                 <code className="block bg-background px-3 py-2 rounded text-xs break-all">
                   00020126360014BR.GOV.BCB.PIX0114SANDBOX-{Date.now()}5204000053039865802BR
                 </code>
@@ -184,13 +182,13 @@ function CheckoutPage() {
 
             {payment === "card" && (
               <div className="mt-4 space-y-3">
-                <Field label="Número do cartão" value={cardNumber} onChange={(v) => setCardNumber(v.replace(/\D/g, "").slice(0, 19))} placeholder="0000 0000 0000 0000" />
-                <Field label="Nome impresso" value={cardName} onChange={setCardName} placeholder="Como está no cartão" />
+                <Field label="Numero do cartao" value={cardNumber} onChange={(v) => setCardNumber(v.replace(/\D/g, "").slice(0, 19))} placeholder="0000 0000 0000 0000" />
+                <Field label="Nome no cartao" value={cardName} onChange={setCardName} placeholder="Como esta no cartao" />
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Validade" value={cardExp} onChange={setCardExp} placeholder="MM/AA" />
-                  <Field label="CVV" value={cardCvv} onChange={(v) => setCardCvv(v.replace(/\D/g, "").slice(0, 4))} placeholder="000" />
+                  <Field label="Codigo de seguranca" value={cardCvv} onChange={(v) => setCardCvv(v.replace(/\D/g, "").slice(0, 4))} placeholder="000" />
                 </div>
-                <p className="text-xs text-muted-foreground">Use qualquer número de teste. Nada é cobrado.</p>
+                <p className="text-xs text-muted-foreground">Use qualquer numero de teste. Nada é cobrado.</p>
               </div>
             )}
 
@@ -224,7 +222,7 @@ function CheckoutPage() {
             disabled={busy}
             className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] transition-transform disabled:opacity-60 disabled:scale-100"
           >
-            <Lock className="h-4 w-4" /> {busy ? "Processando..." : `Pagar ${brl(total)}`}
+            {busy ? "Processando..." : `Pagar ${brl(total)}`}
           </button>
           <p className="text-[11px] text-muted-foreground text-center">
             Ao confirmar você aceita os termos da loja. Pagamento simulado para testes.
@@ -262,14 +260,13 @@ function Field({
   );
 }
 
-function PaymentOption({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void }) {
+function PaymentOption({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={`flex flex-col items-center gap-1.5 py-3 rounded-md border-2 transition-all ${active ? "border-primary bg-primary/10" : "border-border hover:border-muted-foreground"}`}
     >
-      {icon}
       <span className="text-xs font-bold uppercase tracking-wider">{label}</span>
     </button>
   );

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Trash2, Minus, Plus, CreditCard, ShoppingBag } from "lucide-react";
+import { Trash2, Minus, Plus } from "lucide-react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { useCart } from "@/lib/cart";
 import { brl } from "@/lib/format";
@@ -25,7 +25,6 @@ function CartPage() {
       <section className="container mx-auto px-4 py-8 flex-1">
         {items.length === 0 ? (
           <div className="text-center py-20 bg-card rounded-lg border border-border">
-            <ShoppingBag className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <h2 className="display text-2xl mb-2">Carrinho vazio</h2>
             <p className="text-muted-foreground mb-4">Adicione produtos para continuar.</p>
             <Link to="/loja" className="inline-flex bg-primary text-primary-foreground font-bold uppercase tracking-wider px-6 py-3 rounded-md">
@@ -77,7 +76,7 @@ function CartPage() {
                 to="/checkout"
                 className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md hover:scale-[1.02] transition-transform shadow-deal"
               >
-                <CreditCard className="h-5 w-5" /> Finalizar compra
+                Finalizar compra
               </Link>
               <p className="text-xs text-muted-foreground text-center">
                 Pague com Pix, cartão ou boleto · ambiente de teste (sandbox)
