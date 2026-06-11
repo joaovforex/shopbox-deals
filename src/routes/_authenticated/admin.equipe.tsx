@@ -208,6 +208,20 @@ function TeamPage() {
                         {ROLE_ICON[r]} {ROLE_LABEL[r]}
                       </button>
                     ))}
+                    <button
+                      onClick={() => resetPassword(u.id, u.full_name ?? u.email ?? u.id.slice(0,8))}
+                      className="inline-flex items-center gap-1 text-xs bg-card border border-border hover:border-accent rounded px-2.5 py-1.5"
+                      title="Definir nova senha"
+                    >
+                      <KeyRound className="h-3.5 w-3.5" /> Resetar senha
+                    </button>
+                    <button
+                      onClick={() => deleteUser(u.id, u.full_name ?? u.email ?? u.id.slice(0,8))}
+                      className="inline-flex items-center gap-1 text-xs bg-destructive/10 border border-destructive/30 text-destructive hover:bg-destructive/20 rounded px-2.5 py-1.5"
+                      title="Excluir cadastro"
+                    >
+                      <UserX className="h-3.5 w-3.5" /> Excluir
+                    </button>
                   </div>
                 </div>
               ))}
