@@ -185,25 +185,6 @@ function TeamPage() {
               ))}
             </div>
           )}
-          {searchResult && (
-            <div className="bg-secondary rounded-md p-3 flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <div className="font-semibold text-sm">{searchResult.name ?? "(sem nome)"}</div>
-                <div className="text-xs text-muted-foreground font-mono">{searchResult.id.slice(0, 8)}...</div>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {ASSIGNABLE.map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => assignRole(searchResult.id, r)}
-                    className="inline-flex items-center gap-1 text-xs bg-card border border-border hover:border-primary rounded px-2.5 py-1.5"
-                  >
-                    {ROLE_ICON[r]} {ROLE_LABEL[r]}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="bg-card border border-border rounded-lg overflow-hidden">
