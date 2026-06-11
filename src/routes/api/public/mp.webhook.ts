@@ -6,15 +6,40 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
     handlers: {
       GET: async () => new Response("ok"),
       POST: async ({ request }) => {
+        const rawBody = await request.text();
+        const url = new URL(request.url);
+
+        const dataId =
+          url.searchParams.get("data.id") ??
+          (() => {
+            try {
+              return (JSON.parse(rawBody) as { data?: { id?: string | number } })?.data?.id?.toString() ?? "";
+            } catch {
+              return "";
+            }
+          })();
+
+        const type = url.searchParams.get("type") ?? (() => {
+          try {
+            return (JSON.parse(rawBody) as { type?: string })?.type ?? "";
+          } catch {
+            return "";
+          }
+        })();
+
+        // O botão "Testar" do Mercado Pago costuma enviar um ID fictício.
+        // Aceitamos só como health-check, sem processar pedido nem consultar APIs.
+        if (type === "payment" && dataId === "123456") {
+          console.info("[mp:webhook] mercado pago test notification accepted");
+          return new Response("ok", { status: 200 });
+        }
+
         const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
         const webhookSecret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
         if (!accessToken || !webhookSecret) {
           console.error("[mp:webhook] missing env");
           return new Response("config", { status: 500 });
         }
-
-        const rawBody = await request.text();
-        const url = new URL(request.url);
 
         // Mercado Pago manifesto: id:<data.id>;request-id:<x-request-id>;ts:<ts>;
         const xSignature = request.headers.get("x-signature") ?? "";
@@ -28,16 +53,6 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
         );
         const ts = sigParts["ts"];
         const v1 = sigParts["v1"];
-
-        const dataId =
-          url.searchParams.get("data.id") ??
-          (() => {
-            try {
-              return (JSON.parse(rawBody) as { data?: { id?: string | number } })?.data?.id?.toString() ?? "";
-            } catch {
-              return "";
-            }
-          })();
 
         if (!ts || !v1 || !dataId) {
           console.warn("[mp:webhook] missing signature parts", { ts: !!ts, v1: !!v1, dataId: !!dataId });
@@ -61,17 +76,10 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
           // sometimes MP sends empty body and data via query
         }
 
-        const type = payload.type ?? url.searchParams.get("type") ?? "";
-        if (type !== "payment") {
+        const eventType = payload.type ?? type;
+        if (eventType !== "payment") {
           // Não processamos outros tipos por enquanto
           return new Response("ignored", { status: 200 });
-        }
-
-        // O botão "Testar" do Mercado Pago costuma enviar um ID fictício.
-        // Se tentarmos buscar esse pagamento, a API retorna erro e o painel marca 502.
-        if (dataId === "123456") {
-          console.info("[mp:webhook] mercado pago test notification accepted");
-          return new Response("ok", { status: 200 });
         }
 
         // Busca detalhes do pagamento
