@@ -3,11 +3,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, UserPlus, Trash2, Crown, Package, Truck, User } from "lucide-react";
+import { ArrowLeft, UserPlus, Trash2, Crown, Package, Truck, User, KeyRound, UserX } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { isAdmin, type TeamRole } from "@/lib/products";
-import { searchTeamCandidates, assignTeamRole, removeTeamRole } from "@/lib/team.functions";
+import { searchTeamCandidates, assignTeamRole, removeTeamRole, adminResetPassword, adminDeleteUser } from "@/lib/team.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/equipe")({
   head: () => ({ meta: [{ title: "Equipe · Admin" }] }),
