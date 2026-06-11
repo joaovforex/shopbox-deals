@@ -3,11 +3,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, UserPlus, Trash2, Crown, Package, Truck, User } from "lucide-react";
+import { ArrowLeft, UserPlus, Trash2, Crown, Package, Truck, User, KeyRound, UserX } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { isAdmin, type TeamRole } from "@/lib/products";
-import { searchTeamCandidates, assignTeamRole, removeTeamRole } from "@/lib/team.functions";
+import { searchTeamCandidates, assignTeamRole, removeTeamRole, adminResetPassword, adminDeleteUser } from "@/lib/team.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/equipe")({
   head: () => ({ meta: [{ title: "Equipe · Admin" }] }),
@@ -70,6 +70,34 @@ function TeamPage() {
   const doSearch = useServerFn(searchTeamCandidates);
   const doAssign = useServerFn(assignTeamRole);
   const doRemove = useServerFn(removeTeamRole);
+  const doResetPassword = useServerFn(adminResetPassword);
+  const doDeleteUser = useServerFn(adminDeleteUser);
+
+  const resetPassword = async (user_id: string, label: string) => {
+    const pw = prompt(`Nova senha para ${label} (mínimo 8 caracteres):`);
+    if (!pw) return;
+    if (pw.length < 8) return toast.error("Senha precisa ter ao menos 8 caracteres");
+    try {
+      await doResetPassword({ data: { user_id, new_password: pw } });
+      toast.success("Senha redefinida. Avise o usuário.");
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao redefinir senha");
+    }
+  };
+
+  const deleteUser = async (user_id: string, label: string) => {
+    if (!confirm(`EXCLUIR a conta de "${label}" permanentemente? Esta ação não pode ser desfeita.`)) return;
+    if (!confirm("Tem certeza absoluta? Todos os dados associados serão removidos.")) return;
+    try {
+      await doDeleteUser({ data: { user_id } });
+      toast.success("Conta excluída");
+      qc.invalidateQueries({ queryKey: ["team-members"] });
+      refetch();
+      setSearchResults((prev) => prev.filter((u) => u.id !== user_id));
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao excluir");
+    }
+  };
 
   const findUser = async () => {
     const term = search.trim();
@@ -180,6 +208,20 @@ function TeamPage() {
                         {ROLE_ICON[r]} {ROLE_LABEL[r]}
                       </button>
                     ))}
+                    <button
+                      onClick={() => resetPassword(u.id, u.full_name ?? u.email ?? u.id.slice(0,8))}
+                      className="inline-flex items-center gap-1 text-xs bg-card border border-border hover:border-accent rounded px-2.5 py-1.5"
+                      title="Definir nova senha"
+                    >
+                      <KeyRound className="h-3.5 w-3.5" /> Resetar senha
+                    </button>
+                    <button
+                      onClick={() => deleteUser(u.id, u.full_name ?? u.email ?? u.id.slice(0,8))}
+                      className="inline-flex items-center gap-1 text-xs bg-destructive/10 border border-destructive/30 text-destructive hover:bg-destructive/20 rounded px-2.5 py-1.5"
+                      title="Excluir cadastro"
+                    >
+                      <UserX className="h-3.5 w-3.5" /> Excluir
+                    </button>
                   </div>
                 </div>
               ))}
@@ -233,6 +275,20 @@ function TeamPage() {
                             <Trash2 className="h-3 w-3" /> {ROLE_LABEL[r]}
                           </button>
                         ))}
+                        <button
+                          onClick={() => resetPassword(m.user_id, m.full_name ?? m.user_id.slice(0,8))}
+                          className="inline-flex items-center gap-1 text-xs hover:bg-accent/10 text-accent rounded px-2 py-1"
+                          title="Resetar senha"
+                        >
+                          <KeyRound className="h-3 w-3" /> Senha
+                        </button>
+                        <button
+                          onClick={() => deleteUser(m.user_id, m.full_name ?? m.user_id.slice(0,8))}
+                          className="inline-flex items-center gap-1 text-xs hover:bg-destructive/20 text-destructive rounded px-2 py-1"
+                          title="Excluir cadastro"
+                        >
+                          <UserX className="h-3 w-3" /> Excluir
+                        </button>
                       </div>
                     </td>
                   </tr>
