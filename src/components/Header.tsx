@@ -63,9 +63,11 @@ export function Header() {
             {hasTeamRole && (
               <Link
                 to="/admin"
-                className="hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-md bg-accent text-accent-foreground text-sm font-bold hover:opacity-90 transition-opacity"
+                aria-label="Admin"
+                className="inline-flex items-center gap-2 px-2 sm:px-3 h-10 sm:py-2 rounded-md bg-accent text-accent-foreground text-sm font-bold hover:opacity-90 transition-opacity"
               >
-                <LayoutDashboard className="h-4 w-4" /> Admin
+                <LayoutDashboard className="h-5 w-5 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">Admin</span>
               </Link>
             )}
             <Link
