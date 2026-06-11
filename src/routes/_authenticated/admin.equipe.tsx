@@ -65,26 +65,27 @@ function TeamPage() {
   });
 
   const [search, setSearch] = useState("");
-  const [searchResult, setSearchResult] = useState<{ id: string; name: string | null } | null>(null);
+  const [searchResults, setSearchResults] = useState<Array<{ id: string; full_name: string | null; email: string | null }>>([]);
   const [searching, setSearching] = useState(false);
+  const doSearch = useServerFn(searchTeamCandidates);
+  const doAssign = useServerFn(assignTeamRole);
+  const doRemove = useServerFn(removeTeamRole);
 
   const findUser = async () => {
+    const term = search.trim();
+    if (term.length < 2) {
+      toast.error("Digite ao menos 2 caracteres");
+      return;
+    }
     setSearching(true);
-    setSearchResult(null);
+    setSearchResults([]);
     try {
-      const term = search.trim();
-      if (!term) return;
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .ilike("full_name", `%${term}%`)
-        .limit(5);
-      if (error) throw error;
-      if (!data || data.length === 0) {
-        toast.error("Nenhum usuário encontrado. Peça para a pessoa criar uma conta primeiro.");
+      const res = await doSearch({ data: { term } });
+      if (!res || res.length === 0) {
+        toast.error("Ninguém encontrado. Confirme se a pessoa já criou conta.");
         return;
       }
-      setSearchResult({ id: data[0].id, name: data[0].full_name });
+      setSearchResults(res);
     } catch (e: any) {
       toast.error(e.message ?? "Erro na busca");
     } finally {
@@ -94,22 +95,26 @@ function TeamPage() {
 
   const assignRole = async (user_id: string, role: TeamRole) => {
     if (role === "admin" && !confirm("Atribuir SUPER ADMIN dá controle TOTAL da loja (produtos, pedidos, métricas e equipe). Confirma?")) return;
-    const { error } = await supabase.from("user_roles").insert({ user_id, role } as never);
-    if (error) {
-      if (error.code === "23505") return toast.info("Essa função já está atribuída");
-      return toast.error(error.message);
+    try {
+      const r = await doAssign({ data: { user_id, role: role as "admin" | "catalog" | "fulfillment" } });
+      if (!r.ok && r.reason === "duplicate") return toast.info("Essa função já está atribuída");
+      toast.success(`Função "${ROLE_LABEL[role]}" atribuída`);
+      qc.invalidateQueries({ queryKey: ["team-members"] });
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao atribuir");
     }
-    toast.success(`Função "${ROLE_LABEL[role]}" atribuída`);
-    qc.invalidateQueries({ queryKey: ["team-members"] });
-    refetch();
   };
 
   const removeRole = async (user_id: string, role: TeamRole) => {
     if (!confirm(`Remover função "${ROLE_LABEL[role]}"?`)) return;
-    const { error } = await supabase.from("user_roles").delete().eq("user_id", user_id).eq("role", role);
-    if (error) return toast.error(error.message);
-    toast.success("Removida");
-    refetch();
+    try {
+      await doRemove({ data: { user_id, role: role as "admin" | "catalog" | "fulfillment" } });
+      toast.success("Removida");
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao remover");
+    }
   };
 
   if (admin === null) {
