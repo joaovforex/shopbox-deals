@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, TrendingUp, Package, DollarSign, ShoppingBag, Sparkles, Truck, Store, Trash2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, TrendingUp, Package, DollarSign, ShoppingBag, Sparkles, Truck, Store, Trash2, AlertTriangle, Search, Filter, X } from "lucide-react";
 import { toast } from "sonner";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +54,11 @@ function OrdersPanel() {
   const [wipeOpen, setWipeOpen] = useState(false);
   const [wipeConfirm, setWipeConfirm] = useState("");
   const [busy, setBusy] = useState(false);
+  const [searchCpf, setSearchCpf] = useState("");
+  const [filterDelivery, setFilterDelivery] = useState<"all" | "delivery" | "pickup">("all");
+  const [filterPayment, setFilterPayment] = useState<"all" | "pix" | "card">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "paid" | "cancelled">("all");
+  const [showFilters, setShowFilters] = useState(false);
   const qc = useQueryClient();
 
   useEffect(() => {
@@ -69,7 +74,6 @@ function OrdersPanel() {
       let q = supabase
         .from("orders")
         .select("*")
-        .neq("status", "cancelled")
         .order("created_at", { ascending: false });
       if (since) q = q.gte("created_at", since.toISOString());
       const { data: orders, error } = await q;
@@ -86,8 +90,24 @@ function OrdersPanel() {
   });
 
   const stats = useMemo(() => {
-    const orders = data?.orders ?? [];
+    let orders = data?.orders ?? [];
     const items = data?.items ?? [];
+
+    // Apply filters
+    if (searchCpf.trim()) {
+      const raw = searchCpf.replace(/\D/g, "");
+      orders = orders.filter((o) => (o.customer_cpf ?? "").replace(/\D/g, "").includes(raw));
+    }
+    if (filterDelivery !== "all") {
+      orders = orders.filter((o) => o.delivery_method === filterDelivery);
+    }
+    if (filterPayment !== "all") {
+      orders = orders.filter((o) => o.payment_method === filterPayment);
+    }
+    if (filterStatus !== "all") {
+      orders = orders.filter((o) => o.status === filterStatus);
+    }
+
     // Receita total agregada (soma de unit_price * quantity de TODOS os itens, independente de cliente)
     const revenue = items.reduce((s, i) => s + Number(i.unit_price) * Number(i.quantity), 0);
     // Total de unidades vendidas (somando quantidade item a item)
@@ -105,12 +125,12 @@ function OrdersPanel() {
       .map(([id, v]) => ({ id, ...v }))
       .sort((a, b) => b.qty - a.qty);
 
-    // Delivery breakdown
+    // Delivery breakdown (filtered orders)
     const deliveryCount = orders.filter((o) => o.delivery_method === "delivery").length;
     const pickupCount = orders.filter((o) => o.delivery_method === "pickup").length;
 
     return { orders, items, revenue, unitsSold, ranking, deliveryCount, pickupCount };
-  }, [data]);
+  }, [data, searchCpf, filterDelivery, filterPayment, filterStatus]);
 
   const insight = useMemo(() => generateInsight(stats.ranking, stats.orders.length, period), [stats, period]);
 
@@ -262,14 +282,83 @@ function OrdersPanel() {
 
         {/* Orders list */}
         <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-border bg-secondary flex items-center justify-between gap-2">
-            <h2 className="display text-lg">Pedidos</h2>
-            <span className="text-xs text-muted-foreground">{stats.orders.length} no período</span>
+          <div className="px-4 py-3 border-b border-border bg-secondary flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="display text-lg">Pedidos</h2>
+              <span className="text-xs text-muted-foreground">{stats.orders.length} no período</span>
+            </div>
+
+            {/* Search & Filters */}
+            <div className="space-y-2">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={searchCpf}
+                    onChange={(e) => setSearchCpf(e.target.value)}
+                    placeholder="Buscar por CPF..."
+                    className="w-full pl-9 pr-8 py-2 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  {searchCpf && (
+                    <button
+                      onClick={() => setSearchCpf("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={() => setShowFilters((s) => !s)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded border text-xs font-bold uppercase tracking-wider shrink-0 ${showFilters ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"}`}
+                >
+                  <Filter className="h-3.5 w-3.5" /> Filtros
+                </button>
+              </div>
+
+              {showFilters && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <select
+                    value={filterDelivery}
+                    onChange={(e) => setFilterDelivery(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="all">Todos os tipos de entrega</option>
+                    <option value="delivery">Entrega</option>
+                    <option value="pickup">Retirada</option>
+                  </select>
+                  <select
+                    value={filterPayment}
+                    onChange={(e) => setFilterPayment(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="all">Todos os pagamentos</option>
+                    <option value="pix">Pix</option>
+                    <option value="card">Cartão</option>
+                  </select>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="all">Todos os status</option>
+                    <option value="paid">Pago</option>
+                    <option value="cancelled">Cancelado</option>
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
           {isLoading ? (
             <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
           ) : stats.orders.length === 0 ? (
-            <div className="p-6 text-sm text-muted-foreground">Nenhum pedido neste período.</div>
+            <div className="p-6 text-sm text-muted-foreground">
+              {searchCpf || filterDelivery !== "all" || filterPayment !== "all" || filterStatus !== "all"
+                ? "Nenhum pedido encontrado com os filtros aplicados."
+                : "Nenhum pedido neste período."}
+            </div>
           ) : (
             <>
               {/* Desktop table */}
