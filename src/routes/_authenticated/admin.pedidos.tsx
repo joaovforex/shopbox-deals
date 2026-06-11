@@ -54,6 +54,11 @@ function OrdersPanel() {
   const [wipeOpen, setWipeOpen] = useState(false);
   const [wipeConfirm, setWipeConfirm] = useState("");
   const [busy, setBusy] = useState(false);
+  const [searchCpf, setSearchCpf] = useState("");
+  const [filterDelivery, setFilterDelivery] = useState<"all" | "delivery" | "pickup">("all");
+  const [filterPayment, setFilterPayment] = useState<"all" | "pix" | "card">("all");
+  const [filterStatus, setFilterStatus] = useState<"all" | "paid" | "cancelled">("all");
+  const [showFilters, setShowFilters] = useState(false);
   const qc = useQueryClient();
 
   useEffect(() => {
