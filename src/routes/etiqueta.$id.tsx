@@ -27,6 +27,12 @@ function formatCep(z: string | null) {
   return `${d.slice(0, 5)}-${d.slice(5)}`;
 }
 
+function formatCpf(c: string | null) {
+  if (!c) return "";
+  const d = c.replace(/\D/g, "").padStart(11, "0").slice(0, 11);
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
+
 const STORE = {
   name: "shopbox",
   street: "Rua Abel Scuissiato",
@@ -214,6 +220,9 @@ function ShippingLabel({ o, items }: { o: any; items: any[] }) {
       <div className="border border-black p-2">
         <div className="text-[10px] font-bold uppercase border-b border-black mb-1 pb-0.5">Destinatário</div>
         <div className="font-bold text-sm uppercase">{o.customer_name}</div>
+        {o.customer_cpf && (
+          <div className="text-[10px] mt-0.5">CPF: {formatCpf(o.customer_cpf)}</div>
+        )}
         <div className="text-xs leading-tight mt-1">
           {o.shipping_street}, {o.shipping_number}
           {o.shipping_complement ? ` — ${o.shipping_complement}` : ""}
@@ -278,6 +287,9 @@ function PickupLabel({ o, items }: { o: any; items: any[] }) {
       <div className="border border-black p-2">
         <div className="text-[10px] font-bold uppercase border-b border-black mb-1 pb-0.5">Cliente</div>
         <div className="font-bold text-sm uppercase">{o.customer_name}</div>
+        {o.customer_cpf && (
+          <div className="text-[11px] mt-0.5">CPF: {formatCpf(o.customer_cpf)}</div>
+        )}
         {o.customer_phone && (
           <div className="text-xs mt-1">WhatsApp: {formatPhone(o.customer_phone)}</div>
         )}
