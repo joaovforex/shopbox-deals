@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, UserPlus, Trash2, Crown, Package, Truck, User } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { isAdmin, type TeamRole } from "@/lib/products";
+import { searchTeamCandidates, assignTeamRole, removeTeamRole } from "@/lib/team.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/equipe")({
   head: () => ({ meta: [{ title: "Equipe · Admin" }] }),
@@ -63,26 +65,27 @@ function TeamPage() {
   });
 
   const [search, setSearch] = useState("");
-  const [searchResult, setSearchResult] = useState<{ id: string; name: string | null } | null>(null);
+  const [searchResults, setSearchResults] = useState<Array<{ id: string; full_name: string | null; email: string | null }>>([]);
   const [searching, setSearching] = useState(false);
+  const doSearch = useServerFn(searchTeamCandidates);
+  const doAssign = useServerFn(assignTeamRole);
+  const doRemove = useServerFn(removeTeamRole);
 
   const findUser = async () => {
+    const term = search.trim();
+    if (term.length < 2) {
+      toast.error("Digite ao menos 2 caracteres");
+      return;
+    }
     setSearching(true);
-    setSearchResult(null);
+    setSearchResults([]);
     try {
-      const term = search.trim();
-      if (!term) return;
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .ilike("full_name", `%${term}%`)
-        .limit(5);
-      if (error) throw error;
-      if (!data || data.length === 0) {
-        toast.error("Nenhum usuário encontrado. Peça para a pessoa criar uma conta primeiro.");
+      const res = await doSearch({ data: { term } });
+      if (!res || res.length === 0) {
+        toast.error("Ninguém encontrado. Confirme se a pessoa já criou conta.");
         return;
       }
-      setSearchResult({ id: data[0].id, name: data[0].full_name });
+      setSearchResults(res);
     } catch (e: any) {
       toast.error(e.message ?? "Erro na busca");
     } finally {
@@ -92,22 +95,26 @@ function TeamPage() {
 
   const assignRole = async (user_id: string, role: TeamRole) => {
     if (role === "admin" && !confirm("Atribuir SUPER ADMIN dá controle TOTAL da loja (produtos, pedidos, métricas e equipe). Confirma?")) return;
-    const { error } = await supabase.from("user_roles").insert({ user_id, role } as never);
-    if (error) {
-      if (error.code === "23505") return toast.info("Essa função já está atribuída");
-      return toast.error(error.message);
+    try {
+      const r = await doAssign({ data: { user_id, role: role as "admin" | "catalog" | "fulfillment" } });
+      if (!r.ok && r.reason === "duplicate") return toast.info("Essa função já está atribuída");
+      toast.success(`Função "${ROLE_LABEL[role]}" atribuída`);
+      qc.invalidateQueries({ queryKey: ["team-members"] });
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao atribuir");
     }
-    toast.success(`Função "${ROLE_LABEL[role]}" atribuída`);
-    qc.invalidateQueries({ queryKey: ["team-members"] });
-    refetch();
   };
 
   const removeRole = async (user_id: string, role: TeamRole) => {
     if (!confirm(`Remover função "${ROLE_LABEL[role]}"?`)) return;
-    const { error } = await supabase.from("user_roles").delete().eq("user_id", user_id).eq("role", role);
-    if (error) return toast.error(error.message);
-    toast.success("Removida");
-    refetch();
+    try {
+      await doRemove({ data: { user_id, role: role as "admin" | "catalog" | "fulfillment" } });
+      toast.success("Removida");
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao remover");
+    }
   };
 
   if (admin === null) {
@@ -142,7 +149,7 @@ function TeamPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Nome cadastrado"
+              placeholder="Nome ou email"
               className="flex-1 bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary"
               onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), findUser())}
             />
@@ -154,23 +161,28 @@ function TeamPage() {
               {searching ? "..." : "Buscar"}
             </button>
           </div>
-          {searchResult && (
-            <div className="bg-secondary rounded-md p-3 flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <div className="font-semibold text-sm">{searchResult.name ?? "(sem nome)"}</div>
-                <div className="text-xs text-muted-foreground font-mono">{searchResult.id.slice(0, 8)}...</div>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {ASSIGNABLE.map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => assignRole(searchResult.id, r)}
-                    className="inline-flex items-center gap-1 text-xs bg-card border border-border hover:border-primary rounded px-2.5 py-1.5"
-                  >
-                    {ROLE_ICON[r]} {ROLE_LABEL[r]}
-                  </button>
-                ))}
-              </div>
+          {searchResults.length > 0 && (
+            <div className="space-y-2">
+              {searchResults.map((u) => (
+                <div key={u.id} className="bg-secondary rounded-md p-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-sm truncate">{u.full_name ?? "(sem nome)"}</div>
+                    <div className="text-xs text-muted-foreground truncate">{u.email ?? "(sem email)"}</div>
+                    <div className="text-[10px] text-muted-foreground font-mono">{u.id.slice(0, 8)}...</div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ASSIGNABLE.map((r) => (
+                      <button
+                        key={r}
+                        onClick={() => assignRole(u.id, r)}
+                        className="inline-flex items-center gap-1 text-xs bg-card border border-border hover:border-primary rounded px-2.5 py-1.5"
+                      >
+                        {ROLE_ICON[r]} {ROLE_LABEL[r]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
