@@ -84,6 +84,8 @@ function CheckoutPage() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return toast.error("Informe um email válido");
     const phoneDigits = phone.replace(/\D/g, "");
     if (phoneDigits.length < 10 || phoneDigits.length > 11) return toast.error("WhatsApp inválido — inclua o DDD");
+    const cpfDigits = cpf.replace(/\D/g, "");
+    if (!isValidCpf(cpfDigits)) return toast.error("CPF inválido");
 
     if (payment === "card") {
       if (cardNumber.replace(/\s/g, "").length < 13) return toast.error("Número do cartão inválido");
@@ -98,6 +100,7 @@ function CheckoutPage() {
         p_customer_name: name.trim(),
         p_customer_email: email.trim(),
         p_customer_phone: phoneDigits,
+        p_customer_cpf: cpfDigits,
         p_payment_method: payment,
         p_delivery_method: delivery,
         p_items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
