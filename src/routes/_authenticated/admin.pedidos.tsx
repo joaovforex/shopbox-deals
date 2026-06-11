@@ -91,8 +91,24 @@ function OrdersPanel() {
   });
 
   const stats = useMemo(() => {
-    const orders = data?.orders ?? [];
+    let orders = data?.orders ?? [];
     const items = data?.items ?? [];
+
+    // Apply filters
+    if (searchCpf.trim()) {
+      const raw = searchCpf.replace(/\D/g, "");
+      orders = orders.filter((o) => (o.customer_cpf ?? "").replace(/\D/g, "").includes(raw));
+    }
+    if (filterDelivery !== "all") {
+      orders = orders.filter((o) => o.delivery_method === filterDelivery);
+    }
+    if (filterPayment !== "all") {
+      orders = orders.filter((o) => o.payment_method === filterPayment);
+    }
+    if (filterStatus !== "all") {
+      orders = orders.filter((o) => o.status === filterStatus);
+    }
+
     // Receita total agregada (soma de unit_price * quantity de TODOS os itens, independente de cliente)
     const revenue = items.reduce((s, i) => s + Number(i.unit_price) * Number(i.quantity), 0);
     // Total de unidades vendidas (somando quantidade item a item)
@@ -110,12 +126,12 @@ function OrdersPanel() {
       .map(([id, v]) => ({ id, ...v }))
       .sort((a, b) => b.qty - a.qty);
 
-    // Delivery breakdown
+    // Delivery breakdown (filtered orders)
     const deliveryCount = orders.filter((o) => o.delivery_method === "delivery").length;
     const pickupCount = orders.filter((o) => o.delivery_method === "pickup").length;
 
     return { orders, items, revenue, unitsSold, ranking, deliveryCount, pickupCount };
-  }, [data]);
+  }, [data, searchCpf, filterDelivery, filterPayment, filterStatus]);
 
   const insight = useMemo(() => generateInsight(stats.ranking, stats.orders.length, period), [stats, period]);
 
