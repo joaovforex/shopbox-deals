@@ -8,22 +8,12 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const claimFirstAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await context.supabase.rpc("claim_first_admin_if_none");
+    if (error) throw new Error(error.message);
 
-    const { count, error: cErr } = await supabaseAdmin
-      .from("user_roles")
-      .select("*", { count: "exact", head: true })
-      .eq("role", "admin");
-    if (cErr) throw new Error(cErr.message);
-
-    if ((count ?? 0) > 0) {
+    if (!data) {
       return { ok: false as const, reason: "already_has_admin" };
     }
-
-    const { error: iErr } = await supabaseAdmin
-      .from("user_roles")
-      .insert({ user_id: context.userId, role: "admin" });
-    if (iErr) throw new Error(iErr.message);
 
     return { ok: true as const };
   });
