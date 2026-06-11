@@ -67,6 +67,13 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
           return new Response("ignored", { status: 200 });
         }
 
+        // O botão "Testar" do Mercado Pago costuma enviar um ID fictício.
+        // Se tentarmos buscar esse pagamento, a API retorna erro e o painel marca 502.
+        if (dataId === "123456") {
+          console.info("[mp:webhook] mercado pago test notification accepted");
+          return new Response("ok", { status: 200 });
+        }
+
         // Busca detalhes do pagamento
         const payRes = await fetch(`https://api.mercadopago.com/v1/payments/${dataId}`, {
           headers: { Authorization: `Bearer ${accessToken}` },
