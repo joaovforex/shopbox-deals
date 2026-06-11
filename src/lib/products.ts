@@ -1,4 +1,6 @@
+import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+
 
 export type Product = {
   id: string;
@@ -29,6 +31,13 @@ export async function fetchProducts(opts: { onlyActive?: boolean } = {}) {
   if (error) throw error;
   return (data ?? []) as Product[];
 }
+
+export const activeProductsQuery = () =>
+  queryOptions({
+    queryKey: ["products", "active"],
+    queryFn: () => fetchProducts({ onlyActive: true }),
+    staleTime: 60_000,
+  });
 
 export async function fetchProduct(id: string) {
   const { data, error } = await supabase.from("products").select("*").eq("id", id).maybeSingle();
