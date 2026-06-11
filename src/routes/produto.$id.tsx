@@ -30,8 +30,8 @@ export const Route = createFileRoute("/produto/$id")({
     const off = discountPct(product.original_price, product.price);
     const hasDiscount = !!(product.original_price && product.original_price > product.price);
     const priceLine = hasDiscount
-      ? `De ${brl(product.original_price!)} Por ${brl(product.price)} 🤑${off > 0 ? ` (${off}% OFF)` : ""}`
-      : `Por ${brl(product.price)} 🤑`;
+      ? `De ${brl(product.original_price!)} Por ${brl(product.price)}${off > 0 ? ` (${off}% OFF)` : ""}`
+      : `Por ${brl(product.price)}`;
     const descBody = product.description ? `\n\n${product.description}` : "";
     const ogDescription = `${priceLine}${descBody}`;
     return {
@@ -120,11 +120,11 @@ function ProductPage() {
   const installments = product.price >= 50 ? Math.min(10, Math.floor(product.price / 20)) : 0;
   const hasDiscount = !!(product.original_price && product.original_price > product.price);
   const shareText = [
-    `✅ ${product.name}`,
+    product.name,
     "",
     hasDiscount ? `DE ~${brl(product.original_price!)}~` : null,
-    `🔥 POR ${brl(product.price)} 🔥${off > 0 ? ` (${off}% OFF)` : ""}`,
-    installments > 0 ? `Em até ${installments}x de ${brl(product.price / installments)} sem juros` : null,
+    `POR ${brl(product.price)}${off > 0 ? ` (${off}% OFF)` : ""}`,
+    installments > 0 ? `Em ate ${installments}x de ${brl(product.price / installments)} sem juros` : null,
     product.description ? "" : null,
     product.description ?? null,
     "",
@@ -227,7 +227,7 @@ function ProductPage() {
 
             <div className="text-sm">
               {product.stock > 0 ? (
-                <span className="text-primary font-semibold">✓ Em estoque ({product.stock} disponíveis)</span>
+                <span className="text-primary font-semibold">Em estoque ({product.stock} disponiveis)</span>
               ) : (
                 <span className="text-destructive font-semibold">Esgotado</span>
               )}
