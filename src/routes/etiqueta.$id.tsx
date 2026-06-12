@@ -130,10 +130,12 @@ function LabelPage() {
       <style>{`
         @media print {
           .no-print { display: none !important; }
-          @page { size: A6; margin: 8mm; }
-          body { background: white !important; color: black !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-          .label-doc, .label-doc * { color: black !important; border-color: black !important; opacity: 1 !important; }
-          /* Não forçar fill/stroke em SVGs — quebraria o código de barras (fundo branco + barras pretas) */
+          @page { size: auto; margin: 3mm; }
+          html, body { background: white !important; color: black !important; margin: 0 !important; padding: 0 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          body * { visibility: hidden !important; }
+          .label-doc, .label-doc * { visibility: visible !important; }
+          .label-doc { position: absolute !important; left: 0; top: 0; width: 100%; background: white !important; color: black !important; }
+          .label-doc * { color: black !important; border-color: black !important; opacity: 1 !important; background: white !important; }
           .label-doc img { filter: none !important; }
         }
         .label-doc { font-family: 'Courier New', 'Monaco', monospace; }
