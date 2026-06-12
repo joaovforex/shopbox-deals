@@ -274,13 +274,28 @@ export function MobileBottomNav() {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur border-t-2 border-primary safe-area">
       <div className="grid grid-cols-4">
-        <Link to="/" className={item(path === "/")}>
+        <Link
+          to="/loja"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className={item(path === "/" || path === "/loja")}
+        >
           <Home className="h-5 w-5" /> Início
         </Link>
-        <Link to="/loja" className={item(path === "/loja")}>
+        <Link to="/loja" search={{}} className={item(path === "/loja")}>
           <Store className="h-5 w-5" /> Ofertas
         </Link>
-        <Link to="/loja" className={item(false)}>
+        <Link
+          to="/loja"
+          search={{ focus: 1 }}
+          onClick={() => {
+            setTimeout(() => {
+              const el = document.getElementById("loja-search") as HTMLInputElement | null;
+              el?.focus();
+              el?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 60);
+          }}
+          className={item(false)}
+        >
           <Search className="h-5 w-5" /> Buscar
         </Link>
         <Link to="/carrinho" className={item(path === "/carrinho") + " relative"}>

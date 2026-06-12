@@ -5,12 +5,14 @@ import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
 import { activeProductsQuery, productImages } from "@/lib/products";
 import { Search, X } from "lucide-react";
+import { useEffect } from "react";
 
-type LojaSearch = { cat?: string };
+type LojaSearch = { cat?: string; focus?: number };
 
 export const Route = createFileRoute("/loja")({
   validateSearch: (search: Record<string, unknown>): LojaSearch => ({
     cat: typeof search.cat === "string" ? search.cat : undefined,
+    focus: search.focus ? 1 : undefined,
   }),
   head: () => ({
     meta: [
@@ -25,9 +27,17 @@ export const Route = createFileRoute("/loja")({
 
 function Loja() {
   const { data: products } = useSuspenseQuery(activeProductsQuery());
-  const { cat } = Route.useSearch();
+  const { cat, focus } = Route.useSearch();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+
+  useEffect(() => {
+    if (!focus) return;
+    const el = document.getElementById("loja-search") as HTMLInputElement | null;
+    el?.focus();
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    navigate({ to: "/loja", search: cat ? { cat } : {}, replace: true });
+  }, [focus, cat, navigate]);
 
   const filtered = products.filter((p) => {
     if (cat && p.category !== cat) return false;
@@ -52,6 +62,7 @@ function Loja() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
+              id="loja-search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar produto..."
