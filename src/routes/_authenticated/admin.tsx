@@ -457,7 +457,19 @@ function ProductForm({
 
         <div className="grid sm:grid-cols-2 gap-3">
           <Input label="Nome" value={name} onChange={setName} required />
-          <Input label="Categoria" value={category} onChange={setCategory} placeholder="Ex: Eletrônicos" />
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Categoria</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary mt-1 h-10"
+            >
+              <option value="">Selecione...</option>
+              {PRODUCT_CATEGORIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div>
