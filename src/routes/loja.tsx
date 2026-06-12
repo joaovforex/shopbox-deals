@@ -5,12 +5,14 @@ import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
 import { activeProductsQuery, productImages } from "@/lib/products";
 import { Search, X } from "lucide-react";
+import { useEffect } from "react";
 
-type LojaSearch = { cat?: string };
+type LojaSearch = { cat?: string; focus?: number };
 
 export const Route = createFileRoute("/loja")({
   validateSearch: (search: Record<string, unknown>): LojaSearch => ({
     cat: typeof search.cat === "string" ? search.cat : undefined,
+    focus: search.focus ? 1 : undefined,
   }),
   head: () => ({
     meta: [
