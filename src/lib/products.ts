@@ -1,4 +1,4 @@
-import { queryOptions } from "@tanstack/react-query";
+import { queryOptions, infiniteQueryOptions } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 
@@ -13,6 +13,19 @@ export type Product = {
   images: string[];
   stock: number;
   active: boolean;
+  created_at: string;
+};
+
+/** Versão enxuta usada na listagem (sem description). */
+export type ProductCard = {
+  id: string;
+  name: string;
+  price: number;
+  original_price: number | null;
+  category: string | null;
+  image_url: string | null;
+  images: string[];
+  stock: number;
   created_at: string;
 };
 
@@ -37,6 +50,59 @@ export const activeProductsQuery = () =>
     queryKey: ["products", "active"],
     queryFn: () => fetchProducts({ onlyActive: true }),
     staleTime: 60_000,
+  });
+
+export const PRODUCTS_PAGE_SIZE = 24;
+
+type PagedRow = ProductCard & { total_count: number };
+type PagedResult = { items: ProductCard[]; total: number; nextOffset: number | null };
+
+export async function fetchProductsPaged(args: {
+  search?: string;
+  category?: string;
+  offset: number;
+  limit: number;
+}): Promise<PagedResult> {
+  const { data, error } = await supabase.rpc("list_products_paged", {
+    p_search: args.search?.trim() || null,
+    p_category: args.category || null,
+    p_limit: args.limit,
+    p_offset: args.offset,
+  });
+  if (error) throw error;
+  const rows = (data ?? []) as PagedRow[];
+  const total = Number(rows[0]?.total_count ?? 0);
+  const items: ProductCard[] = rows.map(({ total_count: _t, ...rest }) => rest);
+  const nextOffset = args.offset + items.length < total ? args.offset + items.length : null;
+  return { items, total, nextOffset };
+}
+
+export const pagedProductsQuery = (args: { search?: string; category?: string }) =>
+  infiniteQueryOptions({
+    queryKey: ["products", "paged", args.category ?? null, args.search ?? ""],
+    queryFn: ({ pageParam }) =>
+      fetchProductsPaged({
+        search: args.search,
+        category: args.category,
+        offset: pageParam as number,
+        limit: PRODUCTS_PAGE_SIZE,
+      }),
+    initialPageParam: 0,
+    getNextPageParam: (last) => last.nextOffset,
+    staleTime: 5 * 60_000,
+  });
+
+export async function fetchUsedCategories(): Promise<string[]> {
+  const { data, error } = await supabase.rpc("list_used_categories");
+  if (error) return [];
+  return (data ?? []).map((r: { category: string }) => r.category);
+}
+
+export const usedCategoriesQuery = () =>
+  queryOptions({
+    queryKey: ["categories", "used"],
+    queryFn: fetchUsedCategories,
+    staleTime: 5 * 60_000,
   });
 
 export async function fetchProduct(id: string) {
