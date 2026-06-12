@@ -37,8 +37,8 @@ function formatCpf(c: string | null) {
 
 const STORE = {
   name: "shopbox",
-  street: "Rua Abel Scuissiato",
-  number: "2996",
+  street: "Rua Emílio Gleber",
+  number: "1118",
   district: "Centro",
   city: "Colombo",
   state: "PR",

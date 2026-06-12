@@ -324,7 +324,7 @@ export function Footer() {
         </div>
         <div>
           <h4 className="font-bold uppercase tracking-wider mb-3 text-primary">Atendimento</h4>
-          <p className="text-sm text-muted-foreground">Rua Abel Scuissiato, 2996 — Colombo / PR</p>
+          <p className="text-sm text-muted-foreground">Rua Emílio Gleber, 1118 — Colombo / PR</p>
           <p className="text-sm text-muted-foreground">Seg a Sáb · 9h às 18h</p>
         </div>
         <div>
