@@ -1,10 +1,10 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { activeProductsQuery } from "@/lib/products";
+import { pagedProductsQuery } from "@/lib/products";
 
 export const Route = createFileRoute("/")({
   beforeLoad: ({ context }) => {
-    // dispara prefetch sem bloquear o redirect
-    context.queryClient.prefetchQuery(activeProductsQuery());
+    // dispara prefetch da primeira página sem bloquear o redirect
+    context.queryClient.prefetchInfiniteQuery(pagedProductsQuery({}));
     throw redirect({ to: "/loja" });
   },
 });

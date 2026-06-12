@@ -327,6 +327,12 @@ export type Database = {
           total_count: number
         }[]
       }
+      list_used_categories: {
+        Args: never
+        Returns: {
+          category: string
+        }[]
+      }
       mark_label_event: {
         Args: { p_event: string; p_order_id: string }
         Returns: undefined
