@@ -138,7 +138,8 @@ function AdminPage() {
       "",
       stockLine,
       "",
-      `👉 ${url}`,
+      "COMPRE NO LINK ABAIXO:",
+      `👇 ${url}`,
     ].filter((l) => l !== null).join("\n");
 
     const nav = typeof navigator !== "undefined" ? (navigator as any) : null;
