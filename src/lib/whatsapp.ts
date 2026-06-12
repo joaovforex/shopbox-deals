@@ -1,7 +1,7 @@
 // Helpers para abrir WhatsApp com mensagem pronta (wa.me).
 // Envio 100% automático exige WhatsApp Business API (paga).
 
-export const STORE_ADDRESS = "Rua Emílio Gleber, 1118 — Colombo / PR";
+export const STORE_ADDRESS = "Rua Emílio Gleber, 1118 — Atuba, Colombo / PR";
 export const STORE_HOURS = "Seg a Sáb · 9h às 18h";
 
 function normalizePhone(raw: string | null | undefined): string | null {
