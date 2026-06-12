@@ -1,6 +1,7 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { ShoppingCart, User, LogOut, LayoutDashboard, Home, Store, Search, Menu, Tag, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/lib/cart";
@@ -99,6 +100,55 @@ function MobileMenu({ user, signOut, hasTeamRole }: { user: { email?: string } |
     navigate({ to: "/loja", search: c ? { cat: c } : {} });
   };
 
+  const drawer = open ? (
+    <div className="md:hidden fixed inset-0 z-[100]">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setOpen(false)} />
+      <div className="absolute right-0 top-0 h-full w-[85%] max-w-sm bg-background border-l-4 border-primary shadow-2xl flex flex-col animate-slide-in-right">
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <span className="font-black uppercase tracking-wider text-primary">Menu</span>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="inline-flex items-center justify-center h-9 w-9 rounded-md bg-secondary"
+            aria-label="Fechar"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <div className="overflow-y-auto flex-1 py-2">
+          <button onClick={() => go("")} className="block w-full text-left px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
+            Todas as ofertas
+          </button>
+          <div className="px-4 pt-4 pb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Categorias</div>
+          {categories.length === 0 ? (
+            <p className="px-4 py-2 text-xs text-muted-foreground">Carregando...</p>
+          ) : (
+            categories.map((c) => (
+              <button key={c} onClick={() => go(c)} className="block w-full text-left px-4 py-2.5 text-sm hover:bg-secondary">
+                {c}
+              </button>
+            ))
+          )}
+          <div className="border-t border-border my-3" />
+          {hasTeamRole && (
+            <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
+              <LayoutDashboard className="h-4 w-4" /> Admin
+            </Link>
+          )}
+          {user ? (
+            <button onClick={() => { setOpen(false); signOut(); }} className="flex items-center gap-3 w-full text-left px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
+              <LogOut className="h-4 w-4" /> Sair
+            </button>
+          ) : (
+            <Link to="/auth" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
+              <User className="h-4 w-4" /> Entrar
+            </Link>
+          )}
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <>
       <button
@@ -109,54 +159,7 @@ function MobileMenu({ user, signOut, hasTeamRole }: { user: { email?: string } |
       >
         <Menu className="h-5 w-5" />
       </button>
-      {open && (
-        <div className="md:hidden fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-0 h-full w-[85%] max-w-sm bg-background border-l-4 border-primary shadow-2xl flex flex-col animate-slide-in-right">
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <span className="font-black uppercase tracking-wider text-primary">Menu</span>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="inline-flex items-center justify-center h-9 w-9 rounded-md bg-secondary"
-                aria-label="Fechar"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="overflow-y-auto flex-1 py-2">
-              <button onClick={() => go("")} className="block w-full text-left px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
-                Todas as ofertas
-              </button>
-              <div className="px-4 pt-4 pb-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Categorias</div>
-              {categories.length === 0 ? (
-                <p className="px-4 py-2 text-xs text-muted-foreground">Carregando...</p>
-              ) : (
-                categories.map((c) => (
-                  <button key={c} onClick={() => go(c)} className="block w-full text-left px-4 py-2.5 text-sm hover:bg-secondary">
-                    {c}
-                  </button>
-                ))
-              )}
-              <div className="border-t border-border my-3" />
-              {hasTeamRole && (
-                <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
-                  <LayoutDashboard className="h-4 w-4" /> Admin
-                </Link>
-              )}
-              {user ? (
-                <button onClick={() => { setOpen(false); signOut(); }} className="flex items-center gap-3 w-full text-left px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
-                  <LogOut className="h-4 w-4" /> Sair
-                </button>
-              ) : (
-                <Link to="/auth" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
-                  <User className="h-4 w-4" /> Entrar
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {drawer && typeof document !== "undefined" ? createPortal(drawer, document.body) : null}
     </>
   );
 }
@@ -238,7 +241,7 @@ export function Header() {
             {user ? (
               <button
                 onClick={signOut}
-                className="hidden md:inline-flex items-center justify-center h-10 w-10 rounded-md bg-secondary hover:bg-muted transition-colors"
+                className="inline-flex items-center justify-center h-10 w-10 rounded-md bg-secondary hover:bg-muted transition-colors"
                 aria-label="Sair"
               >
                 <LogOut className="h-5 w-5" />
@@ -246,7 +249,7 @@ export function Header() {
             ) : (
               <Link
                 to="/auth"
-                className="hidden md:inline-flex items-center justify-center h-10 w-10 rounded-md bg-secondary hover:bg-muted transition-colors"
+                className="inline-flex items-center justify-center h-10 w-10 rounded-md bg-secondary hover:bg-muted transition-colors"
                 aria-label="Entrar"
               >
                 <User className="h-5 w-5" />
