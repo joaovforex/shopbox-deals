@@ -90,9 +90,10 @@ function CheckoutPage() {
           items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
         },
       });
-      clear();
-      // Passa pela página de transição animada antes do Mercado Pago
+      // Marca como redirecionando ANTES de limpar o carrinho, para não mostrar tela de "carrinho vazio"
+      setRedirecting(true);
       sessionStorage.setItem("mp_init_point", res.initPoint);
+      clear();
       window.location.href = "/redirecionando";
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao iniciar pagamento";
