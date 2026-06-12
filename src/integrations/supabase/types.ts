@@ -91,6 +91,7 @@ export type Database = {
           shipping_street: string | null
           shipping_zip: string | null
           status: string
+          stock_restored_at: string | null
           total: number
           updated_at: string
           user_id: string | null
@@ -123,6 +124,7 @@ export type Database = {
           shipping_street?: string | null
           shipping_zip?: string | null
           status?: string
+          stock_restored_at?: string | null
           total: number
           updated_at?: string
           user_id?: string | null
@@ -155,6 +157,7 @@ export type Database = {
           shipping_street?: string | null
           shipping_zip?: string | null
           status?: string
+          stock_restored_at?: string | null
           total?: number
           updated_at?: string
           user_id?: string | null
