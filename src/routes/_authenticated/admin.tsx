@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchProducts, getRoleSummary, uploadProductImage, type Product, type RoleSummary } from "@/lib/products";
 import { claimFirstAdmin } from "@/lib/admin.functions";
 import { brl, discountPct } from "@/lib/format";
+import { PRODUCT_CATEGORIES } from "@/lib/categories";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Admin · shopbox" }] }),
