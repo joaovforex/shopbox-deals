@@ -74,6 +74,7 @@ function OrdersPanel() {
       let q = supabase
         .from("orders")
         .select("*")
+        .eq("status", "paid")
         .order("created_at", { ascending: false });
       if (since) q = q.gte("created_at", since.toISOString());
       const { data: orders, error } = await q;
