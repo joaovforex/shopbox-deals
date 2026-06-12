@@ -134,11 +134,12 @@ function LabelPage() {
           html, body { background: white !important; color: black !important; margin: 0 !important; padding: 0 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
           body * { visibility: hidden !important; }
           .label-doc, .label-doc * { visibility: visible !important; }
-          .label-doc { position: absolute !important; left: 0; top: 0; width: 100%; background: white !important; color: black !important; }
-          .label-doc * { color: black !important; border-color: black !important; opacity: 1 !important; background: white !important; }
+          .label-doc { position: absolute !important; left: 0; top: 0; width: 100%; background: white !important; color: black !important; font-family: Arial, Helvetica, sans-serif !important; font-weight: 700 !important; }
+          .label-doc * { color: black !important; border-color: black !important; opacity: 1 !important; background: white !important; text-shadow: 0 0 0 black !important; -webkit-font-smoothing: none !important; }
           .label-doc img { filter: none !important; }
+          .label-doc svg { shape-rendering: crispEdges !important; }
         }
-        .label-doc { font-family: 'Courier New', 'Monaco', monospace; }
+        .label-doc { font-family: Arial, Helvetica, sans-serif; font-weight: 600; }
       `}</style>
 
       <div className="min-h-screen bg-muted py-6 px-4">
@@ -220,8 +221,8 @@ function LabelHeader({ logoOnly = false, title, subtitle, icon }: { logoOnly?: b
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="py-2 border-t border-black">
-      <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5">{label}</div>
+    <div className="py-1.5 border-t-2 border-black">
+      <div className="text-[11px] font-black uppercase tracking-wide mb-0.5">{label}</div>
       {children}
     </div>
   );
@@ -242,7 +243,7 @@ function ShippingLabel({ o, items }: { o: any; items: any[] }) {
           <div className="flex justify-center mt-1">
             <Barcode value={barcodeValue(o.id)} height={34} width={1.7} fontSize={10} />
           </div>
-          <div className="text-[8px] mt-0.5 font-bold">Escaneie para localizar o pedido</div>
+          <div className="text-[10px] mt-0.5 font-bold">Escaneie para localizar o pedido</div>
         </div>
       </Row>
 
@@ -260,19 +261,19 @@ function ShippingLabel({ o, items }: { o: any; items: any[] }) {
       </Row>
 
       <Row label="Remetente">
-        <div className="font-bold text-xs uppercase">{STORE.name}</div>
-        <div className="text-[11px] leading-tight">{STORE.street}, {STORE.number} — {STORE.district}</div>
-        <div className="text-[11px] leading-tight">{STORE.city} / {STORE.state}</div>
-        <div className="text-[11px] font-bold">CEP: {STORE.zip}</div>
+        <div className="font-black text-sm uppercase">{STORE.name}</div>
+        <div className="text-xs leading-tight font-bold">{STORE.street}, {STORE.number} — {STORE.district}</div>
+        <div className="text-xs leading-tight font-bold">{STORE.city} / {STORE.state}</div>
+        <div className="text-xs font-black">CEP: {STORE.zip}</div>
       </Row>
 
       <Row label={`Conteúdo · Pedido #${o.id.slice(0, 8).toUpperCase()}`}>
-        <ul className="text-[11px] leading-tight">
+        <ul className="text-xs leading-tight font-bold">
           {items.map((it: any, i: number) => (
             <li key={i}>• {it.quantity}x {it.product_name}</li>
           ))}
         </ul>
-        <div className="text-[10px] mt-1 pt-1 border-t border-dashed border-black flex justify-between">
+        <div className="text-[11px] mt-1 pt-1 border-t-2 border-dashed border-black flex justify-between font-bold">
           <span>Valor declarado: {brl(Number(o.total))}</span>
           <span>{new Date(o.created_at).toLocaleDateString("pt-BR")}</span>
         </div>
@@ -292,16 +293,16 @@ function PickupLabel({ o, items }: { o: any; items: any[] }) {
           <div className="flex justify-center mt-1">
             <Barcode value={barcodeValue(o.id)} height={34} width={1.7} fontSize={10} />
           </div>
-          <div className="text-[8px] mt-0.5 font-bold">Escaneie na expedição para confirmar a entrega</div>
-          <div className="text-[10px] mt-0.5">Confira documento do cliente ao entregar</div>
+          <div className="text-[10px] mt-0.5 font-bold">Escaneie na expedição para confirmar a entrega</div>
+          <div className="text-[11px] mt-0.5 font-bold">Confira documento do cliente ao entregar</div>
         </div>
       </Row>
 
       <Row label="Cliente">
         <div className="font-bold text-sm uppercase">{o.customer_name}</div>
-        {o.customer_cpf && <div className="text-[11px]">CPF: {formatCpf(o.customer_cpf)}</div>}
-        {o.customer_phone && <div className="text-xs">WhatsApp: {formatPhone(o.customer_phone)}</div>}
-        {o.customer_email && <div className="text-[11px]">{o.customer_email}</div>}
+        {o.customer_cpf && <div className="text-xs font-bold">CPF: {formatCpf(o.customer_cpf)}</div>}
+        {o.customer_phone && <div className="text-sm font-bold">WhatsApp: {formatPhone(o.customer_phone)}</div>}
+        {o.customer_email && <div className="text-xs font-bold">{o.customer_email}</div>}
       </Row>
 
       <Row label={`Itens · Pedido #${o.id.slice(0, 8).toUpperCase()}`}>
@@ -313,20 +314,20 @@ function PickupLabel({ o, items }: { o: any; items: any[] }) {
             </li>
           ))}
         </ul>
-        <div className="text-xs mt-1 pt-1 border-t border-dashed border-black flex justify-between font-bold">
+        <div className="text-sm mt-1 pt-1 border-t-2 border-dashed border-black flex justify-between font-black">
           <span>TOTAL PAGO</span>
           <span>{brl(Number(o.total))}</span>
         </div>
       </Row>
 
       <Row label="Local de retirada">
-        <div className="text-xs text-center">
+        <div className="text-sm text-center font-black leading-tight">
           Rua Emílio Gleber, 1118 — Atuba, Colombo / PR<br />
           Seg a Sáb · 9h às 18h
         </div>
       </Row>
 
-      <div className="text-[10px] text-center pt-2 border-t border-black mt-2">
+      <div className="text-[11px] font-bold text-center pt-1.5 border-t-2 border-black mt-1.5">
         Emitido em {new Date().toLocaleString("pt-BR")}
       </div>
     </div>
