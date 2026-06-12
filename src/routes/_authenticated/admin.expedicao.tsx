@@ -486,6 +486,8 @@ function ScannerPanel({ orders, onDeliver }: { orders: OrderRow[]; onDeliver: (o
       </div>
     </form>
   );
+}
+
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
