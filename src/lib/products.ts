@@ -64,8 +64,8 @@ export async function fetchProductsPaged(args: {
   limit: number;
 }): Promise<PagedResult> {
   const { data, error } = await supabase.rpc("list_products_paged", {
-    p_search: args.search?.trim() || null,
-    p_category: args.category || null,
+    p_search: args.search?.trim() ? args.search.trim() : undefined,
+    p_category: args.category ? args.category : undefined,
     p_limit: args.limit,
     p_offset: args.offset,
   });
