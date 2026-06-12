@@ -5,14 +5,14 @@ import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/lib/cart";
-import { activeProductsQuery, getRoleSummary } from "@/lib/products";
+import { getRoleSummary, usedCategoriesQuery } from "@/lib/products";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import logo from "@/assets/shopbox-logo.png";
 
 function useCategories() {
-  const { data } = useQuery(activeProductsQuery());
+  const { data } = useQuery(usedCategoriesQuery());
   return useMemo(() => {
-    const used = new Set((data ?? []).map((p) => p.category).filter(Boolean) as string[]);
+    const used = new Set(data ?? []);
     return PRODUCT_CATEGORIES.filter((c) => used.has(c));
   }, [data]);
 }
