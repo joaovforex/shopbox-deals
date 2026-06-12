@@ -94,6 +94,7 @@ function FulfillmentPage() {
         .from("orders")
         .select("*")
         .eq("delivery_method", "pickup")
+        .eq("status", "paid")
         .order("created_at", { ascending: false });
       if (error) throw error;
       const ids = (orders ?? []).map((o) => o.id);
