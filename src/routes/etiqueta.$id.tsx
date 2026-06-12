@@ -201,118 +201,108 @@ function LabelPage() {
   );
 }
 
+function LabelHeader({ logoOnly = false, title, subtitle, icon }: { logoOnly?: boolean; title?: string; subtitle?: string; icon?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 pb-2">
+      <img src={shopboxLogo} alt="shopbox" className="h-12 w-auto" />
+      {!logoOnly && (
+        <div className="text-right">
+          {icon}
+          {title && <div className="font-black text-sm tracking-wider">{title}</div>}
+          {subtitle && <div className="text-[10px] uppercase">{subtitle}</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="py-2 border-t border-black">
+      <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5">{label}</div>
+      {children}
+    </div>
+  );
+}
+
 function ShippingLabel({ o, items }: { o: any; items: any[] }) {
   return (
-    <div className="label-doc bg-white text-black border-2 border-black p-4 space-y-3">
-      <div className="border-2 border-black p-2 flex items-center justify-between">
-        <div>
-          <div className="font-black text-lg tracking-wider">CORREIOS</div>
-          <div className="text-[10px] uppercase">Encomenda · PAC</div>
-        </div>
-        <div className="text-right">
-          <Truck className="h-6 w-6 inline" />
-          <div className="text-[10px] font-bold">ENVIO</div>
-        </div>
-      </div>
+    <div className="label-doc bg-white text-black p-3">
+      <LabelHeader
+        title="CORREIOS · ENVIO"
+        subtitle="Encomenda · PAC"
+        icon={<Truck className="h-5 w-5 inline" />}
+      />
 
-      <div className="border border-black px-2 py-3 text-center">
-        <div className="text-[10px] font-bold">CÓDIGO DE RASTREIO</div>
-        <div className="font-mono text-sm tracking-widest">BR{o.id.replace(/-/g, "").slice(0, 9).toUpperCase()}BR</div>
-        <div className="flex justify-center mt-1">
-          <Barcode value={barcodeValue(o.id)} height={34} width={1.7} fontSize={10} />
+      <Row label="Código de rastreio">
+        <div className="text-center">
+          <div className="font-mono text-sm tracking-widest">BR{o.id.replace(/-/g, "").slice(0, 9).toUpperCase()}BR</div>
+          <div className="flex justify-center mt-1">
+            <Barcode value={barcodeValue(o.id)} height={34} width={1.7} fontSize={10} />
+          </div>
+          <div className="text-[8px] mt-0.5 font-bold">Escaneie para localizar o pedido</div>
         </div>
-        <div className="text-[8px] mt-0.5 text-black font-bold">Escaneie para localizar o pedido</div>
-      </div>
+      </Row>
 
-      <div className="border border-black p-2">
-        <div className="text-[10px] font-bold uppercase border-b border-black mb-1 pb-0.5">Destinatário</div>
+      <Row label="Destinatário">
         <div className="font-bold text-sm uppercase">{o.customer_name}</div>
-        {o.customer_cpf && (
-          <div className="text-[10px] mt-0.5">CPF: {formatCpf(o.customer_cpf)}</div>
-        )}
-        <div className="text-xs leading-tight mt-1">
+        {o.customer_cpf && <div className="text-[10px]">CPF: {formatCpf(o.customer_cpf)}</div>}
+        <div className="text-xs leading-tight mt-0.5">
           {o.shipping_street}, {o.shipping_number}
           {o.shipping_complement ? ` — ${o.shipping_complement}` : ""}
         </div>
         {o.shipping_district && <div className="text-xs leading-tight">Bairro: {o.shipping_district}</div>}
-        <div className="text-xs leading-tight">
-          {o.shipping_city} / {o.shipping_state}
-        </div>
-        <div className="text-base font-black tracking-widest mt-1">
-          CEP: {formatCep(o.shipping_zip)}
-        </div>
-        {o.customer_phone && (
-          <div className="text-[10px] mt-1">Tel: {formatPhone(o.customer_phone)}</div>
-        )}
-      </div>
+        <div className="text-xs leading-tight">{o.shipping_city} / {o.shipping_state}</div>
+        <div className="text-base font-black tracking-widest mt-0.5">CEP: {formatCep(o.shipping_zip)}</div>
+        {o.customer_phone && <div className="text-[10px] mt-0.5">Tel: {formatPhone(o.customer_phone)}</div>}
+      </Row>
 
-      <div className="border border-black p-2">
-        <div className="text-[10px] font-bold uppercase border-b border-black mb-1 pb-0.5">Remetente</div>
+      <Row label="Remetente">
         <div className="font-bold text-xs uppercase">{STORE.name}</div>
-        <div className="text-[11px] leading-tight">
-          {STORE.street}, {STORE.number} — {STORE.district}
-        </div>
+        <div className="text-[11px] leading-tight">{STORE.street}, {STORE.number} — {STORE.district}</div>
         <div className="text-[11px] leading-tight">{STORE.city} / {STORE.state}</div>
         <div className="text-[11px] font-bold">CEP: {STORE.zip}</div>
-      </div>
+      </Row>
 
-      <div className="border border-black p-2">
-        <div className="text-[10px] font-bold uppercase mb-1">Conteúdo · Pedido #{o.id.slice(0, 8).toUpperCase()}</div>
+      <Row label={`Conteúdo · Pedido #${o.id.slice(0, 8).toUpperCase()}`}>
         <ul className="text-[11px] leading-tight">
           {items.map((it: any, i: number) => (
             <li key={i}>• {it.quantity}x {it.product_name}</li>
           ))}
         </ul>
-        <div className="text-[10px] mt-1 border-t border-dashed border-black pt-1 flex justify-between">
+        <div className="text-[10px] mt-1 pt-1 border-t border-dashed border-black flex justify-between">
           <span>Valor declarado: {brl(Number(o.total))}</span>
           <span>{new Date(o.created_at).toLocaleDateString("pt-BR")}</span>
         </div>
-      </div>
+      </Row>
     </div>
   );
 }
 
 function PickupLabel({ o, items }: { o: any; items: any[] }) {
   return (
-    <div className="label-doc bg-white text-black border-2 border-black p-4 space-y-3">
-      <div className="border-2 border-black p-2 flex items-center justify-between bg-black text-white">
-        <div>
-          <div className="font-black text-lg tracking-wider">RETIRADA NA LOJA</div>
-          <div className="text-[10px] uppercase">Aguardar cliente</div>
-        </div>
-        <Store className="h-7 w-7" />
-      </div>
+    <div className="label-doc bg-white text-black p-3">
+      <LabelHeader logoOnly />
 
-      <div className="border border-black p-3 text-center">
-        <div className="text-[10px] font-bold uppercase">Senha do pedido</div>
-        <div className="font-black text-3xl tracking-[0.3em] mt-1">
-          {o.id.slice(0, 6).toUpperCase()}
+      <Row label="Senha do pedido">
+        <div className="text-center">
+          <div className="font-black text-3xl tracking-[0.3em]">{o.id.slice(0, 6).toUpperCase()}</div>
+          <div className="flex justify-center mt-1">
+            <Barcode value={barcodeValue(o.id)} height={34} width={1.7} fontSize={10} />
+          </div>
+          <div className="text-[8px] mt-0.5 font-bold">Escaneie na expedição para confirmar a entrega</div>
+          <div className="text-[10px] mt-0.5">Confira documento do cliente ao entregar</div>
         </div>
-        <div className="flex justify-center mt-1">
-          <Barcode value={barcodeValue(o.id)} height={34} width={1.7} fontSize={10} />
-        </div>
-        <div className="text-[8px] mt-0.5 text-black font-bold">Escaneie na expedição para confirmar a entrega</div>
-        <div className="text-[10px] mt-1">Confira documento do cliente ao entregar</div>
-      </div>
+      </Row>
 
-      <div className="border border-black p-2">
-        <div className="text-[10px] font-bold uppercase border-b border-black mb-1 pb-0.5">Cliente</div>
+      <Row label="Cliente">
         <div className="font-bold text-sm uppercase">{o.customer_name}</div>
-        {o.customer_cpf && (
-          <div className="text-[11px] mt-0.5">CPF: {formatCpf(o.customer_cpf)}</div>
-        )}
-        {o.customer_phone && (
-          <div className="text-xs mt-1">WhatsApp: {formatPhone(o.customer_phone)}</div>
-        )}
-        {o.customer_email && (
-          <div className="text-[11px]">{o.customer_email}</div>
-        )}
-      </div>
+        {o.customer_cpf && <div className="text-[11px]">CPF: {formatCpf(o.customer_cpf)}</div>}
+        {o.customer_phone && <div className="text-xs">WhatsApp: {formatPhone(o.customer_phone)}</div>}
+        {o.customer_email && <div className="text-[11px]">{o.customer_email}</div>}
+      </Row>
 
-      <div className="border border-black p-2">
-        <div className="text-[10px] font-bold uppercase border-b border-black mb-1 pb-0.5">
-          Itens · Pedido #{o.id.slice(0, 8).toUpperCase()}
-        </div>
+      <Row label={`Itens · Pedido #${o.id.slice(0, 8).toUpperCase()}`}>
         <ul className="text-sm leading-tight space-y-0.5">
           {items.map((it: any, i: number) => (
             <li key={i} className="flex justify-between gap-2">
@@ -321,21 +311,20 @@ function PickupLabel({ o, items }: { o: any; items: any[] }) {
             </li>
           ))}
         </ul>
-        <div className="text-xs mt-2 border-t border-dashed border-black pt-1 flex justify-between font-bold">
+        <div className="text-xs mt-1 pt-1 border-t border-dashed border-black flex justify-between font-bold">
           <span>TOTAL PAGO</span>
           <span>{brl(Number(o.total))}</span>
         </div>
-      </div>
+      </Row>
 
-      <div className="border border-black p-2 text-center">
-        <div className="text-[10px] font-bold uppercase">Local de retirada</div>
-        <div className="text-xs mt-1">
+      <Row label="Local de retirada">
+        <div className="text-xs text-center">
           Rua Emílio Gleber, 1118 — Colombo / PR<br />
           Seg a Sáb · 9h às 18h
         </div>
-      </div>
+      </Row>
 
-      <div className="text-[10px] text-center text-gray-600">
+      <div className="text-[10px] text-center pt-2 border-t border-black mt-2">
         Emitido em {new Date().toLocaleString("pt-BR")}
       </div>
     </div>
