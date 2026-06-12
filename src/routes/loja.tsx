@@ -48,7 +48,7 @@ function Loja() {
       ))}
       <Header />
 
-      <section className="bg-card border-b-4 border-primary">
+      <section className="bg-card border-b-4 border-primary hidden">
         <div className="container mx-auto px-4 py-4 sm:py-6">
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
             <button
