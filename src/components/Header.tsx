@@ -241,7 +241,7 @@ export function Header() {
             {user ? (
               <button
                 onClick={signOut}
-                className="hidden md:inline-flex items-center justify-center h-10 w-10 rounded-md bg-secondary hover:bg-muted transition-colors"
+                className="inline-flex items-center justify-center h-10 w-10 rounded-md bg-secondary hover:bg-muted transition-colors"
                 aria-label="Sair"
               >
                 <LogOut className="h-5 w-5" />
@@ -249,7 +249,7 @@ export function Header() {
             ) : (
               <Link
                 to="/auth"
-                className="hidden md:inline-flex items-center justify-center h-10 w-10 rounded-md bg-secondary hover:bg-muted transition-colors"
+                className="inline-flex items-center justify-center h-10 w-10 rounded-md bg-secondary hover:bg-muted transition-colors"
                 aria-label="Entrar"
               >
                 <User className="h-5 w-5" />
