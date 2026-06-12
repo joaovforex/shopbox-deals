@@ -41,7 +41,7 @@ const STORE = {
   name: "shopbox",
   street: "Rua Emílio Gleber",
   number: "1118",
-  district: "Centro",
+  district: "Atuba",
   city: "Colombo",
   state: "PR",
   zip: "83405-000",
