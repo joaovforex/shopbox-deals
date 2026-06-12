@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { markLabelEvent } from "@/lib/labels.functions";
 import { brl } from "@/lib/format";
 import { openWhatsApp, orderReadyMessage } from "@/lib/whatsapp";
+import { Barcode } from "@/components/Barcode";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
