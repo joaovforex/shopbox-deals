@@ -49,15 +49,40 @@ function Loja() {
       <Header />
 
       <section className="bg-card border-b-4 border-primary">
-        <div className="container mx-auto px-4 py-6 sm:py-10">
-          <h1 className="display text-3xl sm:text-4xl md:text-5xl mb-1 sm:mb-2">Todas as ofertas</h1>
-          <p className="text-muted-foreground text-sm">{products.length} produtos disponíveis</p>
+        <div className="container mx-auto px-4 py-4 sm:py-6">
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+            <button
+              type="button"
+              onClick={() => setCat("")}
+              className={`shrink-0 px-4 py-2 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider border-2 transition-colors ${
+                cat === ""
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-transparent text-foreground border-border hover:border-primary"
+              }`}
+            >
+              Todas
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCat(c)}
+                className={`shrink-0 px-4 py-2 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider border-2 transition-colors ${
+                  cat === c
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-transparent text-foreground border-border hover:border-primary"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
       <section className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4 sm:mb-6">
-          <div className="relative flex-1">
+        <div className="mb-4 sm:mb-6">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               value={q}
@@ -66,17 +91,8 @@ function Loja() {
               className="w-full bg-input text-foreground rounded-md pl-10 pr-3 py-2.5 border border-border focus:outline-none focus:border-primary"
             />
           </div>
-          {categories.length > 0 && (
-            <select
-              value={cat}
-              onChange={(e) => setCat(e.target.value)}
-              className="bg-input rounded-md px-3 py-2.5 border border-border focus:outline-none focus:border-primary text-sm"
-            >
-              <option value="">Todas categorias</option>
-              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          )}
         </div>
+
 
         {filtered.length === 0 ? (
           <div className="text-center py-16 sm:py-20 bg-card rounded-xl border border-border">
