@@ -1,53 +1,97 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
-import { activeProductsQuery, productImages } from "@/lib/products";
-import { Search, X } from "lucide-react";
-import { useEffect } from "react";
+import { pagedProductsQuery, productImages } from "@/lib/products";
+import { Search, X, Loader2 } from "lucide-react";
 
-type LojaSearch = { cat?: string; focus?: number };
+type LojaSearch = { cat?: string; q?: string; focus?: number };
 
 export const Route = createFileRoute("/loja")({
   validateSearch: (search: Record<string, unknown>): LojaSearch => ({
     cat: typeof search.cat === "string" ? search.cat : undefined,
+    q: typeof search.q === "string" ? search.q : undefined,
     focus: search.focus ? 1 : undefined,
   }),
+  loaderDeps: ({ search }) => ({ cat: search.cat, q: search.q }),
   head: () => ({
     meta: [
       { title: "Ofertas · shopbox" },
       { name: "description", content: "Catálogo completo da shopbox com todas as ofertas." },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(activeProductsQuery()),
+  loader: ({ context, deps }) =>
+    context.queryClient.ensureInfiniteQueryData(
+      pagedProductsQuery({ search: deps.q, category: deps.cat }),
+    ),
   component: Loja,
   pendingMs: 0,
 });
 
+function useDebounced<T>(value: T, ms = 300): T {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return v;
+}
+
 function Loja() {
-  const { data: products } = useSuspenseQuery(activeProductsQuery());
-  const { cat, focus } = Route.useSearch();
+  const { cat, q: qParam, focus } = Route.useSearch();
   const navigate = useNavigate();
-  const [q, setQ] = useState("");
+  const [q, setQ] = useState(qParam ?? "");
+  const debouncedQ = useDebounced(q, 350);
+
+  // Sincroniza busca com URL (sem recarregar a rota — search params atualizam loaderDeps)
+  useEffect(() => {
+    if ((debouncedQ || "") === (qParam ?? "")) return;
+    navigate({
+      to: "/loja",
+      search: { ...(cat ? { cat } : {}), ...(debouncedQ ? { q: debouncedQ } : {}) },
+      replace: true,
+    });
+  }, [debouncedQ, qParam, cat, navigate]);
 
   useEffect(() => {
     if (!focus) return;
     const el = document.getElementById("loja-search") as HTMLInputElement | null;
     el?.focus();
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
-    navigate({ to: "/loja", search: cat ? { cat } : {}, replace: true });
-  }, [focus, cat, navigate]);
+    navigate({
+      to: "/loja",
+      search: { ...(cat ? { cat } : {}), ...(qParam ? { q: qParam } : {}) },
+      replace: true,
+    });
+  }, [focus, cat, qParam, navigate]);
 
-  const filtered = products.filter((p) => {
-    if (cat && p.category !== cat) return false;
-    if (q && !p.name.toLowerCase().includes(q.toLowerCase())) return false;
-    return true;
-  });
+  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useSuspenseInfiniteQuery(
+    pagedProductsQuery({ search: qParam, category: cat }),
+  );
+
+  const products = useMemo(() => data.pages.flatMap((p) => p.items), [data]);
+  const total = data.pages[0]?.total ?? 0;
+
+  // IntersectionObserver para scroll infinito
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!hasNextPage) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isFetchingNextPage) fetchNextPage();
+      },
+      { rootMargin: "600px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const preloadImgs = useMemo(
-    () => filtered.slice(0, 8).map((p) => productImages(p)[0]).filter(Boolean) as string[],
-    [filtered],
+    () => products.slice(0, 8).map((p) => productImages(p)[0]).filter(Boolean) as string[],
+    [products],
   );
 
   return (
@@ -72,7 +116,7 @@ function Loja() {
           {cat && (
             <button
               type="button"
-              onClick={() => navigate({ to: "/loja", search: {} })}
+              onClick={() => navigate({ to: "/loja", search: q ? { q } : {} })}
               className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider self-start sm:self-auto"
             >
               {cat}
@@ -81,14 +125,29 @@ function Loja() {
           )}
         </div>
 
-        {filtered.length === 0 ? (
+        {products.length === 0 ? (
           <div className="text-center py-16 sm:py-20 bg-card rounded-xl border border-border">
             <p className="text-muted-foreground">Nenhum produto encontrado.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            {filtered.map((p, i) => <ProductCard key={p.id} product={p} priority={i < 8} />)}
-          </div>
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+              {products.map((p, i) => (
+                <ProductCard key={p.id} product={p as any} priority={i < 8} />
+              ))}
+            </div>
+            <div ref={sentinelRef} className="h-10" />
+            {isFetchingNextPage && (
+              <div className="flex justify-center py-6 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin" />
+              </div>
+            )}
+            {!hasNextPage && products.length > 0 && (
+              <p className="text-center text-xs text-muted-foreground py-6">
+                {total} {total === 1 ? "produto" : "produtos"} no total
+              </p>
+            )}
+          </>
         )}
       </section>
 
