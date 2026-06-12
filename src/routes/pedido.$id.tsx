@@ -120,7 +120,7 @@ function OrderPage() {
               </ul>
 
               <div className="border-t border-border pt-4 flex justify-between items-baseline">
-                <span className="font-bold">Total pago</span>
+                <span className="font-bold">{isPaid ? "Total pago" : "Total"}</span>
                 <span className="display text-2xl text-price">{brl(Number(data.order.total))}</span>
               </div>
 
