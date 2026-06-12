@@ -195,8 +195,7 @@ export function Header() {
           {Array.from({ length: 2 }).map((_, k) => (
             <div key={k} className="flex gap-8 sm:gap-12">
               <span>SUPER OFERTAS DA SEMANA</span>
-              <span>FRETE COMBINADO NO WHATSAPP</span>
-              <span>PIX, CARTAO E PARCELADO</span>
+              <span>PIX E CARTOES</span>
               <span>ATE 70% OFF</span>
               <span>RETIRE NA LOJA EM COLOMBO</span>
             </div>
