@@ -76,6 +76,10 @@ function isDelayed(o: OrderRow) {
   return false;
 }
 
+function barcodeValue(id: string) {
+  return id.replace(/-/g, "").slice(0, 12).toLowerCase();
+}
+
 function FulfillmentPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [tab, setTab] = useState<"pickup" | "done">("pickup");
@@ -428,9 +432,13 @@ function ScannerPanel({ orders, onDeliver }: { orders: OrderRow[]; onDeliver: (o
     setCode("");
     if (!raw) return;
 
-    const norm = raw.toLowerCase();
+    const norm = raw.replace(/[^a-z0-9]/gi, "").toLowerCase();
     const match = orders.find(
-      (o) => o.id.toLowerCase() === norm || o.id.toLowerCase().startsWith(norm) || o.id.slice(0, 8).toLowerCase() === norm,
+      (o) => {
+        const id = o.id.toLowerCase();
+        const compact = o.id.replace(/-/g, "").toLowerCase();
+        return id === norm || id.startsWith(norm) || compact === norm || compact.startsWith(norm) || barcodeValue(o.id) === norm;
+      },
     );
 
     if (!match) {
