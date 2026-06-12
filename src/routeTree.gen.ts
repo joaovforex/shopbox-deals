@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RedirecionandoRouteImport } from './routes/redirecionando'
 import { Route as LojaRouteImport } from './routes/loja'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
@@ -24,6 +25,11 @@ import { Route as AuthenticatedAdminExpedicaoRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminEquipeRouteImport } from './routes/_authenticated/admin.equipe'
 import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp.webhook'
 
+const RedirecionandoRoute = RedirecionandoRouteImport.update({
+  id: '/redirecionando',
+  path: '/redirecionando',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LojaRoute = LojaRouteImport.update({
   id: '/loja',
   path: '/loja',
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/loja': typeof LojaRoute
+  '/redirecionando': typeof RedirecionandoRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/pedido/$id': typeof PedidoIdRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/loja': typeof LojaRoute
+  '/redirecionando': typeof RedirecionandoRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/pedido/$id': typeof PedidoIdRoute
@@ -135,6 +143,7 @@ export interface FileRoutesById {
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/loja': typeof LojaRoute
+  '/redirecionando': typeof RedirecionandoRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/pedido/$id': typeof PedidoIdRoute
@@ -152,6 +161,7 @@ export interface FileRouteTypes {
     | '/carrinho'
     | '/checkout'
     | '/loja'
+    | '/redirecionando'
     | '/admin'
     | '/etiqueta/$id'
     | '/pedido/$id'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/carrinho'
     | '/checkout'
     | '/loja'
+    | '/redirecionando'
     | '/admin'
     | '/etiqueta/$id'
     | '/pedido/$id'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/carrinho'
     | '/checkout'
     | '/loja'
+    | '/redirecionando'
     | '/_authenticated/admin'
     | '/etiqueta/$id'
     | '/pedido/$id'
@@ -200,6 +212,7 @@ export interface RootRouteChildren {
   CarrinhoRoute: typeof CarrinhoRoute
   CheckoutRoute: typeof CheckoutRoute
   LojaRoute: typeof LojaRoute
+  RedirecionandoRoute: typeof RedirecionandoRoute
   EtiquetaIdRoute: typeof EtiquetaIdRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
@@ -208,6 +221,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/redirecionando': {
+      id: '/redirecionando'
+      path: '/redirecionando'
+      fullPath: '/redirecionando'
+      preLoaderRoute: typeof RedirecionandoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/loja': {
       id: '/loja'
       path: '/loja'
@@ -342,6 +362,7 @@ const rootRouteChildren: RootRouteChildren = {
   CarrinhoRoute: CarrinhoRoute,
   CheckoutRoute: CheckoutRoute,
   LojaRoute: LojaRoute,
+  RedirecionandoRoute: RedirecionandoRoute,
   EtiquetaIdRoute: EtiquetaIdRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
