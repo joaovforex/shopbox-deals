@@ -38,6 +38,9 @@ export const createMpPreference = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
+    // 0) Limpa pedidos pendentes antigos (>30min) devolvendo o estoque
+    await supabaseAdmin.rpc("expire_stale_pending_orders" as never, { p_minutes: 30 } as never);
+
     // 1) Cria pedido pendente e reserva estoque
     const { data: orderId, error: orderErr } = await supabaseAdmin.rpc(
       "create_pending_order" as never,
