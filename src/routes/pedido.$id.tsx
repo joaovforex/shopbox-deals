@@ -106,7 +106,7 @@ function OrderPage() {
               <div className="flex items-center justify-between">
                 <h2 className="font-bold uppercase text-xs tracking-wider text-muted-foreground">Itens do pedido</h2>
                 <span className="text-[10px] font-bold uppercase tracking-wider bg-primary/15 text-primary px-2 py-1 rounded">
-                  {data.order.status === "paid" ? "Pago" : data.order.status}
+                  {isPaid ? "Pago" : isCancelled ? "Cancelado" : "Aguardando pagamento"}
                 </span>
               </div>
 
