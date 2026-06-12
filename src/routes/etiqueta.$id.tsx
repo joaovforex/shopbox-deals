@@ -133,10 +133,10 @@ function LabelPage() {
           @page { size: A6; margin: 8mm; }
           body { background: white !important; color: black !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
           .label-doc, .label-doc * { color: black !important; border-color: black !important; opacity: 1 !important; }
-          .label-doc svg, .label-doc svg * { fill: black !important; stroke: black !important; color: black !important; opacity: 1 !important; }
+          /* Não forçar fill/stroke em SVGs — quebraria o código de barras (fundo branco + barras pretas) */
+          .label-doc img { filter: none !important; }
         }
         .label-doc { font-family: 'Courier New', 'Monaco', monospace; }
-        .label-doc svg, .label-doc svg * { opacity: 1 !important; }
       `}</style>
 
       <div className="min-h-screen bg-muted py-6 px-4">
