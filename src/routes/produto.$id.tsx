@@ -134,7 +134,8 @@ function ProductPage() {
     "",
     stockLine,
     "",
-    `🔗 ${url}`,
+    "COMPRE NO LINK ABAIXO:",
+    `👇 ${url}`,
   ].filter((l) => l !== null).join("\n");
 
   const waShare = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
