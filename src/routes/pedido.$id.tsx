@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, MessageCircle, Package, Store, Clock, ArrowRight, Sparkles } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
-import { supabase } from "@/integrations/supabase/client";
+import { getPublicOrder } from "@/lib/orders.functions";
 import { brl } from "@/lib/format";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
 
@@ -13,15 +14,11 @@ export const Route = createFileRoute("/pedido/$id")({
 
 function OrderPage() {
   const { id } = Route.useParams();
+  const fetchOrder = useServerFn(getPublicOrder);
 
   const { data, isLoading } = useQuery({
     queryKey: ["order", id],
-    queryFn: async () => {
-      const { data: order, error } = await supabase.from("orders").select("*").eq("id", id).maybeSingle();
-      if (error) throw error;
-      const { data: items } = await supabase.from("order_items").select("*").eq("order_id", id);
-      return { order, items: items ?? [] };
-    },
+    queryFn: () => fetchOrder({ data: { id } }),
     refetchInterval: (q) => {
       const s = (q.state.data as { order?: { status?: string } } | undefined)?.order?.status;
       return s === "pending" ? 3000 : false;
