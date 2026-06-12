@@ -1,27 +1,23 @@
 export const PRODUCT_CATEGORIES = [
   "Automotivo",
-  "Academia",
   "Banheiro",
   "Bebês",
   "Bebidas",
-  "Beleza",
   "Brinquedos",
   "Casa",
   "Casa e Decoração",
   "Calçados",
+  "Cosméticos e Perfumes",
   "Eletrônicos",
   "Ferramentas",
-  "Infantil",
   "Instrumentos Musicais",
   "Móveis",
   "Moda e Acessórios",
   "Papelaria",
-  "Perfumaria",
   "Pet",
   "Produtos de Limpeza",
-  "Roupas",
   "Saúde e Bem-Estar",
-  "Suplementos e Cápsulas",
 ] as const;
 
 export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
+
