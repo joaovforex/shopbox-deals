@@ -50,7 +50,7 @@ export function Header() {
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b-4 border-primary">
         <div className="container mx-auto px-3 sm:px-4 h-16 sm:h-20 flex items-center justify-between gap-3">
           <Link to="/loja" className="flex items-center gap-2 shrink-0">
-            <img src={logo} alt="shopbox" className="h-11 sm:h-14 w-auto" width={224} height={72} />
+            <img src={logo} alt="shopbox" className="h-14 sm:h-20 w-auto drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)] hover:scale-105 transition-transform" width={304} height={80} />
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-sm font-semibold uppercase tracking-wider">
@@ -145,7 +145,7 @@ export function Footer() {
     <footer className="mt-16 sm:mt-20 border-t-4 border-primary bg-card pb-20 md:pb-0">
       <div className="container mx-auto px-4 py-10 grid sm:grid-cols-3 gap-8">
         <div>
-          <img src={logo} alt="shopbox" className="h-11 w-auto mb-3" />
+          <img src={logo} alt="shopbox" className="h-16 w-auto mb-3 drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)]" />
           <p className="text-sm text-muted-foreground">
             Sua loja de super descontos em Colombo. Preços de atacado, atendimento de bairro.
           </p>

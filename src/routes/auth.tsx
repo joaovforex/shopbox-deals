@@ -60,7 +60,7 @@ function AuthPage() {
       <Header />
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md bg-card border border-border rounded-xl p-8 shadow-card">
-          <img src={logo} alt="shopbox" className="h-12 mx-auto mb-4" />
+          <img src={logo} alt="shopbox" className="h-24 sm:h-28 mx-auto mb-6 drop-shadow-[0_6px_18px_rgba(0,0,0,0.4)]" />
           <h1 className="display text-2xl text-center mb-1">
             {mode === "login" ? "Entrar" : "Criar conta"}
           </h1>
