@@ -93,7 +93,7 @@ export const createMpPreference = createServerFn({ method: "POST" })
       back_urls: {
         success: `${origin}/pedido/${orderId}`,
         pending: `${origin}/pedido/${orderId}`,
-        failure: `${origin}/checkout?status=failure`,
+        failure: `${origin}/loja`,
       },
       auto_return: "approved",
       notification_url: `${origin}/api/public/mp/webhook`,

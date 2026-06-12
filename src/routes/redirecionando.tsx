@@ -14,7 +14,7 @@ function RedirectingPage() {
   useEffect(() => {
     const to = typeof window !== "undefined" ? sessionStorage.getItem("mp_init_point") : null;
     if (!to) {
-      navigate({ to: "/checkout" });
+      navigate({ to: "/loja" });
       return;
     }
     const t = setTimeout(() => {
