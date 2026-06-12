@@ -307,6 +307,26 @@ export type Database = {
         Args: { _role: string; _user_id: string }
         Returns: boolean
       }
+      list_products_paged: {
+        Args: {
+          p_category?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+        }
+        Returns: {
+          category: string
+          created_at: string
+          id: string
+          image_url: string
+          images: string[]
+          name: string
+          original_price: number
+          price: number
+          stock: number
+          total_count: number
+        }[]
+      }
       mark_label_event: {
         Args: { p_event: string; p_order_id: string }
         Returns: undefined
@@ -356,6 +376,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      search_products_quick: {
+        Args: { p_term: string }
+        Returns: {
+          id: string
+          image_url: string
+          images: string[]
+          name: string
+          price: number
+        }[]
+      }
       search_team_candidates: {
         Args: { p_term: string }
         Returns: {
@@ -364,6 +394,8 @@ export type Database = {
           id: string
         }[]
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       app_role: "admin" | "user" | "catalog" | "fulfillment"
