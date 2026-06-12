@@ -36,11 +36,19 @@ export function Barcode({
         margin: 0,
         background: "#ffffff",
         lineColor: "#000000",
+        flat: true,
       });
     } catch {
       // ignore invalid values
     }
   }, [value, height, width, fontSize, displayValue]);
 
-  return <svg ref={ref} className={className} />;
+  return (
+    <svg
+      ref={ref}
+      className={className}
+      style={{ color: "#000000", printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}
+      shapeRendering="crispEdges"
+    />
+  );
 }
