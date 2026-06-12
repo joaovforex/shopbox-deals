@@ -91,7 +91,7 @@ function OrdersPanel() {
 
   const stats = useMemo(() => {
     let orders = data?.orders ?? [];
-    const items = data?.items ?? [];
+    const allItems = data?.items ?? [];
 
     // Apply filters
     if (searchCpf.trim()) {
@@ -108,12 +108,13 @@ function OrdersPanel() {
       orders = orders.filter((o) => o.status === filterStatus);
     }
 
-    // Receita total agregada (soma de unit_price * quantity de TODOS os itens, independente de cliente)
+    // Métricas de venda consideram APENAS pedidos pagos (ignora pendentes/cancelados)
+    const paidOrderIds = new Set(orders.filter((o) => o.status === "paid").map((o) => o.id));
+    const items = allItems.filter((i) => paidOrderIds.has(i.order_id));
+
     const revenue = items.reduce((s, i) => s + Number(i.unit_price) * Number(i.quantity), 0);
-    // Total de unidades vendidas (somando quantidade item a item)
     const unitsSold = items.reduce((s, i) => s + Number(i.quantity), 0);
 
-    // Agregação precisa por produto: soma todas as unidades vendidas em todos os pedidos
     const byProduct = new Map<string, { name: string; qty: number; revenue: number }>();
     for (const it of items) {
       const cur = byProduct.get(it.product_id) ?? { name: it.product_name, qty: 0, revenue: 0 };
@@ -125,9 +126,10 @@ function OrdersPanel() {
       .map(([id, v]) => ({ id, ...v }))
       .sort((a, b) => b.qty - a.qty);
 
-    // Delivery breakdown (filtered orders)
-    const deliveryCount = orders.filter((o) => o.delivery_method === "delivery").length;
-    const pickupCount = orders.filter((o) => o.delivery_method === "pickup").length;
+    // Breakdown de entrega considera somente pedidos pagos para as métricas
+    const paidOrders = orders.filter((o) => o.status === "paid");
+    const deliveryCount = paidOrders.filter((o) => o.delivery_method === "delivery").length;
+    const pickupCount = paidOrders.filter((o) => o.delivery_method === "pickup").length;
 
     return { orders, items, revenue, unitsSold, ranking, deliveryCount, pickupCount };
   }, [data, searchCpf, filterDelivery, filterPayment, filterStatus]);
