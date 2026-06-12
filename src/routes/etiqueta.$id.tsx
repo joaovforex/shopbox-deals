@@ -218,9 +218,9 @@ function ShippingLabel({ o, items }: { o: any; items: any[] }) {
         <div className="text-[10px] font-bold">CÓDIGO DE RASTREIO</div>
         <div className="font-mono text-sm tracking-widest">BR{o.id.replace(/-/g, "").slice(0, 9).toUpperCase()}BR</div>
         <div className="flex justify-center mt-1">
-          <Barcode value={o.id} height={28} width={0.9} fontSize={7} />
+          <Barcode value={barcodeValue(o.id)} height={34} width={1.7} fontSize={10} />
         </div>
-        <div className="text-[8px] mt-0.5 text-gray-700">Escaneie para localizar o pedido</div>
+        <div className="text-[8px] mt-0.5 text-black font-bold">Escaneie para localizar o pedido</div>
       </div>
 
       <div className="border border-black p-2">
@@ -288,9 +288,9 @@ function PickupLabel({ o, items }: { o: any; items: any[] }) {
           {o.id.slice(0, 6).toUpperCase()}
         </div>
         <div className="flex justify-center mt-1">
-          <Barcode value={o.id} height={26} width={0.9} fontSize={7} />
+          <Barcode value={barcodeValue(o.id)} height={34} width={1.7} fontSize={10} />
         </div>
-        <div className="text-[8px] mt-0.5 text-gray-700">Escaneie na expedição para confirmar a entrega</div>
+        <div className="text-[8px] mt-0.5 text-black font-bold">Escaneie na expedição para confirmar a entrega</div>
         <div className="text-[10px] mt-1">Confira documento do cliente ao entregar</div>
       </div>
 
