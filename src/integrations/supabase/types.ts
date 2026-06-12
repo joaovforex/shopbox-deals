@@ -273,6 +273,10 @@ export type Database = {
         }
         Returns: string
       }
+      expire_stale_pending_orders: {
+        Args: { p_minutes?: number }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
