@@ -27,9 +27,17 @@ export const Route = createFileRoute("/loja")({
 
 function Loja() {
   const { data: products } = useSuspenseQuery(activeProductsQuery());
-  const { cat } = Route.useSearch();
+  const { cat, focus } = Route.useSearch();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+
+  useEffect(() => {
+    if (!focus) return;
+    const el = document.getElementById("loja-search") as HTMLInputElement | null;
+    el?.focus();
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    navigate({ to: "/loja", search: cat ? { cat } : {}, replace: true });
+  }, [focus, cat, navigate]);
 
   const filtered = products.filter((p) => {
     if (cat && p.category !== cat) return false;
