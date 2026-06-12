@@ -280,6 +280,10 @@ function PickupLabel({ o, items }: { o: any; items: any[] }) {
         <div className="font-black text-3xl tracking-[0.3em] mt-1">
           {o.id.slice(0, 6).toUpperCase()}
         </div>
+        <div className="flex justify-center mt-2">
+          <Barcode value={o.id} height={44} width={1.3} fontSize={9} />
+        </div>
+        <div className="text-[9px] mt-0.5 text-gray-700">Escaneie na expedição para confirmar a entrega</div>
         <div className="text-[10px] mt-1">Confira documento do cliente ao entregar</div>
       </div>
 
