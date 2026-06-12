@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { Printer, Truck, Store, Download, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { markLabelEvent } from "@/lib/labels.functions";
 import { brl } from "@/lib/format";
 import { openWhatsApp, orderReadyMessage } from "@/lib/whatsapp";
 import jsPDF from "jspdf";
@@ -45,6 +47,7 @@ const STORE = {
 
 function LabelPage() {
   const { id } = Route.useParams();
+  const markEvent = useServerFn(markLabelEvent);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["label", id],
@@ -64,19 +67,19 @@ function LabelPage() {
   useEffect(() => {
     if (!data?.order || generatedOnce.current) return;
     generatedOnce.current = true;
-    supabase.rpc("mark_label_event" as never, { p_order_id: id, p_event: "generated" } as never)
+    markEvent({ data: { order_id: id, event: "generated" } })
       .then(() => refetch());
-  }, [data, id, refetch]);
+  }, [data, id, markEvent, refetch]);
 
   // Detect actual print and record it.
   useEffect(() => {
     const onAfter = () => {
-      supabase.rpc("mark_label_event" as never, { p_order_id: id, p_event: "printed" } as never)
+      markEvent({ data: { order_id: id, event: "printed" } })
         .then(() => refetch());
     };
     window.addEventListener("afterprint", onAfter);
     return () => window.removeEventListener("afterprint", onAfter);
-  }, [id, refetch]);
+  }, [id, markEvent, refetch]);
 
 
   if (isLoading) return <div className="p-10 text-center">Carregando etiqueta...</div>;
@@ -107,7 +110,7 @@ function LabelPage() {
       if (h > maxH) { h = maxH; w = h * ratio; }
       pdf.addImage(img, "JPEG", (pageW - w) / 2, margin, w, h);
       pdf.save(`etiqueta-${isPickup ? "retirada" : "envio"}-${o.id.slice(0, 8)}.pdf`);
-      await supabase.rpc("mark_label_event" as never, { p_order_id: id, p_event: "generated" } as never);
+      await markEvent({ data: { order_id: id, event: "generated" } });
       refetch();
     } finally {
       setDownloading(false);

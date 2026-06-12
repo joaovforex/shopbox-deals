@@ -11,9 +11,11 @@ export const searchTeamCandidates = createServerFn({ method: "POST" })
     return { term };
   })
   .handler(async ({ data, context }): Promise<Found[]> => {
-    const { data: results, error } = await context.supabase.rpc("search_team_candidates", {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: results, error } = await supabaseAdmin.rpc("admin_search_team_candidates" as never, {
       p_term: data.term,
-    });
+    } as never);
     if (error) throw new Error(error.message);
     return (results ?? []) as Found[];
   });
@@ -27,14 +29,18 @@ export const assignTeamRole = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
-    const { data: result, error } = await context.supabase.rpc("assign_team_role", {
-      p_user_id: data.user_id,
-      p_role: data.role,
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: existingUser, error: userError } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
+    if (userError || !existingUser?.user) throw new Error("Usuário não encontrado");
+    const { error } = await supabaseAdmin.from("user_roles").insert({
+      user_id: data.user_id,
+      role: data.role,
     });
     if (error) {
+      if (error.code === "23505") return { ok: false as const, reason: "duplicate" };
       throw new Error(error.message);
     }
-    if (result === "duplicate") return { ok: false as const, reason: "duplicate" };
     return { ok: true as const };
   });
 
@@ -47,10 +53,13 @@ export const removeTeamRole = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.rpc("remove_team_role", {
-      p_user_id: data.user_id,
-      p_role: data.role,
-    });
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", data.user_id)
+      .eq("role", data.role);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

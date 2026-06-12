@@ -8,7 +8,10 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const claimFirstAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase.rpc("claim_first_admin_if_none");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin.rpc("claim_first_admin_for_user" as never, {
+      p_user_id: context.userId,
+    } as never);
     if (error) throw new Error(error.message);
 
     if (!data) {

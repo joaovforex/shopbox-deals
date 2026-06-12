@@ -253,12 +253,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_search_team_candidates: {
+        Args: { p_term: string }
+        Returns: {
+          email: string
+          full_name: string
+          id: string
+        }[]
+      }
       assign_team_role: {
         Args: {
           p_role: Database["public"]["Enums"]["app_role"]
           p_user_id: string
         }
         Returns: string
+      }
+      claim_first_admin_for_user: {
+        Args: { p_user_id: string }
+        Returns: boolean
       }
       claim_first_admin_if_none: { Args: never; Returns: boolean }
       create_pending_order: {
