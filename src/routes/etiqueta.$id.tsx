@@ -210,15 +210,10 @@ function ShippingLabel({ o, items }: { o: any; items: any[] }) {
       <div className="border border-black px-2 py-3 text-center">
         <div className="text-[10px] font-bold">CÓDIGO DE RASTREIO</div>
         <div className="font-mono text-sm tracking-widest">BR{o.id.replace(/-/g, "").slice(0, 9).toUpperCase()}BR</div>
-        <div className="flex items-end justify-center gap-px h-8 mt-1">
-          {Array.from({ length: 60 }).map((_, i) => (
-            <span
-              key={i}
-              className="bg-black"
-              style={{ width: ((i * 7) % 3) + 1, height: "100%" }}
-            />
-          ))}
+        <div className="flex justify-center mt-2">
+          <Barcode value={o.id} height={48} width={1.3} fontSize={9} />
         </div>
+        <div className="text-[9px] mt-0.5 text-gray-700">Escaneie para localizar o pedido</div>
       </div>
 
       <div className="border border-black p-2">
