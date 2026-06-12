@@ -329,8 +329,8 @@ function PickupLabel({ o, items }: { o: any; items: any[] }) {
       <div className="border border-black p-2 text-center">
         <div className="text-[10px] font-bold uppercase">Local de retirada</div>
         <div className="text-xs mt-1">
-          {STORE.street}, {STORE.number} — {STORE.district}<br />
-          {STORE.city} / {STORE.state} · Seg a Sáb · 9h às 18h
+          Rua Emílio Gleber, 1118 — Colombo / PR<br />
+          Seg a Sáb · 9h às 18h
         </div>
       </div>
 
