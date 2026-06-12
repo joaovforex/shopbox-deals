@@ -124,12 +124,43 @@ function AdminPage() {
     qc.invalidateQueries({ queryKey: ["products"] });
   };
 
-  const share = (p: Product) => {
+  const share = async (p: Product) => {
     const url = `${window.location.origin}/produto/${p.id}`;
     const off = discountPct(p.original_price, p.price);
-    const text = `🔥 *${p.name}* na shopbox por apenas ${brl(p.price)}${off > 0 ? ` (${off}% OFF!)` : ""}\n\n👉 ${url}`;
+    const stockLine =
+      p.stock > 0 ? `📦 ${p.stock} ${p.stock === 1 ? "peça" : "peças"} em estoque` : "❌ Sem estoque no momento";
+    const text = [
+      `🔥 *${p.name}*`,
+      `Por ${brl(p.price)}${off > 0 ? ` (${off}% OFF!)` : ""}`,
+      p.description ? "" : null,
+      p.description ?? null,
+      "",
+      stockLine,
+      "",
+      `👉 ${url}`,
+    ].filter((l) => l !== null).join("\n");
+
+    const nav = typeof navigator !== "undefined" ? (navigator as any) : null;
+    if (nav?.share && p.image_url) {
+      try {
+        const res = await fetch(p.image_url);
+        const blob = await res.blob();
+        const ext = (blob.type.split("/")[1] || "jpg").split("+")[0];
+        const safe = p.name.replace(/[^\w]+/g, "-").toLowerCase().slice(0, 40) || "produto";
+        const file = new File([blob], `${safe}.${ext}`, { type: blob.type || "image/jpeg" });
+        if (nav.canShare?.({ files: [file] })) {
+          await nav.share({ files: [file], text, title: p.name });
+          return;
+        }
+      } catch {}
+      try {
+        await nav.share({ title: p.name, text, url });
+        return;
+      } catch {}
+    }
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -361,21 +392,34 @@ function ProductForm({
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Fotos do produto ({images.length})
             </label>
-            <label className="inline-flex items-center gap-1.5 text-xs bg-secondary hover:bg-muted px-3 py-1.5 rounded cursor-pointer">
-              <Upload className="h-3.5 w-3.5" /> {uploading ? "Enviando..." : "Adicionar fotos"}
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(e) => e.target.files?.length && handleFiles(e.target.files)}
-              />
-            </label>
+            <div className="flex items-center gap-2">
+              <label className="inline-flex items-center gap-1.5 text-xs bg-secondary hover:bg-muted px-3 py-1.5 rounded cursor-pointer">
+                📷 Tirar foto
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => e.target.files?.length && handleFiles(e.target.files)}
+                />
+              </label>
+              <label className="inline-flex items-center gap-1.5 text-xs bg-secondary hover:bg-muted px-3 py-1.5 rounded cursor-pointer">
+                <Upload className="h-3.5 w-3.5" /> {uploading ? "Enviando..." : "Adicionar fotos"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => e.target.files?.length && handleFiles(e.target.files)}
+                />
+              </label>
+            </div>
           </div>
+
 
           {images.length === 0 ? (
             <label className="block aspect-[4/1] rounded-lg border-2 border-dashed border-border bg-muted flex items-center justify-center cursor-pointer hover:border-primary">

@@ -276,6 +276,10 @@ export type Database = {
         Returns: boolean
       }
       claim_first_admin_if_none: { Args: never; Returns: boolean }
+      confirm_order_paid: {
+        Args: { p_mp_payment_id?: string; p_order_id: string }
+        Returns: string
+      }
       create_pending_order: {
         Args: {
           p_customer_cpf: string

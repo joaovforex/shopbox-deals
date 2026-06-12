@@ -119,6 +119,10 @@ function ProductPage() {
   const url = typeof window !== "undefined" ? window.location.href : "";
   const installments = product.price >= 50 ? Math.min(10, Math.floor(product.price / 20)) : 0;
   const hasDiscount = !!(product.original_price && product.original_price > product.price);
+  const stockLine =
+    product.stock > 0
+      ? `📦 ${product.stock} ${product.stock === 1 ? "peça" : "peças"} em estoque`
+      : "❌ Sem estoque no momento";
   const shareText = [
     product.name,
     "",
@@ -128,8 +132,11 @@ function ProductPage() {
     product.description ? "" : null,
     product.description ?? null,
     "",
+    stockLine,
+    "",
     `🔗 ${url}`,
   ].filter((l) => l !== null).join("\n");
+
   const waShare = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 
   const copyLink = async () => {
