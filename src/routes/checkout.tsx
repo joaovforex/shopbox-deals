@@ -46,6 +46,7 @@ function isValidCpf(v: string) {
 function CheckoutPage() {
   const { items, total, clear } = useCart();
   const [busy, setBusy] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const createPref = useServerFn(createMpPreference);
 
   const [name, setName] = useState("");
@@ -53,7 +54,7 @@ function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [cpf, setCpf] = useState("");
 
-  if (items.length === 0) {
+  if (items.length === 0 && !redirecting) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
@@ -89,9 +90,10 @@ function CheckoutPage() {
           items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
         },
       });
-      clear();
-      // Passa pela página de transição animada antes do Mercado Pago
+      // Marca como redirecionando ANTES de limpar o carrinho, para não mostrar tela de "carrinho vazio"
+      setRedirecting(true);
       sessionStorage.setItem("mp_init_point", res.initPoint);
+      clear();
       window.location.href = "/redirecionando";
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao iniciar pagamento";
