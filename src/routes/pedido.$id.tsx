@@ -26,8 +26,12 @@ function OrderPage() {
   });
 
   const status = data?.order?.status;
-  const isPending = status === "pending";
+  const isPaid = status === "paid";
   const isCancelled = status === "cancelled";
+  // Qualquer coisa que não seja explicitamente "paid" ou "cancelled" (incluindo loading
+  // e status "pending") é tratada como aguardando pagamento — nunca mostre confirmação
+  // sem ter certeza de que o pedido foi pago.
+  const isPending = !isPaid && !isCancelled;
 
   const shortId = id.slice(0, 8).toUpperCase();
 
