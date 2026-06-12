@@ -90,8 +90,9 @@ function CheckoutPage() {
         },
       });
       clear();
-      // Redireciona para o Checkout Pro do Mercado Pago
-      window.location.href = res.initPoint;
+      // Passa pela página de transição animada antes do Mercado Pago
+      sessionStorage.setItem("mp_init_point", res.initPoint);
+      window.location.href = "/redirecionando";
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao iniciar pagamento";
       toast.error(msg);
