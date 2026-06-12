@@ -26,8 +26,12 @@ function OrderPage() {
   });
 
   const status = data?.order?.status;
-  const isPending = status === "pending";
+  const isPaid = status === "paid";
   const isCancelled = status === "cancelled";
+  // Qualquer coisa que não seja explicitamente "paid" ou "cancelled" (incluindo loading
+  // e status "pending") é tratada como aguardando pagamento — nunca mostre confirmação
+  // sem ter certeza de que o pedido foi pago.
+  const isPending = !isPaid && !isCancelled;
 
   const shortId = id.slice(0, 8).toUpperCase();
 
@@ -102,7 +106,7 @@ function OrderPage() {
               <div className="flex items-center justify-between">
                 <h2 className="font-bold uppercase text-xs tracking-wider text-muted-foreground">Itens do pedido</h2>
                 <span className="text-[10px] font-bold uppercase tracking-wider bg-primary/15 text-primary px-2 py-1 rounded">
-                  {data.order.status === "paid" ? "Pago" : data.order.status}
+                  {isPaid ? "Pago" : isCancelled ? "Cancelado" : "Aguardando pagamento"}
                 </span>
               </div>
 
@@ -116,7 +120,7 @@ function OrderPage() {
               </ul>
 
               <div className="border-t border-border pt-4 flex justify-between items-baseline">
-                <span className="font-bold">Total pago</span>
+                <span className="font-bold">{isPaid ? "Total pago" : "Total"}</span>
                 <span className="display text-2xl text-price">{brl(Number(data.order.total))}</span>
               </div>
 
