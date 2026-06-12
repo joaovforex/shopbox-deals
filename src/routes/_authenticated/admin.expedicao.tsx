@@ -404,6 +404,89 @@ function TabBtn({ active, onClick, icon, children }: { active: boolean; onClick:
   );
 }
 
+function ScannerPanel({ orders, onDeliver }: { orders: OrderRow[]; onDeliver: (o: OrderRow) => void }) {
+  const [code, setCode] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [last, setLast] = useState<{ id: string; name: string; ok: boolean } | null>(null);
+
+  // Mantém o foco no campo para o leitor USB sempre digitar aqui
+  useEffect(() => {
+    const focus = () => {
+      // Só refoca se o usuário não estiver digitando em outro input/textarea
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
+      inputRef.current?.focus();
+    };
+    focus();
+    window.addEventListener("click", focus);
+    return () => window.removeEventListener("click", focus);
+  }, []);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const raw = code.trim();
+    setCode("");
+    if (!raw) return;
+
+    const norm = raw.toLowerCase();
+    const match = orders.find(
+      (o) => o.id.toLowerCase() === norm || o.id.toLowerCase().startsWith(norm) || o.id.slice(0, 8).toLowerCase() === norm,
+    );
+
+    if (!match) {
+      setLast({ id: raw, name: "—", ok: false });
+      toast.error(`Pedido não encontrado para o código ${raw.slice(0, 12)}…`);
+      return;
+    }
+
+    if (match.fulfillment_status === "completed") {
+      setLast({ id: match.id, name: match.customer_name, ok: false });
+      toast.info(`Pedido de ${match.customer_name} já está marcado como entregue.`);
+      return;
+    }
+
+    onDeliver(match);
+    setLast({ id: match.id, name: match.customer_name, ok: true });
+  };
+
+  return (
+    <form
+      onSubmit={submit}
+      className="bg-card border-2 border-dashed border-primary/40 rounded-lg p-3 flex flex-wrap items-center gap-3"
+    >
+      <div className="flex items-center gap-2 text-primary">
+        <ScanLine className="h-5 w-5" />
+        <span className="font-bold uppercase tracking-wider text-xs">Leitor de código</span>
+      </div>
+      <input
+        ref={inputRef}
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+        placeholder="Escaneie a etiqueta do pedido…"
+        autoFocus
+        className="flex-1 min-w-[220px] bg-secondary/60 border border-border rounded px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+      <button
+        type="submit"
+        className="text-xs font-bold uppercase tracking-wider bg-primary text-primary-foreground px-3 py-2 rounded hover:opacity-90"
+      >
+        Confirmar entrega
+      </button>
+      {last && (
+        <div
+          className={`text-xs px-2 py-1 rounded font-bold uppercase tracking-wider ${
+            last.ok ? "bg-[#25D366]/20 text-[#25D366]" : "bg-destructive/15 text-destructive"
+          }`}
+        >
+          {last.ok ? "✓ Entregue" : "✗ Falhou"} · {last.name !== "—" ? last.name : last.id.slice(0, 8).toUpperCase()}
+        </div>
+      )}
+      <div className="basis-full text-[11px] text-muted-foreground">
+        Mantenha esta tela aberta. O leitor USB digita o código e confirma automaticamente.
+      </div>
+    </form>
+  );
+
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col">
