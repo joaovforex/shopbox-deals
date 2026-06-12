@@ -131,17 +131,34 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
           return new Response("already finalized", { status: 200 });
         }
 
-        const { error: updErr } = await supabaseAdmin
-          .from("orders")
-          .update({
-            status: newStatus,
-            mp_payment_id: String(payment.id),
-          })
-          .eq("id", orderId);
-        if (updErr) {
-          console.error("[mp:webhook] update error", updErr);
-          return new Response("update failed", { status: 500 });
+        if (newStatus === "paid") {
+          // Debita estoque atomicamente; se faltar, marca como cancelado.
+          const { data: result, error: rpcErr } = await supabaseAdmin.rpc(
+            "confirm_order_paid" as never,
+            { p_order_id: orderId, p_mp_payment_id: String(payment.id) } as never,
+          );
+          if (rpcErr) {
+            console.error("[mp:webhook] confirm_order_paid error", rpcErr);
+            return new Response("update failed", { status: 500 });
+          }
+          console.info("[mp:webhook] confirm result", result);
+        } else if (newStatus === "cancelled") {
+          const { error: updErr } = await supabaseAdmin
+            .from("orders")
+            .update({ status: "cancelled", mp_payment_id: String(payment.id) })
+            .eq("id", orderId);
+          if (updErr) {
+            console.error("[mp:webhook] cancel update error", updErr);
+            return new Response("update failed", { status: 500 });
+          }
+        } else {
+          // pending: apenas guarda o id do pagamento
+          await supabaseAdmin
+            .from("orders")
+            .update({ mp_payment_id: String(payment.id) })
+            .eq("id", orderId);
         }
+
 
         return new Response("ok", { status: 200 });
       },
