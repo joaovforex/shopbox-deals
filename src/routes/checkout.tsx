@@ -46,6 +46,7 @@ function isValidCpf(v: string) {
 function CheckoutPage() {
   const { items, total, clear } = useCart();
   const [busy, setBusy] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const createPref = useServerFn(createMpPreference);
 
   const [name, setName] = useState("");
@@ -53,7 +54,7 @@ function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [cpf, setCpf] = useState("");
 
-  if (items.length === 0) {
+  if (items.length === 0 && !redirecting) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
