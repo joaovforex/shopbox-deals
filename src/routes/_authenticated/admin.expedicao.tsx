@@ -168,9 +168,11 @@ function FulfillmentPage() {
   }, [data]);
 
   const orders = useMemo(() => {
-    let list = (data?.orders ?? []).filter((o) =>
-      tab === "done" ? o.fulfillment_status === "completed" : o.fulfillment_status !== "completed",
-    );
+    let list = (data?.orders ?? []).filter((o) => {
+      if (tab === "done") return o.fulfillment_status === "completed";
+      if (tab === "delivery") return o.fulfillment_status === "ready";
+      return o.fulfillment_status !== "completed" && o.fulfillment_status !== "ready";
+    });
     if (labelFilter !== "all") {
       list = list.filter((o) => {
         if (labelFilter === "none") return !o.label_status;
