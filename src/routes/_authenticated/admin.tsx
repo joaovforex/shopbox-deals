@@ -45,6 +45,19 @@ function AdminPage() {
   });
 
   const [editing, setEditing] = useState<Product | null>(null);
+
+  // If a draft for an existing product was in progress, reopen edit form once loaded.
+  useEffect(() => {
+    if (!products.length || editing || showForm) return;
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw) as { productId: string | null };
+      if (!d.productId) return;
+      const p = products.find((x) => x.id === d.productId);
+      if (p) { setEditing(p); setShowForm(true); }
+    } catch {}
+  }, [products, editing, showForm]);
   const [showForm, setShowForm] = useState(false);
 
   // Auto-reopen the product form when returning from a mobile camera launch that
