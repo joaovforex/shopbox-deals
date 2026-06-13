@@ -252,6 +252,9 @@ function FulfillmentPage() {
             <TabBtn active={tab === "done"} onClick={() => setTab("done")} icon={<CheckCircle2 className="h-4 w-4" />}>
               Entregues ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "completed").length})
             </TabBtn>
+            <TabBtn active={tab === "notifications"} onClick={() => setTab("notifications")} icon={<BellRing className="h-4 w-4" />}>
+              Notificações ({(notifData ?? []).length})
+            </TabBtn>
           </div>
 
 
