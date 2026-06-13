@@ -414,6 +414,7 @@ function ProductForm({
         if (error) throw error;
         toast.success("Produto cadastrado");
       }
+      clearDraft();
       onSaved();
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao salvar");
