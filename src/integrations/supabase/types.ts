@@ -404,7 +404,7 @@ export type Database = {
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
-      app_role: "admin" | "user" | "catalog" | "fulfillment"
+      app_role: "admin" | "user" | "catalog" | "fulfillment" | "manager"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -532,7 +532,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user", "catalog", "fulfillment"],
+      app_role: ["admin", "user", "catalog", "fulfillment", "manager"],
     },
   },
 } as const
