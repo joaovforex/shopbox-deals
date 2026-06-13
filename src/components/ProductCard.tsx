@@ -6,7 +6,6 @@ import { useCart } from "@/lib/cart";
 
 export function ProductCard({ product, priority = false }: { product: Product | ProductCardData; priority?: boolean }) {
   const off = discountPct(product.original_price, product.price);
-  const installments = product.price >= 50 ? Math.min(10, Math.floor(product.price / 20)) : 0;
   const imgs = productImages(product);
   const cover = imgs[0];
   const { add } = useCart();
