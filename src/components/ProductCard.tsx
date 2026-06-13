@@ -90,9 +90,6 @@ export function ProductCard({ product, priority = false }: { product: Product | 
         <div className="text-base sm:text-lg font-black text-price leading-tight">
           {brl(product.price)}
         </div>
-        <div className="text-[10px] sm:text-[11px] text-muted-foreground leading-tight">
-          {installments > 0 ? `${installments}x sem juros` : "ou no Pix com desconto"}
-        </div>
 
         {product.stock > 0 && (
           <div className="mt-2 grid grid-cols-2 gap-1.5">
