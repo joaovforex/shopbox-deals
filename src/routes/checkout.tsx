@@ -94,7 +94,9 @@ function CheckoutPage() {
       setRedirecting(true);
       sessionStorage.setItem("mp_init_point", res.initPoint);
       clear();
-      window.location.href = "/redirecionando";
+      // Redireciona DIRETO ao Mercado Pago — mantém o gesto do usuário (essencial
+      // em navegadores in-app de WhatsApp/Instagram, que bloqueiam redirects atrasados).
+      window.location.href = res.initPoint;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao iniciar pagamento";
       toast.error(msg);
