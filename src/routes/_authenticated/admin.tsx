@@ -45,6 +45,7 @@ function AdminPage() {
   });
 
   const [editing, setEditing] = useState<Product | null>(null);
+  const [showForm, setShowForm] = useState(false);
 
   // If a draft for an existing product was in progress, reopen edit form once loaded.
   useEffect(() => {
@@ -58,7 +59,6 @@ function AdminPage() {
       if (p) { setEditing(p); setShowForm(true); }
     } catch {}
   }, [products, editing, showForm]);
-  const [showForm, setShowForm] = useState(false);
 
   // Auto-reopen the product form when returning from a mobile camera launch that
   // evicted the page from memory (a saved draft exists in sessionStorage).
