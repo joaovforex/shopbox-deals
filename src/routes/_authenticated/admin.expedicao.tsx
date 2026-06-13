@@ -111,6 +111,27 @@ function FulfillmentPage() {
     },
   });
 
+  // Pedidos não concluídos (pendentes/cancelados) que NÃO chegaram à expedição
+  const { data: notifData } = useQuery({
+    queryKey: ["fulfillment-notifications"],
+    enabled: allowed === true,
+    queryFn: async () => {
+      const { data: orders, error } = await supabase
+        .from("orders")
+        .select("id, created_at, customer_name, customer_email, customer_phone, payment_method, delivery_method, status, total, mp_payment_id, stock_restored_at")
+        .in("status", ["pending", "cancelled"])
+        .order("created_at", { ascending: false })
+        .limit(80);
+      if (error) throw error;
+      return (orders ?? []) as Array<{
+        id: string; created_at: string; customer_name: string; customer_email: string | null;
+        customer_phone: string | null; payment_method: string; delivery_method: string;
+        status: string; total: number; mp_payment_id: string | null; stock_restored_at: string | null;
+      }>;
+    },
+    refetchInterval: 30000,
+  });
+
   // Atualização em tempo real: novos pedidos + mudanças
   useEffect(() => {
     if (allowed !== true) return;
