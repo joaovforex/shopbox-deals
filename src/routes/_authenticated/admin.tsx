@@ -47,6 +47,23 @@ function AdminPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
 
+  // Auto-reopen the product form when returning from a mobile camera launch that
+  // evicted the page from memory (a saved draft exists in sessionStorage).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw) as { productId: string | null };
+      if (d.productId) {
+        // For edit drafts we need the product loaded — handled below once products arrive.
+        return;
+      }
+      setEditing(null);
+      setShowForm(true);
+    } catch {}
+  }, []);
+
   if (roles === null) {
     return (
       <div className="min-h-screen flex flex-col">
