@@ -6,7 +6,6 @@ import type { Product } from "@/lib/products";
 
 function DiscountCard({ product, index }: { product: Product; index: number }) {
   const off = discountPct(product.original_price, product.price);
-  const installments = product.price >= 50 ? Math.min(10, Math.floor(product.price / 20)) : 0;
 
   return (
     <div
