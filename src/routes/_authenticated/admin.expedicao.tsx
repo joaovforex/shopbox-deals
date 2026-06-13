@@ -142,6 +142,7 @@ function FulfillmentPage() {
         { event: "*", schema: "public", table: "orders" },
         (payload) => {
           qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
+          qc.invalidateQueries({ queryKey: ["fulfillment-notifications"] });
           if (payload.eventType === "INSERT") {
             const row = payload.new as { customer_name?: string; delivery_method?: string };
             if (row.delivery_method === "pickup") {
