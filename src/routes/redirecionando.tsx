@@ -10,6 +10,7 @@ export const Route = createFileRoute("/redirecionando")({
 function RedirectingPage() {
   const navigate = useNavigate();
   const [dots, setDots] = useState("");
+  const [target, setTarget] = useState<string | null>(null);
 
   useEffect(() => {
     const to = typeof window !== "undefined" ? sessionStorage.getItem("mp_init_point") : null;
@@ -17,11 +18,11 @@ function RedirectingPage() {
       navigate({ to: "/loja" });
       return;
     }
-    const t = setTimeout(() => {
-      sessionStorage.removeItem("mp_init_point");
-      window.location.href = to;
-    }, 2400);
-    return () => clearTimeout(t);
+    setTarget(to);
+    sessionStorage.removeItem("mp_init_point");
+    // Redireciona imediatamente — delays atrasados são bloqueados por navegadores
+    // in-app (WhatsApp/Instagram) e podem provocar "esta página não carregou".
+    window.location.replace(to);
   }, [navigate]);
 
   useEffect(() => {
@@ -49,20 +50,16 @@ function RedirectingPage() {
         <p className="text-muted-foreground text-sm md:text-base">
           Estamos te levando ao checkout seguro do Mercado Pago.
         </p>
-        <div className="mx-auto mt-6 h-1.5 w-64 rounded-full bg-secondary overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-primary to-accent"
-            style={{ animation: "redirect-progress 2.4s ease-out forwards" }}
-          />
-        </div>
+        {target && (
+          <p className="text-sm md:text-base">
+            Se a página não abrir automaticamente,{" "}
+            <a href={target} className="text-primary font-bold underline">
+              clique aqui para continuar
+            </a>
+            .
+          </p>
+        )}
       </div>
-
-      <style>{`
-        @keyframes redirect-progress {
-          from { width: 0% }
-          to { width: 100% }
-        }
-      `}</style>
     </div>
   );
 }
