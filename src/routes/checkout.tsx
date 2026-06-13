@@ -131,7 +131,23 @@ function CheckoutPage() {
             <Field label="Nome completo *" value={name} onChange={setName} required placeholder="Como aparece no documento" />
             <div className="grid sm:grid-cols-2 gap-3">
               <Field label="Email *" type="email" value={email} onChange={setEmail} required placeholder="voce@email.com" inputMode="email" autoComplete="email" />
-              <Field label="WhatsApp (com DDD) *" value={phone} onChange={(v) => setPhone(maskPhone(v))} required placeholder="(41) 99999-9999" inputMode="tel" autoComplete="tel" />
+              <label className="block">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">WhatsApp (com DDD) *</span>
+                <div className="mt-1 flex items-stretch rounded-md border border-border bg-input focus-within:border-primary overflow-hidden">
+                  <span className="px-3 flex items-center bg-secondary text-sm font-semibold text-muted-foreground border-r border-border select-none">
+                    +55
+                  </span>
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(maskPhone(e.target.value))}
+                    required
+                    placeholder="(41) 99999-9999"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    className="flex-1 bg-transparent px-3 py-2 focus:outline-none"
+                  />
+                </div>
+              </label>
             </div>
             <Field label="CPF *" value={cpf} onChange={(v) => setCpf(maskCpf(v))} required placeholder="000.000.000-00" inputMode="numeric" autoComplete="off" />
           </Section>

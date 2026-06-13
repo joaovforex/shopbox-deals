@@ -6,7 +6,6 @@ import { useCart } from "@/lib/cart";
 
 export function ProductCard({ product, priority = false }: { product: Product | ProductCardData; priority?: boolean }) {
   const off = discountPct(product.original_price, product.price);
-  const installments = product.price >= 50 ? Math.min(10, Math.floor(product.price / 20)) : 0;
   const imgs = productImages(product);
   const cover = imgs[0];
   const { add } = useCart();
@@ -90,9 +89,6 @@ export function ProductCard({ product, priority = false }: { product: Product | 
         )}
         <div className="text-base sm:text-lg font-black text-price leading-tight">
           {brl(product.price)}
-        </div>
-        <div className="text-[10px] sm:text-[11px] text-muted-foreground leading-tight">
-          {installments > 0 ? `${installments}x sem juros` : "ou no Pix com desconto"}
         </div>
 
         {product.stock > 0 && (
