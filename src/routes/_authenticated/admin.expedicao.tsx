@@ -222,10 +222,13 @@ function FulfillmentPage() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex bg-secondary rounded-md p-1">
             <TabBtn active={tab === "pickup"} onClick={() => setTab("pickup")} icon={<Store className="h-4 w-4" />}>
-              Em aberto ({(data?.orders ?? []).filter((o) => o.fulfillment_status !== "completed").length})
+              Em aberto ({(data?.orders ?? []).filter((o) => o.fulfillment_status !== "completed" && o.fulfillment_status !== "ready").length})
+            </TabBtn>
+            <TabBtn active={tab === "delivery"} onClick={() => setTab("delivery")} icon={<Package className="h-4 w-4" />}>
+              Entrega ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "ready").length})
             </TabBtn>
             <TabBtn active={tab === "done"} onClick={() => setTab("done")} icon={<CheckCircle2 className="h-4 w-4" />}>
-              Prontos / Entregues ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "completed").length})
+              Entregues ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "completed").length})
             </TabBtn>
           </div>
 
