@@ -82,7 +82,7 @@ function barcodeValue(id: string) {
 
 function FulfillmentPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"pickup" | "done">("pickup");
+  const [tab, setTab] = useState<"pickup" | "delivery" | "done">("pickup");
   const [labelFilter, setLabelFilter] = useState<"all" | "none" | "generated" | "printed">("all");
   const qc = useQueryClient();
 
