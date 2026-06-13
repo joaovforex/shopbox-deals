@@ -92,11 +92,16 @@ function CheckoutPage() {
       });
       // Marca como redirecionando ANTES de limpar o carrinho, para não mostrar tela de "carrinho vazio"
       setRedirecting(true);
-      sessionStorage.setItem("mp_init_point", res.initPoint);
+      // Força o checkout web do Mercado Pago (evita abrir o app instalado no celular).
+      // O parâmetro extra quebra o match de Universal Link / App Link com o app do MP,
+      // mantendo o usuário no navegador.
+      const sep = res.initPoint.includes("?") ? "&" : "?";
+      const webUrl = `${res.initPoint}${sep}source=web&platform=web`;
+      sessionStorage.setItem("mp_init_point", webUrl);
       clear();
       // Redireciona DIRETO ao Mercado Pago — mantém o gesto do usuário (essencial
       // em navegadores in-app de WhatsApp/Instagram, que bloqueiam redirects atrasados).
-      window.location.href = res.initPoint;
+      window.location.href = webUrl;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao iniciar pagamento";
       toast.error(msg);
