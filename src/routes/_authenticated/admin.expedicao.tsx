@@ -87,7 +87,7 @@ function FulfillmentPage() {
   const qc = useQueryClient();
 
   useEffect(() => {
-    hasAnyRole(["admin", "fulfillment"]).then(setAllowed);
+    hasAnyRole(["admin", "manager", "fulfillment"]).then(setAllowed);
   }, []);
 
   const { data, isLoading } = useQuery({
