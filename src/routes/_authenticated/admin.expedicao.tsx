@@ -281,7 +281,9 @@ function FulfillmentPage() {
           )}
         </div>
 
-        {isLoading ? (
+        {tab === "notifications" ? (
+          <NotificationsPanel rows={notifData ?? []} />
+        ) : isLoading ? (
           <div className="bg-card border border-border rounded-lg p-8 text-center text-muted-foreground">Carregando...</div>
         ) : orders.length === 0 ? (
           <div className="bg-card border border-border rounded-lg p-8 text-center text-muted-foreground">
