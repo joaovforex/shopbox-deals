@@ -303,7 +303,7 @@ function AdminPage() {
       {showForm && (
         <ProductForm
           product={editing}
-          onClose={() => setShowForm(false)}
+          onClose={() => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} setShowForm(false); }}
           onSaved={() => { setShowForm(false); refetch(); qc.invalidateQueries({ queryKey: ["products"] }); }}
         />
       )}
