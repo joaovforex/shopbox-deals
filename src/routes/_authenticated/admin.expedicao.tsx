@@ -538,3 +538,116 @@ function Shell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+type NotifRow = {
+  id: string; created_at: string; customer_name: string; customer_email: string | null;
+  customer_phone: string | null; payment_method: string; delivery_method: string;
+  status: string; total: number; mp_payment_id: string | null; stock_restored_at: string | null;
+};
+
+function notifReason(o: NotifRow): { title: string; detail: string; tone: "warn" | "danger" | "info" } {
+  const ageMin = (Date.now() - new Date(o.created_at).getTime()) / 60000;
+  if (o.status === "pending") {
+    if (ageMin > 30) {
+      return {
+        title: "Pagamento não concluído",
+        detail: "Pedido criado há mais de 30 min sem confirmação do Mercado Pago. O cliente provavelmente abandonou o checkout ou o pagamento expirou.",
+        tone: "danger",
+      };
+    }
+    return {
+      title: "Aguardando pagamento",
+      detail: o.mp_payment_id
+        ? "Mercado Pago ainda não confirmou o pagamento. Aguardando webhook."
+        : "Cliente foi redirecionado ao Mercado Pago e ainda não finalizou o pagamento.",
+      tone: "warn",
+    };
+  }
+  // cancelled
+  if (o.mp_payment_id) {
+    return {
+      title: "Pagamento recusado / cancelado",
+      detail: "Mercado Pago retornou o pagamento como não aprovado (recusado, estornado ou cancelado pelo cliente). O pedido não seguiu para a expedição.",
+      tone: "danger",
+    };
+  }
+  if (o.stock_restored_at) {
+    return {
+      title: "Cancelado por falta de estoque",
+      detail: "Quando o pagamento chegou, um dos itens estava sem estoque. O pedido foi cancelado automaticamente e o estoque foi devolvido.",
+      tone: "danger",
+    };
+  }
+  return {
+    title: "Pedido expirado",
+    detail: "O cliente não concluiu o pagamento dentro do prazo e o pedido foi cancelado automaticamente.",
+    tone: "info",
+  };
+}
+
+function NotificationsPanel({ rows }: { rows: NotifRow[] }) {
+  if (rows.length === 0) {
+    return (
+      <div className="bg-card border border-border rounded-lg p-8 text-center text-muted-foreground">
+        <BellRing className="h-10 w-10 mx-auto mb-2 text-primary" />
+        Nenhum pedido pendente ou cancelado nas últimas atualizações.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      <div className="text-xs text-muted-foreground">
+        Pedidos que <strong className="text-foreground">não chegaram à expedição</strong> — geralmente porque o pagamento não foi confirmado.
+      </div>
+      <div className="grid md:grid-cols-2 gap-3">
+        {rows.map((o) => {
+          const r = notifReason(o);
+          const Icon = r.tone === "danger" ? XCircle : r.tone === "warn" ? Hourglass : AlertTriangle;
+          const toneCls =
+            r.tone === "danger" ? "border-destructive/40 bg-destructive/5" :
+            r.tone === "warn" ? "border-accent/40 bg-accent/5" :
+            "border-border bg-muted/30";
+          const iconCls =
+            r.tone === "danger" ? "text-destructive" :
+            r.tone === "warn" ? "text-accent" :
+            "text-muted-foreground";
+          return (
+            <article key={o.id} className={`border rounded-lg p-4 flex flex-col gap-2 ${toneCls}`}>
+              <header className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="font-mono text-[11px] text-muted-foreground">#{o.id.slice(0, 8).toUpperCase()}</div>
+                  <div className="font-bold">{o.customer_name}</div>
+                  <div className="text-[11px] text-muted-foreground">{new Date(o.created_at).toLocaleString("pt-BR")}</div>
+                </div>
+                <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded ${o.status === "cancelled" ? "bg-destructive text-destructive-foreground" : "bg-accent/20 text-accent"}`}>
+                  {o.status === "cancelled" ? "Cancelado" : "Pendente"}
+                </span>
+              </header>
+              <div className="flex items-start gap-2 border-t border-border/50 pt-2">
+                <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${iconCls}`} />
+                <div className="text-sm">
+                  <div className="font-bold">{r.title}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{r.detail}</div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/50 pt-2">
+                <span>{o.payment_method === "pix" ? "PIX" : "Cartão / MP"} · {o.delivery_method === "pickup" ? "Retirada" : "Entrega"}</span>
+                <span className="font-bold text-foreground">{brl(Number(o.total))}</span>
+              </div>
+              {o.customer_phone && (
+                <a
+                  href={`https://wa.me/55${o.customer_phone.replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-[#25D366] text-white px-3 py-1.5 rounded hover:opacity-90"
+                >
+                  <Bell className="h-3.5 w-3.5" /> Falar com cliente
+                </a>
+              )}
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
