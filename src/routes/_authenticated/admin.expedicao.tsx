@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, Bell, CheckCheck, ScanLine } from "lucide-react";
+import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, Bell, CheckCheck, ScanLine, BellRing, XCircle, Hourglass } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { hasAnyRole } from "@/lib/products";
@@ -82,7 +82,7 @@ function barcodeValue(id: string) {
 
 function FulfillmentPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"pickup" | "delivery" | "done">("pickup");
+  const [tab, setTab] = useState<"pickup" | "delivery" | "done" | "notifications">("pickup");
   const [labelFilter, setLabelFilter] = useState<"all" | "none" | "generated" | "printed">("all");
   const qc = useQueryClient();
 
@@ -111,6 +111,27 @@ function FulfillmentPage() {
     },
   });
 
+  // Pedidos não concluídos (pendentes/cancelados) que NÃO chegaram à expedição
+  const { data: notifData } = useQuery({
+    queryKey: ["fulfillment-notifications"],
+    enabled: allowed === true,
+    queryFn: async () => {
+      const { data: orders, error } = await supabase
+        .from("orders")
+        .select("id, created_at, customer_name, customer_email, customer_phone, payment_method, delivery_method, status, total, mp_payment_id, stock_restored_at")
+        .in("status", ["pending", "cancelled"])
+        .order("created_at", { ascending: false })
+        .limit(80);
+      if (error) throw error;
+      return (orders ?? []) as Array<{
+        id: string; created_at: string; customer_name: string; customer_email: string | null;
+        customer_phone: string | null; payment_method: string; delivery_method: string;
+        status: string; total: number; mp_payment_id: string | null; stock_restored_at: string | null;
+      }>;
+    },
+    refetchInterval: 30000,
+  });
+
   // Atualização em tempo real: novos pedidos + mudanças
   useEffect(() => {
     if (allowed !== true) return;
@@ -121,6 +142,7 @@ function FulfillmentPage() {
         { event: "*", schema: "public", table: "orders" },
         (payload) => {
           qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
+          qc.invalidateQueries({ queryKey: ["fulfillment-notifications"] });
           if (payload.eventType === "INSERT") {
             const row = payload.new as { customer_name?: string; delivery_method?: string };
             if (row.delivery_method === "pickup") {
@@ -230,6 +252,9 @@ function FulfillmentPage() {
             <TabBtn active={tab === "done"} onClick={() => setTab("done")} icon={<CheckCircle2 className="h-4 w-4" />}>
               Entregues ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "completed").length})
             </TabBtn>
+            <TabBtn active={tab === "notifications"} onClick={() => setTab("notifications")} icon={<BellRing className="h-4 w-4" />}>
+              Notificações ({(notifData ?? []).length})
+            </TabBtn>
           </div>
 
 
@@ -256,7 +281,9 @@ function FulfillmentPage() {
           )}
         </div>
 
-        {isLoading ? (
+        {tab === "notifications" ? (
+          <NotificationsPanel rows={notifData ?? []} />
+        ) : isLoading ? (
           <div className="bg-card border border-border rounded-lg p-8 text-center text-muted-foreground">Carregando...</div>
         ) : orders.length === 0 ? (
           <div className="bg-card border border-border rounded-lg p-8 text-center text-muted-foreground">
@@ -508,6 +535,119 @@ function Shell({ children }: { children: React.ReactNode }) {
       <Header />
       {children}
       <Footer />
+    </div>
+  );
+}
+
+type NotifRow = {
+  id: string; created_at: string; customer_name: string; customer_email: string | null;
+  customer_phone: string | null; payment_method: string; delivery_method: string;
+  status: string; total: number; mp_payment_id: string | null; stock_restored_at: string | null;
+};
+
+function notifReason(o: NotifRow): { title: string; detail: string; tone: "warn" | "danger" | "info" } {
+  const ageMin = (Date.now() - new Date(o.created_at).getTime()) / 60000;
+  if (o.status === "pending") {
+    if (ageMin > 30) {
+      return {
+        title: "Pagamento não concluído",
+        detail: "Pedido criado há mais de 30 min sem confirmação do Mercado Pago. O cliente provavelmente abandonou o checkout ou o pagamento expirou.",
+        tone: "danger",
+      };
+    }
+    return {
+      title: "Aguardando pagamento",
+      detail: o.mp_payment_id
+        ? "Mercado Pago ainda não confirmou o pagamento. Aguardando webhook."
+        : "Cliente foi redirecionado ao Mercado Pago e ainda não finalizou o pagamento.",
+      tone: "warn",
+    };
+  }
+  // cancelled
+  if (o.mp_payment_id) {
+    return {
+      title: "Pagamento recusado / cancelado",
+      detail: "Mercado Pago retornou o pagamento como não aprovado (recusado, estornado ou cancelado pelo cliente). O pedido não seguiu para a expedição.",
+      tone: "danger",
+    };
+  }
+  if (o.stock_restored_at) {
+    return {
+      title: "Cancelado por falta de estoque",
+      detail: "Quando o pagamento chegou, um dos itens estava sem estoque. O pedido foi cancelado automaticamente e o estoque foi devolvido.",
+      tone: "danger",
+    };
+  }
+  return {
+    title: "Pedido expirado",
+    detail: "O cliente não concluiu o pagamento dentro do prazo e o pedido foi cancelado automaticamente.",
+    tone: "info",
+  };
+}
+
+function NotificationsPanel({ rows }: { rows: NotifRow[] }) {
+  if (rows.length === 0) {
+    return (
+      <div className="bg-card border border-border rounded-lg p-8 text-center text-muted-foreground">
+        <BellRing className="h-10 w-10 mx-auto mb-2 text-primary" />
+        Nenhum pedido pendente ou cancelado nas últimas atualizações.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      <div className="text-xs text-muted-foreground">
+        Pedidos que <strong className="text-foreground">não chegaram à expedição</strong> — geralmente porque o pagamento não foi confirmado.
+      </div>
+      <div className="grid md:grid-cols-2 gap-3">
+        {rows.map((o) => {
+          const r = notifReason(o);
+          const Icon = r.tone === "danger" ? XCircle : r.tone === "warn" ? Hourglass : AlertTriangle;
+          const toneCls =
+            r.tone === "danger" ? "border-destructive/40 bg-destructive/5" :
+            r.tone === "warn" ? "border-accent/40 bg-accent/5" :
+            "border-border bg-muted/30";
+          const iconCls =
+            r.tone === "danger" ? "text-destructive" :
+            r.tone === "warn" ? "text-accent" :
+            "text-muted-foreground";
+          return (
+            <article key={o.id} className={`border rounded-lg p-4 flex flex-col gap-2 ${toneCls}`}>
+              <header className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="font-mono text-[11px] text-muted-foreground">#{o.id.slice(0, 8).toUpperCase()}</div>
+                  <div className="font-bold">{o.customer_name}</div>
+                  <div className="text-[11px] text-muted-foreground">{new Date(o.created_at).toLocaleString("pt-BR")}</div>
+                </div>
+                <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded ${o.status === "cancelled" ? "bg-destructive text-destructive-foreground" : "bg-accent/20 text-accent"}`}>
+                  {o.status === "cancelled" ? "Cancelado" : "Pendente"}
+                </span>
+              </header>
+              <div className="flex items-start gap-2 border-t border-border/50 pt-2">
+                <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${iconCls}`} />
+                <div className="text-sm">
+                  <div className="font-bold">{r.title}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{r.detail}</div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/50 pt-2">
+                <span>{o.payment_method === "pix" ? "PIX" : "Cartão / MP"} · {o.delivery_method === "pickup" ? "Retirada" : "Entrega"}</span>
+                <span className="font-bold text-foreground">{brl(Number(o.total))}</span>
+              </div>
+              {o.customer_phone && (
+                <a
+                  href={`https://wa.me/55${o.customer_phone.replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-[#25D366] text-white px-3 py-1.5 rounded hover:opacity-90"
+                >
+                  <Bell className="h-3.5 w-3.5" /> Falar com cliente
+                </a>
+              )}
+            </article>
+          );
+        })}
+      </div>
     </div>
   );
 }
