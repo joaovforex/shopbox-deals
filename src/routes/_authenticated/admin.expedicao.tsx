@@ -239,7 +239,9 @@ function FulfillmentPage() {
       </section>
 
       <section className="container mx-auto px-4 py-6 flex-1 space-y-4">
-        <ScannerPanel orders={data?.orders ?? []} onDeliver={markDelivered} />
+        {tab === "delivery" && (
+          <ScannerPanel orders={data?.orders ?? []} onDeliver={markDelivered} />
+        )}
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex bg-secondary rounded-md p-1">
