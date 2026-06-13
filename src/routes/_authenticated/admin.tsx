@@ -296,6 +296,32 @@ function AdminPage() {
   );
 }
 
+const DRAFT_KEY = "shopbox:product-form-draft";
+
+type Draft = {
+  productId: string | null;
+  name: string;
+  description: string;
+  price: string;
+  originalPrice: string;
+  category: string;
+  stock: string;
+  images: string[];
+  active: boolean;
+};
+
+function loadDraft(productId: string | null): Draft | null {
+  try {
+    const raw = sessionStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw) as Draft;
+    if ((d.productId ?? null) !== productId) return null;
+    return d;
+  } catch {
+    return null;
+  }
+}
+
 function ProductForm({
   product,
   onClose,
@@ -305,20 +331,34 @@ function ProductForm({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [name, setName] = useState(product?.name ?? "");
-  const [description, setDescription] = useState(product?.description ?? "");
-  const [price, setPrice] = useState(product ? String(product.price) : "");
+  const draft = loadDraft(product?.id ?? null);
+  const [name, setName] = useState(draft?.name ?? product?.name ?? "");
+  const [description, setDescription] = useState(draft?.description ?? product?.description ?? "");
+  const [price, setPrice] = useState(draft?.price ?? (product ? String(product.price) : ""));
   const [originalPrice, setOriginalPrice] = useState(
-    product?.original_price ? String(product.original_price) : "",
+    draft?.originalPrice ?? (product?.original_price ? String(product.original_price) : ""),
   );
-  const [category, setCategory] = useState(product?.category ?? "");
-  const [stock, setStock] = useState(product ? String(product.stock) : "0");
+  const [category, setCategory] = useState(draft?.category ?? product?.category ?? "");
+  const [stock, setStock] = useState(draft?.stock ?? (product ? String(product.stock) : "0"));
   const [images, setImages] = useState<string[]>(
-    product ? (product.images?.length ? product.images : product.image_url ? [product.image_url] : []) : [],
+    draft?.images ??
+      (product ? (product.images?.length ? product.images : product.image_url ? [product.image_url] : []) : []),
   );
-  const [active, setActive] = useState(product?.active ?? true);
+  const [active, setActive] = useState(draft?.active ?? product?.active ?? true);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  // Persist draft to sessionStorage so the form survives mobile WebView reloads
+  // (when the native camera app is launched and the page is evicted from memory).
+  useEffect(() => {
+    const d: Draft = {
+      productId: product?.id ?? null,
+      name, description, price, originalPrice, category, stock, images, active,
+    };
+    try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch {}
+  }, [product?.id, name, description, price, originalPrice, category, stock, images, active]);
+
+  const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} };
 
   const handleFiles = async (files: FileList) => {
     setUploading(true);
