@@ -63,9 +63,7 @@ function DiscountCard({ product, index }: { product: Product; index: number }) {
             {brl(product.price)}
           </div>
 
-          <div className="text-[10px] text-muted-foreground leading-tight">
-            {installments > 0 ? `${installments}x sem juros` : "ou no Pix com desconto"}
-          </div>
+
 
           {/* CTA Button */}
           <Link
