@@ -82,7 +82,7 @@ function barcodeValue(id: string) {
 
 function FulfillmentPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<"pickup" | "done">("pickup");
+  const [tab, setTab] = useState<"pickup" | "delivery" | "done">("pickup");
   const [labelFilter, setLabelFilter] = useState<"all" | "none" | "generated" | "printed">("all");
   const qc = useQueryClient();
 
@@ -168,9 +168,11 @@ function FulfillmentPage() {
   }, [data]);
 
   const orders = useMemo(() => {
-    let list = (data?.orders ?? []).filter((o) =>
-      tab === "done" ? o.fulfillment_status === "completed" : o.fulfillment_status !== "completed",
-    );
+    let list = (data?.orders ?? []).filter((o) => {
+      if (tab === "done") return o.fulfillment_status === "completed";
+      if (tab === "delivery") return o.fulfillment_status === "ready";
+      return o.fulfillment_status !== "completed" && o.fulfillment_status !== "ready";
+    });
     if (labelFilter !== "all") {
       list = list.filter((o) => {
         if (labelFilter === "none") return !o.label_status;
@@ -220,10 +222,13 @@ function FulfillmentPage() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex bg-secondary rounded-md p-1">
             <TabBtn active={tab === "pickup"} onClick={() => setTab("pickup")} icon={<Store className="h-4 w-4" />}>
-              Em aberto ({(data?.orders ?? []).filter((o) => o.fulfillment_status !== "completed").length})
+              Em aberto ({(data?.orders ?? []).filter((o) => o.fulfillment_status !== "completed" && o.fulfillment_status !== "ready").length})
+            </TabBtn>
+            <TabBtn active={tab === "delivery"} onClick={() => setTab("delivery")} icon={<Package className="h-4 w-4" />}>
+              Entrega ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "ready").length})
             </TabBtn>
             <TabBtn active={tab === "done"} onClick={() => setTab("done")} icon={<CheckCircle2 className="h-4 w-4" />}>
-              Prontos / Entregues ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "completed").length})
+              Entregues ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "completed").length})
             </TabBtn>
           </div>
 
