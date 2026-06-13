@@ -27,16 +27,16 @@ function AdminPage() {
   const refresh = async () => setRoles(await getRoleSummary());
   useEffect(() => { refresh(); }, []);
 
-  // Expedição-only é redirecionado para sua área
+  // Expedição-only (sem catálogo) é redirecionado para sua área
   useEffect(() => {
-    if (!isChildRoute && roles && !roles.isSuperAdmin && !roles.isCatalog && roles.isFulfillment) {
+    if (!isChildRoute && roles && !roles.isCatalog && roles.isFulfillment) {
       navigate({ to: "/admin/expedicao", replace: true });
     }
   }, [roles, isChildRoute, navigate]);
 
   if (isChildRoute) return <Outlet />;
 
-  const canManageProducts = !!roles && (roles.isSuperAdmin || roles.isCatalog);
+  const canManageProducts = !!roles && roles.isCatalog;
 
   const { data: products = [], refetch } = useQuery({
     queryKey: ["admin", "products"],
@@ -202,25 +202,38 @@ function AdminPage() {
         <div className="container mx-auto px-4 py-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-widest text-accent font-bold flex items-center gap-2">
-              {roles.isSuperAdmin ? (<><Crown className="h-3.5 w-3.5" /> Super Admin · Dono</>) : (<><Package className="h-3.5 w-3.5" /> Catálogo</>)}
+              {roles.isSuperAdmin ? (
+                <><Crown className="h-3.5 w-3.5" /> Super Admin · Dono</>
+              ) : roles.isManager ? (
+                <><Truck className="h-3.5 w-3.5" /> ADM · Catálogo + Expedição</>
+              ) : (
+                <><Package className="h-3.5 w-3.5" /> Catálogo</>
+              )}
             </div>
             <h1 className="display text-4xl">Produtos</h1>
             <p className="text-sm text-muted-foreground">{products.length} cadastrados</p>
-            {!roles.isSuperAdmin && (
+            {!roles.isSuperAdmin && !roles.isManager && (
               <p className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
                 <ShieldAlert className="h-3 w-3" /> Você só pode gerenciar produtos. Pedidos, expedição e métricas são restritos ao Super Admin.
               </p>
             )}
+            {roles.isManager && (
+              <p className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
+                <ShieldAlert className="h-3 w-3" /> Você tem acesso a Catálogo e Expedição. Métricas e gestão de equipe são restritas ao Super Admin.
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
+            {(roles.isSuperAdmin || roles.isManager) && (
+              <Link
+                to="/admin/expedicao"
+                className="inline-flex items-center gap-2 bg-card border-2 border-primary text-primary font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-primary hover:text-primary-foreground text-sm"
+              >
+                <Truck className="h-4 w-4" /> Expedição
+              </Link>
+            )}
             {roles.isSuperAdmin && (
               <>
-                <Link
-                  to="/admin/expedicao"
-                  className="inline-flex items-center gap-2 bg-card border-2 border-primary text-primary font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-primary hover:text-primary-foreground text-sm"
-                >
-                  <Truck className="h-4 w-4" /> Expedição
-                </Link>
                 <Link
                   to="/admin/pedidos"
                   className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md hover:opacity-90 text-sm"

@@ -29,7 +29,7 @@ export type ProductCard = {
   created_at: string;
 };
 
-export type TeamRole = "admin" | "catalog" | "fulfillment" | "user";
+export type TeamRole = "admin" | "manager" | "catalog" | "fulfillment" | "user";
 
 export function productImages(p: Pick<Product, "images" | "image_url">): string[] {
   const arr = (p.images ?? []).filter(Boolean);
@@ -154,20 +154,30 @@ export async function hasAnyRole(roles: TeamRole[]): Promise<boolean> {
 
 export type RoleSummary = {
   isSuperAdmin: boolean;
+  isManager: boolean;
   isCatalog: boolean;
   isFulfillment: boolean;
   hasAnyTeamRole: boolean;
 };
 
+/**
+ * Hierarquia de cargos:
+ * - admin       → Super Admin (acesso total: catálogo, expedição, pedidos/métricas, equipe)
+ * - manager     → ADM (catálogo + expedição)
+ * - catalog     → somente catálogo
+ * - fulfillment → somente expedição
+ */
 export async function getRoleSummary(): Promise<RoleSummary> {
   const roles = await getMyRoles();
   const isSuperAdmin = roles.includes("admin");
-  const isCatalog = roles.includes("catalog");
-  const isFulfillment = roles.includes("fulfillment");
+  const isManager = roles.includes("manager");
+  const isCatalog = isSuperAdmin || isManager || roles.includes("catalog");
+  const isFulfillment = isSuperAdmin || isManager || roles.includes("fulfillment");
   return {
     isSuperAdmin,
+    isManager,
     isCatalog,
     isFulfillment,
-    hasAnyTeamRole: isSuperAdmin || isCatalog || isFulfillment,
+    hasAnyTeamRole: isSuperAdmin || isManager || isCatalog || isFulfillment,
   };
 }

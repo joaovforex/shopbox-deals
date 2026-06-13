@@ -22,9 +22,9 @@ export const searchTeamCandidates = createServerFn({ method: "POST" })
 
 export const assignTeamRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { user_id: string; role: "admin" | "catalog" | "fulfillment" }) => {
+  .inputValidator((input: { user_id: string; role: "admin" | "manager" | "catalog" | "fulfillment" }) => {
     if (!input?.user_id) throw new Error("user_id obrigatório");
-    if (!["admin", "catalog", "fulfillment"].includes(input.role))
+    if (!["admin", "manager", "catalog", "fulfillment"].includes(input.role))
       throw new Error("Função inválida");
     return input;
   })
@@ -46,9 +46,9 @@ export const assignTeamRole = createServerFn({ method: "POST" })
 
 export const removeTeamRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { user_id: string; role: "admin" | "catalog" | "fulfillment" }) => {
+  .inputValidator((input: { user_id: string; role: "admin" | "manager" | "catalog" | "fulfillment" }) => {
     if (!input?.user_id) throw new Error("user_id obrigatório");
-    if (!["admin", "catalog", "fulfillment"].includes(input.role))
+    if (!["admin", "manager", "catalog", "fulfillment"].includes(input.role))
       throw new Error("Função inválida");
     return input;
   })

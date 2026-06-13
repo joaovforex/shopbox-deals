@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, UserPlus, Trash2, Crown, Package, Truck, User, KeyRound, UserX } from "lucide-react";
+import { ArrowLeft, UserPlus, Trash2, Crown, Package, Truck, User, KeyRound, UserX, ShieldCheck } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { isAdmin, type TeamRole } from "@/lib/products";
@@ -21,20 +21,22 @@ type Member = {
 };
 
 const ROLE_LABEL: Record<TeamRole, string> = {
-  admin: "Super Admin (Dono)",
-  catalog: "Catálogo (produtos e preços)",
-  fulfillment: "Expedição (envio e retirada)",
+  admin: "Super Admin (Dono · acesso total)",
+  manager: "ADM (Catálogo + Expedição)",
+  catalog: "Catálogo (somente)",
+  fulfillment: "Expedição (somente)",
   user: "Cliente",
 };
 
 const ROLE_ICON: Record<TeamRole, React.ReactNode> = {
   admin: <Crown className="h-3.5 w-3.5" />,
+  manager: <ShieldCheck className="h-3.5 w-3.5" />,
   catalog: <Package className="h-3.5 w-3.5" />,
   fulfillment: <Truck className="h-3.5 w-3.5" />,
   user: <User className="h-3.5 w-3.5" />,
 };
 
-const ASSIGNABLE: TeamRole[] = ["admin", "catalog", "fulfillment"];
+const ASSIGNABLE: TeamRole[] = ["admin", "manager", "catalog", "fulfillment"];
 
 function TeamPage() {
   const [admin, setAdmin] = useState<boolean | null>(null);
@@ -123,8 +125,9 @@ function TeamPage() {
 
   const assignRole = async (user_id: string, role: TeamRole) => {
     if (role === "admin" && !confirm("Atribuir SUPER ADMIN dá controle TOTAL da loja (produtos, pedidos, métricas e equipe). Confirma?")) return;
+    if (role === "manager" && !confirm("Atribuir ADM dá acesso a Catálogo + Expedição (sem métricas/equipe). Confirma?")) return;
     try {
-      const r = await doAssign({ data: { user_id, role: role as "admin" | "catalog" | "fulfillment" } });
+      const r = await doAssign({ data: { user_id, role: role as "admin" | "manager" | "catalog" | "fulfillment" } });
       if (!r.ok && r.reason === "duplicate") return toast.info("Essa função já está atribuída");
       toast.success(`Função "${ROLE_LABEL[role]}" atribuída`);
       qc.invalidateQueries({ queryKey: ["team-members"] });
@@ -137,7 +140,7 @@ function TeamPage() {
   const removeRole = async (user_id: string, role: TeamRole) => {
     if (!confirm(`Remover função "${ROLE_LABEL[role]}"?`)) return;
     try {
-      await doRemove({ data: { user_id, role: role as "admin" | "catalog" | "fulfillment" } });
+      await doRemove({ data: { user_id, role: role as "admin" | "manager" | "catalog" | "fulfillment" } });
       toast.success("Removida");
       refetch();
     } catch (e: any) {
@@ -253,6 +256,7 @@ function TeamPage() {
                             key={r}
                             className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded font-bold ${
                               r === "admin" ? "bg-primary/20 text-primary" :
+                              r === "manager" ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400" :
                               r === "catalog" ? "bg-accent/20 text-accent" :
                               r === "fulfillment" ? "bg-[#25D366]/20 text-[#25D366]" :
                               "bg-muted text-muted-foreground"
