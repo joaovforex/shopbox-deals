@@ -33,6 +33,13 @@ export const assignTeamRole = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: existingUser, error: userError } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
     if (userError || !existingUser?.user) throw new Error("Usuário não encontrado");
+    // Troca dinâmica: remove todos os cargos internos anteriores antes de atribuir o novo.
+    const { error: delErr } = await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", data.user_id)
+      .in("role", ["admin", "manager", "catalog", "fulfillment"]);
+    if (delErr) throw new Error(delErr.message);
     const { error } = await supabaseAdmin.from("user_roles").insert({
       user_id: data.user_id,
       role: data.role,
