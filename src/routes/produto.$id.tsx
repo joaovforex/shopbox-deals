@@ -90,8 +90,11 @@ function ProductPage() {
     },
   });
   const { data: admin = false } = useQuery({
-    queryKey: ["is-admin"],
-    queryFn: isAdmin,
+    queryKey: ["can-share-admin"],
+    queryFn: async () => {
+      const r = await getRoleSummary();
+      return r.isSuperAdmin || r.isManager;
+    },
     staleTime: 60_000,
   });
   const { add } = useCart();
