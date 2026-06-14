@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, useRouterState, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Upload, Crown, BarChart3, Truck, Users, Package, ShieldAlert } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
@@ -390,6 +390,11 @@ function ProductForm({
   const [active, setActive] = useState(draft?.active ?? product?.active ?? true);
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const fallbackCameraInputRef = useRef<HTMLInputElement | null>(null);
 
   // Persist draft to sessionStorage so the form survives mobile WebView reloads
   // (when the native camera app is launched and the page is evicted from memory).
@@ -403,11 +408,13 @@ function ProductForm({
 
   const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} };
 
-  const handleFiles = async (files: FileList) => {
+  const handleFiles = async (files: FileList | File[]) => {
+    const selected = Array.from(files);
+    if (!selected.length) return;
     setUploading(true);
     try {
       const urls: string[] = [];
-      for (const file of Array.from(files)) {
+      for (const file of selected) {
         const url = await uploadProductImage(file);
         urls.push(url);
       }
@@ -418,6 +425,69 @@ function ProductForm({
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(e.currentTarget.files ?? []);
+    e.currentTarget.value = "";
+    if (selected.length) void handleFiles(selected);
+  };
+
+  const stopCamera = () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+  };
+
+  useEffect(() => {
+    if (!cameraOpen) return;
+    let cancelled = false;
+
+    const startCamera = async () => {
+      setCameraError(null);
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraOpen(false);
+        fallbackCameraInputRef.current?.click();
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+      } catch {
+        setCameraError("Não foi possível abrir a câmera. Use adicionar fotos.");
+      }
+    };
+
+    void startCamera();
+    return () => {
+      cancelled = true;
+      stopCamera();
+    };
+  }, [cameraOpen]);
+
+  const capturePhoto = async () => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+    if (!blob) return toast.error("Não foi possível capturar a foto");
+    const file = new File([blob], `produto-${Date.now()}.jpg`, { type: "image/jpeg" });
+    setCameraOpen(false);
+    await handleFiles([file]);
   };
 
   const removeImage = (idx: number) => setImages((p) => p.filter((_, i) => i !== idx));
@@ -483,16 +553,22 @@ function ProductForm({
               Fotos do produto ({images.length})
             </label>
             <div className="flex items-center gap-2">
-              <label className="inline-flex items-center gap-1.5 text-xs bg-secondary hover:bg-muted px-3 py-1.5 rounded cursor-pointer">
+              <button
+                type="button"
+                onClick={() => setCameraOpen(true)}
+                disabled={uploading}
+                className="inline-flex items-center gap-1.5 text-xs bg-secondary hover:bg-muted px-3 py-1.5 rounded cursor-pointer disabled:opacity-60"
+              >
                 📷 Tirar foto
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.length && handleFiles(e.target.files)}
-                />
-              </label>
+              </button>
+              <input
+                ref={fallbackCameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleFileInputChange}
+              />
               <label className="inline-flex items-center gap-1.5 text-xs bg-secondary hover:bg-muted px-3 py-1.5 rounded cursor-pointer">
                 <Upload className="h-3.5 w-3.5" /> {uploading ? "Enviando..." : "Adicionar fotos"}
                 <input
@@ -500,7 +576,7 @@ function ProductForm({
                   accept="image/*"
                   multiple
                   className="hidden"
-                  onChange={(e) => e.target.files?.length && handleFiles(e.target.files)}
+                  onChange={handleFileInputChange}
                 />
               </label>
             </div>
@@ -514,7 +590,7 @@ function ProductForm({
                 accept="image/*"
                 multiple
                 className="hidden"
-                onChange={(e) => e.target.files?.length && handleFiles(e.target.files)}
+                onChange={handleFileInputChange}
               />
               <div className="text-center text-xs text-muted-foreground">
                 <Upload className="h-6 w-6 mx-auto mb-1" />
@@ -589,6 +665,35 @@ function ProductForm({
           </button>
         </div>
       </form>
+
+      {cameraOpen && (
+        <div className="fixed inset-0 z-[60] bg-background flex flex-col p-4">
+          <div className="flex items-center justify-between pb-3">
+            <h3 className="display text-xl">Tirar foto</h3>
+            <button type="button" onClick={() => setCameraOpen(false)} className="text-muted-foreground hover:text-foreground">✕</button>
+          </div>
+          <div className="flex-1 min-h-0 rounded-lg overflow-hidden bg-muted border border-border flex items-center justify-center">
+            {cameraError ? (
+              <p className="text-sm text-muted-foreground text-center px-6">{cameraError}</p>
+            ) : (
+              <video ref={videoRef} className="h-full w-full object-contain" playsInline muted autoPlay />
+            )}
+          </div>
+          <div className="pt-4 flex gap-2 justify-center">
+            <button type="button" onClick={() => setCameraOpen(false)} className="px-4 py-3 rounded-md bg-secondary text-sm font-bold">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={capturePhoto}
+              disabled={!!cameraError || uploading}
+              className="px-6 py-3 rounded-md bg-primary text-primary-foreground text-sm font-black uppercase tracking-wider disabled:opacity-60"
+            >
+              Usar foto
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
