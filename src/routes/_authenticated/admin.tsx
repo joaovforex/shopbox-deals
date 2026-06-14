@@ -46,6 +46,7 @@ function AdminPage() {
 
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [search, setSearch] = useState("");
 
   // If a draft for an existing product was in progress, reopen edit form once loaded.
   useEffect(() => {
@@ -260,11 +261,47 @@ function AdminPage() {
 
 
       <section className="container mx-auto px-4 py-8 flex-1">
-        {products.length === 0 ? (
-          <div className="text-center py-20 bg-card rounded-lg border border-border">
-            <p className="text-muted-foreground">Nenhum produto ainda. Clique em "Novo produto" para começar.</p>
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[240px] max-w-md">
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar produto por nome ou categoria..."
+              className="w-full h-11 pl-4 pr-4 rounded-md border border-border bg-card text-sm focus:outline-none focus:border-primary"
+            />
           </div>
-        ) : (
+          {search && (
+            <button onClick={() => setSearch("")} className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground">
+              Limpar
+            </button>
+          )}
+          <span className="text-xs text-muted-foreground ml-auto">
+            {(() => {
+              const t = search.trim().toLowerCase();
+              const n = t ? products.filter((p) => p.name.toLowerCase().includes(t) || (p.category ?? "").toLowerCase().includes(t)).length : products.length;
+              return `${n} ${n === 1 ? "resultado" : "resultados"}`;
+            })()}
+          </span>
+        </div>
+        {(() => {
+          const t = search.trim().toLowerCase();
+          const filtered = t ? products.filter((p) => p.name.toLowerCase().includes(t) || (p.category ?? "").toLowerCase().includes(t)) : products;
+          if (products.length === 0) {
+            return (
+              <div className="text-center py-20 bg-card rounded-lg border border-border">
+                <p className="text-muted-foreground">Nenhum produto ainda. Clique em "Novo produto" para começar.</p>
+              </div>
+            );
+          }
+          if (filtered.length === 0) {
+            return (
+              <div className="text-center py-20 bg-card rounded-lg border border-border">
+                <p className="text-muted-foreground">Nenhum produto encontrado para "{search}".</p>
+              </div>
+            );
+          }
+          return (
           <div className="overflow-x-auto bg-card rounded-lg border border-border">
             <table className="w-full text-sm">
               <thead className="bg-secondary text-left text-xs uppercase tracking-wider">
@@ -277,7 +314,7 @@ function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {products.map((p) => (
+                {filtered.map((p) => (
                   <tr key={p.id} className="border-t border-border">
                     <td className="p-3">
                       <div className="flex items-center gap-3">
@@ -323,8 +360,10 @@ function AdminPage() {
               </tbody>
             </table>
           </div>
-        )}
+          );
+        })()}
       </section>
+
 
       {showForm && (
         <ProductForm
