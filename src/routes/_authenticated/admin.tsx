@@ -360,8 +360,10 @@ function AdminPage() {
               </tbody>
             </table>
           </div>
-        )}
+          );
+        })()}
       </section>
+
 
       {showForm && (
         <ProductForm
