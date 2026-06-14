@@ -553,16 +553,22 @@ function ProductForm({
               Fotos do produto ({images.length})
             </label>
             <div className="flex items-center gap-2">
-              <label className="inline-flex items-center gap-1.5 text-xs bg-secondary hover:bg-muted px-3 py-1.5 rounded cursor-pointer">
+              <button
+                type="button"
+                onClick={() => setCameraOpen(true)}
+                disabled={uploading}
+                className="inline-flex items-center gap-1.5 text-xs bg-secondary hover:bg-muted px-3 py-1.5 rounded cursor-pointer disabled:opacity-60"
+              >
                 📷 Tirar foto
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.length && handleFiles(e.target.files)}
-                />
-              </label>
+              </button>
+              <input
+                ref={fallbackCameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handleFileInputChange}
+              />
               <label className="inline-flex items-center gap-1.5 text-xs bg-secondary hover:bg-muted px-3 py-1.5 rounded cursor-pointer">
                 <Upload className="h-3.5 w-3.5" /> {uploading ? "Enviando..." : "Adicionar fotos"}
                 <input
@@ -570,7 +576,7 @@ function ProductForm({
                   accept="image/*"
                   multiple
                   className="hidden"
-                  onChange={(e) => e.target.files?.length && handleFiles(e.target.files)}
+                  onChange={handleFileInputChange}
                 />
               </label>
             </div>
@@ -584,7 +590,7 @@ function ProductForm({
                 accept="image/*"
                 multiple
                 className="hidden"
-                onChange={(e) => e.target.files?.length && handleFiles(e.target.files)}
+                onChange={handleFileInputChange}
               />
               <div className="text-center text-xs text-muted-foreground">
                 <Upload className="h-6 w-6 mx-auto mb-1" />
@@ -659,6 +665,35 @@ function ProductForm({
           </button>
         </div>
       </form>
+
+      {cameraOpen && (
+        <div className="fixed inset-0 z-[60] bg-background flex flex-col p-4">
+          <div className="flex items-center justify-between pb-3">
+            <h3 className="display text-xl">Tirar foto</h3>
+            <button type="button" onClick={() => setCameraOpen(false)} className="text-muted-foreground hover:text-foreground">✕</button>
+          </div>
+          <div className="flex-1 min-h-0 rounded-lg overflow-hidden bg-muted border border-border flex items-center justify-center">
+            {cameraError ? (
+              <p className="text-sm text-muted-foreground text-center px-6">{cameraError}</p>
+            ) : (
+              <video ref={videoRef} className="h-full w-full object-contain" playsInline muted autoPlay />
+            )}
+          </div>
+          <div className="pt-4 flex gap-2 justify-center">
+            <button type="button" onClick={() => setCameraOpen(false)} className="px-4 py-3 rounded-md bg-secondary text-sm font-bold">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={capturePhoto}
+              disabled={!!cameraError || uploading}
+              className="px-6 py-3 rounded-md bg-primary text-primary-foreground text-sm font-black uppercase tracking-wider disabled:opacity-60"
+            >
+              Usar foto
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
