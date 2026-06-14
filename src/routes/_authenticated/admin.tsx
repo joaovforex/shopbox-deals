@@ -314,7 +314,7 @@ function AdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {products.map((p) => (
+                {filtered.map((p) => (
                   <tr key={p.id} className="border-t border-border">
                     <td className="p-3">
                       <div className="flex items-center gap-3">
