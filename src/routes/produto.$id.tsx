@@ -221,9 +221,6 @@ function ProductPage() {
                 <span className="text-5xl display text-price">{brl(product.price)}</span>
                 {off > 0 && <span className="text-deal font-black">-{off}%</span>}
               </div>
-              <div className="text-sm text-muted-foreground mt-1">
-                ou no Pix com desconto · cartão em até 12x
-              </div>
             </div>
 
             {product.description && (
