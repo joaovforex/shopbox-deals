@@ -36,7 +36,7 @@ function AdminPage() {
 
   if (isChildRoute) return <Outlet />;
 
-  const canManageProducts = !!roles && roles.isCatalog;
+  const canManageProducts = !!roles && (roles.isCatalog || roles.isManager);
 
   const { data: products = [], refetch } = useQuery({
     queryKey: ["admin", "products"],
