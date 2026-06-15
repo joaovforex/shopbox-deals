@@ -166,13 +166,24 @@ export function ProductCarousel({
             <X className="h-5 w-5" />
           </button>
 
-          <img
-            src={images[i]}
-            alt={`${alt} ampliada`}
-            className="max-h-full max-w-full object-contain select-none"
-            onClick={(e) => e.stopPropagation()}
-            draggable={false}
-          />
+          {isVideoUrl(images[i]) ? (
+            <video
+              src={images[i]}
+              className="max-h-full max-w-full object-contain"
+              controls
+              autoPlay
+              playsInline
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <img
+              src={images[i]}
+              alt={`${alt} ampliada`}
+              className="max-h-full max-w-full object-contain select-none"
+              onClick={(e) => e.stopPropagation()}
+              draggable={false}
+            />
+          )}
 
           {n > 1 && (
             <>
