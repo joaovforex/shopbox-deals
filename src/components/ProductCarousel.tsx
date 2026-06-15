@@ -60,14 +60,24 @@ export function ProductCarousel({
               type="button"
               onClick={() => setZoom(true)}
               className="w-full h-full shrink-0 cursor-zoom-in bg-card"
-              aria-label="Ampliar imagem"
+              aria-label={isVideoUrl(src) ? "Ampliar vídeo" : "Ampliar imagem"}
             >
-              <img
-                src={src}
-                alt={`${alt} ${idx + 1}`}
-                className="w-full h-full object-contain"
-                draggable={false}
-              />
+              {isVideoUrl(src) ? (
+                <video
+                  src={src}
+                  className="w-full h-full object-contain bg-black"
+                  controls
+                  playsInline
+                  preload="metadata"
+                />
+              ) : (
+                <img
+                  src={src}
+                  alt={`${alt} ${idx + 1}`}
+                  className="w-full h-full object-contain"
+                  draggable={false}
+                />
+              )}
             </button>
           ))}
         </div>
