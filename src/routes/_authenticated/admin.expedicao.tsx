@@ -82,6 +82,8 @@ function FulfillmentPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [tab, setTab] = useState<"pickup" | "delivery" | "done" | "notifications">("pickup");
   const [labelFilter, setLabelFilter] = useState<"all" | "none" | "generated" | "printed">("all");
+  const [search, setSearch] = useState("");
+  const searchActive = search.trim().length >= 2;
   const qc = useQueryClient();
 
   useEffect(() => {
