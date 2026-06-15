@@ -48,19 +48,22 @@ function TeamPage() {
     queryKey: ["team-members"],
     enabled: admin === true,
     queryFn: async () => {
-      const { data: roles, error } = await supabase.from("user_roles").select("user_id, role");
-      if (error) throw error;
-      const ids = Array.from(new Set((roles ?? []).map((r) => r.user_id)));
-      const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+      const { data: profs, error: profError } = await supabase.from("profiles").select("id, full_name");
+      if (profError) throw profError;
+      const { data: roles, error: rolesError } = await supabase.from("user_roles").select("user_id, role");
+      if (rolesError) throw rolesError;
+
       const map = new Map<string, Member>();
+      for (const p of profs ?? []) {
+        map.set(p.id, { user_id: p.id, full_name: p.full_name, roles: [] });
+      }
       for (const r of roles ?? []) {
-        const cur = map.get(r.user_id) ?? {
-          user_id: r.user_id,
-          full_name: profs?.find((p) => p.id === r.user_id)?.full_name ?? null,
-          roles: [],
-        };
-        cur.roles.push(r.role as TeamRole);
-        map.set(r.user_id, cur);
+        const cur = map.get(r.user_id);
+        if (cur) {
+          cur.roles.push(r.role as TeamRole);
+        } else {
+          map.set(r.user_id, { user_id: r.user_id, full_name: null, roles: [r.role as TeamRole] });
+        }
       }
       return [...map.values()];
     },
@@ -263,7 +266,7 @@ function TeamPage() {
         <div className="bg-card border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-secondary">
             <h2 className="display text-lg">Membros e funções</h2>
-            <p className="text-xs text-muted-foreground">{members.filter((m) => m.roles.some((r) => r !== "user")).length} pessoas com funções internas</p>
+            <p className="text-xs text-muted-foreground">{members.length} pessoas cadastradas</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
