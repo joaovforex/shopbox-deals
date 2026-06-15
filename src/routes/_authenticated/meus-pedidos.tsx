@@ -12,6 +12,7 @@ export const Route = createFileRoute("/_authenticated/meus-pedidos")({
   component: MyOrdersPage,
 });
 
+type OrderItem = { id: string; product_name: string; quantity: number };
 type Row = {
   id: string;
   created_at: string;
@@ -19,6 +20,7 @@ type Row = {
   fulfillment_status: string;
   total: number;
   payment_method: string;
+  order_items: OrderItem[] | null;
 };
 
 function statusBadge(o: Row): { label: string; cls: string; icon: React.ReactNode } {
