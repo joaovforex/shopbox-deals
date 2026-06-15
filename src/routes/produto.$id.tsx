@@ -196,6 +196,7 @@ function ProductPage() {
   const nativeShare = shareWithImage;
 
   const addToCart = () => {
+    if (requireLogin("/carrinho")) return;
     add({ id: product.id, name: product.name, price: product.price, image_url: product.image_url }, qty);
     toast.success(`Adicionado ao carrinho (${qty}x)`);
   };
