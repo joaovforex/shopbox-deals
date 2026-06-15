@@ -6,6 +6,7 @@ export type TeamMember = { user_id: string; full_name: string | null; email: str
 
 export const listTeamMembers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
+  .inputValidator(() => ({}))
   .handler(async ({ context }): Promise<TeamMember[]> => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
