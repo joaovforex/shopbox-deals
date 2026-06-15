@@ -104,10 +104,11 @@ function LabelPage() {
         useCORS: true,
       });
       const img = canvas.toDataURL("image/jpeg", 0.95);
-      const pdf = new jsPDF({ unit: "mm", format: "a6", orientation: "portrait" });
+      // Elgin L42 PRO — etiqueta 110x150 mm (11x15 cm)
+      const pdf = new jsPDF({ unit: "mm", format: [110, 150], orientation: "portrait" });
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
-      const margin = 6;
+      const margin = 2;
       const maxW = pageW - margin * 2;
       const maxH = pageH - margin * 2;
       const ratio = canvas.width / canvas.height;
