@@ -25,7 +25,7 @@ export const listTeamMembers = createServerFn({ method: "GET" })
       arr.push(r.role as string);
       rolesById.set(r.user_id, arr);
     }
-    return (usersData.users ?? []).map((u) => ({
+    return (usersData?.users ?? []).map((u) => ({
       user_id: u.id,
       full_name: profileById.get(u.id) ?? (u.user_metadata?.full_name as string | undefined) ?? null,
       email: u.email ?? null,
