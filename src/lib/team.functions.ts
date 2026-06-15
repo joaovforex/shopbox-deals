@@ -2,6 +2,36 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type Found = { id: string; full_name: string | null; email: string | null };
+export type TeamMember = { user_id: string; full_name: string | null; email: string | null; roles: string[] };
+
+export const listTeamMembers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<TeamMember[]> => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [{ data: usersData, error: usersError }, { data: profs, error: profError }, { data: roles, error: rolesError }] = await Promise.all([
+      supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+      supabaseAdmin.from("profiles").select("id, full_name"),
+      supabaseAdmin.from("user_roles").select("user_id, role"),
+    ]);
+    if (usersError) throw new Error(usersError.message);
+    if (profError) throw new Error(profError.message);
+    if (rolesError) throw new Error(rolesError.message);
+
+    const profileById = new Map((profs ?? []).map((p) => [p.id, p.full_name]));
+    const rolesById = new Map<string, string[]>();
+    for (const r of roles ?? []) {
+      const arr = rolesById.get(r.user_id) ?? [];
+      arr.push(r.role as string);
+      rolesById.set(r.user_id, arr);
+    }
+    return (usersData.users ?? []).map((u) => ({
+      user_id: u.id,
+      full_name: profileById.get(u.id) ?? (u.user_metadata?.full_name as string | undefined) ?? null,
+      email: u.email ?? null,
+      roles: rolesById.get(u.id) ?? ["user"],
+    }));
+  });
 
 export const searchTeamCandidates = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
