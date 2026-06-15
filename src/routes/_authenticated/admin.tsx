@@ -269,7 +269,7 @@ function AdminPage() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar produto por nome ou categoria..."
+              placeholder="Buscar por nome, código ou categoria..."
               className="w-full h-11 pl-4 pr-4 rounded-md border border-border bg-card text-sm focus:outline-none focus:border-primary"
             />
           </div>
