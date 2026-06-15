@@ -80,9 +80,11 @@ export const Route = createFileRoute("/produto/$id")({
 });
 
 function ProductPage() {
+  const { product: loaderProduct } = Route.useLoaderData();
   const { id } = Route.useParams();
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", id],
+    initialData: loaderProduct,
     queryFn: async () => {
       const p = await fetchProduct(id);
       if (!p) throw notFound();

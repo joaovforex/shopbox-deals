@@ -5,9 +5,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ArrowLeft, UserPlus, Trash2, Crown, Package, Truck, User, KeyRound, UserX, ShieldCheck } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
-import { supabase } from "@/integrations/supabase/client";
 import { isAdmin, type TeamRole } from "@/lib/products";
-import { searchTeamCandidates, assignTeamRole, removeTeamRole, adminResetPassword, adminDeleteUser } from "@/lib/team.functions";
+import { searchTeamCandidates, assignTeamRole, removeTeamRole, adminResetPassword, adminDeleteUser, listTeamMembers } from "@/lib/team.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/equipe")({
   head: () => ({ meta: [{ title: "Equipe · Admin" }] }),
@@ -17,6 +16,7 @@ export const Route = createFileRoute("/_authenticated/admin/equipe")({
 type Member = {
   user_id: string;
   full_name: string | null;
+  email: string | null;
   roles: TeamRole[];
 };
 
@@ -41,6 +41,7 @@ const ASSIGNABLE: TeamRole[] = ["admin", "manager", "catalog", "fulfillment"];
 function TeamPage() {
   const [admin, setAdmin] = useState<boolean | null>(null);
   const qc = useQueryClient();
+  const fetchMembers = useServerFn(listTeamMembers);
 
   useEffect(() => { isAdmin().then(setAdmin); }, []);
 
@@ -48,24 +49,8 @@ function TeamPage() {
     queryKey: ["team-members"],
     enabled: admin === true,
     queryFn: async () => {
-      const { data: profs, error: profError } = await supabase.from("profiles").select("id, full_name");
-      if (profError) throw profError;
-      const { data: roles, error: rolesError } = await supabase.from("user_roles").select("user_id, role");
-      if (rolesError) throw rolesError;
-
-      const map = new Map<string, Member>();
-      for (const p of profs ?? []) {
-        map.set(p.id, { user_id: p.id, full_name: p.full_name, roles: [] });
-      }
-      for (const r of roles ?? []) {
-        const cur = map.get(r.user_id);
-        if (cur) {
-          cur.roles.push(r.role as TeamRole);
-        } else {
-          map.set(r.user_id, { user_id: r.user_id, full_name: null, roles: [r.role as TeamRole] });
-        }
-      }
-      return [...map.values()];
+      const list = await fetchMembers({});
+      return list.map((m) => ({ ...m, roles: m.roles as TeamRole[] }));
     },
   });
 
@@ -278,6 +263,7 @@ function TeamPage() {
                   <tr key={m.user_id} className="border-t border-border">
                     <td className="p-3">
                       <div className="font-semibold">{m.full_name ?? "(sem nome)"}</div>
+                      <div className="text-xs text-muted-foreground">{m.email ?? "(sem email)"}</div>
                       <div className="text-xs text-muted-foreground font-mono">{m.user_id.slice(0, 8)}...</div>
                     </td>
                     <td className="p-3">

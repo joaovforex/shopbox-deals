@@ -34,14 +34,12 @@ function AdminPage() {
     }
   }, [roles, isChildRoute, navigate]);
 
-  if (isChildRoute) return <Outlet />;
-
   const canManageProducts = !!roles && (roles.isCatalog || roles.isManager);
 
   const { data: products = [], refetch } = useQuery({
     queryKey: ["admin", "products"],
     queryFn: () => fetchProducts(),
-    enabled: canManageProducts,
+    enabled: canManageProducts && !isChildRoute,
   });
 
   const [editing, setEditing] = useState<Product | null>(null);
@@ -50,6 +48,7 @@ function AdminPage() {
 
   // If a draft for an existing product was in progress, reopen edit form once loaded.
   useEffect(() => {
+    if (isChildRoute) return;
     if (!products.length || editing || showForm) return;
     try {
       const raw = sessionStorage.getItem(DRAFT_KEY);
@@ -59,11 +58,12 @@ function AdminPage() {
       const p = products.find((x) => x.id === d.productId);
       if (p) { setEditing(p); setShowForm(true); }
     } catch {}
-  }, [products, editing, showForm]);
+  }, [products, editing, showForm, isChildRoute]);
 
   // Auto-reopen the product form when returning from a mobile camera launch that
   // evicted the page from memory (a saved draft exists in sessionStorage).
   useEffect(() => {
+    if (isChildRoute) return;
     if (typeof window === "undefined") return;
     try {
       const raw = sessionStorage.getItem(DRAFT_KEY);
@@ -76,7 +76,9 @@ function AdminPage() {
       setEditing(null);
       setShowForm(true);
     } catch {}
-  }, []);
+  }, [isChildRoute]);
+
+  if (isChildRoute) return <Outlet />;
 
   if (roles === null) {
     return (
