@@ -167,9 +167,18 @@ function FulfillmentPage() {
       if (ids.length) {
         const { data: it } = await supabase
           .from("order_items")
-          .select("order_id, product_name, quantity, unit_price")
+          .select("order_id, product_name, quantity, unit_price, product_id")
           .in("order_id", ids);
-        items = (it ?? []) as ItemRow[];
+        const rawItems = (it ?? []) as ItemRow[];
+        const productIds = [...new Set(rawItems.map((i) => i.product_id).filter((x): x is string => typeof x === "string"))];
+        let skuMap = new Map<string, string>();
+        if (productIds.length) {
+          const { data: prods } = await supabase.from("products").select("id, sku").in("id", productIds);
+          for (const p of (prods ?? []) as Array<{ id: string; sku: string }>) {
+            skuMap.set(p.id, p.sku);
+          }
+        }
+        items = rawItems.map((i) => ({ ...i, sku: i.product_id ? skuMap.get(i.product_id) ?? null : null }));
       }
       return { orders: (orders ?? []) as OrderRow[], items };
     },
