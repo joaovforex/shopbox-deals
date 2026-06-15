@@ -42,6 +42,8 @@ type ItemRow = {
   product_name: string;
   quantity: number;
   unit_price: number;
+  product_id?: string | null;
+  sku?: string | null;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -104,8 +106,17 @@ function FulfillmentPage() {
       const ids = (orders ?? []).map((o) => o.id);
       let items: ItemRow[] = [];
       if (ids.length) {
-        const { data: it } = await supabase.from("order_items").select("order_id, product_name, quantity, unit_price").in("order_id", ids);
-        items = (it ?? []) as ItemRow[];
+        const { data: it } = await supabase.from("order_items").select("order_id, product_name, quantity, unit_price, product_id").in("order_id", ids);
+        const rawItems = (it ?? []) as ItemRow[];
+        const productIds = [...new Set(rawItems.map((i) => i.product_id).filter((x): x is string => typeof x === "string"))];
+        let skuMap = new Map<string, string>();
+        if (productIds.length) {
+          const { data: prods } = await supabase.from("products").select("id, sku").in("id", productIds);
+          for (const p of (prods ?? []) as Array<{ id: string; sku: string }>) {
+            skuMap.set(p.id, p.sku);
+          }
+        }
+        items = rawItems.map((i) => ({ ...i, sku: i.product_id ? skuMap.get(i.product_id) ?? null : null }));
       }
       return { orders: (orders ?? []) as OrderRow[], items };
     },
@@ -156,9 +167,18 @@ function FulfillmentPage() {
       if (ids.length) {
         const { data: it } = await supabase
           .from("order_items")
-          .select("order_id, product_name, quantity, unit_price")
+          .select("order_id, product_name, quantity, unit_price, product_id")
           .in("order_id", ids);
-        items = (it ?? []) as ItemRow[];
+        const rawItems = (it ?? []) as ItemRow[];
+        const productIds = [...new Set(rawItems.map((i) => i.product_id).filter((x): x is string => typeof x === "string"))];
+        let skuMap = new Map<string, string>();
+        if (productIds.length) {
+          const { data: prods } = await supabase.from("products").select("id, sku").in("id", productIds);
+          for (const p of (prods ?? []) as Array<{ id: string; sku: string }>) {
+            skuMap.set(p.id, p.sku);
+          }
+        }
+        items = rawItems.map((i) => ({ ...i, sku: i.product_id ? skuMap.get(i.product_id) ?? null : null }));
       }
       return { orders: (orders ?? []) as OrderRow[], items };
     },
@@ -414,6 +434,11 @@ function FulfillmentPage() {
                         <span className="flex items-center gap-2">
                           <Package className="h-3.5 w-3.5 text-muted-foreground" />
                           {it.quantity}x {it.product_name}
+                          {it.sku && (
+                            <span className="ml-1 inline-flex items-center rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-accent">
+                              {it.sku}
+                            </span>
+                          )}
                         </span>
                         <span className="font-semibold whitespace-nowrap">{brl(it.unit_price * it.quantity)}</span>
                       </li>
