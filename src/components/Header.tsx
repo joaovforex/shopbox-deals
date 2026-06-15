@@ -136,6 +136,11 @@ function MobileMenu({ user, signOut, hasTeamRole }: { user: { email?: string } |
               <LayoutDashboard className="h-4 w-4" /> Admin
             </Link>
           )}
+          {user && (
+            <Link to="/meus-pedidos" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
+              <Package className="h-4 w-4" /> Meus pedidos
+            </Link>
+          )}
           {user ? (
             <button onClick={() => { setOpen(false); signOut(); }} className="flex items-center gap-3 w-full text-left px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
               <LogOut className="h-4 w-4" /> Sair
