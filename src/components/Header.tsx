@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { ShoppingCart, User, LogOut, LayoutDashboard, Home, Store, Search, Menu, Tag, X } from "lucide-react";
+import { ShoppingCart, User, LogOut, LayoutDashboard, Home, Store, Search, Menu, Tag, X, Package } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";

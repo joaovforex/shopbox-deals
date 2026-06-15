@@ -19,6 +19,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProdutoIdRouteImport } from './routes/produto.$id'
 import { Route as PedidoIdRouteImport } from './routes/pedido.$id'
 import { Route as EtiquetaIdRouteImport } from './routes/etiqueta.$id'
+import { Route as AuthenticatedMeusPedidosRouteImport } from './routes/_authenticated/meus-pedidos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAdminPedidosRouteImport } from './routes/_authenticated/admin.pedidos'
 import { Route as AuthenticatedAdminExpedicaoRouteImport } from './routes/_authenticated/admin.expedicao'
@@ -74,6 +75,12 @@ const EtiquetaIdRoute = EtiquetaIdRouteImport.update({
   path: '/etiqueta/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedMeusPedidosRoute =
+  AuthenticatedMeusPedidosRouteImport.update({
+    id: '/meus-pedidos',
+    path: '/meus-pedidos',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -111,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/loja': typeof LojaRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
@@ -127,6 +135,7 @@ export interface FileRoutesByTo {
   '/loja': typeof LojaRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
@@ -145,6 +154,7 @@ export interface FileRoutesById {
   '/loja': typeof LojaRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/loja'
     | '/redirecionando'
     | '/admin'
+    | '/meus-pedidos'
     | '/etiqueta/$id'
     | '/pedido/$id'
     | '/produto/$id'
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/loja'
     | '/redirecionando'
     | '/admin'
+    | '/meus-pedidos'
     | '/etiqueta/$id'
     | '/pedido/$id'
     | '/produto/$id'
@@ -196,6 +208,7 @@ export interface FileRouteTypes {
     | '/loja'
     | '/redirecionando'
     | '/_authenticated/admin'
+    | '/_authenticated/meus-pedidos'
     | '/etiqueta/$id'
     | '/pedido/$id'
     | '/produto/$id'
@@ -291,6 +304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EtiquetaIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/meus-pedidos': {
+      id: '/_authenticated/meus-pedidos'
+      path: '/meus-pedidos'
+      fullPath: '/meus-pedidos'
+      preLoaderRoute: typeof AuthenticatedMeusPedidosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin': {
       id: '/_authenticated/admin'
       path: '/admin'
@@ -346,10 +366,12 @@ const AuthenticatedAdminRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedMeusPedidosRoute: typeof AuthenticatedMeusPedidosRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedMeusPedidosRoute: AuthenticatedMeusPedidosRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
