@@ -12,6 +12,7 @@ export const Route = createFileRoute("/_authenticated/meus-pedidos")({
   component: MyOrdersPage,
 });
 
+type OrderItem = { id: string; product_name: string; quantity: number };
 type Row = {
   id: string;
   created_at: string;
@@ -19,6 +20,7 @@ type Row = {
   fulfillment_status: string;
   total: number;
   payment_method: string;
+  order_items: OrderItem[] | null;
 };
 
 function statusBadge(o: Row): { label: string; cls: string; icon: React.ReactNode } {
@@ -40,7 +42,7 @@ function MyOrdersPage() {
       if (!user) return [] as Row[];
       const { data, error } = await supabase
         .from("orders")
-        .select("id, created_at, status, fulfillment_status, total, payment_method")
+        .select("id, created_at, status, fulfillment_status, total, payment_method, order_items(id, product_name, quantity)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -116,9 +118,18 @@ function MyOrdersPage() {
                         {b.icon} {b.label}
                       </span>
                     </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Total</span>
-                      <span className="display text-xl text-price">{brl(Number(o.total))}</span>
+                    <div className="mt-3 flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1">Produtos</p>
+                        <ul className="text-sm text-foreground space-y-0.5">
+                          {(o.order_items ?? []).map((item) => (
+                            <li key={item.id} className="truncate">
+                              {item.quantity}x {item.product_name}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <span className="display text-xl text-price whitespace-nowrap">{brl(Number(o.total))}</span>
                     </div>
                     {isReady && (
                       <div className="mt-3 text-xs bg-primary/10 border border-primary/30 rounded px-3 py-2">
