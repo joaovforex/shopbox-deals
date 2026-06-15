@@ -87,13 +87,13 @@ function AuthPage() {
           toast.success("Conta criada! Você já pode entrar.");
         } else {
           toast.success("Conta criada! Bem-vindo!");
-          navigate({ to: "/" });
+          window.location.href = redirectTo;
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Bem-vindo!");
-        navigate({ to: "/" });
+        window.location.href = redirectTo;
       }
     } catch (err: any) {
       toast.error(err.message ?? "Erro");
