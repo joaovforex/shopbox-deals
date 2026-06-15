@@ -20,8 +20,11 @@ function OrderPage() {
     queryKey: ["order", id],
     queryFn: () => fetchOrder({ data: { id } }),
     refetchInterval: (q) => {
-      const s = (q.state.data as { order?: { status?: string } } | undefined)?.order?.status;
-      return s === "pending" ? 3000 : false;
+      const o = (q.state.data as { order?: { status?: string; fulfillment_status?: string } } | undefined)?.order;
+      if (!o) return 5000;
+      if (o.status === "pending") return 3000;
+      if (o.status === "paid" && o.fulfillment_status !== "completed") return 15000;
+      return false;
     },
   });
 
