@@ -353,14 +353,14 @@ function FulfillmentPage() {
           )}
         </div>
 
-        {tab === "notifications" ? (
+        {!searchActive && tab === "notifications" ? (
           <NotificationsPanel rows={notifData ?? []} />
-        ) : isLoading ? (
+        ) : (searchActive ? searchLoading : isLoading) ? (
           <div className="bg-card border border-border rounded-lg p-8 text-center text-muted-foreground">Carregando...</div>
         ) : orders.length === 0 ? (
           <div className="bg-card border border-border rounded-lg p-8 text-center text-muted-foreground">
             <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-primary" />
-            Nenhum pedido em aberto nesta fila.
+            {searchActive ? "Nenhum pedido encontrado para esta busca." : "Nenhum pedido em aberto nesta fila."}
           </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-4">
