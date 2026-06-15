@@ -1,0 +1,1 @@
+ALTER TABLE public.products ALTER COLUMN sku SET DEFAULT public.generate_product_sku();

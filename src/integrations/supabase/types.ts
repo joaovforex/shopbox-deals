@@ -193,7 +193,7 @@ export type Database = {
           name: string
           original_price?: number | null
           price: number
-          sku: string
+          sku?: string
           stock?: number
           updated_at?: string
         }
