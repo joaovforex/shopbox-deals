@@ -605,16 +605,16 @@ function ProductForm({
               <input
                 ref={fallbackCameraInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,video/*"
                 capture="environment"
                 className="hidden"
                 onChange={handleFileInputChange}
               />
               <label className="inline-flex items-center gap-1.5 text-xs bg-secondary hover:bg-muted px-3 py-1.5 rounded cursor-pointer">
-                <Upload className="h-3.5 w-3.5" /> {uploading ? "Enviando..." : "Adicionar fotos"}
+                <Upload className="h-3.5 w-3.5" /> {uploading ? "Enviando..." : "Adicionar fotos/vídeos"}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   multiple
                   className="hidden"
                   onChange={handleFileInputChange}
