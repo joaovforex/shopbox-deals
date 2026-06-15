@@ -303,10 +303,9 @@ function OrdersPanel() {
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
                     type="text"
-                    inputMode="numeric"
                     value={searchCpf}
                     onChange={(e) => setSearchCpf(e.target.value)}
-                    placeholder="Buscar por CPF..."
+                    placeholder="Buscar por nome ou CPF..."
                     className="w-full pl-9 pr-8 py-2 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                   {searchCpf && (
