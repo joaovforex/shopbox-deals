@@ -49,11 +49,18 @@ function AuthPage() {
   const [cpf, setCpf] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const redirectTo = (() => {
+    if (typeof window === "undefined") return "/";
+    const r = new URLSearchParams(window.location.search).get("redirect");
+    if (r && r.startsWith("/") && !r.startsWith("//")) return r;
+    return "/";
+  })();
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/" });
+      if (data.user) (window as Window).location.href = redirectTo;
     });
-  }, [navigate]);
+  }, [redirectTo]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
