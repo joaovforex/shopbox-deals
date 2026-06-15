@@ -20,6 +20,7 @@ type OrderRow = {
   customer_name: string;
   customer_email: string | null;
   customer_phone: string | null;
+  customer_cpf?: string | null;
   shipping_address: string | null;
   shipping_zip: string | null;
   shipping_city: string | null;
