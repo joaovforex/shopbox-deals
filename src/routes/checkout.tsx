@@ -55,6 +55,25 @@ function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [cpf, setCpf] = useState("");
 
+  // Pré-preenche do perfil do cliente logado
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setEmail((e) => e || (user.email ?? ""));
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("full_name, phone, cpf")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (prof) {
+        if (prof.full_name) setName((n) => n || prof.full_name!);
+        if (prof.phone) setPhone((p) => p || maskPhone(prof.phone!));
+        if (prof.cpf) setCpf((c) => c || maskCpf(prof.cpf!));
+      }
+    })();
+  }, []);
+
   if (items.length === 0 && !redirecting) {
     return (
       <div className="min-h-screen flex flex-col">
