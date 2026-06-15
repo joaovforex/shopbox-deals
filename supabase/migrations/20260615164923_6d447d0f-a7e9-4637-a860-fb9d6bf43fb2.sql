@@ -1,0 +1,2 @@
+GRANT EXECUTE ON FUNCTION public.create_pending_order(text, text, text, text, text, text, jsonb) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.expire_stale_pending_orders(integer) TO authenticated;
