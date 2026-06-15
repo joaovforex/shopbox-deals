@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { ShoppingCart, User, LogOut, LayoutDashboard, Home, Store, Search, Menu, Tag, X } from "lucide-react";
+import { ShoppingCart, User, LogOut, LayoutDashboard, Home, Store, Search, Menu, Tag, X, Package } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -136,6 +136,11 @@ function MobileMenu({ user, signOut, hasTeamRole }: { user: { email?: string } |
               <LayoutDashboard className="h-4 w-4" /> Admin
             </Link>
           )}
+          {user && (
+            <Link to="/meus-pedidos" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
+              <Package className="h-4 w-4" /> Meus pedidos
+            </Link>
+          )}
           {user ? (
             <button onClick={() => { setOpen(false); signOut(); }} className="flex items-center gap-3 w-full text-left px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
               <LogOut className="h-4 w-4" /> Sair
@@ -216,6 +221,16 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-2 justify-end">
+            {user && !hasTeamRole && (
+              <Link
+                to="/meus-pedidos"
+                aria-label="Meus pedidos"
+                className="hidden md:inline-flex items-center gap-2 px-2 sm:px-3 h-10 rounded-md bg-secondary hover:bg-muted text-sm font-bold"
+              >
+                <Package className="h-4 w-4" />
+                <span className="hidden lg:inline">Meus pedidos</span>
+              </Link>
+            )}
             {hasTeamRole && (
               <Link
                 to="/admin"

@@ -96,8 +96,13 @@ function OrdersPanel() {
 
     // Apply filters
     if (searchCpf.trim()) {
-      const raw = searchCpf.replace(/\D/g, "");
-      orders = orders.filter((o) => (o.customer_cpf ?? "").replace(/\D/g, "").includes(raw));
+      const term = searchCpf.trim().toLowerCase();
+      const digits = term.replace(/\D/g, "");
+      orders = orders.filter((o) => {
+        const matchName = (o.customer_name ?? "").toLowerCase().includes(term);
+        const matchCpf = digits.length > 0 && (o.customer_cpf ?? "").replace(/\D/g, "").includes(digits);
+        return matchName || matchCpf;
+      });
     }
     if (filterDelivery !== "all") {
       orders = orders.filter((o) => o.delivery_method === filterDelivery);
@@ -298,10 +303,9 @@ function OrdersPanel() {
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
                     type="text"
-                    inputMode="numeric"
                     value={searchCpf}
                     onChange={(e) => setSearchCpf(e.target.value)}
-                    placeholder="Buscar por CPF..."
+                    placeholder="Buscar por nome ou CPF..."
                     className="w-full pl-9 pr-8 py-2 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                   {searchCpf && (

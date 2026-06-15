@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
 import { Header, Footer } from "@/components/Header";
@@ -53,6 +54,25 @@ function CheckoutPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [cpf, setCpf] = useState("");
+
+  // Pré-preenche do perfil do cliente logado
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setEmail((e) => e || (user.email ?? ""));
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("full_name, phone, cpf")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (prof) {
+        if (prof.full_name) setName((n) => n || prof.full_name!);
+        if (prof.phone) setPhone((p) => p || maskPhone(prof.phone!));
+        if (prof.cpf) setCpf((c) => c || maskCpf(prof.cpf!));
+      }
+    })();
+  }, []);
 
   if (items.length === 0 && !redirecting) {
     return (

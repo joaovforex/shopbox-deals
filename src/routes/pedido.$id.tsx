@@ -20,18 +20,22 @@ function OrderPage() {
     queryKey: ["order", id],
     queryFn: () => fetchOrder({ data: { id } }),
     refetchInterval: (q) => {
-      const s = (q.state.data as { order?: { status?: string } } | undefined)?.order?.status;
-      return s === "pending" ? 3000 : false;
+      const o = (q.state.data as { order?: { status?: string; fulfillment_status?: string } } | undefined)?.order;
+      if (!o) return 5000;
+      if (o.status === "pending") return 3000;
+      if (o.status === "paid" && o.fulfillment_status !== "completed") return 15000;
+      return false;
     },
   });
 
   const status = data?.order?.status;
+  const fulfillment = data?.order?.fulfillment_status;
   const isPaid = status === "paid";
   const isCancelled = status === "cancelled";
-  // Qualquer coisa que não seja explicitamente "paid" ou "cancelled" (incluindo loading
-  // e status "pending") é tratada como aguardando pagamento — nunca mostre confirmação
-  // sem ter certeza de que o pedido foi pago.
   const isPending = !isPaid && !isCancelled;
+  const isReady = isPaid && (fulfillment === "ready" || fulfillment === "shipped");
+  const isDone = isPaid && fulfillment === "completed";
+  const isPreparing = isPaid && (fulfillment === "pending" || fulfillment === "preparing");
 
   const shortId = id.slice(0, 8).toUpperCase();
 
@@ -52,14 +56,25 @@ function OrderPage() {
             </div>
 
             <h1 className="display text-3xl md:text-5xl mb-2">
-              {isCancelled ? "Pagamento não concluído" : isPending ? "Aguardando pagamento" : "Pagamento confirmado!"}
+              {isCancelled ? "Pagamento não concluído"
+                : isPending ? "Aguardando pagamento"
+                : isDone ? "Pedido entregue!"
+                : isReady ? "PRONTO PARA RETIRADA"
+                : isPreparing ? "EM SEPARAÇÃO"
+                : "Pagamento confirmado!"}
             </h1>
             <p className="text-muted-foreground">
               {isCancelled
                 ? "Não recebemos a confirmação do Mercado Pago."
                 : isPending
                   ? "Assim que o Mercado Pago confirmar, atualizamos esta página automaticamente."
-                  : "Recebemos seu pedido com sucesso 🎉"}
+                  : isDone
+                    ? "Obrigado pela compra! 💚"
+                    : isReady
+                      ? "Seu pedido já está separado e te aguarda na loja."
+                      : isPreparing
+                        ? "Nosso time está separando seus itens. Você receberá um aviso no WhatsApp assim que estiver pronto."
+                        : "Recebemos seu pedido com sucesso 🎉"}
             </p>
 
             <div className="inline-flex items-center gap-2 mt-4 bg-background/60 backdrop-blur border border-border px-4 py-2 rounded-full">
@@ -69,32 +84,40 @@ function OrderPage() {
             </div>
           </div>
 
-          {/* WHATSAPP NOTICE */}
-          <div className="rounded-xl border-2 border-[#25D366]/30 bg-[#25D366]/5 p-5 mb-6 flex gap-4">
-            <div className="shrink-0 h-11 w-11 rounded-full bg-[#25D366]/15 text-[#25D366] flex items-center justify-center">
-              <MessageCircle className="h-5 w-5" />
+          {/* WHATSAPP NOTICE — apenas enquanto não estiver pronto */}
+          {(isPaid && !isReady && !isDone) && (
+            <div className="rounded-xl border-2 border-[#25D366]/30 bg-[#25D366]/5 p-5 mb-6 flex gap-4">
+              <div className="shrink-0 h-11 w-11 rounded-full bg-[#25D366]/15 text-[#25D366] flex items-center justify-center">
+                <MessageCircle className="h-5 w-5" />
+              </div>
+              <div className="text-sm">
+                <p className="font-bold text-foreground mb-1">Acompanhe pelo WhatsApp</p>
+                <p className="text-muted-foreground leading-relaxed">
+                  Assim que nosso time iniciar a <strong className="text-foreground">separação</strong>, você recebe um aviso.
+                  Quando o pedido estiver <strong className="text-foreground">pronto para retirada</strong>, te avisamos novamente.
+                </p>
+              </div>
             </div>
-            <div className="text-sm">
-              <p className="font-bold text-foreground mb-1">Acompanhe pelo WhatsApp</p>
-              <p className="text-muted-foreground leading-relaxed">
-                Assim que nosso time iniciar a <strong className="text-foreground">separação</strong> do seu pedido,
-                você receberá um aviso no WhatsApp. Quando estiver <strong className="text-foreground">pronto para retirada</strong>,
-                te avisamos novamente — geralmente em até <strong className="text-foreground">1 hora</strong> após a separação.
-              </p>
-            </div>
-          </div>
+          )}
 
-          {/* PICKUP INFO */}
-          <div className="rounded-xl border border-border bg-card p-5 mb-6 flex gap-4">
-            <div className="shrink-0 h-11 w-11 rounded-full bg-primary/15 text-primary flex items-center justify-center">
+          {/* PICKUP INFO — reforçado quando pronto */}
+          <div className={`rounded-xl border-2 p-5 mb-6 flex gap-4 ${isReady ? "border-primary bg-primary/5" : "border-border bg-card"}`}>
+            <div className={`shrink-0 h-11 w-11 rounded-full flex items-center justify-center ${isReady ? "bg-primary text-primary-foreground" : "bg-primary/15 text-primary"}`}>
               <Store className="h-5 w-5" />
             </div>
             <div className="text-sm flex-1">
-              <p className="font-bold text-foreground mb-1">Retirada na loja</p>
-              <p className="text-muted-foreground">{STORE_ADDRESS}</p>
+              <p className="font-bold text-foreground mb-1">
+                {isReady ? "Retire seu pedido na loja" : "Retirada na loja"}
+              </p>
+              <p className="text-foreground font-semibold">{STORE_ADDRESS}</p>
               <p className="text-muted-foreground inline-flex items-center gap-1.5 mt-1">
                 <Clock className="h-3.5 w-3.5" /> {STORE_HOURS}
               </p>
+              {isPaid && !isDone && !isCancelled && (
+                <p className="mt-3 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-3 py-2 rounded">
+                  ⏰ Você tem até 5 dias para retirar o produto na loja.
+                </p>
+              )}
             </div>
           </div>
 
