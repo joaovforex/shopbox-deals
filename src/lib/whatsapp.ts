@@ -29,6 +29,8 @@ export function orderPaidMessage(customerName: string, orderId: string) {
     ``,
     `Assim que estiver pronto, você receberá um novo aviso para retirada.`,
     ``,
+    `⏰ *Você tem até 5 dias para retirar o produto na loja.*`,
+    ``,
     `Endereço: ${STORE_ADDRESS}`,
     `Horário: ${STORE_HOURS}`,
     ``,
