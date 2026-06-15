@@ -177,6 +177,7 @@ export type Database = {
           name: string
           original_price: number | null
           price: number
+          sku: string
           stock: number
           updated_at: string
         }
@@ -192,6 +193,7 @@ export type Database = {
           name: string
           original_price?: number | null
           price: number
+          sku?: string
           stock?: number
           updated_at?: string
         }
@@ -207,6 +209,7 @@ export type Database = {
           name?: string
           original_price?: number | null
           price?: number
+          sku?: string
           stock?: number
           updated_at?: string
         }
@@ -302,6 +305,7 @@ export type Database = {
         Args: { p_minutes?: number }
         Returns: number
       }
+      generate_product_sku: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -329,6 +333,7 @@ export type Database = {
           name: string
           original_price: number
           price: number
+          sku: string
           stock: number
           total_count: number
         }[]

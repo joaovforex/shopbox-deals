@@ -269,7 +269,7 @@ function AdminPage() {
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar produto por nome ou categoria..."
+              placeholder="Buscar por nome, código ou categoria..."
               className="w-full h-11 pl-4 pr-4 rounded-md border border-border bg-card text-sm focus:outline-none focus:border-primary"
             />
           </div>
@@ -281,14 +281,22 @@ function AdminPage() {
           <span className="text-xs text-muted-foreground ml-auto">
             {(() => {
               const t = search.trim().toLowerCase();
-              const n = t ? products.filter((p) => p.name.toLowerCase().includes(t) || (p.category ?? "").toLowerCase().includes(t)).length : products.length;
+              const match = (p: typeof products[number]) =>
+                p.name.toLowerCase().includes(t)
+                || (p.category ?? "").toLowerCase().includes(t)
+                || (p.sku ?? "").toLowerCase().includes(t);
+              const n = t ? products.filter(match).length : products.length;
               return `${n} ${n === 1 ? "resultado" : "resultados"}`;
             })()}
           </span>
         </div>
         {(() => {
           const t = search.trim().toLowerCase();
-          const filtered = t ? products.filter((p) => p.name.toLowerCase().includes(t) || (p.category ?? "").toLowerCase().includes(t)) : products;
+          const match = (p: typeof products[number]) =>
+            p.name.toLowerCase().includes(t)
+            || (p.category ?? "").toLowerCase().includes(t)
+            || (p.sku ?? "").toLowerCase().includes(t);
+          const filtered = t ? products.filter(match) : products;
           if (products.length === 0) {
             return (
               <div className="text-center py-20 bg-card rounded-lg border border-border">
@@ -325,6 +333,7 @@ function AdminPage() {
                         </div>
                         <div>
                           <div className="font-semibold">{p.name}</div>
+                          <div className="text-xs font-mono text-muted-foreground">Cód. {p.sku}</div>
                           {p.category && <div className="text-xs text-muted-foreground">{p.category}</div>}
                         </div>
                       </div>

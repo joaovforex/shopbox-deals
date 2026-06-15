@@ -13,6 +13,7 @@ export type Product = {
   images: string[];
   stock: number;
   active: boolean;
+  sku: string;
   created_at: string;
 };
 
@@ -26,8 +27,10 @@ export type ProductCard = {
   image_url: string | null;
   images: string[];
   stock: number;
+  sku: string;
   created_at: string;
 };
+
 
 export type TeamRole = "admin" | "manager" | "catalog" | "fulfillment" | "user";
 
