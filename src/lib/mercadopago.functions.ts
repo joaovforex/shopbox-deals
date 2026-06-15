@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type CartItemInput = { product_id: string; quantity: number };
 
@@ -20,6 +21,7 @@ function originFromRequest(): string {
 }
 
 export const createMpPreference = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: CreatePreferenceInput) => {
     if (!data || typeof data !== "object") throw new Error("Payload inválido");
     if (!Array.isArray(data.items) || data.items.length === 0) throw new Error("Carrinho vazio");
@@ -32,7 +34,7 @@ export const createMpPreference = createServerFn({ method: "POST" })
     }
     return data;
   })
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
     if (!accessToken) throw new Error("Mercado Pago não configurado");
 
@@ -41,8 +43,9 @@ export const createMpPreference = createServerFn({ method: "POST" })
     // 0) Limpa pedidos pendentes antigos (>30min) devolvendo o estoque
     await supabaseAdmin.rpc("expire_stale_pending_orders" as never, { p_minutes: 30 } as never);
 
-    // 1) Cria pedido pendente e reserva estoque
-    const { data: orderId, error: orderErr } = await supabaseAdmin.rpc(
+    // 1) Cria pedido pendente usando o client AUTENTICADO do usuário
+    //    para que auth.uid() dentro da RPC preencha orders.user_id corretamente.
+    const { data: orderId, error: orderErr } = await context.supabase.rpc(
       "create_pending_order" as never,
       {
         p_customer_name: data.customer_name,
@@ -57,6 +60,13 @@ export const createMpPreference = createServerFn({ method: "POST" })
     if (orderErr || !orderId) {
       throw new Error(orderErr?.message ?? "Falha ao criar pedido");
     }
+
+    // Garantia extra: se por algum motivo user_id veio nulo, força com o userId do contexto
+    await supabaseAdmin
+      .from("orders")
+      .update({ user_id: context.userId })
+      .eq("id", orderId as string)
+      .is("user_id", null);
 
     // 2) Busca itens já gravados para montar a preferência com nome/preço reais
     const { data: orderItems, error: itemsErr } = await supabaseAdmin
