@@ -129,13 +129,13 @@ function LabelPage() {
   return (
     <>
       <style>{`
+        @page { size: 110mm 150mm; margin: 0; }
         @media print {
           .no-print { display: none !important; }
-          @page { size: 110mm 150mm; margin: 0; }
-          html, body { background: white !important; color: black !important; margin: 0 !important; padding: 0 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          html, body { width: 110mm !important; height: 150mm !important; background: white !important; color: black !important; margin: 0 !important; padding: 0 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
           body * { visibility: hidden !important; }
           .label-doc, .label-doc * { visibility: visible !important; }
-          .label-doc { position: absolute !important; left: 0; top: 0; width: 110mm !important; height: 150mm !important; padding: 3mm !important; box-sizing: border-box !important; background: white !important; color: black !important; font-family: Arial, Helvetica, sans-serif !important; font-weight: 700 !important; overflow: hidden !important; }
+          .label-doc { position: fixed !important; left: 0 !important; top: 0 !important; width: 110mm !important; height: 150mm !important; padding: 3mm !important; margin: 0 !important; box-sizing: border-box !important; background: white !important; color: black !important; font-family: Arial, Helvetica, sans-serif !important; font-weight: 700 !important; overflow: hidden !important; page-break-after: avoid !important; page-break-inside: avoid !important; }
           .label-doc * { color: black !important; border-color: black !important; opacity: 1 !important; background: white !important; text-shadow: 0 0 0 black !important; -webkit-font-smoothing: none !important; }
           .label-doc img { filter: none !important; }
           .label-doc svg { shape-rendering: crispEdges !important; }
