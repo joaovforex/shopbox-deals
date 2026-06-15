@@ -103,6 +103,14 @@ function ProductPage() {
   const { add } = useCart();
   const navigate = useNavigate();
   const [qty, setQty] = useState(1);
+  const user = useAuthUser();
+
+  const requireLogin = (target: "/carrinho" | "/checkout") => {
+    if (user) return false;
+    toast.info("Crie sua conta ou entre para continuar");
+    window.location.href = loginRedirectHref(target);
+    return true;
+  };
 
   if (isLoading || !product) {
     return (
