@@ -213,15 +213,22 @@ function FulfillmentPage() {
 
   const itemsByOrder = useMemo(() => {
     const map = new Map<string, ItemRow[]>();
-    for (const it of data?.items ?? []) {
+    const source = searchActive ? (searchData?.items ?? []) : (data?.items ?? []);
+    for (const it of source) {
       const arr = map.get(it.order_id) ?? [];
       arr.push(it);
       map.set(it.order_id, arr);
     }
     return map;
-  }, [data]);
+  }, [data, searchData, searchActive]);
 
   const orders = useMemo(() => {
+    if (searchActive) {
+      // Em modo busca: retorna todos os resultados, ordenados por data desc, ignorando aba e filtro de etiqueta
+      return [...(searchData?.orders ?? [])].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+    }
     let list = (data?.orders ?? []).filter((o) => {
       if (tab === "done") return o.fulfillment_status === "completed";
       if (tab === "delivery") return o.fulfillment_status === "ready";
@@ -244,7 +251,7 @@ function FulfillmentPage() {
       if (da !== db) return da - db;
       return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });
-  }, [data, tab, labelFilter]);
+  }, [data, searchData, searchActive, tab, labelFilter]);
 
   if (allowed === null) {
     return <Shell><div className="flex-1 flex items-center justify-center">Carregando...</div></Shell>;
