@@ -278,7 +278,38 @@ function FulfillmentPage() {
       </section>
 
       <section className="container mx-auto px-4 py-6 flex-1 space-y-4">
-        {tab === "delivery" && (
+        {/* Busca global por nome ou CPF */}
+        <div className="bg-card border border-border rounded-lg p-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar pedido por nome do cliente ou CPF (qualquer data, status ou aba)..."
+              className="w-full pl-10 pr-9 py-2.5 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                title="Limpar busca"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {searchActive && (
+            <div className="text-[11px] mt-2 text-accent font-bold uppercase tracking-wider">
+              Buscando em todos os pedidos · {searchLoading ? "carregando…" : `${(searchData?.orders ?? []).length} encontrado(s)`}
+            </div>
+          )}
+          {search.trim().length === 1 && (
+            <div className="text-[11px] mt-2 text-muted-foreground">Digite ao menos 2 caracteres…</div>
+          )}
+        </div>
+
+        {!searchActive && tab === "delivery" && (
           <ScannerPanel orders={data?.orders ?? []} onDeliver={markDelivered} />
         )}
 
