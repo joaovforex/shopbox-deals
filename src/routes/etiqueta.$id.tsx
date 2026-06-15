@@ -131,16 +131,16 @@ function LabelPage() {
       <style>{`
         @media print {
           .no-print { display: none !important; }
-          @page { size: auto; margin: 3mm; }
+          @page { size: 110mm 150mm; margin: 0; }
           html, body { background: white !important; color: black !important; margin: 0 !important; padding: 0 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
           body * { visibility: hidden !important; }
           .label-doc, .label-doc * { visibility: visible !important; }
-          .label-doc { position: absolute !important; left: 0; top: 0; width: 100%; background: white !important; color: black !important; font-family: Arial, Helvetica, sans-serif !important; font-weight: 700 !important; }
+          .label-doc { position: absolute !important; left: 0; top: 0; width: 110mm !important; height: 150mm !important; padding: 3mm !important; box-sizing: border-box !important; background: white !important; color: black !important; font-family: Arial, Helvetica, sans-serif !important; font-weight: 700 !important; overflow: hidden !important; }
           .label-doc * { color: black !important; border-color: black !important; opacity: 1 !important; background: white !important; text-shadow: 0 0 0 black !important; -webkit-font-smoothing: none !important; }
           .label-doc img { filter: none !important; }
           .label-doc svg { shape-rendering: crispEdges !important; }
         }
-        .label-doc { font-family: Arial, Helvetica, sans-serif; font-weight: 600; }
+        .label-doc { font-family: Arial, Helvetica, sans-serif; font-weight: 600; width: 110mm; min-height: 150mm; margin: 0 auto; box-sizing: border-box; }
       `}</style>
 
       <div className="min-h-screen bg-muted py-6 px-4">
