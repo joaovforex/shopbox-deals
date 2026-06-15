@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, Bell, CheckCheck, ScanLine, BellRing, XCircle, Hourglass } from "lucide-react";
+import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, Bell, CheckCheck, ScanLine, BellRing, XCircle, Hourglass, Search, X } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { hasAnyRole } from "@/lib/products";
@@ -20,6 +20,7 @@ type OrderRow = {
   customer_name: string;
   customer_email: string | null;
   customer_phone: string | null;
+  customer_cpf?: string | null;
   shipping_address: string | null;
   shipping_zip: string | null;
   shipping_city: string | null;
@@ -81,6 +82,8 @@ function FulfillmentPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [tab, setTab] = useState<"pickup" | "delivery" | "done" | "notifications">("pickup");
   const [labelFilter, setLabelFilter] = useState<"all" | "none" | "generated" | "printed">("all");
+  const [search, setSearch] = useState("");
+  const searchActive = search.trim().length >= 2;
   const qc = useQueryClient();
 
   useEffect(() => {
@@ -127,6 +130,38 @@ function FulfillmentPage() {
       }>;
     },
     refetchInterval: 30000,
+  });
+
+  // Busca global por nome ou CPF, independente de aba/data/status
+  const { data: searchData, isLoading: searchLoading } = useQuery({
+    queryKey: ["fulfillment-search", search.trim()],
+    enabled: allowed === true && searchActive,
+    queryFn: async () => {
+      const term = search.trim();
+      const digits = term.replace(/\D/g, "");
+      let q = supabase
+        .from("orders")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (digits.length >= 3) {
+        q = q.or(`customer_name.ilike.%${term}%,customer_cpf.ilike.%${digits}%`);
+      } else {
+        q = q.ilike("customer_name", `%${term}%`);
+      }
+      const { data: orders, error } = await q;
+      if (error) throw error;
+      const ids = (orders ?? []).map((o) => o.id);
+      let items: ItemRow[] = [];
+      if (ids.length) {
+        const { data: it } = await supabase
+          .from("order_items")
+          .select("order_id, product_name, quantity, unit_price")
+          .in("order_id", ids);
+        items = (it ?? []) as ItemRow[];
+      }
+      return { orders: (orders ?? []) as OrderRow[], items };
+    },
   });
 
   // Atualização em tempo real: novos pedidos + mudanças
@@ -178,15 +213,22 @@ function FulfillmentPage() {
 
   const itemsByOrder = useMemo(() => {
     const map = new Map<string, ItemRow[]>();
-    for (const it of data?.items ?? []) {
+    const source = searchActive ? (searchData?.items ?? []) : (data?.items ?? []);
+    for (const it of source) {
       const arr = map.get(it.order_id) ?? [];
       arr.push(it);
       map.set(it.order_id, arr);
     }
     return map;
-  }, [data]);
+  }, [data, searchData, searchActive]);
 
   const orders = useMemo(() => {
+    if (searchActive) {
+      // Em modo busca: retorna todos os resultados, ordenados por data desc, ignorando aba e filtro de etiqueta
+      return [...(searchData?.orders ?? [])].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+    }
     let list = (data?.orders ?? []).filter((o) => {
       if (tab === "done") return o.fulfillment_status === "completed";
       if (tab === "delivery") return o.fulfillment_status === "ready";
@@ -209,7 +251,7 @@ function FulfillmentPage() {
       if (da !== db) return da - db;
       return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });
-  }, [data, tab, labelFilter]);
+  }, [data, searchData, searchActive, tab, labelFilter]);
 
   if (allowed === null) {
     return <Shell><div className="flex-1 flex items-center justify-center">Carregando...</div></Shell>;
@@ -236,7 +278,38 @@ function FulfillmentPage() {
       </section>
 
       <section className="container mx-auto px-4 py-6 flex-1 space-y-4">
-        {tab === "delivery" && (
+        {/* Busca global por nome ou CPF */}
+        <div className="bg-card border border-border rounded-lg p-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar pedido por nome do cliente ou CPF (qualquer data, status ou aba)..."
+              className="w-full pl-10 pr-9 py-2.5 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                title="Limpar busca"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {searchActive && (
+            <div className="text-[11px] mt-2 text-accent font-bold uppercase tracking-wider">
+              Buscando em todos os pedidos · {searchLoading ? "carregando…" : `${(searchData?.orders ?? []).length} encontrado(s)`}
+            </div>
+          )}
+          {search.trim().length === 1 && (
+            <div className="text-[11px] mt-2 text-muted-foreground">Digite ao menos 2 caracteres…</div>
+          )}
+        </div>
+
+        {!searchActive && tab === "delivery" && (
           <ScannerPanel orders={data?.orders ?? []} onDeliver={markDelivered} />
         )}
 
@@ -280,14 +353,14 @@ function FulfillmentPage() {
           )}
         </div>
 
-        {tab === "notifications" ? (
+        {!searchActive && tab === "notifications" ? (
           <NotificationsPanel rows={notifData ?? []} />
-        ) : isLoading ? (
+        ) : (searchActive ? searchLoading : isLoading) ? (
           <div className="bg-card border border-border rounded-lg p-8 text-center text-muted-foreground">Carregando...</div>
         ) : orders.length === 0 ? (
           <div className="bg-card border border-border rounded-lg p-8 text-center text-muted-foreground">
             <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-primary" />
-            Nenhum pedido em aberto nesta fila.
+            {searchActive ? "Nenhum pedido encontrado para esta busca." : "Nenhum pedido em aberto nesta fila."}
           </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-4">

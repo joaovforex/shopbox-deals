@@ -66,11 +66,14 @@ function OrdersPanel() {
     isSuperAdmin().then(setSuperAdmin);
   }, []);
 
+  // Ao buscar por nome/CPF, ignora o período selecionado e procura em todos os pedidos.
+  const effectivePeriod: Period = searchCpf.trim() ? "all" : period;
+
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-orders", period],
+    queryKey: ["admin-orders", effectivePeriod],
     enabled: admin === true,
     queryFn: async () => {
-      const since = startOf(period);
+      const since = startOf(effectivePeriod);
       let q = supabase
         .from("orders")
         .select("*")
@@ -324,6 +327,12 @@ function OrdersPanel() {
                   <Filter className="h-3.5 w-3.5" /> Filtros
                 </button>
               </div>
+
+              {searchCpf.trim() && (
+                <div className="text-[11px] text-accent font-bold uppercase tracking-wider">
+                  Buscando em todos os pedidos (período ignorado)
+                </div>
+              )}
 
               {showFilters && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
