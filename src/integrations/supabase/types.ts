@@ -214,19 +214,25 @@ export type Database = {
       }
       profiles: {
         Row: {
+          cpf: string | null
           created_at: string
           full_name: string | null
           id: string
+          phone: string | null
         }
         Insert: {
+          cpf?: string | null
           created_at?: string
           full_name?: string | null
           id: string
+          phone?: string | null
         }
         Update: {
+          cpf?: string | null
           created_at?: string
           full_name?: string | null
           id?: string
+          phone?: string | null
         }
         Relationships: []
       }
