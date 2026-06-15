@@ -66,11 +66,14 @@ function OrdersPanel() {
     isSuperAdmin().then(setSuperAdmin);
   }, []);
 
+  // Ao buscar por nome/CPF, ignora o período selecionado e procura em todos os pedidos.
+  const effectivePeriod: Period = searchCpf.trim() ? "all" : period;
+
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-orders", period],
+    queryKey: ["admin-orders", effectivePeriod],
     enabled: admin === true,
     queryFn: async () => {
-      const since = startOf(period);
+      const since = startOf(effectivePeriod);
       let q = supabase
         .from("orders")
         .select("*")
