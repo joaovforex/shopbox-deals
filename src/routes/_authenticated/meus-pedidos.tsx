@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Package, ArrowRight, Clock, CheckCircle2, Store, XCircle } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +32,7 @@ function statusBadge(o: Row): { label: string; cls: string; icon: React.ReactNod
 }
 
 function MyOrdersPage() {
+  const queryClient = useQueryClient();
   const { data: orders, isLoading } = useQuery({
     queryKey: ["my-orders"],
     queryFn: async () => {
@@ -44,8 +46,31 @@ function MyOrdersPage() {
       if (error) throw error;
       return (data ?? []) as Row[];
     },
-    refetchInterval: 20000,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
+
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || cancelled) return;
+      channel = supabase
+        .channel(`orders-user-${user.id}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "orders", filter: `user_id=eq.${user.id}` },
+          () => { queryClient.invalidateQueries({ queryKey: ["my-orders"] }); },
+        )
+        .subscribe();
+    })();
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
 
   return (
     <div className="min-h-screen flex flex-col">

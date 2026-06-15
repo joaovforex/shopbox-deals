@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Upload, Crown, BarChart3, Truck, Users, Package, ShieldAlert } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchProducts, getRoleSummary, uploadProductImage, type Product, type RoleSummary } from "@/lib/products";
+import { fetchProducts, getRoleSummary, isVideoUrl, uploadProductImage, type Product, type RoleSummary } from "@/lib/products";
 import { claimFirstAdmin } from "@/lib/admin.functions";
 import { brl, discountPct } from "@/lib/format";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
@@ -605,16 +605,16 @@ function ProductForm({
               <input
                 ref={fallbackCameraInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,video/*"
                 capture="environment"
                 className="hidden"
                 onChange={handleFileInputChange}
               />
               <label className="inline-flex items-center gap-1.5 text-xs bg-secondary hover:bg-muted px-3 py-1.5 rounded cursor-pointer">
-                <Upload className="h-3.5 w-3.5" /> {uploading ? "Enviando..." : "Adicionar fotos"}
+                <Upload className="h-3.5 w-3.5" /> {uploading ? "Enviando..." : "Adicionar fotos/vídeos"}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   multiple
                   className="hidden"
                   onChange={handleFileInputChange}
@@ -628,23 +628,30 @@ function ProductForm({
             <label className="block aspect-[4/1] rounded-lg border-2 border-dashed border-border bg-muted flex items-center justify-center cursor-pointer hover:border-primary">
               <input
                 type="file"
-                accept="image/*"
+                accept="image/*,video/*"
                 multiple
                 className="hidden"
                 onChange={handleFileInputChange}
               />
               <div className="text-center text-xs text-muted-foreground">
                 <Upload className="h-6 w-6 mx-auto mb-1" />
-                Clique para enviar uma ou mais imagens
+                Clique para enviar imagens ou vídeos
               </div>
             </label>
           ) : (
             <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
               {images.map((src, idx) => (
-                <div key={src} className="relative aspect-square rounded-md overflow-hidden border border-border group">
-                  <img src={src} alt="" className="w-full h-full object-cover" />
+                <div key={src} className="relative aspect-square rounded-md overflow-hidden border border-border group bg-black">
+                  {isVideoUrl(src) ? (
+                    <video src={src} className="w-full h-full object-cover" muted playsInline preload="metadata" />
+                  ) : (
+                    <img src={src} alt="" className="w-full h-full object-cover" />
+                  )}
                   {idx === 0 && (
                     <span className="absolute top-1 left-1 bg-primary text-primary-foreground text-[9px] font-bold px-1.5 py-0.5 rounded">CAPA</span>
+                  )}
+                  {isVideoUrl(src) && (
+                    <span className="absolute bottom-1 right-1 bg-background/80 text-foreground text-[9px] font-bold px-1.5 py-0.5 rounded">VÍDEO</span>
                   )}
                   <div className="absolute inset-0 bg-background/70 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1">
                     <button type="button" onClick={() => moveImage(idx, -1)} className="bg-secondary text-xs px-1.5 py-0.5 rounded" disabled={idx === 0}>←</button>

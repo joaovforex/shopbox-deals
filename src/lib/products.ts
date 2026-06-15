@@ -37,6 +37,12 @@ export function productImages(p: Pick<Product, "images" | "image_url">): string[
   return p.image_url ? [p.image_url] : [];
 }
 
+export function isVideoUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const clean = url.split("?")[0].toLowerCase();
+  return /\.(mp4|webm|mov|m4v|ogg)$/.test(clean);
+}
+
 export async function fetchProducts(opts: { onlyActive?: boolean } = {}) {
   let q = supabase.from("products").select("*").order("created_at", { ascending: false });
   if (opts.onlyActive) q = q.eq("active", true);

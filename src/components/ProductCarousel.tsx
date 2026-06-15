@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, ZoomIn, Play } from "lucide-react";
+import { isVideoUrl } from "@/lib/products";
 
 export function ProductCarousel({
   images,
@@ -59,14 +60,24 @@ export function ProductCarousel({
               type="button"
               onClick={() => setZoom(true)}
               className="w-full h-full shrink-0 cursor-zoom-in bg-card"
-              aria-label="Ampliar imagem"
+              aria-label={isVideoUrl(src) ? "Ampliar vídeo" : "Ampliar imagem"}
             >
-              <img
-                src={src}
-                alt={`${alt} ${idx + 1}`}
-                className="w-full h-full object-contain"
-                draggable={false}
-              />
+              {isVideoUrl(src) ? (
+                <video
+                  src={src}
+                  className="w-full h-full object-contain bg-black"
+                  controls
+                  playsInline
+                  preload="metadata"
+                />
+              ) : (
+                <img
+                  src={src}
+                  alt={`${alt} ${idx + 1}`}
+                  className="w-full h-full object-contain"
+                  draggable={false}
+                />
+              )}
             </button>
           ))}
         </div>
@@ -121,12 +132,21 @@ export function ProductCarousel({
               key={src + "thumb" + idx}
               type="button"
               onClick={() => setI(idx)}
-              aria-label={`Selecionar imagem ${idx + 1}`}
-              className={`shrink-0 h-16 w-16 rounded-md overflow-hidden border-2 transition ${
+              aria-label={`Selecionar ${isVideoUrl(src) ? "vídeo" : "imagem"} ${idx + 1}`}
+              className={`relative shrink-0 h-16 w-16 rounded-md overflow-hidden border-2 transition ${
                 idx === i ? "border-primary" : "border-border opacity-70 hover:opacity-100"
               }`}
             >
-              <img src={src} alt={`${alt} miniatura ${idx + 1}`} className="w-full h-full object-cover" />
+              {isVideoUrl(src) ? (
+                <>
+                  <video src={src} className="w-full h-full object-cover bg-black" muted playsInline preload="metadata" />
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <Play className="h-5 w-5 text-white fill-white" />
+                  </span>
+                </>
+              ) : (
+                <img src={src} alt={`${alt} miniatura ${idx + 1}`} className="w-full h-full object-cover" />
+              )}
             </button>
           ))}
         </div>
@@ -146,13 +166,24 @@ export function ProductCarousel({
             <X className="h-5 w-5" />
           </button>
 
-          <img
-            src={images[i]}
-            alt={`${alt} ampliada`}
-            className="max-h-full max-w-full object-contain select-none"
-            onClick={(e) => e.stopPropagation()}
-            draggable={false}
-          />
+          {isVideoUrl(images[i]) ? (
+            <video
+              src={images[i]}
+              className="max-h-full max-w-full object-contain"
+              controls
+              autoPlay
+              playsInline
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <img
+              src={images[i]}
+              alt={`${alt} ampliada`}
+              className="max-h-full max-w-full object-contain select-none"
+              onClick={(e) => e.stopPropagation()}
+              draggable={false}
+            />
+          )}
 
           {n > 1 && (
             <>
