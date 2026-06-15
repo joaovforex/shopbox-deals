@@ -42,6 +42,8 @@ type ItemRow = {
   product_name: string;
   quantity: number;
   unit_price: number;
+  product_id?: string | null;
+  sku?: string | null;
 };
 
 const STATUS_LABEL: Record<string, string> = {
