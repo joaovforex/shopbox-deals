@@ -42,7 +42,7 @@ function MyOrdersPage() {
       if (!user) return [] as Row[];
       const { data, error } = await supabase
         .from("orders")
-        .select("id, created_at, status, fulfillment_status, total, payment_method")
+        .select("id, created_at, status, fulfillment_status, total, payment_method, order_items(id, product_name, quantity)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
