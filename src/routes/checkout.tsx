@@ -50,6 +50,13 @@ function CheckoutPage() {
   const [busy, setBusy] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const createPref = useServerFn(createMpPreference);
+  const user = useAuthUser();
+
+  useEffect(() => {
+    if (user === null) {
+      window.location.href = loginRedirectHref("/checkout");
+    }
+  }, [user]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
