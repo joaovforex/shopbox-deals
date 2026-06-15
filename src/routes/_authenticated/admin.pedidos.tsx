@@ -328,6 +328,20 @@ function OrdersPanel() {
                 </button>
               </div>
 
+              {searchCpf.trim() && (
+                <div className="text-[11px] text-accent font-bold uppercase tracking-wider">
+                  Buscando em todos os pedidos (período ignorado)
+                </div>
+              )}
+                </div>
+                <button
+                  onClick={() => setShowFilters((s) => !s)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded border text-xs font-bold uppercase tracking-wider shrink-0 ${showFilters ? "bg-primary text-primary-foreground border-primary" : "border-border hover:bg-secondary"}`}
+                >
+                  <Filter className="h-3.5 w-3.5" /> Filtros
+                </button>
+              </div>
+
               {showFilters && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <select
