@@ -116,12 +116,18 @@ function TeamPage() {
         return;
       }
       setSearchResults(res);
+      // Atualiza a lista de membros para refletir os cargos atribuídos a quem foi buscado.
+      qc.invalidateQueries({ queryKey: ["team-members"] });
+      refetch();
     } catch (e: any) {
       toast.error(e.message ?? "Erro na busca");
     } finally {
       setSearching(false);
     }
   };
+
+  const rolesFor = (user_id: string): TeamRole[] =>
+    (members.find((m) => m.user_id === user_id)?.roles ?? []).filter((r) => r !== "user");
 
   const assignRole = async (user_id: string, role: TeamRole) => {
     if (role === "admin" && !confirm("Atribuir SUPER ADMIN dá controle TOTAL da loja (produtos, pedidos, métricas e equipe). Confirma?")) return;
@@ -200,6 +206,28 @@ function TeamPage() {
                     <div className="font-semibold text-sm truncate">{u.full_name ?? "(sem nome)"}</div>
                     <div className="text-xs text-muted-foreground truncate">{u.email ?? "(sem email)"}</div>
                     <div className="text-[10px] text-muted-foreground font-mono">{u.id.slice(0, 8)}...</div>
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {rolesFor(u.id).length === 0 ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground font-bold uppercase tracking-wider">
+                          Sem função interna
+                        </span>
+                      ) : (
+                        rolesFor(u.id).map((r) => (
+                          <span
+                            key={r}
+                            className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded font-bold ${
+                              r === "admin" ? "bg-primary/20 text-primary" :
+                              r === "manager" ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400" :
+                              r === "catalog" ? "bg-accent/20 text-accent" :
+                              r === "fulfillment" ? "bg-[#25D366]/20 text-[#25D366]" :
+                              "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {ROLE_ICON[r]} {ROLE_LABEL[r]}
+                          </span>
+                        ))
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {ASSIGNABLE.map((r) => (

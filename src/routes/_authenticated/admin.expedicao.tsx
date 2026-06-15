@@ -67,12 +67,9 @@ function hoursSince(iso?: string | null) {
 
 function isDelayed(o: OrderRow) {
   if (o.fulfillment_status === "completed") return false;
-  // Pendente há mais de 2h
-  if (o.fulfillment_status === "pending" && hoursSince(o.created_at) > 2) return true;
-  // Etiqueta gerada mas não impressa há mais de 1h
-  if (o.label_status === "generated" && hoursSince(o.label_generated_at) > 1) return true;
-  // Sem etiqueta e não é retirada já pronta há mais de 4h
-  if (!o.label_status && hoursSince(o.created_at) > 4) return true;
+  // Considera atrasado apenas após 5 dias (120h) desde a criação do pedido.
+  const FIVE_DAYS_HOURS = 24 * 5;
+  if (hoursSince(o.created_at) > FIVE_DAYS_HOURS) return true;
   return false;
 }
 

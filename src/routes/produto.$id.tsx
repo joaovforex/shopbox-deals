@@ -93,7 +93,7 @@ function ProductPage() {
     queryKey: ["can-share-admin"],
     queryFn: async () => {
       const r = await getRoleSummary();
-      return r.isSuperAdmin || r.isManager;
+      return r.isSuperAdmin || r.isManager || r.isCatalog;
     },
     staleTime: 60_000,
   });
