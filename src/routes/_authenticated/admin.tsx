@@ -281,14 +281,22 @@ function AdminPage() {
           <span className="text-xs text-muted-foreground ml-auto">
             {(() => {
               const t = search.trim().toLowerCase();
-              const n = t ? products.filter((p) => p.name.toLowerCase().includes(t) || (p.category ?? "").toLowerCase().includes(t)).length : products.length;
+              const match = (p: typeof products[number]) =>
+                p.name.toLowerCase().includes(t)
+                || (p.category ?? "").toLowerCase().includes(t)
+                || (p.sku ?? "").toLowerCase().includes(t);
+              const n = t ? products.filter(match).length : products.length;
               return `${n} ${n === 1 ? "resultado" : "resultados"}`;
             })()}
           </span>
         </div>
         {(() => {
           const t = search.trim().toLowerCase();
-          const filtered = t ? products.filter((p) => p.name.toLowerCase().includes(t) || (p.category ?? "").toLowerCase().includes(t)) : products;
+          const match = (p: typeof products[number]) =>
+            p.name.toLowerCase().includes(t)
+            || (p.category ?? "").toLowerCase().includes(t)
+            || (p.sku ?? "").toLowerCase().includes(t);
+          const filtered = t ? products.filter(match) : products;
           if (products.length === 0) {
             return (
               <div className="text-center py-20 bg-card rounded-lg border border-border">
