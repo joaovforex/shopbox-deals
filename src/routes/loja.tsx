@@ -101,7 +101,7 @@ function Loja() {
       ))}
       <Header />
 
-      <section className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <section className="container mx-auto pl-6 pr-3 sm:pl-10 sm:pr-4 py-4 sm:py-6">
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
