@@ -266,7 +266,7 @@ function TeamPage() {
         <div className="bg-card border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-secondary">
             <h2 className="display text-lg">Membros e funções</h2>
-            <p className="text-xs text-muted-foreground">{members.filter((m) => m.roles.some((r) => r !== "user")).length} pessoas com funções internas</p>
+            <p className="text-xs text-muted-foreground">{members.length} pessoas cadastradas</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
