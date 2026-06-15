@@ -46,8 +46,6 @@ function AdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
 
-  if (isChildRoute) return <Outlet />;
-
   // If a draft for an existing product was in progress, reopen edit form once loaded.
   useEffect(() => {
     if (!products.length || editing || showForm) return;
@@ -77,6 +75,8 @@ function AdminPage() {
       setShowForm(true);
     } catch {}
   }, []);
+
+  if (isChildRoute) return <Outlet />;
 
   if (roles === null) {
     return (
