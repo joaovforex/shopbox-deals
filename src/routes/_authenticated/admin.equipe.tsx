@@ -116,12 +116,18 @@ function TeamPage() {
         return;
       }
       setSearchResults(res);
+      // Atualiza a lista de membros para refletir os cargos atribuídos a quem foi buscado.
+      qc.invalidateQueries({ queryKey: ["team-members"] });
+      refetch();
     } catch (e: any) {
       toast.error(e.message ?? "Erro na busca");
     } finally {
       setSearching(false);
     }
   };
+
+  const rolesFor = (user_id: string): TeamRole[] =>
+    (members.find((m) => m.user_id === user_id)?.roles ?? []).filter((r) => r !== "user");
 
   const assignRole = async (user_id: string, role: TeamRole) => {
     if (role === "admin" && !confirm("Atribuir SUPER ADMIN dá controle TOTAL da loja (produtos, pedidos, métricas e equipe). Confirma?")) return;
