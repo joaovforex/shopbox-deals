@@ -9,6 +9,7 @@ import { brl, discountPct } from "@/lib/format";
 import { fetchProduct, getRoleSummary, productImages, type Product } from "@/lib/products";
 import { getRequestOrigin } from "@/lib/origin.functions";
 import { useCart } from "@/lib/cart";
+import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 
 export const Route = createFileRoute("/produto/$id")({
   loader: async ({ params, context }) => {
