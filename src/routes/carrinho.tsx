@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Trash2, Minus, Plus } from "lucide-react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { useCart } from "@/lib/cart";
+import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
 
 export const Route = createFileRoute("/carrinho")({
@@ -11,6 +13,25 @@ export const Route = createFileRoute("/carrinho")({
 
 function CartPage() {
   const { items, setQty, remove, total, clear } = useCart();
+  const user = useAuthUser();
+
+  useEffect(() => {
+    if (user === null) {
+      window.location.href = loginRedirectHref("/carrinho");
+    }
+  }, [user]);
+
+  if (user === undefined || user === null) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center p-6 text-center text-muted-foreground">
+          {user === null ? "Redirecionando para login..." : "Carregando..."}
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

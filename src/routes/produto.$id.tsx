@@ -9,6 +9,7 @@ import { brl, discountPct } from "@/lib/format";
 import { fetchProduct, getRoleSummary, productImages, type Product } from "@/lib/products";
 import { getRequestOrigin } from "@/lib/origin.functions";
 import { useCart } from "@/lib/cart";
+import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 
 export const Route = createFileRoute("/produto/$id")({
   loader: async ({ params, context }) => {
@@ -102,6 +103,14 @@ function ProductPage() {
   const { add } = useCart();
   const navigate = useNavigate();
   const [qty, setQty] = useState(1);
+  const user = useAuthUser();
+
+  const requireLogin = (target: "/carrinho" | "/checkout") => {
+    if (user) return false;
+    toast.info("Crie sua conta ou entre para continuar");
+    window.location.href = loginRedirectHref(target);
+    return true;
+  };
 
   if (isLoading || !product) {
     return (
@@ -187,6 +196,7 @@ function ProductPage() {
   const nativeShare = shareWithImage;
 
   const addToCart = () => {
+    if (requireLogin("/carrinho")) return;
     add({ id: product.id, name: product.name, price: product.price, image_url: product.image_url }, qty);
     toast.success(`Adicionado ao carrinho (${qty}x)`);
   };
@@ -272,6 +282,7 @@ function ProductPage() {
                 </div>
                 <button
                   onClick={() => {
+                    if (requireLogin("/checkout")) return;
                     add({ id: product.id, name: product.name, price: product.price, image_url: productImages(product)[0] ?? null }, qty);
                     navigate({ to: "/checkout" });
                   }}

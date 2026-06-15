@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
 import { Header, Footer } from "@/components/Header";
 import { useCart } from "@/lib/cart";
+import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
 import { createMpPreference } from "@/lib/mercadopago.functions";
 
@@ -49,6 +50,13 @@ function CheckoutPage() {
   const [busy, setBusy] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const createPref = useServerFn(createMpPreference);
+  const user = useAuthUser();
+
+  useEffect(() => {
+    if (user === null) {
+      window.location.href = loginRedirectHref("/checkout");
+    }
+  }, [user]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -73,6 +81,18 @@ function CheckoutPage() {
       }
     })();
   }, []);
+
+  if (user === undefined || user === null) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center p-6 text-center text-muted-foreground">
+          {user === null ? "Redirecionando para login..." : "Carregando..."}
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (items.length === 0 && !redirecting) {
     return (

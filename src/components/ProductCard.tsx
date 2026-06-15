@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { brl, discountPct } from "@/lib/format";
 import { productImages, type Product, type ProductCard as ProductCardData } from "@/lib/products";
 import { useCart } from "@/lib/cart";
+import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 
 export function ProductCard({ product, priority = false }: { product: Product | ProductCardData; priority?: boolean }) {
   const off = discountPct(product.original_price, product.price);
@@ -10,6 +11,7 @@ export function ProductCard({ product, priority = false }: { product: Product | 
   const cover = imgs[0];
   const { add } = useCart();
   const navigate = useNavigate();
+  const user = useAuthUser();
 
   const cartItem = {
     id: product.id,
@@ -18,10 +20,18 @@ export function ProductCard({ product, priority = false }: { product: Product | 
     image_url: cover ?? null,
   };
 
+  const requireLogin = (target: "/carrinho" | "/checkout") => {
+    if (user) return false;
+    toast.info("Crie sua conta ou entre para continuar");
+    window.location.href = loginRedirectHref(target);
+    return true;
+  };
+
   const addToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (product.stock === 0) return;
+    if (requireLogin("/carrinho")) return;
     add(cartItem, 1);
     toast.success("Adicionado ao carrinho");
   };
@@ -30,6 +40,7 @@ export function ProductCard({ product, priority = false }: { product: Product | 
     e.preventDefault();
     e.stopPropagation();
     if (product.stock === 0) return;
+    if (requireLogin("/checkout")) return;
     add(cartItem, 1);
     navigate({ to: "/checkout" });
   };
