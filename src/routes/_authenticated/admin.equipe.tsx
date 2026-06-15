@@ -263,6 +263,7 @@ function TeamPage() {
                   <tr key={m.user_id} className="border-t border-border">
                     <td className="p-3">
                       <div className="font-semibold">{m.full_name ?? "(sem nome)"}</div>
+                      <div className="text-xs text-muted-foreground">{m.email ?? "(sem email)"}</div>
                       <div className="text-xs text-muted-foreground font-mono">{m.user_id.slice(0, 8)}...</div>
                     </td>
                     <td className="p-3">
