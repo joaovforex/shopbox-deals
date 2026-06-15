@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
 import { Header, Footer } from "@/components/Header";
 import { useCart } from "@/lib/cart";
+import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
 import { createMpPreference } from "@/lib/mercadopago.functions";
 
