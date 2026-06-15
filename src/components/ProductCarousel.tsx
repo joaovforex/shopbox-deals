@@ -132,12 +132,21 @@ export function ProductCarousel({
               key={src + "thumb" + idx}
               type="button"
               onClick={() => setI(idx)}
-              aria-label={`Selecionar imagem ${idx + 1}`}
-              className={`shrink-0 h-16 w-16 rounded-md overflow-hidden border-2 transition ${
+              aria-label={`Selecionar ${isVideoUrl(src) ? "vídeo" : "imagem"} ${idx + 1}`}
+              className={`relative shrink-0 h-16 w-16 rounded-md overflow-hidden border-2 transition ${
                 idx === i ? "border-primary" : "border-border opacity-70 hover:opacity-100"
               }`}
             >
-              <img src={src} alt={`${alt} miniatura ${idx + 1}`} className="w-full h-full object-cover" />
+              {isVideoUrl(src) ? (
+                <>
+                  <video src={src} className="w-full h-full object-cover bg-black" muted playsInline preload="metadata" />
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <Play className="h-5 w-5 text-white fill-white" />
+                  </span>
+                </>
+              ) : (
+                <img src={src} alt={`${alt} miniatura ${idx + 1}`} className="w-full h-full object-cover" />
+              )}
             </button>
           ))}
         </div>
