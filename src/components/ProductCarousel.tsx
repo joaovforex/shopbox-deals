@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, ZoomIn, Play } from "lucide-react";
+import { isVideoUrl } from "@/lib/products";
 
 export function ProductCarousel({
   images,
