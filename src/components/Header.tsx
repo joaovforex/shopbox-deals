@@ -221,6 +221,16 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-2 justify-end">
+            {user && !hasTeamRole && (
+              <Link
+                to="/meus-pedidos"
+                aria-label="Meus pedidos"
+                className="hidden md:inline-flex items-center gap-2 px-2 sm:px-3 h-10 rounded-md bg-secondary hover:bg-muted text-sm font-bold"
+              >
+                <Package className="h-4 w-4" />
+                <span className="hidden lg:inline">Meus pedidos</span>
+              </Link>
+            )}
             {hasTeamRole && (
               <Link
                 to="/admin"
