@@ -82,6 +82,18 @@ function CheckoutPage() {
     })();
   }, []);
 
+  if (user === undefined || user === null) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center p-6 text-center text-muted-foreground">
+          {user === null ? "Redirecionando para login..." : "Carregando..."}
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   if (items.length === 0 && !redirecting) {
     return (
       <div className="min-h-screen flex flex-col">
