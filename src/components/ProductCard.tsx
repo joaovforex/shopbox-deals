@@ -93,6 +93,11 @@ export function ProductCard({ product, priority = false }: { product: Product | 
         <h3 className="text-xs sm:text-sm font-semibold line-clamp-2 min-h-[2.25rem] sm:min-h-[2.5rem] leading-snug">
           {product.name}
         </h3>
+        {"sku" in product && product.sku && (
+          <span className="text-[10px] font-mono text-muted-foreground tracking-wider">
+            Cód. {product.sku}
+          </span>
+        )}
         {product.original_price && product.original_price > product.price && (
           <span className="text-[11px] text-muted-foreground line-through">
             {brl(product.original_price)}
