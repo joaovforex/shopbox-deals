@@ -132,6 +132,38 @@ function FulfillmentPage() {
     refetchInterval: 30000,
   });
 
+  // Busca global por nome ou CPF, independente de aba/data/status
+  const { data: searchData, isLoading: searchLoading } = useQuery({
+    queryKey: ["fulfillment-search", search.trim()],
+    enabled: allowed === true && searchActive,
+    queryFn: async () => {
+      const term = search.trim();
+      const digits = term.replace(/\D/g, "");
+      let q = supabase
+        .from("orders")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (digits.length >= 3) {
+        q = q.or(`customer_name.ilike.%${term}%,customer_cpf.ilike.%${digits}%`);
+      } else {
+        q = q.ilike("customer_name", `%${term}%`);
+      }
+      const { data: orders, error } = await q;
+      if (error) throw error;
+      const ids = (orders ?? []).map((o) => o.id);
+      let items: ItemRow[] = [];
+      if (ids.length) {
+        const { data: it } = await supabase
+          .from("order_items")
+          .select("order_id, product_name, quantity, unit_price")
+          .in("order_id", ids);
+        items = (it ?? []) as ItemRow[];
+      }
+      return { orders: (orders ?? []) as OrderRow[], items };
+    },
+  });
+
   // Atualização em tempo real: novos pedidos + mudanças
   useEffect(() => {
     if (allowed !== true) return;
