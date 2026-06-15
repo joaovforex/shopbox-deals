@@ -118,9 +118,18 @@ function MyOrdersPage() {
                         {b.icon} {b.label}
                       </span>
                     </div>
-                    <div className="mt-3 flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Total</span>
-                      <span className="display text-xl text-price">{brl(Number(o.total))}</span>
+                    <div className="mt-3 flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1">Produtos</p>
+                        <ul className="text-sm text-foreground space-y-0.5">
+                          {(o.order_items ?? []).map((item) => (
+                            <li key={item.id} className="truncate">
+                              {item.quantity}x {item.product_name}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <span className="display text-xl text-price whitespace-nowrap">{brl(Number(o.total))}</span>
                     </div>
                     {isReady && (
                       <div className="mt-3 text-xs bg-primary/10 border border-primary/30 rounded px-3 py-2">
