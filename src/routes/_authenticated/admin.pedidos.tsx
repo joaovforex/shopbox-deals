@@ -96,8 +96,13 @@ function OrdersPanel() {
 
     // Apply filters
     if (searchCpf.trim()) {
-      const raw = searchCpf.replace(/\D/g, "");
-      orders = orders.filter((o) => (o.customer_cpf ?? "").replace(/\D/g, "").includes(raw));
+      const term = searchCpf.trim().toLowerCase();
+      const digits = term.replace(/\D/g, "");
+      orders = orders.filter((o) => {
+        const matchName = (o.customer_name ?? "").toLowerCase().includes(term);
+        const matchCpf = digits.length > 0 && (o.customer_cpf ?? "").replace(/\D/g, "").includes(digits);
+        return matchName || matchCpf;
+      });
     }
     if (filterDelivery !== "all") {
       orders = orders.filter((o) => o.delivery_method === filterDelivery);
