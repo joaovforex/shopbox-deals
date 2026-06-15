@@ -34,8 +34,6 @@ function AdminPage() {
     }
   }, [roles, isChildRoute, navigate]);
 
-  if (isChildRoute) return <Outlet />;
-
   const canManageProducts = !!roles && (roles.isCatalog || roles.isManager);
 
   const { data: products = [], refetch } = useQuery({
@@ -47,6 +45,8 @@ function AdminPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
+
+  if (isChildRoute) return <Outlet />;
 
   // If a draft for an existing product was in progress, reopen edit form once loaded.
   useEffect(() => {
