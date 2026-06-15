@@ -434,6 +434,11 @@ function FulfillmentPage() {
                         <span className="flex items-center gap-2">
                           <Package className="h-3.5 w-3.5 text-muted-foreground" />
                           {it.quantity}x {it.product_name}
+                          {it.sku && (
+                            <span className="ml-1 inline-flex items-center rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-accent">
+                              {it.sku}
+                            </span>
+                          )}
                         </span>
                         <span className="font-semibold whitespace-nowrap">{brl(it.unit_price * it.quantity)}</span>
                       </li>
