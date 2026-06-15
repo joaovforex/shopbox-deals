@@ -282,6 +282,7 @@ function ProductPage() {
                 </div>
                 <button
                   onClick={() => {
+                    if (requireLogin("/checkout")) return;
                     add({ id: product.id, name: product.name, price: product.price, image_url: productImages(product)[0] ?? null }, qty);
                     navigate({ to: "/checkout" });
                   }}
