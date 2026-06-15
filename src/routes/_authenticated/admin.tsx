@@ -333,6 +333,7 @@ function AdminPage() {
                         </div>
                         <div>
                           <div className="font-semibold">{p.name}</div>
+                          <div className="text-xs font-mono text-muted-foreground">Cód. {p.sku}</div>
                           {p.category && <div className="text-xs text-muted-foreground">{p.category}</div>}
                         </div>
                       </div>
