@@ -1,4 +1,4 @@
-import { queryOptions, infiniteQueryOptions } from "@tanstack/react-query";
+import { queryOptions, infiniteQueryOptions, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 
