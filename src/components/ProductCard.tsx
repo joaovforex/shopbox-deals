@@ -12,6 +12,9 @@ export function ProductCard({ product, priority = false }: { product: Product | 
   const { add } = useCart();
   const navigate = useNavigate();
   const user = useAuthUser();
+  const isTeam = useHasTeamRole();
+  const ageDays = (Date.now() - new Date(product.created_at).getTime()) / 86_400_000;
+  const stale = isTeam && product.stock > 0 && ageDays > 5;
 
   const cartItem = {
     id: product.id,
