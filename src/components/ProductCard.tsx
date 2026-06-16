@@ -97,8 +97,16 @@ export function ProductCard({ product, priority = false }: { product: Product | 
           {product.name}
         </h3>
         {"sku" in product && product.sku && (
-          <span className="text-[10px] font-mono text-muted-foreground tracking-wider">
+          <span className="text-[10px] font-mono text-muted-foreground tracking-wider inline-flex items-center gap-1.5">
             Cód. {product.sku}
+            {stale && (
+              <span
+                className="inline-flex items-center rounded bg-destructive/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-destructive"
+                title="Produto cadastrado há mais de 5 dias e ainda não vendido"
+              >
+                +5
+              </span>
+            )}
           </span>
         )}
         {product.original_price && product.original_price > product.price && (
