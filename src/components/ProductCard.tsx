@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { brl, discountPct } from "@/lib/format";
-import { productImages, type Product, type ProductCard as ProductCardData } from "@/lib/products";
+import { productImages, useHasTeamRole, type Product, type ProductCard as ProductCardData } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 
