@@ -703,7 +703,7 @@ function notifReason(o: NotifRow): { title: string; detail: string; tone: "warn"
   };
 }
 
-function NotificationsPanel({ rows }: { rows: NotifRow[] }) {
+function NotificationsPanel({ rows, itemsByOrder }: { rows: NotifRow[]; itemsByOrder: Map<string, ItemRow[]> }) {
   if (rows.length === 0) {
     return (
       <div className="bg-card border border-border rounded-lg p-8 text-center text-muted-foreground">
@@ -729,6 +729,7 @@ function NotificationsPanel({ rows }: { rows: NotifRow[] }) {
             r.tone === "danger" ? "text-destructive" :
             r.tone === "warn" ? "text-accent" :
             "text-muted-foreground";
+          const items = itemsByOrder.get(o.id) ?? [];
           return (
             <article key={o.id} className={`border rounded-lg p-4 flex flex-col gap-2 ${toneCls}`}>
               <header className="flex items-start justify-between gap-2">
@@ -741,6 +742,27 @@ function NotificationsPanel({ rows }: { rows: NotifRow[] }) {
                   {o.status === "cancelled" ? "Cancelado" : "Pendente"}
                 </span>
               </header>
+              {items.length > 0 && (
+                <ul className="text-xs space-y-1 border-t border-border/50 pt-2">
+                  <li className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">
+                    {o.status === "cancelled" ? "Tentou comprar" : "Itens do pedido"}
+                  </li>
+                  {items.map((it, i) => (
+                    <li key={i} className="flex justify-between gap-2">
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        <Package className="h-3 w-3 text-muted-foreground shrink-0" />
+                        <span className="truncate">{it.quantity}x {it.product_name}</span>
+                        {it.sku && (
+                          <span className="inline-flex items-center rounded bg-accent/20 px-1 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider text-accent shrink-0">
+                            {it.sku}
+                          </span>
+                        )}
+                      </span>
+                      <span className="font-semibold whitespace-nowrap">{brl(it.unit_price * it.quantity)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <div className="flex items-start gap-2 border-t border-border/50 pt-2">
                 <Icon className={`h-4 w-4 mt-0.5 shrink-0 ${iconCls}`} />
                 <div className="text-sm">
