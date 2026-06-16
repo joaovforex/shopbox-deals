@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { brl, discountPct } from "@/lib/format";
-import { productImages, type Product, type ProductCard as ProductCardData } from "@/lib/products";
+import { productImages, useHasTeamRole, type Product, type ProductCard as ProductCardData } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 
@@ -12,6 +12,9 @@ export function ProductCard({ product, priority = false }: { product: Product | 
   const { add } = useCart();
   const navigate = useNavigate();
   const user = useAuthUser();
+  const isTeam = useHasTeamRole();
+  const ageDays = (Date.now() - new Date(product.created_at).getTime()) / 86_400_000;
+  const stale = isTeam && product.stock > 0 && ageDays > 5;
 
   const cartItem = {
     id: product.id,
@@ -94,8 +97,16 @@ export function ProductCard({ product, priority = false }: { product: Product | 
           {product.name}
         </h3>
         {"sku" in product && product.sku && (
-          <span className="text-[10px] font-mono text-muted-foreground tracking-wider">
+          <span className="text-[10px] font-mono text-muted-foreground tracking-wider inline-flex items-center gap-1.5">
             Cód. {product.sku}
+            {stale && (
+              <span
+                className="inline-flex items-center rounded bg-destructive/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-destructive"
+                title="Produto cadastrado há mais de 5 dias e ainda não vendido"
+              >
+                +5
+              </span>
+            )}
           </span>
         )}
         {product.original_price && product.original_price > product.price && (

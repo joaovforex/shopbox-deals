@@ -1,4 +1,4 @@
-import { queryOptions, infiniteQueryOptions } from "@tanstack/react-query";
+import { queryOptions, infiniteQueryOptions, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 
@@ -159,6 +159,16 @@ export async function isSuperAdmin(): Promise<boolean> {
 export async function hasAnyRole(roles: TeamRole[]): Promise<boolean> {
   const mine = await getMyRoles();
   return mine.some((r) => roles.includes(r));
+}
+
+/** Hook que retorna true se o usuário tem qualquer cargo da equipe (admin/manager/catalog/fulfillment). */
+export function useHasTeamRole(): boolean {
+  const { data } = useQuery({
+    queryKey: ["my-team-role"],
+    queryFn: () => hasAnyRole(["admin", "manager", "catalog", "fulfillment"]),
+    staleTime: 5 * 60_000,
+  });
+  return data === true;
 }
 
 export type RoleSummary = {
