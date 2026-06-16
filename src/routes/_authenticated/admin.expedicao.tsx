@@ -138,6 +138,7 @@ function FulfillmentPage() {
         id: string; created_at: string; customer_name: string; customer_email: string | null;
         customer_phone: string | null; payment_method: string; delivery_method: string;
         status: string; total: number; mp_payment_id: string | null; stock_restored_at: string | null;
+        cancellation_reason: string | null;
       }>;
       const ids = list.map((o) => o.id);
       const itemsByOrder = new Map<string, ItemRow[]>();
