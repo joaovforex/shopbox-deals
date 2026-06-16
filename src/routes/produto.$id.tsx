@@ -142,7 +142,6 @@ function ProductPage() {
     "",
     hasDiscount ? `DE ~${brl(product.original_price!)}~` : null,
     `POR ${brl(product.price)}${off > 0 ? ` (${off}% OFF)` : ""}`,
-    installments > 0 ? `Em ate ${installments}x de ${brl(product.price / installments)} sem juros` : null,
     product.description ? "" : null,
     product.description ?? null,
     "",
@@ -151,6 +150,7 @@ function ProductPage() {
     "COMPRE NO LINK ABAIXO:",
     `👇 ${url}`,
   ].filter((l) => l !== null).join("\n");
+
 
   const waShare = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 
