@@ -395,7 +395,7 @@ function FulfillmentPage() {
         </div>
 
         {!searchActive && tab === "notifications" ? (
-          <NotificationsPanel rows={notifData ?? []} />
+          <NotificationsPanel rows={notifData?.orders ?? []} itemsByOrder={notifData?.itemsByOrder ?? new Map()} />
         ) : (searchActive ? searchLoading : isLoading) ? (
           <div className="bg-card border border-border rounded-lg p-8 text-center text-muted-foreground">Carregando...</div>
         ) : orders.length === 0 ? (
