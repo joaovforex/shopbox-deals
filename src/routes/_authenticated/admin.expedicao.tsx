@@ -366,7 +366,7 @@ function FulfillmentPage() {
               Entregues ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "completed").length})
             </TabBtn>
             <TabBtn active={tab === "notifications"} onClick={() => setTab("notifications")} icon={<BellRing className="h-4 w-4" />}>
-              Notificações ({(notifData ?? []).length})
+              Notificações ({(notifData?.orders ?? []).length})
             </TabBtn>
           </div>
 
