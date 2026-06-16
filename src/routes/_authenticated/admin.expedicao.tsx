@@ -129,7 +129,7 @@ function FulfillmentPage() {
     queryFn: async () => {
       const { data: orders, error } = await supabase
         .from("orders")
-        .select("id, created_at, customer_name, customer_email, customer_phone, payment_method, delivery_method, status, total, mp_payment_id, stock_restored_at")
+        .select("id, created_at, customer_name, customer_email, customer_phone, payment_method, delivery_method, status, total, mp_payment_id, stock_restored_at, cancellation_reason")
         .in("status", ["pending", "cancelled"])
         .order("created_at", { ascending: false })
         .limit(80);
