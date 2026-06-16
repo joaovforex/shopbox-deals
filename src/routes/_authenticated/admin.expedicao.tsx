@@ -129,7 +129,7 @@ function FulfillmentPage() {
     queryFn: async () => {
       const { data: orders, error } = await supabase
         .from("orders")
-        .select("id, created_at, customer_name, customer_email, customer_phone, payment_method, delivery_method, status, total, mp_payment_id, stock_restored_at")
+        .select("id, created_at, customer_name, customer_email, customer_phone, payment_method, delivery_method, status, total, mp_payment_id, stock_restored_at, cancellation_reason")
         .in("status", ["pending", "cancelled"])
         .order("created_at", { ascending: false })
         .limit(80);
@@ -138,6 +138,7 @@ function FulfillmentPage() {
         id: string; created_at: string; customer_name: string; customer_email: string | null;
         customer_phone: string | null; payment_method: string; delivery_method: string;
         status: string; total: number; mp_payment_id: string | null; stock_restored_at: string | null;
+        cancellation_reason: string | null;
       }>;
       const ids = list.map((o) => o.id);
       const itemsByOrder = new Map<string, ItemRow[]>();
@@ -661,6 +662,7 @@ type NotifRow = {
   id: string; created_at: string; customer_name: string; customer_email: string | null;
   customer_phone: string | null; payment_method: string; delivery_method: string;
   status: string; total: number; mp_payment_id: string | null; stock_restored_at: string | null;
+  cancellation_reason?: string | null;
 };
 
 function notifReason(o: NotifRow): { title: string; detail: string; tone: "warn" | "danger" | "info" } {
@@ -681,24 +683,26 @@ function notifReason(o: NotifRow): { title: string; detail: string; tone: "warn"
       tone: "warn",
     };
   }
-  // cancelled
-  if (o.mp_payment_id) {
-    return {
-      title: "Pagamento recusado / cancelado",
-      detail: "Mercado Pago retornou o pagamento como não aprovado (recusado, estornado ou cancelado pelo cliente). O pedido não seguiu para a expedição.",
-      tone: "danger",
-    };
-  }
-  if (o.stock_restored_at) {
+  // cancelled — usar motivo explícito gravado pelo backend
+  const reason = o.cancellation_reason;
+  if (reason === "out_of_stock") {
     return {
       title: "Cancelado por falta de estoque",
       detail: "Quando o pagamento chegou, um dos itens estava sem estoque. O pedido foi cancelado automaticamente e o estoque foi devolvido.",
       tone: "danger",
     };
   }
+  if (reason === "payment_refused" || (!reason && o.mp_payment_id)) {
+    return {
+      title: "Pagamento recusado / cancelado",
+      detail: "Mercado Pago retornou o pagamento como não aprovado (recusado, estornado ou cancelado pelo cliente). O pedido não seguiu para a expedição.",
+      tone: "danger",
+    };
+  }
+  // expired ou cancelamento sem pagamento iniciado = abandono
   return {
     title: "Pedido expirado",
-    detail: "O cliente não concluiu o pagamento dentro do prazo e o pedido foi cancelado automaticamente.",
+    detail: "O cliente não concluiu o pagamento dentro do prazo (30 min) e o pedido foi cancelado automaticamente. Estoque permaneceu disponível.",
     tone: "info",
   };
 }
