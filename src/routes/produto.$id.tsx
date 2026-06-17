@@ -135,6 +135,16 @@ function ProductPage() {
   const activeVariant = hasVariants ? variants.find((v) => v.color === selectedColor) ?? null : null;
   const effectiveStock = hasVariants ? (activeVariant?.stock ?? 0) : product.stock;
   const needsColorChoice = hasVariants && !selectedColor;
+  const variantOut = hasVariants && !!selectedColor && effectiveStock <= 0;
+  const allColorsOut = hasVariants && variants.every((v) => v.stock <= 0);
+
+  // Clamp quantity whenever the selected color (or its stock) changes
+  useEffect(() => {
+    setQty((q) => {
+      if (effectiveStock <= 0) return 1;
+      return Math.min(Math.max(1, q), effectiveStock);
+    });
+  }, [selectedColor, effectiveStock]);
 
   const off = discountPct(product.original_price, product.price);
   const url = typeof window !== "undefined" ? window.location.href : "";
