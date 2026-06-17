@@ -106,8 +106,9 @@ function LabelPage() {
       });
       const img = canvas.toDataURL("image/jpeg", 0.95);
       // Etiqueta de retirada: A6 (105x148 mm) colante; envio: 110x150 mm.
-      const pdfFormat = isPickup ? "a6" : [110, 150];
+      const pdfFormat = isPickup ? "A6" : [110, 150];
       const pdf = new jsPDF({ unit: "mm", format: pdfFormat, orientation: "portrait" });
+
 
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
