@@ -343,21 +343,23 @@ function ProductPage() {
               </div>
             )}
 
-            {effectiveStock > 0 && (
+            {(effectiveStock > 0 || needsColorChoice) && !allColorsOut && (
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="inline-flex items-center bg-secondary rounded-md">
                     <button
                       onClick={() => setQty((q) => Math.max(1, q - 1))}
-                      className="p-2 hover:bg-muted rounded-l-md"
+                      disabled={needsColorChoice || effectiveStock <= 0}
+                      className="p-2 hover:bg-muted rounded-l-md disabled:opacity-40"
                       aria-label="Diminuir"
                     >
                       <Minus className="h-4 w-4" />
                     </button>
                     <span className="px-4 font-bold">{qty}</span>
                     <button
-                      onClick={() => setQty((q) => Math.min(effectiveStock, q + 1))}
-                      className="p-2 hover:bg-muted rounded-r-md"
+                      onClick={() => setQty((q) => Math.min(effectiveStock || 1, q + 1))}
+                      disabled={needsColorChoice || qty >= effectiveStock}
+                      className="p-2 hover:bg-muted rounded-r-md disabled:opacity-40"
                       aria-label="Aumentar"
                     >
                       <Plus className="h-4 w-4" />
@@ -365,28 +367,21 @@ function ProductPage() {
                   </div>
                   <button
                     onClick={addToCart}
-                    disabled={needsColorChoice}
-                    className="flex-1 inline-flex items-center justify-center gap-2 bg-secondary text-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:bg-muted transition-colors disabled:opacity-50"
+                    disabled={needsColorChoice || variantOut}
+                    className="flex-1 inline-flex items-center justify-center gap-2 bg-secondary text-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Adicionar
+                    {needsColorChoice ? "Escolha uma cor" : variantOut ? "Cor esgotada" : "Adicionar"}
                   </button>
                 </div>
                 <button
-                  onClick={() => {
-                    if (needsColorChoice) { toast.error("Escolha uma cor antes de comprar"); return; }
-                    if (requireLogin("/checkout")) return;
-                    add({
-                      id: product.id,
-                      name: product.name,
-                      price: product.price,
-                      image_url: productImages(product)[0] ?? null,
-                      variant_color: selectedColor,
-                    }, qty);
-                    navigate({ to: "/checkout" });
-                  }}
-                  disabled={needsColorChoice}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:scale-[1.02] transition-transform shadow-deal disabled:opacity-50 disabled:hover:scale-100"
+                  onClick={buyNow}
+                  disabled={needsColorChoice || variantOut}
+                  className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:scale-[1.02] transition-transform shadow-deal disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
                 >
+                  {needsColorChoice ? "Escolha uma cor para comprar" : variantOut ? "Cor esgotada" : "Comprar agora"}
+                </button>
+              </div>
+            )}
                   Comprar agora
                 </button>
               </div>
