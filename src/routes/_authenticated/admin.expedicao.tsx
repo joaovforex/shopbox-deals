@@ -241,10 +241,39 @@ function FulfillmentPage() {
   };
 
   const markDelivered = async (o: OrderRow) => {
-    const { error } = await supabase.rpc("set_fulfillment_status" as never, { p_order_id: o.id, p_status: "completed" } as never);
-    if (error) return toast.error(error.message);
-    openWhatsApp(o.customer_phone, orderDeliveredMessage(o.customer_name, o.id));
-    toast.success("Pedido marcado como entregue. Mensagem de agradecimento aberta.");
+    // Abre a aba do WhatsApp ANTES do await para preservar o gesto do usuário
+    // (caso contrário o navegador bloqueia o popup e o time pensa que falhou).
+    let waWindow: Window | null = null;
+    if (o.customer_phone) {
+      try { waWindow = window.open("about:blank", "_blank", "noopener,noreferrer"); } catch { waWindow = null; }
+    }
+    try {
+      const { error } = await supabase.rpc("set_fulfillment_status" as never, { p_order_id: o.id, p_status: "completed" } as never);
+      if (error) {
+        if (waWindow) try { waWindow.close(); } catch { /* ignore */ }
+        console.error("[markDelivered] erro RPC:", error);
+        return toast.error(error.message || "Não foi possível marcar como entregue. Atualize a página e tente novamente.");
+      }
+    } catch (e: any) {
+      if (waWindow) try { waWindow.close(); } catch { /* ignore */ }
+      console.error("[markDelivered] exceção:", e);
+      return toast.error(e?.message || "Falha ao atualizar o pedido.");
+    }
+    // Atualização otimista imediata na UI
+    qc.setQueryData(["fulfillment-orders"], (prev: any) => {
+      if (!prev?.orders) return prev;
+      return { ...prev, orders: prev.orders.map((x: OrderRow) => x.id === o.id ? { ...x, fulfillment_status: "completed" } : x) };
+    });
+    // Direciona a aba já aberta para a mensagem do WhatsApp
+    const msg = orderDeliveredMessage(o.customer_name, o.id);
+    const phone = (o.customer_phone || "").replace(/\D/g, "");
+    if (waWindow && phone) {
+      const num = phone.startsWith("55") ? phone : `55${phone}`;
+      try { waWindow.location.href = `https://wa.me/${num}?text=${encodeURIComponent(msg)}`; } catch { /* ignore */ }
+    } else if (waWindow) {
+      try { waWindow.close(); } catch { /* ignore */ }
+    }
+    toast.success("Pedido marcado como entregue.");
     qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
   };
 
