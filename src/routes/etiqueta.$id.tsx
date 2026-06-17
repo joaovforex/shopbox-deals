@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { Printer, Truck, Download, MessageCircle } from "lucide-react";
+import { Printer, Truck, Download, MessageCircle, Store } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { markLabelEvent } from "@/lib/labels.functions";
 import { brl } from "@/lib/format";
@@ -24,6 +24,7 @@ function formatPhone(d: string | null) {
   if (s.length === 10) return `(${s.slice(0, 2)}) ${s.slice(2, 6)}-${s.slice(6)}`;
   return d;
 }
+
 
 function formatCep(z: string | null) {
   if (!z) return "";
@@ -104,8 +105,11 @@ function LabelPage() {
         useCORS: true,
       });
       const img = canvas.toDataURL("image/jpeg", 0.95);
-      // Elgin L42 PRO — etiqueta 110x150 mm (11x15 cm)
-      const pdf = new jsPDF({ unit: "mm", format: [110, 150], orientation: "portrait" });
+      // Etiqueta de retirada: A6 (105x148 mm) colante; envio: 110x150 mm.
+      const pdfFormat = isPickup ? "A6" : [110, 150];
+      const pdf = new jsPDF({ unit: "mm", format: pdfFormat, orientation: "portrait" });
+
+
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
       const margin = 2;
@@ -129,18 +133,20 @@ function LabelPage() {
   return (
     <>
       <style>{`
-        @page { size: 110mm 150mm; margin: 0; }
+        @page { size: ${isPickup ? "A6" : "110mm 150mm"}; margin: 0; }
         @media print {
           .no-print { display: none !important; }
-          html, body { width: 110mm !important; height: 150mm !important; background: white !important; color: black !important; margin: 0 !important; padding: 0 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          html, body { width: ${isPickup ? "105mm" : "110mm"} !important; height: ${isPickup ? "148mm" : "150mm"} !important; background: white !important; color: black !important; margin: 0 !important; padding: 0 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
           body * { visibility: hidden !important; }
           .label-doc, .label-doc * { visibility: visible !important; }
-          .label-doc { position: fixed !important; left: 0 !important; top: 0 !important; width: 110mm !important; height: 150mm !important; padding: 3mm !important; margin: 0 !important; box-sizing: border-box !important; background: white !important; color: black !important; font-family: Arial, Helvetica, sans-serif !important; font-weight: 700 !important; overflow: hidden !important; page-break-after: avoid !important; page-break-inside: avoid !important; }
+          .label-doc { position: fixed !important; left: 0 !important; top: 0 !important; width: ${isPickup ? "105mm" : "110mm"} !important; height: ${isPickup ? "148mm" : "150mm"} !important; padding: 3mm !important; margin: 0 !important; box-sizing: border-box !important; background: white !important; color: black !important; font-family: Arial, Helvetica, sans-serif !important; font-weight: 700 !important; overflow: hidden !important; page-break-after: avoid !important; page-break-inside: avoid !important; }
           .label-doc * { color: black !important; border-color: black !important; opacity: 1 !important; background: white !important; text-shadow: 0 0 0 black !important; -webkit-font-smoothing: none !important; }
+          .label-doc .pickup-header { background: black !important; color: white !important; }
+          .label-doc .pickup-header * { color: white !important; background: black !important; }
           .label-doc img { filter: none !important; }
           .label-doc svg { shape-rendering: crispEdges !important; }
         }
-        .label-doc { font-family: Arial, Helvetica, sans-serif; font-weight: 600; width: 110mm; min-height: 150mm; margin: 0 auto; box-sizing: border-box; }
+        .label-doc { font-family: Arial, Helvetica, sans-serif; font-weight: 600; width: ${isPickup ? "105mm" : "110mm"}; min-height: ${isPickup ? "148mm" : "150mm"}; margin: 0 auto; box-sizing: border-box; }
       `}</style>
 
       <div className="min-h-screen bg-muted py-6 px-4">
@@ -288,57 +294,64 @@ function ShippingLabel({ o, items }: { o: any; items: any[] }) {
 
 function PickupLabel({ o, items }: { o: any; items: any[] }) {
   return (
-    <div className="label-doc bg-white text-black p-3">
-      <LabelHeader logoOnly />
-
-      <Row label="Senha do pedido">
-        <div className="text-center">
-          <div className="font-black text-3xl tracking-[0.3em]">{o.id.slice(0, 6).toUpperCase()}</div>
-          <div className="flex justify-center mt-1">
-            <Barcode value={barcodeValue(o.id)} height={34} width={1.7} fontSize={10} />
-          </div>
-          <div className="text-[10px] mt-0.5 font-bold">Escaneie na expedição para confirmar a entrega</div>
-          <div className="text-[11px] mt-0.5 font-bold">Confira documento do cliente ao entregar</div>
+    <div className="label-doc bg-white text-black border-2 border-black p-4 space-y-3">
+      <div className="pickup-header border-2 border-black p-2 flex items-center justify-between bg-black text-white">
+        <div>
+          <div className="font-black text-lg tracking-wider">RETIRADA NA LOJA</div>
+          <div className="text-[10px] uppercase">Aguardar cliente</div>
         </div>
-      </Row>
+        <Store className="h-7 w-7" />
+      </div>
 
-      <Row label="Cliente">
+      <div className="border border-black p-3 text-center">
+        <div className="text-[10px] font-bold uppercase">Senha do pedido</div>
+        <div className="font-black text-3xl tracking-[0.3em] mt-1">
+          {o.id.slice(0, 6).toUpperCase()}
+        </div>
+        <div className="text-[10px] mt-1">Confira documento do cliente ao entregar</div>
+      </div>
+
+      <div className="border border-black p-2">
+        <div className="text-[10px] font-bold uppercase border-b border-black mb-1 pb-0.5">Cliente</div>
         <div className="font-bold text-sm uppercase">{o.customer_name}</div>
         {o.customer_cpf && <div className="text-xs font-bold">CPF: {formatCpf(o.customer_cpf)}</div>}
-        {o.customer_phone && <div className="text-sm font-bold">WhatsApp: {formatPhone(o.customer_phone)}</div>}
-        {o.customer_email && <div className="text-xs font-bold">{o.customer_email}</div>}
-      </Row>
+        {o.customer_phone && <div className="text-xs mt-1">WhatsApp: {formatPhone(o.customer_phone)}</div>}
+        {o.customer_email && <div className="text-[11px]">{o.customer_email}</div>}
+      </div>
 
-      <Row label={`Itens · Pedido #${o.id.slice(0, 8).toUpperCase()}`}>
+      <div className="border border-black p-2">
+        <div className="text-[10px] font-bold uppercase border-b border-black mb-1 pb-0.5">
+          Itens · Pedido #{o.id.slice(0, 8).toUpperCase()}
+        </div>
         <ul className="text-sm leading-tight space-y-0.5">
           {items.map((it: any, i: number) => (
             <li key={i} className="flex justify-between gap-2">
               <span>
                 <strong>{it.quantity}x</strong> {it.product_name}
-                {it.variant_color && (
-                  <span className="ml-1 text-[11px] font-black uppercase">· {it.variant_color}</span>
-                )}
+                {it.variant_color && <span className="ml-1 text-[11px] font-black uppercase">· {it.variant_color}</span>}
               </span>
               <span className="text-[11px]">{brl(it.unit_price * it.quantity)}</span>
             </li>
           ))}
         </ul>
-        <div className="text-sm mt-1 pt-1 border-t-2 border-dashed border-black flex justify-between font-black">
+        <div className="text-xs mt-2 border-t border-dashed border-black pt-1 flex justify-between font-bold">
           <span>TOTAL PAGO</span>
           <span>{brl(Number(o.total))}</span>
         </div>
-      </Row>
+      </div>
 
-      <Row label="Local de retirada">
-        <div className="text-sm text-center font-black leading-tight">
-          Rua Emílio Gleber, 1118 — Atuba, Colombo / PR<br />
-          Seg a Sáb · 9h às 18h · Dom · 10h às 16h
+      <div className="border border-black p-2 text-center">
+        <div className="text-[10px] font-bold uppercase">Local de retirada</div>
+        <div className="text-xs mt-1">
+          {STORE.street}, {STORE.number} — {STORE.district}<br />
+          {STORE.city} / {STORE.state} · Seg a Sáb · 9h às 18h · Dom · 10h às 16h
         </div>
-      </Row>
+      </div>
 
-      <div className="text-[11px] font-bold text-center pt-1.5 border-t-2 border-black mt-1.5">
+      <div className="text-[10px] text-center text-gray-600">
         Emitido em {new Date().toLocaleString("pt-BR")}
       </div>
     </div>
   );
 }
+
