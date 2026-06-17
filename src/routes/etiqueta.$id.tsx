@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { Printer, Truck, Download, MessageCircle } from "lucide-react";
+import { Printer, Truck, Download, MessageCircle, Store } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { markLabelEvent } from "@/lib/labels.functions";
 import { brl } from "@/lib/format";
@@ -11,6 +11,7 @@ import { Barcode } from "@/components/Barcode";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import shopboxLogo from "@/assets/shopbox-logo.png";
+
 
 export const Route = createFileRoute("/etiqueta/$id")({
   head: () => ({ meta: [{ title: "Etiqueta · shopbox" }] }),
