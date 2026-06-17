@@ -352,7 +352,6 @@ export function Footer() {
       </div>
       <div className="border-t border-border py-4 px-4 flex flex-col sm:flex-row items-center justify-center gap-2 text-center text-xs text-muted-foreground">
         <span>© {new Date().getFullYear()} shopbox · Todos os direitos reservados</span>
-        <OnlineCounter />
       </div>
     </footer>
   );
