@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-type CartItemInput = { product_id: string; quantity: number };
+type CartItemInput = { product_id: string; quantity: number; color?: string | null };
 
 type CreatePreferenceInput = {
   customer_name: string;
@@ -31,6 +31,7 @@ export const createMpPreference = createServerFn({ method: "POST" })
       if (!Number.isInteger(it.quantity) || it.quantity < 1 || it.quantity > 999) {
         throw new Error("Quantidade inválida");
       }
+      if (it.color != null && typeof it.color !== "string") throw new Error("Cor inválida");
     }
     return data;
   })

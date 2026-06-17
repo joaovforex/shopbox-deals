@@ -24,6 +24,7 @@ export type Database = {
           quantity: number
           reserved: boolean
           unit_price: number
+          variant_color: string | null
         }
         Insert: {
           created_at?: string
@@ -34,6 +35,7 @@ export type Database = {
           quantity: number
           reserved?: boolean
           unit_price: number
+          variant_color?: string | null
         }
         Update: {
           created_at?: string
@@ -44,6 +46,7 @@ export type Database = {
           quantity?: number
           reserved?: boolean
           unit_price?: number
+          variant_color?: string | null
         }
         Relationships: [
           {
@@ -171,6 +174,7 @@ export type Database = {
         Row: {
           active: boolean
           category: string | null
+          color_variants: Json
           created_at: string
           created_by: string | null
           description: string | null
@@ -187,6 +191,7 @@ export type Database = {
         Insert: {
           active?: boolean
           category?: string | null
+          color_variants?: Json
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -203,6 +208,7 @@ export type Database = {
         Update: {
           active?: boolean
           category?: string | null
+          color_variants?: Json
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -239,6 +245,27 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+        }
+        Relationships: []
+      }
+      site_visits: {
+        Row: {
+          created_at: string
+          id: string
+          session_id: string
+          visited_on: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          session_id: string
+          visited_on?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          session_id?: string
+          visited_on?: string
         }
         Relationships: []
       }
@@ -306,6 +333,10 @@ export type Database = {
       }
       expire_stale_pending_orders: {
         Args: { p_minutes?: number }
+        Returns: number
+      }
+      find_variant_index: {
+        Args: { _color: string; _variants: Json }
         Returns: number
       }
       generate_product_sku: { Args: never; Returns: string }
@@ -389,6 +420,7 @@ export type Database = {
             }
             Returns: string
           }
+      record_visit: { Args: { p_session_id: string }; Returns: number }
       remove_team_role: {
         Args: {
           p_role: Database["public"]["Enums"]["app_role"]

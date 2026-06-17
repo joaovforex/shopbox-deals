@@ -8,6 +8,7 @@ import { useCart } from "@/lib/cart";
 import { getRoleSummary, usedCategoriesQuery } from "@/lib/products";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import logo from "@/assets/shopbox-logo.png";
+import { OnlineCounter } from "@/components/OnlineCounter";
 
 function useCategories() {
   const { data } = useQuery(usedCategoriesQuery());
@@ -341,14 +342,16 @@ export function Footer() {
           <h4 className="font-bold uppercase tracking-wider mb-3 text-primary">Atendimento</h4>
           <p className="text-sm text-muted-foreground">Rua Emílio Gleber, 1118 — Atuba, Colombo / PR</p>
           <p className="text-sm text-muted-foreground">Seg a Sáb · 9h às 18h</p>
+          <p className="text-sm text-muted-foreground">Dom · 10h às 16h</p>
         </div>
         <div>
           <h4 className="font-bold uppercase tracking-wider mb-3 text-primary">Formas de pagamento</h4>
           <p className="text-sm text-muted-foreground">Pix · Cartão · Parcelado</p>
         </div>
       </div>
-      <div className="border-t border-border py-4 text-center text-xs text-muted-foreground px-4">
-        © {new Date().getFullYear()} shopbox · Todos os direitos reservados
+      <div className="border-t border-border py-4 px-4 flex flex-col sm:flex-row items-center justify-center gap-2 text-center text-xs text-muted-foreground">
+        <span>© {new Date().getFullYear()} shopbox · Todos os direitos reservados</span>
+        <OnlineCounter />
       </div>
     </footer>
   );

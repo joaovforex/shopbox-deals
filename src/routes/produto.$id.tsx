@@ -103,6 +103,7 @@ function ProductPage() {
   const { add } = useCart();
   const navigate = useNavigate();
   const [qty, setQty] = useState(1);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const user = useAuthUser();
 
   const requireLogin = (target: "/carrinho" | "/checkout") => {
@@ -128,6 +129,12 @@ function ProductPage() {
       </div>
     );
   }
+
+  const variants = (product.color_variants ?? []) as Array<{ color: string; hex?: string | null; stock: number }>;
+  const hasVariants = variants.length > 0;
+  const activeVariant = hasVariants ? variants.find((v) => v.color === selectedColor) ?? null : null;
+  const effectiveStock = hasVariants ? (activeVariant?.stock ?? 0) : product.stock;
+  const needsColorChoice = hasVariants && !selectedColor;
 
   const off = discountPct(product.original_price, product.price);
   const url = typeof window !== "undefined" ? window.location.href : "";
@@ -195,9 +202,16 @@ function ProductPage() {
   const nativeShare = shareWithImage;
 
   const addToCart = () => {
+    if (needsColorChoice) { toast.error("Escolha uma cor antes de adicionar"); return; }
     if (requireLogin("/carrinho")) return;
-    add({ id: product.id, name: product.name, price: product.price, image_url: product.image_url }, qty);
-    toast.success(`Adicionado ao carrinho (${qty}x)`);
+    add({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image_url: product.image_url,
+      variant_color: selectedColor,
+    }, qty);
+    toast.success(`Adicionado ao carrinho (${qty}x)${selectedColor ? ` · ${selectedColor}` : ""}`);
   };
 
   return (
@@ -245,14 +259,57 @@ function ProductPage() {
             )}
 
             <div className="text-sm">
-              {product.stock > 0 ? (
+              {hasVariants ? (
+                needsColorChoice ? (
+                  <span className="text-accent font-semibold">Escolha uma cor abaixo</span>
+                ) : effectiveStock > 0 ? (
+                  <span className="text-primary font-semibold">Em estoque ({effectiveStock} disponíveis em {selectedColor})</span>
+                ) : (
+                  <span className="text-destructive font-semibold">Cor esgotada</span>
+                )
+              ) : product.stock > 0 ? (
                 <span className="text-primary font-semibold">Em estoque ({product.stock} disponiveis)</span>
               ) : (
                 <span className="text-destructive font-semibold">Esgotado</span>
               )}
             </div>
 
-            {product.stock > 0 && (
+            {hasVariants && (
+              <div>
+                <h3 className="font-bold uppercase text-xs tracking-wider text-muted-foreground mb-2">
+                  Cor {selectedColor && <span className="text-foreground normal-case">· {selectedColor}</span>}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {variants.map((v) => {
+                    const out = v.stock <= 0;
+                    const active = v.color === selectedColor;
+                    return (
+                      <button
+                        key={v.color}
+                        type="button"
+                        onClick={() => !out && setSelectedColor(v.color)}
+                        disabled={out}
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-md border-2 text-xs font-bold transition-all ${
+                          active ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
+                        } ${out ? "opacity-40 cursor-not-allowed line-through" : ""}`}
+                      >
+                        {v.hex && (
+                          <span
+                            className="inline-block h-4 w-4 rounded-full border border-border"
+                            style={{ background: v.hex }}
+                            aria-hidden
+                          />
+                        )}
+                        {v.color}
+                        {out && <span className="text-[10px] text-muted-foreground">(sem)</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {effectiveStock > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="inline-flex items-center bg-secondary rounded-md">
@@ -265,7 +322,7 @@ function ProductPage() {
                     </button>
                     <span className="px-4 font-bold">{qty}</span>
                     <button
-                      onClick={() => setQty((q) => Math.min(product.stock, q + 1))}
+                      onClick={() => setQty((q) => Math.min(effectiveStock, q + 1))}
                       className="p-2 hover:bg-muted rounded-r-md"
                       aria-label="Aumentar"
                     >
@@ -274,18 +331,27 @@ function ProductPage() {
                   </div>
                   <button
                     onClick={addToCart}
-                    className="flex-1 inline-flex items-center justify-center gap-2 bg-secondary text-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:bg-muted transition-colors"
+                    disabled={needsColorChoice}
+                    className="flex-1 inline-flex items-center justify-center gap-2 bg-secondary text-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:bg-muted transition-colors disabled:opacity-50"
                   >
                     Adicionar
                   </button>
                 </div>
                 <button
                   onClick={() => {
+                    if (needsColorChoice) { toast.error("Escolha uma cor antes de comprar"); return; }
                     if (requireLogin("/checkout")) return;
-                    add({ id: product.id, name: product.name, price: product.price, image_url: productImages(product)[0] ?? null }, qty);
+                    add({
+                      id: product.id,
+                      name: product.name,
+                      price: product.price,
+                      image_url: productImages(product)[0] ?? null,
+                      variant_color: selectedColor,
+                    }, qty);
                     navigate({ to: "/checkout" });
                   }}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:scale-[1.02] transition-transform shadow-deal"
+                  disabled={needsColorChoice}
+                  className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:scale-[1.02] transition-transform shadow-deal disabled:opacity-50 disabled:hover:scale-100"
                 >
                   Comprar agora
                 </button>

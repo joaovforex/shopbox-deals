@@ -271,7 +271,10 @@ function ShippingLabel({ o, items }: { o: any; items: any[] }) {
       <Row label={`Conteúdo · Pedido #${o.id.slice(0, 8).toUpperCase()}`}>
         <ul className="text-xs leading-tight font-bold">
           {items.map((it: any, i: number) => (
-            <li key={i}>• {it.quantity}x {it.product_name}</li>
+            <li key={i}>
+              • {it.quantity}x {it.product_name}
+              {it.variant_color && <span> · {it.variant_color}</span>}
+            </li>
           ))}
         </ul>
         <div className="text-[11px] mt-1 pt-1 border-t-2 border-dashed border-black flex justify-between font-bold">
@@ -310,7 +313,12 @@ function PickupLabel({ o, items }: { o: any; items: any[] }) {
         <ul className="text-sm leading-tight space-y-0.5">
           {items.map((it: any, i: number) => (
             <li key={i} className="flex justify-between gap-2">
-              <span><strong>{it.quantity}x</strong> {it.product_name}</span>
+              <span>
+                <strong>{it.quantity}x</strong> {it.product_name}
+                {it.variant_color && (
+                  <span className="ml-1 text-[11px] font-black uppercase">· {it.variant_color}</span>
+                )}
+              </span>
               <span className="text-[11px]">{brl(it.unit_price * it.quantity)}</span>
             </li>
           ))}
@@ -324,7 +332,7 @@ function PickupLabel({ o, items }: { o: any; items: any[] }) {
       <Row label="Local de retirada">
         <div className="text-sm text-center font-black leading-tight">
           Rua Emílio Gleber, 1118 — Atuba, Colombo / PR<br />
-          Seg a Sáb · 9h às 18h
+          Seg a Sáb · 9h às 18h · Dom · 10h às 16h
         </div>
       </Row>
 

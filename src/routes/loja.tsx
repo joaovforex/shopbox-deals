@@ -3,6 +3,7 @@ import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
+import { MegaOffersCarousel } from "@/components/MegaOffersCarousel";
 import { pagedProductsQuery, productImages } from "@/lib/products";
 import { Search, X, Loader2 } from "lucide-react";
 
@@ -124,6 +125,10 @@ function Loja() {
             </button>
           )}
         </div>
+
+        {!qParam && !cat && products.length > 0 && (
+          <MegaOffersCarousel products={products as any} />
+        )}
 
         {products.length === 0 ? (
           <div className="text-center py-16 sm:py-20 bg-card rounded-xl border border-border">

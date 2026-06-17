@@ -6,13 +6,18 @@ export type CartItem = {
   price: number;
   image_url: string | null;
   quantity: number;
+  variant_color?: string | null;
 };
+
+export function cartItemKey(item: { id: string; variant_color?: string | null }): string {
+  return item.variant_color ? `${item.id}::${item.variant_color}` : item.id;
+}
 
 type CartCtx = {
   items: CartItem[];
   add: (item: Omit<CartItem, "quantity">, qty?: number) => void;
-  remove: (id: string) => void;
-  setQty: (id: string, qty: number) => void;
+  remove: (key: string) => void;
+  setQty: (key: string, qty: number) => void;
   clear: () => void;
   total: number;
   count: number;
@@ -37,14 +42,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const add: CartCtx["add"] = (item, qty = 1) =>
     setItems((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
-      if (existing) return prev.map((i) => i.id === item.id ? { ...i, quantity: i.quantity + qty } : i);
+      const key = cartItemKey(item);
+      const existing = prev.find((i) => cartItemKey(i) === key);
+      if (existing) return prev.map((i) => cartItemKey(i) === key ? { ...i, quantity: i.quantity + qty } : i);
       return [...prev, { ...item, quantity: qty }];
     });
 
-  const remove: CartCtx["remove"] = (id) => setItems((p) => p.filter((i) => i.id !== id));
-  const setQty: CartCtx["setQty"] = (id, qty) =>
-    setItems((p) => p.map((i) => i.id === id ? { ...i, quantity: Math.max(1, qty) } : i));
+  const remove: CartCtx["remove"] = (key) => setItems((p) => p.filter((i) => cartItemKey(i) !== key));
+  const setQty: CartCtx["setQty"] = (key, qty) =>
+    setItems((p) => p.map((i) => cartItemKey(i) === key ? { ...i, quantity: Math.max(1, qty) } : i));
   const clear = () => setItems([]);
 
   const total = items.reduce((s, i) => s + i.price * i.quantity, 0);
