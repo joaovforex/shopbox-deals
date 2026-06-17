@@ -682,7 +682,7 @@ function OrdersPanel() {
             setBusy(true);
             try {
               const res = await refundFn({ data: { orderId: refundTarget.id, amount, reason, confirmText } });
-              toast.success(res.full ? "Reembolso total efetuado" : `Reembolso parcial de ${brl(res.amount)} efetuado`);
+              toast.success((res.full ? "Reembolso total efetuado" : `Reembolso parcial de ${brl(res.amount)} efetuado`) + " · pedido removido");
               setRefundTarget(null);
               qc.invalidateQueries({ queryKey: ["admin-orders"] });
             } catch (err: any) {
