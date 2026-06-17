@@ -70,10 +70,11 @@ function OrdersPanel() {
   }, []);
 
   // Ao buscar por nome/CPF, ignora o período selecionado e procura em todos os pedidos.
-  const effectivePeriod: Period = searchCpf.trim() ? "all" : period;
+  const hasCustomRange = !!(dateFrom || dateTo);
+  const effectivePeriod: Period = searchCpf.trim() || hasCustomRange ? "all" : period;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-orders", effectivePeriod],
+    queryKey: ["admin-orders", effectivePeriod, dateFrom, dateTo],
     enabled: admin === true,
     queryFn: async () => {
       const since = startOf(effectivePeriod);
@@ -83,6 +84,8 @@ function OrdersPanel() {
         .eq("status", "paid")
         .order("created_at", { ascending: false });
       if (since) q = q.gte("created_at", since.toISOString());
+      if (dateFrom) q = q.gte("created_at", new Date(dateFrom + "T00:00:00").toISOString());
+      if (dateTo) q = q.lte("created_at", new Date(dateTo + "T23:59:59").toISOString());
       const { data: orders, error } = await q;
       if (error) throw error;
       const ids = (orders ?? []).map((o) => o.id);
@@ -92,7 +95,13 @@ function OrdersPanel() {
         if (ie) throw ie;
         items = (it ?? []) as ItemRow[];
       }
-      return { orders: (orders ?? []) as OrderRow[], items };
+      const productIds = Array.from(new Set(items.map((i) => i.product_id).filter(Boolean)));
+      let categories = new Map<string, string>();
+      if (productIds.length) {
+        const { data: prods } = await supabase.from("products").select("id, category").in("id", productIds);
+        for (const p of prods ?? []) categories.set(p.id as string, (p.category as string) ?? "Sem categoria");
+      }
+      return { orders: (orders ?? []) as OrderRow[], items, categories };
     },
   });
 
