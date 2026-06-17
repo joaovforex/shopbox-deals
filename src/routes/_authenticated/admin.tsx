@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Upload, Crown, BarChart3, Truck, Users, Package, ShieldAlert } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchProducts, getRoleSummary, isVideoUrl, uploadProductImage, type Product, type RoleSummary } from "@/lib/products";
+import { fetchProducts, getRoleSummary, isVideoUrl, uploadProductImage, type ColorVariant, type Product, type RoleSummary } from "@/lib/products";
 import { claimFirstAdmin } from "@/lib/admin.functions";
 import { brl, discountPct } from "@/lib/format";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
