@@ -33,7 +33,7 @@ export function MegaOffersCarousel({ products }: { products: ProductCardData[] }
             <Flame className="h-3 w-3" /> Mega ofertas
           </span>
           <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground hidden sm:inline">
-            acima de 30% off
+            Ofertas imperdíveis
           </span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -66,7 +66,7 @@ export function MegaOffersCarousel({ products }: { products: ProductCardData[] }
               key={p.id}
               to="/produto/$id"
               params={{ id: p.id }}
-              className="snap-start flex-shrink-0 w-[150px] sm:w-[170px] bg-card rounded-xl border border-border hover:border-deal transition-all overflow-hidden group active:scale-[0.98]"
+              className="snap-start flex-shrink-0 w-[170px] sm:w-[200px] bg-card rounded-xl border border-border hover:border-deal transition-all overflow-hidden group active:scale-[0.98]"
             >
               <div className="aspect-square bg-muted relative overflow-hidden">
                 {cover ? (
