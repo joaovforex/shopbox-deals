@@ -234,14 +234,14 @@ function FulfillmentPage() {
   const advance = async (o: OrderRow) => {
     const ns = nextStatus(o.fulfillment_status, o.delivery_method);
     if (ns === o.fulfillment_status) return;
-    const { error } = await supabase.from("orders").update({ fulfillment_status: ns } as never).eq("id", o.id);
+    const { error } = await supabase.rpc("set_fulfillment_status" as never, { p_order_id: o.id, p_status: ns } as never);
     if (error) return toast.error(error.message);
     toast.success(`Status atualizado para "${STATUS_LABEL[ns]}"`);
     qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
   };
 
   const markDelivered = async (o: OrderRow) => {
-    const { error } = await supabase.from("orders").update({ fulfillment_status: "completed" } as never).eq("id", o.id);
+    const { error } = await supabase.rpc("set_fulfillment_status" as never, { p_order_id: o.id, p_status: "completed" } as never);
     if (error) return toast.error(error.message);
     openWhatsApp(o.customer_phone, orderDeliveredMessage(o.customer_name, o.id));
     toast.success("Pedido marcado como entregue. Mensagem de agradecimento aberta.");

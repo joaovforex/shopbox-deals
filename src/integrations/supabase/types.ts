@@ -446,6 +446,10 @@ export type Database = {
           id: string
         }[]
       }
+      set_fulfillment_status: {
+        Args: { p_order_id: string; p_status: string }
+        Returns: string
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
     }
