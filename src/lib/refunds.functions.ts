@@ -6,6 +6,7 @@ type RefundInput = {
   amount: number;
   reason: string;
   confirmText: string;
+  customerConfirm: string;
 };
 
 export const refundOrder = createServerFn({ method: "POST" })
@@ -18,12 +19,19 @@ export const refundOrder = createServerFn({ method: "POST" })
       throw new Error("Informe um motivo (mín. 5, máx. 500 caracteres)");
     }
     if (data.confirmText !== "REEMBOLSAR") throw new Error('Digite "REEMBOLSAR" para confirmar');
-    return { orderId: data.orderId, amount: Math.round(data.amount * 100) / 100, reason: data.reason.trim() };
+    if (typeof data.customerConfirm !== "string" || data.customerConfirm.trim().length < 2) {
+      throw new Error("Confirme o nome do cliente");
+    }
+    return {
+      orderId: data.orderId,
+      amount: Math.round(data.amount * 100) / 100,
+      reason: data.reason.trim(),
+      customerConfirm: data.customerConfirm.trim().toLowerCase(),
+    };
   })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // SUPERADMIN check (role 'admin')
     const { data: isSuper, error: roleErr } = await supabase.rpc("has_role", {
       _user_id: userId,
       _role: "admin",
@@ -37,7 +45,7 @@ export const refundOrder = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: order, error: oerr } = await supabaseAdmin
       .from("orders")
-      .select("id,status,total,mp_payment_id,refund_status,customer_name,customer_phone,customer_email,payment_method,created_at")
+      .select("id,status,total,mp_payment_id,refund_status,customer_name,customer_phone,customer_email,customer_cpf,payment_method,created_at")
       .eq("id", data.orderId)
       .maybeSingle();
     if (oerr) throw new Error("Falha ao buscar pedido");
@@ -50,17 +58,30 @@ export const refundOrder = createServerFn({ method: "POST" })
       throw new Error("Pedido sem pagamento Mercado Pago associado — estorne manualmente");
     }
 
+    // Verificação CRÍTICA: o nome confirmado pelo operador precisa bater com o pedido,
+    // evitando reembolso no cliente errado por click acidental.
+    const realName = (order.customer_name ?? "").trim().toLowerCase();
+    const normReal = realName.replace(/\s+/g, " ");
+    const normConf = data.customerConfirm.replace(/\s+/g, " ");
+    const namesMatch =
+      normReal === normConf ||
+      normReal.startsWith(normConf) ||
+      normReal.split(" ")[0] === normConf.split(" ")[0];
+    if (!namesMatch) {
+      throw new Error(
+        `Nome confirmado ("${data.customerConfirm}") não corresponde ao cliente do pedido ("${order.customer_name}"). Reembolso ABORTADO.`,
+      );
+    }
+
     const total = Number(order.total);
     if (data.amount > total + 0.001) throw new Error(`Valor maior que o total do pedido (${total})`);
     const isFull = Math.abs(total - data.amount) < 0.01;
 
-    // Buscar itens antes da remoção (para a etiqueta)
     const { data: items } = await supabaseAdmin
       .from("order_items")
       .select("product_name,variant_color,quantity,unit_price")
       .eq("order_id", order.id);
 
-    // Call Mercado Pago refund API
     const idempotencyKey = `refund-${order.id}-${Date.now()}`;
     const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${order.mp_payment_id}/refunds`, {
       method: "POST",
@@ -77,21 +98,50 @@ export const refundOrder = createServerFn({ method: "POST" })
       throw new Error(`Falha no estorno: ${msg}`);
     }
 
-    // Resolve operator name
     const { data: prof } = await supabaseAdmin.from("profiles").select("full_name").eq("id", userId).maybeSingle();
     const operatorName = prof?.full_name || "—";
+    const mpRefundId = String(mpJson?.id ?? "");
+
+    const itemsSnapshot = (items ?? []).map((it: any) => ({
+      name: it.product_name,
+      color: it.variant_color,
+      quantity: it.quantity,
+      unitPrice: Number(it.unit_price),
+    }));
+
+    // Grava o histórico de reembolso ANTES de remover o pedido.
+    const { error: insErr } = await supabaseAdmin.from("refunds").insert({
+      order_id: order.id,
+      mp_payment_id: order.mp_payment_id,
+      mp_refund_id: mpRefundId,
+      amount: data.amount,
+      is_full: isFull,
+      reason: data.reason,
+      customer_name: order.customer_name,
+      customer_email: order.customer_email,
+      customer_phone: order.customer_phone,
+      customer_cpf: order.customer_cpf,
+      payment_method: order.payment_method,
+      order_total: total,
+      order_created_at: order.created_at,
+      items: itemsSnapshot,
+      operator_id: userId,
+      operator_name: operatorName,
+    });
+    if (insErr) {
+      console.error("[refund] failed to log refund history", insErr);
+      throw new Error("Estorno feito no MP mas falhou ao registrar histórico: " + insErr.message);
+    }
 
     console.log("[refund] success", {
       orderId: order.id,
       customer: order.customer_name,
       amount: data.amount,
       full: isFull,
-      reason: data.reason,
       operator: operatorName,
-      mpRefundId: mpJson?.id,
+      mpRefundId,
     });
 
-    // Remove o pedido COMPLETAMENTE para sair de todas as métricas
     const { error: delItemsErr } = await supabaseAdmin
       .from("order_items")
       .delete()
@@ -109,7 +159,7 @@ export const refundOrder = createServerFn({ method: "POST" })
 
     return {
       ok: true,
-      refundId: String(mpJson?.id ?? ""),
+      refundId: mpRefundId,
       amount: data.amount,
       full: isFull,
       removed: true,
@@ -125,13 +175,60 @@ export const refundOrder = createServerFn({ method: "POST" })
         reason: data.reason,
         operatorName,
         refundedAt: new Date().toISOString(),
-        mpRefundId: String(mpJson?.id ?? ""),
-        items: (items ?? []).map((it: any) => ({
-          name: it.product_name,
-          color: it.variant_color,
-          quantity: it.quantity,
-          unitPrice: Number(it.unit_price),
-        })),
+        mpRefundId,
+        items: itemsSnapshot,
       },
     };
+  });
+
+export type RefundHistoryRow = {
+  id: string;
+  order_id: string;
+  mp_refund_id: string | null;
+  amount: number;
+  is_full: boolean;
+  reason: string;
+  customer_name: string | null;
+  customer_email: string | null;
+  customer_phone: string | null;
+  customer_cpf: string | null;
+  payment_method: string | null;
+  order_total: number | null;
+  order_created_at: string | null;
+  items: { name: string; color: string | null; quantity: number; unitPrice: number }[];
+  operator_name: string | null;
+  created_at: string;
+};
+
+export const listRefunds = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<RefundHistoryRow[]> => {
+    const { supabase, userId } = context;
+    const { data: isSuper } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isSuper) throw new Error("Apenas SUPERADMIN pode ver reembolsos");
+
+    const { data, error } = await supabase
+      .from("refunds")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    if (error) throw new Error("Falha ao listar reembolsos: " + error.message);
+    return (data ?? []).map((r: any) => ({
+      id: r.id,
+      order_id: r.order_id,
+      mp_refund_id: r.mp_refund_id,
+      amount: Number(r.amount),
+      is_full: !!r.is_full,
+      reason: r.reason,
+      customer_name: r.customer_name,
+      customer_email: r.customer_email,
+      customer_phone: r.customer_phone,
+      customer_cpf: r.customer_cpf,
+      payment_method: r.payment_method,
+      order_total: r.order_total != null ? Number(r.order_total) : null,
+      order_created_at: r.order_created_at,
+      items: Array.isArray(r.items) ? r.items : [],
+      operator_name: r.operator_name,
+      created_at: r.created_at,
+    }));
   });
