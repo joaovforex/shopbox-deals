@@ -563,16 +563,35 @@ function ProductForm({
     setBusy(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      // Sanitize color variants: trim, drop empties, dedupe by lowercase color
+      const cleanVariants: ColorVariant[] = [];
+      const seen = new Set<string>();
+      for (const v of colorVariants) {
+        const color = (v.color ?? "").trim();
+        if (!color) continue;
+        const key = color.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        cleanVariants.push({
+          color,
+          hex: v.hex && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v.hex) ? v.hex : null,
+          stock: Math.max(0, Math.floor(Number(v.stock) || 0)),
+        });
+      }
+      const finalStock = cleanVariants.length > 0
+        ? cleanVariants.reduce((s, v) => s + v.stock, 0)
+        : Number(stock);
       const payload = {
         name: name.trim(),
         description: description.trim() || null,
         price: Number(price),
         original_price: originalPrice ? Number(originalPrice) : null,
         category: category.trim() || null,
-        stock: Number(stock),
+        stock: finalStock,
         image_url: images[0] ?? null,
         images,
         active,
+        color_variants: cleanVariants.length > 0 ? cleanVariants : [],
         created_by: user?.id ?? null,
       };
       if (product) {
