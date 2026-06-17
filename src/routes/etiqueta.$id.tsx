@@ -105,8 +105,10 @@ function LabelPage() {
         useCORS: true,
       });
       const img = canvas.toDataURL("image/jpeg", 0.95);
-      // Elgin L42 PRO — etiqueta 110x150 mm (11x15 cm)
-      const pdf = new jsPDF({ unit: "mm", format: [110, 150], orientation: "portrait" });
+      // Etiqueta de retirada: A6 (105x148 mm) colante; envio: 110x150 mm.
+      const pdfFormat = isPickup ? "a6" : [110, 150];
+      const pdf = new jsPDF({ unit: "mm", format: pdfFormat, orientation: "portrait" });
+
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
       const margin = 2;
