@@ -127,7 +127,7 @@ function CheckoutPage() {
           customer_phone: phoneDigits,
           customer_cpf: cpfDigits,
           delivery_method: delivery,
-          items: items.map((i) => ({ product_id: i.id, quantity: i.quantity })),
+          items: items.map((i) => ({ product_id: i.id, quantity: i.quantity, color: i.variant_color ?? null })),
         },
       });
       // Marca como redirecionando ANTES de limpar o carrinho, para não mostrar tela de "carrinho vazio"

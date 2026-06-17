@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { Trash2, Minus, Plus } from "lucide-react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
-import { useCart } from "@/lib/cart";
+import { useCart, cartItemKey } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
 
@@ -55,27 +55,33 @@ function CartPage() {
         ) : (
           <div className="grid lg:grid-cols-[1fr_360px] gap-8">
             <ul className="space-y-3">
-              {items.map((i) => (
-                <li key={i.id} className="flex gap-4 bg-card border border-border rounded-lg p-3">
-                  <div className="h-24 w-24 rounded-md bg-muted overflow-hidden flex-shrink-0">
-                    {i.image_url && <img src={i.image_url} alt={i.name} className="w-full h-full object-cover" />}
-                  </div>
-                  <div className="flex-1 flex flex-col gap-1">
-                    <Link to="/produto/$id" params={{ id: i.id }} className="font-semibold hover:text-primary line-clamp-2">{i.name}</Link>
-                    <div className="text-price font-black">{brl(i.price)}</div>
-                    <div className="flex items-center gap-2 mt-auto">
-                      <div className="inline-flex items-center bg-secondary rounded-md">
-                        <button onClick={() => setQty(i.id, i.quantity - 1)} className="p-1.5 hover:bg-muted rounded-l-md" aria-label="Diminuir"><Minus className="h-3.5 w-3.5" /></button>
-                        <span className="px-3 text-sm font-bold">{i.quantity}</span>
-                        <button onClick={() => setQty(i.id, i.quantity + 1)} className="p-1.5 hover:bg-muted rounded-r-md" aria-label="Aumentar"><Plus className="h-3.5 w-3.5" /></button>
-                      </div>
-                      <button onClick={() => remove(i.id)} className="ml-auto text-destructive hover:bg-destructive/10 p-2 rounded-md" aria-label="Remover">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+              {items.map((i) => {
+                const k = cartItemKey(i);
+                return (
+                  <li key={k} className="flex gap-4 bg-card border border-border rounded-lg p-3">
+                    <div className="h-24 w-24 rounded-md bg-muted overflow-hidden flex-shrink-0">
+                      {i.image_url && <img src={i.image_url} alt={i.name} className="w-full h-full object-cover" />}
                     </div>
-                  </div>
-                </li>
-              ))}
+                    <div className="flex-1 flex flex-col gap-1">
+                      <Link to="/produto/$id" params={{ id: i.id }} className="font-semibold hover:text-primary line-clamp-2">{i.name}</Link>
+                      {i.variant_color && (
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-accent">Cor: {i.variant_color}</span>
+                      )}
+                      <div className="text-price font-black">{brl(i.price)}</div>
+                      <div className="flex items-center gap-2 mt-auto">
+                        <div className="inline-flex items-center bg-secondary rounded-md">
+                          <button onClick={() => setQty(k, i.quantity - 1)} className="p-1.5 hover:bg-muted rounded-l-md" aria-label="Diminuir"><Minus className="h-3.5 w-3.5" /></button>
+                          <span className="px-3 text-sm font-bold">{i.quantity}</span>
+                          <button onClick={() => setQty(k, i.quantity + 1)} className="p-1.5 hover:bg-muted rounded-r-md" aria-label="Aumentar"><Plus className="h-3.5 w-3.5" /></button>
+                        </div>
+                        <button onClick={() => remove(k)} className="ml-auto text-destructive hover:bg-destructive/10 p-2 rounded-md" aria-label="Remover">
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
               <button onClick={clear} className="text-xs text-muted-foreground hover:text-destructive">Esvaziar carrinho</button>
             </ul>
 
