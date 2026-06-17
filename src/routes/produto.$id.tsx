@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Share2, MessageCircle, Minus, Plus, ArrowLeft, Copy } from "lucide-react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
@@ -135,6 +135,16 @@ function ProductPage() {
   const activeVariant = hasVariants ? variants.find((v) => v.color === selectedColor) ?? null : null;
   const effectiveStock = hasVariants ? (activeVariant?.stock ?? 0) : product.stock;
   const needsColorChoice = hasVariants && !selectedColor;
+  const variantOut = hasVariants && !!selectedColor && effectiveStock <= 0;
+  const allColorsOut = hasVariants && variants.every((v) => v.stock <= 0);
+
+  // Clamp quantity whenever the selected color (or its stock) changes
+  useEffect(() => {
+    setQty((q) => {
+      if (effectiveStock <= 0) return 1;
+      return Math.min(Math.max(1, q), effectiveStock);
+    });
+  }, [selectedColor, effectiveStock]);
 
   const off = discountPct(product.original_price, product.price);
   const url = typeof window !== "undefined" ? window.location.href : "";
@@ -203,6 +213,9 @@ function ProductPage() {
 
   const addToCart = () => {
     if (needsColorChoice) { toast.error("Escolha uma cor antes de adicionar"); return; }
+    if (variantOut) { toast.error(`A cor "${selectedColor}" está esgotada`); return; }
+    if (effectiveStock <= 0) { toast.error("Produto esgotado"); return; }
+    if (qty > effectiveStock) { toast.error(`Apenas ${effectiveStock} disponível(is)${selectedColor ? ` em ${selectedColor}` : ""}`); return; }
     if (requireLogin("/carrinho")) return;
     add({
       id: product.id,
@@ -213,6 +226,23 @@ function ProductPage() {
     }, qty);
     toast.success(`Adicionado ao carrinho (${qty}x)${selectedColor ? ` · ${selectedColor}` : ""}`);
   };
+
+  const buyNow = () => {
+    if (needsColorChoice) { toast.error("Escolha uma cor antes de comprar"); return; }
+    if (variantOut) { toast.error(`A cor "${selectedColor}" está esgotada`); return; }
+    if (effectiveStock <= 0) { toast.error("Produto esgotado"); return; }
+    if (qty > effectiveStock) { toast.error(`Apenas ${effectiveStock} disponível(is)${selectedColor ? ` em ${selectedColor}` : ""}`); return; }
+    if (requireLogin("/checkout")) return;
+    add({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image_url: productImages(product)[0] ?? null,
+      variant_color: selectedColor,
+    }, qty);
+    navigate({ to: "/checkout" });
+  };
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -260,15 +290,19 @@ function ProductPage() {
 
             <div className="text-sm">
               {hasVariants ? (
-                needsColorChoice ? (
-                  <span className="text-accent font-semibold">Escolha uma cor abaixo</span>
+                allColorsOut ? (
+                  <span className="text-destructive font-semibold">Todas as cores esgotadas</span>
+                ) : needsColorChoice ? (
+                  <span className="text-accent font-semibold">⬇️ Escolha uma cor abaixo</span>
                 ) : effectiveStock > 0 ? (
-                  <span className="text-primary font-semibold">Em estoque ({effectiveStock} disponíveis em {selectedColor})</span>
+                  <span className="text-primary font-semibold">
+                    {effectiveStock} {effectiveStock === 1 ? "unidade" : "unidades"} em estoque · cor <strong>{selectedColor}</strong>
+                  </span>
                 ) : (
-                  <span className="text-destructive font-semibold">Cor esgotada</span>
+                  <span className="text-destructive font-semibold">A cor "{selectedColor}" está esgotada — escolha outra cor</span>
                 )
               ) : product.stock > 0 ? (
-                <span className="text-primary font-semibold">Em estoque ({product.stock} disponiveis)</span>
+                <span className="text-primary font-semibold">Em estoque ({product.stock} {product.stock === 1 ? "disponível" : "disponíveis"})</span>
               ) : (
                 <span className="text-destructive font-semibold">Esgotado</span>
               )}
@@ -309,21 +343,23 @@ function ProductPage() {
               </div>
             )}
 
-            {effectiveStock > 0 && (
+            {(effectiveStock > 0 || needsColorChoice) && !allColorsOut && (
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="inline-flex items-center bg-secondary rounded-md">
                     <button
                       onClick={() => setQty((q) => Math.max(1, q - 1))}
-                      className="p-2 hover:bg-muted rounded-l-md"
+                      disabled={needsColorChoice || effectiveStock <= 0}
+                      className="p-2 hover:bg-muted rounded-l-md disabled:opacity-40"
                       aria-label="Diminuir"
                     >
                       <Minus className="h-4 w-4" />
                     </button>
                     <span className="px-4 font-bold">{qty}</span>
                     <button
-                      onClick={() => setQty((q) => Math.min(effectiveStock, q + 1))}
-                      className="p-2 hover:bg-muted rounded-r-md"
+                      onClick={() => setQty((q) => Math.min(effectiveStock || 1, q + 1))}
+                      disabled={needsColorChoice || qty >= effectiveStock}
+                      className="p-2 hover:bg-muted rounded-r-md disabled:opacity-40"
                       aria-label="Aumentar"
                     >
                       <Plus className="h-4 w-4" />
@@ -331,32 +367,22 @@ function ProductPage() {
                   </div>
                   <button
                     onClick={addToCart}
-                    disabled={needsColorChoice}
-                    className="flex-1 inline-flex items-center justify-center gap-2 bg-secondary text-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:bg-muted transition-colors disabled:opacity-50"
+                    disabled={needsColorChoice || variantOut}
+                    className="flex-1 inline-flex items-center justify-center gap-2 bg-secondary text-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Adicionar
+                    {needsColorChoice ? "Escolha uma cor" : variantOut ? "Cor esgotada" : "Adicionar"}
                   </button>
                 </div>
                 <button
-                  onClick={() => {
-                    if (needsColorChoice) { toast.error("Escolha uma cor antes de comprar"); return; }
-                    if (requireLogin("/checkout")) return;
-                    add({
-                      id: product.id,
-                      name: product.name,
-                      price: product.price,
-                      image_url: productImages(product)[0] ?? null,
-                      variant_color: selectedColor,
-                    }, qty);
-                    navigate({ to: "/checkout" });
-                  }}
-                  disabled={needsColorChoice}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:scale-[1.02] transition-transform shadow-deal disabled:opacity-50 disabled:hover:scale-100"
+                  onClick={buyNow}
+                  disabled={needsColorChoice || variantOut}
+                  className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-md font-black uppercase tracking-wider hover:scale-[1.02] transition-transform shadow-deal disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed"
                 >
-                  Comprar agora
+                  {needsColorChoice ? "Escolha uma cor para comprar" : variantOut ? "Cor esgotada" : "Comprar agora"}
                 </button>
               </div>
             )}
+
 
             {admin && (
               <div className="border-t border-border pt-4">
