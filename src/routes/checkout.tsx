@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,6 +51,7 @@ function CheckoutPage() {
   const [redirecting, setRedirecting] = useState(false);
   const createPref = useServerFn(createMpPreference);
   const user = useAuthUser();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user === null) {
@@ -133,15 +134,12 @@ function CheckoutPage() {
       // Marca como redirecionando ANTES de limpar o carrinho, para não mostrar tela de "carrinho vazio"
       setRedirecting(true);
       // Força o checkout web do Mercado Pago (evita abrir o app instalado no celular).
-      // O parâmetro extra quebra o match de Universal Link / App Link com o app do MP,
-      // mantendo o usuário no navegador.
       const sep = res.initPoint.includes("?") ? "&" : "?";
       const webUrl = `${res.initPoint}${sep}source=web&platform=web`;
       sessionStorage.setItem("mp_init_point", webUrl);
       clear();
-      // Redireciona DIRETO ao Mercado Pago — mantém o gesto do usuário (essencial
-      // em navegadores in-app de WhatsApp/Instagram, que bloqueiam redirects atrasados).
-      window.location.href = webUrl;
+      // Vai para a tela de redirecionamento (que dispara window.location.replace imediatamente).
+      navigate({ to: "/redirecionando" });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao iniciar pagamento";
       toast.error(msg);
