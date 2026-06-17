@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
@@ -10,8 +10,13 @@ import { listRefunds, type RefundHistoryRow } from "@/lib/refunds.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/reembolsos")({
   head: () => ({ meta: [{ title: "Reembolsos · Admin" }] }),
+  beforeLoad: async () => {
+    const allowed = await isSuperAdmin();
+    if (!allowed) throw redirect({ to: "/admin" });
+  },
   component: RefundsPage,
 });
+
 
 function RefundsPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
