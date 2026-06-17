@@ -33,6 +33,8 @@ type OrderRow = {
   status: string;
   fulfillment_status: string;
   total: number;
+  mp_payment_id?: string | null;
+  refund_status?: string | null;
   label_status?: string | null;
   label_generated_at?: string | null;
   label_generated_by_name?: string | null;
