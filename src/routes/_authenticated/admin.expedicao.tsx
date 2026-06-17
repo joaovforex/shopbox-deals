@@ -603,6 +603,10 @@ function FulfillmentPage() {
             try {
               const res = await refundFn({ data: { orderId: refundTarget.id, amount, reason, confirmText } });
               toast.success((res.full ? "Reembolso total efetuado" : `Reembolso parcial de ${brl(res.amount)} efetuado`) + " · pedido removido");
+              if (res.receipt) {
+                const { printRefundReceipt } = await import("@/lib/refundReceipt");
+                printRefundReceipt(res.receipt);
+              }
               setRefundTarget(null);
               qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
               qc.invalidateQueries({ queryKey: ["fulfillment-search"] });
