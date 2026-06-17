@@ -75,26 +75,37 @@ export const refundOrder = createServerFn({ method: "POST" })
     const { data: prof } = await supabaseAdmin.from("profiles").select("full_name").eq("id", userId).maybeSingle();
     const operatorName = prof?.full_name || null;
 
-    const refundStatus = isFull ? "refunded" : "partially_refunded";
-    const { error: uerr } = await supabaseAdmin
+    console.log("[refund] success", {
+      orderId: order.id,
+      customer: order.customer_name,
+      amount: data.amount,
+      full: isFull,
+      reason: data.reason,
+      operator: operatorName,
+      mpRefundId: mpJson?.id,
+    });
+
+    // Remove o pedido COMPLETAMENTE para sair de todas as métricas
+    const { error: delItemsErr } = await supabaseAdmin
+      .from("order_items")
+      .delete()
+      .eq("order_id", order.id);
+    if (delItemsErr) {
+      throw new Error("Estorno feito no MP mas falhou ao remover itens do pedido: " + delItemsErr.message);
+    }
+    const { error: delOrderErr } = await supabaseAdmin
       .from("orders")
-      .update({
-        refunded_at: new Date().toISOString(),
-        refunded_amount: data.amount,
-        refund_reason: data.reason,
-        refunded_by: userId,
-        refunded_by_name: operatorName,
-        mp_refund_id: String(mpJson?.id ?? ""),
-        refund_status: refundStatus,
-        status: isFull ? "refunded" : order.status,
-      })
+      .delete()
       .eq("id", order.id);
-    if (uerr) throw new Error("Estorno feito no MP mas falhou ao atualizar pedido: " + uerr.message);
+    if (delOrderErr) {
+      throw new Error("Estorno feito no MP mas falhou ao remover pedido: " + delOrderErr.message);
+    }
 
     return {
       ok: true,
       refundId: String(mpJson?.id ?? ""),
       amount: data.amount,
       full: isFull,
+      removed: true,
     };
   });

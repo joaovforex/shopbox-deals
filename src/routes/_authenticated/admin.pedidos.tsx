@@ -682,7 +682,7 @@ function OrdersPanel() {
             setBusy(true);
             try {
               const res = await refundFn({ data: { orderId: refundTarget.id, amount, reason, confirmText } });
-              toast.success(res.full ? "Reembolso total efetuado" : `Reembolso parcial de ${brl(res.amount)} efetuado`);
+              toast.success((res.full ? "Reembolso total efetuado" : `Reembolso parcial de ${brl(res.amount)} efetuado`) + " · pedido removido");
               setRefundTarget(null);
               qc.invalidateQueries({ queryKey: ["admin-orders"] });
             } catch (err: any) {
@@ -773,7 +773,7 @@ function RefundModal({
   const amount = kind === "full" ? total : Number(amountStr.replace(",", "."));
   const amountValid = isFinite(amount) && amount > 0 && amount <= total + 0.001;
   const reasonValid = reason.trim().length >= 5;
-  const finalValid = ack1 && ack2 && confirmText === "REEMBOLSAR";
+  const finalValid = ack1 && ack2 && confirmText === "REEMBOLSAR" && reasonValid;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
@@ -887,7 +887,19 @@ function RefundModal({
                 <div className="flex justify-between"><span className="text-muted-foreground">Cliente</span><span>{order.customer_name}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Tipo</span><span className="font-bold uppercase">{kind === "full" ? "Total" : "Parcial"}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Valor a estornar</span><span className="display text-amber-700 dark:text-amber-400">{brl(amount)}</span></div>
-                <div className="pt-1"><span className="text-muted-foreground">Motivo:</span> <span>{reason}</span></div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                  Motivo do reembolso (revise antes de enviar) *
+                </label>
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  rows={2}
+                  maxLength={500}
+                  className="w-full px-3 py-2 rounded border border-amber-500/40 bg-background text-sm"
+                />
+                <p className="text-[11px] text-muted-foreground">Mín. 5 caracteres · {reason.length}/500</p>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
