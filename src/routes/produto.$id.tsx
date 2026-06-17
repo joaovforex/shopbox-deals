@@ -290,15 +290,19 @@ function ProductPage() {
 
             <div className="text-sm">
               {hasVariants ? (
-                needsColorChoice ? (
-                  <span className="text-accent font-semibold">Escolha uma cor abaixo</span>
+                allColorsOut ? (
+                  <span className="text-destructive font-semibold">Todas as cores esgotadas</span>
+                ) : needsColorChoice ? (
+                  <span className="text-accent font-semibold">⬇️ Escolha uma cor abaixo</span>
                 ) : effectiveStock > 0 ? (
-                  <span className="text-primary font-semibold">Em estoque ({effectiveStock} disponíveis em {selectedColor})</span>
+                  <span className="text-primary font-semibold">
+                    {effectiveStock} {effectiveStock === 1 ? "unidade" : "unidades"} em estoque · cor <strong>{selectedColor}</strong>
+                  </span>
                 ) : (
-                  <span className="text-destructive font-semibold">Cor esgotada</span>
+                  <span className="text-destructive font-semibold">A cor "{selectedColor}" está esgotada — escolha outra cor</span>
                 )
               ) : product.stock > 0 ? (
-                <span className="text-primary font-semibold">Em estoque ({product.stock} disponiveis)</span>
+                <span className="text-primary font-semibold">Em estoque ({product.stock} {product.stock === 1 ? "disponível" : "disponíveis"})</span>
               ) : (
                 <span className="text-destructive font-semibold">Esgotado</span>
               )}
