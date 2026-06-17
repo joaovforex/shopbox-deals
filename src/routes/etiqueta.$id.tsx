@@ -293,62 +293,66 @@ function ShippingLabel({ o, items }: { o: any; items: any[] }) {
 }
 
 function PickupLabel({ o, items }: { o: any; items: any[] }) {
+  const fullCode = o.id.replace(/-/g, "").slice(0, 14).toUpperCase();
+  const shortCode = o.id.slice(0, 6).toUpperCase();
   return (
-    <div className="label-doc bg-white text-black border-2 border-black p-4 space-y-3">
-      <div className="pickup-header border-2 border-black p-2 flex items-center justify-between bg-black text-white">
-        <div>
-          <div className="font-black text-lg tracking-wider">RETIRADA NA LOJA</div>
-          <div className="text-[10px] uppercase">Aguardar cliente</div>
-        </div>
-        <Store className="h-7 w-7" />
+    <div className="label-doc bg-white text-black p-3">
+      <div className="pb-1">
+        <img src={shopboxLogo} alt="shopbox" className="h-8 w-auto" />
       </div>
 
-      <div className="border border-black p-3 text-center">
+      <div className="border-t-2 border-black pt-2">
         <div className="text-[10px] font-bold uppercase">Senha do pedido</div>
-        <div className="font-black text-3xl tracking-[0.3em] mt-1">
-          {o.id.slice(0, 6).toUpperCase()}
+        <div className="text-center">
+          <div className="font-black text-3xl tracking-[0.25em] mt-0.5">{shortCode}</div>
+          <div className="flex justify-center mt-1">
+            <Barcode value={barcodeValue(o.id)} height={38} width={1.7} fontSize={10} />
+          </div>
+          <div className="text-[10px] mt-0.5">{fullCode}</div>
         </div>
-        <div className="text-[10px] mt-1">Confira documento do cliente ao entregar</div>
+        <div className="text-[11px] mt-1 font-bold">Escaneie na expedição para confirmar a entrega</div>
+        <div className="text-[11px] font-bold">Confira documento do cliente ao entregar</div>
       </div>
 
-      <div className="border border-black p-2">
-        <div className="text-[10px] font-bold uppercase border-b border-black mb-1 pb-0.5">Cliente</div>
+      <div className="border-t-2 border-black pt-1 mt-2">
+        <div className="text-[11px] font-black uppercase tracking-wide">Cliente</div>
         <div className="font-bold text-sm uppercase">{o.customer_name}</div>
         {o.customer_cpf && <div className="text-xs font-bold">CPF: {formatCpf(o.customer_cpf)}</div>}
-        {o.customer_phone && <div className="text-xs mt-1">WhatsApp: {formatPhone(o.customer_phone)}</div>}
+        {o.customer_phone && <div className="text-xs">WhatsApp: {formatPhone(o.customer_phone)}</div>}
         {o.customer_email && <div className="text-[11px]">{o.customer_email}</div>}
       </div>
 
-      <div className="border border-black p-2">
-        <div className="text-[10px] font-bold uppercase border-b border-black mb-1 pb-0.5">
+      <div className="border-t-2 border-black pt-1 mt-2">
+        <div className="text-[11px] font-black uppercase tracking-wide">
           Itens · Pedido #{o.id.slice(0, 8).toUpperCase()}
         </div>
-        <ul className="text-sm leading-tight space-y-0.5">
+        <ul className="text-xs leading-tight">
           {items.map((it: any, i: number) => (
             <li key={i} className="flex justify-between gap-2">
               <span>
                 <strong>{it.quantity}x</strong> {it.product_name}
-                {it.variant_color && <span className="ml-1 text-[11px] font-black uppercase">· {it.variant_color}</span>}
+                {it.variant_color && <span className="ml-1 text-[10px] font-black uppercase">· {it.variant_color}</span>}
               </span>
-              <span className="text-[11px]">{brl(it.unit_price * it.quantity)}</span>
+              <span className="text-[11px] whitespace-nowrap">{brl(it.unit_price * it.quantity)}</span>
             </li>
           ))}
         </ul>
-        <div className="text-xs mt-2 border-t border-dashed border-black pt-1 flex justify-between font-bold">
-          <span>TOTAL PAGO</span>
-          <span>{brl(Number(o.total))}</span>
-        </div>
       </div>
 
-      <div className="border border-black p-2 text-center">
-        <div className="text-[10px] font-bold uppercase">Local de retirada</div>
-        <div className="text-xs mt-1">
-          {STORE.street}, {STORE.number} — {STORE.district}<br />
-          {STORE.city} / {STORE.state} · Seg a Sáb · 9h às 18h · Dom · 10h às 16h
-        </div>
+      <div className="border-t-2 border-black pt-1 mt-1 flex justify-between font-black text-sm">
+        <span>TOTAL PAGO</span>
+        <span>{brl(Number(o.total))}</span>
       </div>
 
-      <div className="text-[10px] text-center text-gray-600">
+      <div className="border-t-2 border-black pt-1 mt-2">
+        <div className="text-[11px] font-black uppercase tracking-wide">Local de retirada</div>
+        <div className="text-xs font-bold mt-0.5">
+          {STORE.street}, {STORE.number} — {STORE.district}, {STORE.city} / {STORE.state}
+        </div>
+        <div className="text-xs font-bold">Seg a Sáb · 9h às 18h · Dom · 10h às 16h</div>
+      </div>
+
+      <div className="text-[10px] text-center mt-2">
         Emitido em {new Date().toLocaleString("pt-BR")}
       </div>
     </div>
