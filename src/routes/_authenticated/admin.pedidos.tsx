@@ -773,7 +773,7 @@ function RefundModal({
   const amount = kind === "full" ? total : Number(amountStr.replace(",", "."));
   const amountValid = isFinite(amount) && amount > 0 && amount <= total + 0.001;
   const reasonValid = reason.trim().length >= 5;
-  const finalValid = ack1 && ack2 && confirmText === "REEMBOLSAR";
+  const finalValid = ack1 && ack2 && confirmText === "REEMBOLSAR" && reasonValid;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
