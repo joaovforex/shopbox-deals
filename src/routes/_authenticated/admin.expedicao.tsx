@@ -185,6 +185,7 @@ function FulfillmentPage() {
       let q = supabase
         .from("orders")
         .select("*")
+        .eq("status", "paid")
         .order("created_at", { ascending: false })
         .limit(100);
       if (digits.length >= 3) {
