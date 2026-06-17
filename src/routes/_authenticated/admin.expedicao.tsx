@@ -593,6 +593,27 @@ function FulfillmentPage() {
           </div>
         )}
       </section>
+      {refundTarget && (
+        <RefundModal
+          order={refundTarget}
+          busy={busy}
+          onClose={() => setRefundTarget(null)}
+          onConfirm={async (amount, reason, confirmText) => {
+            setBusy(true);
+            try {
+              const res = await refundFn({ data: { orderId: refundTarget.id, amount, reason, confirmText } });
+              toast.success((res.full ? "Reembolso total efetuado" : `Reembolso parcial de ${brl(res.amount)} efetuado`) + " · pedido removido");
+              setRefundTarget(null);
+              qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
+              qc.invalidateQueries({ queryKey: ["fulfillment-search"] });
+            } catch (err: any) {
+              toast.error(err?.message ?? "Falha no estorno");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      )}
     </Shell>
   );
 }
