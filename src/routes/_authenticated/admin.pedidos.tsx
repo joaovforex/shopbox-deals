@@ -532,7 +532,22 @@ function OrdersPanel() {
                         <td className="p-3 text-xs uppercase">{o.payment_method}</td>
                         <td className="p-3 text-right font-bold text-price">{brl(Number(o.total))}</td>
                         {superAdmin && (
-                          <td className="p-3 text-right">
+                          <td className="p-3 text-right whitespace-nowrap">
+                            {o.status === "paid" && o.mp_payment_id && !o.refund_status && (
+                              <button
+                                onClick={() => setRefundTarget(o)}
+                                disabled={busy}
+                                title="Estornar via Mercado Pago"
+                                className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 px-2 py-1 rounded disabled:opacity-50 mr-1"
+                              >
+                                <Undo2 className="h-3.5 w-3.5" /> Estornar
+                              </button>
+                            )}
+                            {o.refund_status && (
+                              <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 mr-1">
+                                {o.refund_status === "refunded" ? "Reembolsado" : "Reemb. parcial"}
+                              </span>
+                            )}
                             <button
                               onClick={() => deleteOrder(o.id)}
                               disabled={busy}
