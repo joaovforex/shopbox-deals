@@ -11,6 +11,7 @@ export const PRODUCT_CATEGORIES = [
   "Cosméticos e Perfumes",
   "Cozinha",
   "Decoração Comemorativa",
+  "Eletrodomésticos",
   "Eletrônicos",
   "Ferramentas",
   "Instrumentos Musicais",
