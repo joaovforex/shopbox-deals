@@ -30,6 +30,9 @@ type OrderRow = {
   delivery_method: string;
   status: string;
   total: number;
+  mp_payment_id: string | null;
+  refund_status: string | null;
+  refunded_amount: number | null;
 };
 type ItemRow = {
   id: string;
