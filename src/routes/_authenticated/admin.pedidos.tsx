@@ -108,6 +108,7 @@ function OrdersPanel() {
   const stats = useMemo(() => {
     let orders = data?.orders ?? [];
     const allItems = data?.items ?? [];
+    const categoriesMap = data?.categories ?? new Map<string, string>();
 
     // Apply filters
     if (searchCpf.trim()) {
@@ -129,9 +130,22 @@ function OrdersPanel() {
       orders = orders.filter((o) => o.status === filterStatus);
     }
 
+    // Filtro por categoria: mantém pedidos que tenham ao menos um item da categoria
+    if (filterCategory !== "all") {
+      const orderIdsInCat = new Set(
+        allItems
+          .filter((i) => (categoriesMap.get(i.product_id) ?? "Sem categoria") === filterCategory)
+          .map((i) => i.order_id),
+      );
+      orders = orders.filter((o) => orderIdsInCat.has(o.id));
+    }
+
     // Métricas de venda consideram APENAS pedidos pagos (ignora pendentes/cancelados)
     const paidOrderIds = new Set(orders.filter((o) => o.status === "paid").map((o) => o.id));
-    const items = allItems.filter((i) => paidOrderIds.has(i.order_id));
+    let items = allItems.filter((i) => paidOrderIds.has(i.order_id));
+    if (filterCategory !== "all") {
+      items = items.filter((i) => (categoriesMap.get(i.product_id) ?? "Sem categoria") === filterCategory);
+    }
 
     const revenue = items.reduce((s, i) => s + Number(i.unit_price) * Number(i.quantity), 0);
     const unitsSold = items.reduce((s, i) => s + Number(i.quantity), 0);
@@ -147,13 +161,26 @@ function OrdersPanel() {
       .map(([id, v]) => ({ id, ...v }))
       .sort((a, b) => b.qty - a.qty);
 
+    // Ranking por categoria
+    const byCategory = new Map<string, { qty: number; revenue: number }>();
+    for (const it of items) {
+      const cat = categoriesMap.get(it.product_id) ?? "Sem categoria";
+      const cur = byCategory.get(cat) ?? { qty: 0, revenue: 0 };
+      cur.qty += Number(it.quantity);
+      cur.revenue += Number(it.unit_price) * Number(it.quantity);
+      byCategory.set(cat, cur);
+    }
+    const categoryRanking = [...byCategory.entries()]
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.revenue - a.revenue);
+
     // Breakdown de entrega considera somente pedidos pagos para as métricas
     const paidOrders = orders.filter((o) => o.status === "paid");
     const deliveryCount = paidOrders.filter((o) => o.delivery_method === "delivery").length;
     const pickupCount = paidOrders.filter((o) => o.delivery_method === "pickup").length;
 
-    return { orders, items, revenue, unitsSold, ranking, deliveryCount, pickupCount };
-  }, [data, searchCpf, filterDelivery, filterPayment, filterStatus]);
+    return { orders, items, revenue, unitsSold, ranking, categoryRanking, deliveryCount, pickupCount };
+  }, [data, searchCpf, filterDelivery, filterPayment, filterStatus, filterCategory]);
 
   const insight = useMemo(() => generateInsight(stats.ranking, stats.orders.length, period), [stats, period]);
 
