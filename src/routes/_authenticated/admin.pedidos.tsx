@@ -434,7 +434,7 @@ function OrdersPanel() {
               )}
 
               {showFilters && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                   <select
                     value={filterDelivery}
                     onChange={(e) => setFilterDelivery(e.target.value as any)}
