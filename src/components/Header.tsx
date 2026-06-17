@@ -8,6 +8,7 @@ import { useCart } from "@/lib/cart";
 import { getRoleSummary, usedCategoriesQuery } from "@/lib/products";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import logo from "@/assets/shopbox-logo.png";
+import { OnlineCounter } from "@/components/OnlineCounter";
 
 function useCategories() {
   const { data } = useQuery(usedCategoriesQuery());
