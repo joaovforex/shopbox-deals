@@ -19,17 +19,11 @@ export const Route = createFileRoute("/_authenticated/admin/reembolsos")({
 
 
 function RefundsPage() {
-  const [allowed, setAllowed] = useState<boolean | null>(null);
   const [search, setSearch] = useState("");
   const fetchRefunds = useServerFn(listRefunds);
 
-  useEffect(() => {
-    isSuperAdmin().then(setAllowed);
-  }, []);
-
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-refunds"],
-    enabled: allowed === true,
     queryFn: () => fetchRefunds({}),
   });
 
@@ -58,22 +52,6 @@ function RefundsPage() {
     };
   }, [data]);
 
-  if (allowed === null) {
-    return (
-      <Shell>
-        <div className="flex-1 flex items-center justify-center">Carregando...</div>
-      </Shell>
-    );
-  }
-  if (!allowed) {
-    return (
-      <Shell>
-        <div className="flex-1 flex items-center justify-center p-6 text-muted-foreground">
-          Acesso restrito ao Super Admin.
-        </div>
-      </Shell>
-    );
-  }
 
   const reprint = async (r: RefundHistoryRow) => {
     const { printRefundReceipt } = await import("@/lib/refundReceipt");
