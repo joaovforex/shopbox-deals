@@ -382,10 +382,7 @@ function ProductPage() {
                 </button>
               </div>
             )}
-                  Comprar agora
-                </button>
-              </div>
-            )}
+
 
             {admin && (
               <div className="border-t border-border pt-4">
