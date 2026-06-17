@@ -50,6 +50,17 @@ export function MegaOffersCarousel({ products }: { products: ProductCardData[] }
     const el = scrollRef.current;
     if (!el || items.length === 0) return;
 
+    // Em dispositivos touch / telas pequenas, desabilita o auto-scroll —
+    // mutar scrollLeft via RAF briga com o momentum do swipe e trava a página.
+    const isTouch =
+      typeof window !== "undefined" &&
+      (window.matchMedia("(hover: none)").matches || window.innerWidth < 768);
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (isTouch || reduced) return;
+
     const step = stepWidth();
     const pxPerMs = step / SPEED_MS;
 
@@ -71,9 +82,14 @@ export function MegaOffersCarousel({ products }: { products: ProductCardData[] }
 
     const onEnter = () => { pausedRef.current = true; };
     const onLeave = () => { pausedRef.current = false; };
+    const onPointerDown = () => { pausedRef.current = true; };
+    const onPointerUp = () => { pauseAuto(); };
 
     el.addEventListener("mouseenter", onEnter);
     el.addEventListener("mouseleave", onLeave);
+    el.addEventListener("pointerdown", onPointerDown);
+    el.addEventListener("pointerup", onPointerUp);
+    el.addEventListener("pointercancel", onPointerUp);
 
     raf = requestAnimationFrame(loop);
 
@@ -81,6 +97,9 @@ export function MegaOffersCarousel({ products }: { products: ProductCardData[] }
       cancelAnimationFrame(raf);
       el.removeEventListener("mouseenter", onEnter);
       el.removeEventListener("mouseleave", onLeave);
+      el.removeEventListener("pointerdown", onPointerDown);
+      el.removeEventListener("pointerup", onPointerUp);
+      el.removeEventListener("pointercancel", onPointerUp);
       if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
     };
   }, [items.length]);
@@ -116,8 +135,8 @@ export function MegaOffersCarousel({ products }: { products: ProductCardData[] }
 
       <div
         ref={scrollRef}
-        className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth"
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        className="flex gap-3 overflow-x-auto pb-2 snap-x sm:snap-mandatory"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch", overscrollBehaviorX: "contain" }}
       >
         {items.map(({ p, off }, i) => {
           const cover = productImages(p)[0];
