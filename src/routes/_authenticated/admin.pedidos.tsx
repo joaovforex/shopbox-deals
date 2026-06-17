@@ -51,6 +51,8 @@ function OrdersPanel() {
   const [admin, setAdmin] = useState<boolean | null>(null);
   const [superAdmin, setSuperAdmin] = useState<boolean | null>(null);
   const [period, setPeriod] = useState<Period>("day");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [wipeOpen, setWipeOpen] = useState(false);
   const [wipeConfirm, setWipeConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -58,6 +60,7 @@ function OrdersPanel() {
   const [filterDelivery, setFilterDelivery] = useState<"all" | "delivery" | "pickup">("all");
   const [filterPayment, setFilterPayment] = useState<"all" | "pix" | "card">("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "paid" | "cancelled">("all");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const qc = useQueryClient();
 
