@@ -576,6 +576,16 @@ function FulfillmentPage() {
                         <CheckCheck className="h-3.5 w-3.5" /> Entregue
                       </button>
                     )}
+                    {superAdmin && o.status === "paid" && o.mp_payment_id && !o.refund_status && o.fulfillment_status !== "completed" && (
+                      <button
+                        onClick={() => setRefundTarget(o)}
+                        disabled={busy}
+                        className="inline-flex items-center gap-1.5 text-xs bg-amber-600 text-white hover:opacity-90 px-3 py-2 rounded font-bold uppercase tracking-wider disabled:opacity-50"
+                        title="Estornar via Mercado Pago"
+                      >
+                        <Undo2 className="h-3.5 w-3.5" /> Estornar
+                      </button>
+                    )}
                   </div>
                 </article>
               );
