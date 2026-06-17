@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Upload, Crown, BarChart3, Truck, Users, Package, ShieldAlert } from "lucide-react";
+import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Upload, Crown, BarChart3, Truck, Users, Package, ShieldAlert, Undo2 } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchProducts, getRoleSummary, isVideoUrl, uploadProductImage, type ColorVariant, type Product, type RoleSummary } from "@/lib/products";
@@ -248,6 +248,12 @@ function AdminPage() {
                   className="inline-flex items-center gap-2 bg-card border border-border font-black uppercase tracking-wider px-4 py-3 rounded-md hover:border-primary text-sm"
                 >
                   <Users className="h-4 w-4" /> Equipe
+                </Link>
+                <Link
+                  to="/admin/reembolsos"
+                  className="inline-flex items-center gap-2 bg-card border border-amber-500/50 text-amber-700 dark:text-amber-400 font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-amber-500/10 text-sm"
+                >
+                  <Undo2 className="h-4 w-4" /> Reembolsos
                 </Link>
               </>
             )}
