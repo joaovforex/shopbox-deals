@@ -401,6 +401,7 @@ type Draft = {
   stock: string;
   images: string[];
   active: boolean;
+  colorVariants: ColorVariant[];
 };
 
 function loadDraft(productId: string | null): Draft | null {
