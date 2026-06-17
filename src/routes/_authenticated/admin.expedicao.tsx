@@ -1,13 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, Bell, CheckCheck, ScanLine, BellRing, XCircle, Hourglass, Search, X } from "lucide-react";
+import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, Bell, CheckCheck, ScanLine, BellRing, XCircle, Hourglass, Search, X, Undo2 } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
+import { RefundModal } from "@/components/RefundModal";
 import { supabase } from "@/integrations/supabase/client";
-import { hasAnyRole } from "@/lib/products";
+import { hasAnyRole, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
 import { openWhatsApp, orderReminderMessage, orderDeliveredMessage } from "@/lib/whatsapp";
+import { refundOrder } from "@/lib/refunds.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/expedicao")({
   head: () => ({ meta: [{ title: "Expedição · Admin" }] }),
