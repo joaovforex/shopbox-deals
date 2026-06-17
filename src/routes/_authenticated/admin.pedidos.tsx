@@ -7,6 +7,7 @@ import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { isAdmin, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
+import { PRODUCT_CATEGORIES } from "@/lib/categories";
 
 export const Route = createFileRoute("/_authenticated/admin/pedidos")({
   head: () => ({ meta: [{ title: "Pedidos · Admin" }] }),
@@ -51,6 +52,8 @@ function OrdersPanel() {
   const [admin, setAdmin] = useState<boolean | null>(null);
   const [superAdmin, setSuperAdmin] = useState<boolean | null>(null);
   const [period, setPeriod] = useState<Period>("day");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [wipeOpen, setWipeOpen] = useState(false);
   const [wipeConfirm, setWipeConfirm] = useState("");
   const [busy, setBusy] = useState(false);
@@ -58,6 +61,7 @@ function OrdersPanel() {
   const [filterDelivery, setFilterDelivery] = useState<"all" | "delivery" | "pickup">("all");
   const [filterPayment, setFilterPayment] = useState<"all" | "pix" | "card">("all");
   const [filterStatus, setFilterStatus] = useState<"all" | "paid" | "cancelled">("all");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const qc = useQueryClient();
 
@@ -67,10 +71,11 @@ function OrdersPanel() {
   }, []);
 
   // Ao buscar por nome/CPF, ignora o período selecionado e procura em todos os pedidos.
-  const effectivePeriod: Period = searchCpf.trim() ? "all" : period;
+  const hasCustomRange = !!(dateFrom || dateTo);
+  const effectivePeriod: Period = searchCpf.trim() || hasCustomRange ? "all" : period;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-orders", effectivePeriod],
+    queryKey: ["admin-orders", effectivePeriod, dateFrom, dateTo],
     enabled: admin === true,
     queryFn: async () => {
       const since = startOf(effectivePeriod);
@@ -80,6 +85,8 @@ function OrdersPanel() {
         .eq("status", "paid")
         .order("created_at", { ascending: false });
       if (since) q = q.gte("created_at", since.toISOString());
+      if (dateFrom) q = q.gte("created_at", new Date(dateFrom + "T00:00:00").toISOString());
+      if (dateTo) q = q.lte("created_at", new Date(dateTo + "T23:59:59").toISOString());
       const { data: orders, error } = await q;
       if (error) throw error;
       const ids = (orders ?? []).map((o) => o.id);
@@ -89,13 +96,20 @@ function OrdersPanel() {
         if (ie) throw ie;
         items = (it ?? []) as ItemRow[];
       }
-      return { orders: (orders ?? []) as OrderRow[], items };
+      const productIds = Array.from(new Set(items.map((i) => i.product_id).filter(Boolean)));
+      let categories = new Map<string, string>();
+      if (productIds.length) {
+        const { data: prods } = await supabase.from("products").select("id, category").in("id", productIds);
+        for (const p of prods ?? []) categories.set(p.id as string, (p.category as string) ?? "Sem categoria");
+      }
+      return { orders: (orders ?? []) as OrderRow[], items, categories };
     },
   });
 
   const stats = useMemo(() => {
     let orders = data?.orders ?? [];
     const allItems = data?.items ?? [];
+    const categoriesMap = data?.categories ?? new Map<string, string>();
 
     // Apply filters
     if (searchCpf.trim()) {
@@ -117,9 +131,22 @@ function OrdersPanel() {
       orders = orders.filter((o) => o.status === filterStatus);
     }
 
+    // Filtro por categoria: mantém pedidos que tenham ao menos um item da categoria
+    if (filterCategory !== "all") {
+      const orderIdsInCat = new Set(
+        allItems
+          .filter((i) => (categoriesMap.get(i.product_id) ?? "Sem categoria") === filterCategory)
+          .map((i) => i.order_id),
+      );
+      orders = orders.filter((o) => orderIdsInCat.has(o.id));
+    }
+
     // Métricas de venda consideram APENAS pedidos pagos (ignora pendentes/cancelados)
     const paidOrderIds = new Set(orders.filter((o) => o.status === "paid").map((o) => o.id));
-    const items = allItems.filter((i) => paidOrderIds.has(i.order_id));
+    let items = allItems.filter((i) => paidOrderIds.has(i.order_id));
+    if (filterCategory !== "all") {
+      items = items.filter((i) => (categoriesMap.get(i.product_id) ?? "Sem categoria") === filterCategory);
+    }
 
     const revenue = items.reduce((s, i) => s + Number(i.unit_price) * Number(i.quantity), 0);
     const unitsSold = items.reduce((s, i) => s + Number(i.quantity), 0);
@@ -135,13 +162,26 @@ function OrdersPanel() {
       .map(([id, v]) => ({ id, ...v }))
       .sort((a, b) => b.qty - a.qty);
 
+    // Ranking por categoria
+    const byCategory = new Map<string, { qty: number; revenue: number }>();
+    for (const it of items) {
+      const cat = categoriesMap.get(it.product_id) ?? "Sem categoria";
+      const cur = byCategory.get(cat) ?? { qty: 0, revenue: 0 };
+      cur.qty += Number(it.quantity);
+      cur.revenue += Number(it.unit_price) * Number(it.quantity);
+      byCategory.set(cat, cur);
+    }
+    const categoryRanking = [...byCategory.entries()]
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.revenue - a.revenue);
+
     // Breakdown de entrega considera somente pedidos pagos para as métricas
     const paidOrders = orders.filter((o) => o.status === "paid");
     const deliveryCount = paidOrders.filter((o) => o.delivery_method === "delivery").length;
     const pickupCount = paidOrders.filter((o) => o.delivery_method === "pickup").length;
 
-    return { orders, items, revenue, unitsSold, ranking, deliveryCount, pickupCount };
-  }, [data, searchCpf, filterDelivery, filterPayment, filterStatus]);
+    return { orders, items, revenue, unitsSold, ranking, categoryRanking, deliveryCount, pickupCount };
+  }, [data, searchCpf, filterDelivery, filterPayment, filterStatus, filterCategory]);
 
   const insight = useMemo(() => generateInsight(stats.ranking, stats.orders.length, period), [stats, period]);
 
@@ -203,16 +243,42 @@ function OrdersPanel() {
               <div className="text-xs uppercase tracking-widest text-accent font-bold">Painel</div>
               <h1 className="display text-3xl md:text-4xl">Pedidos & Relatórios</h1>
             </div>
-            <div className="inline-flex bg-secondary rounded-md p-1">
-              {(["day", "week", "month", "all"] as Period[]).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded ${period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  {p === "day" ? "Hoje" : p === "week" ? "7 dias" : p === "month" ? "30 dias" : "Tudo"}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex bg-secondary rounded-md p-1">
+                {(["day", "week", "month", "all"] as Period[]).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => { setPeriod(p); setDateFrom(""); setDateTo(""); }}
+                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded ${period === p && !hasCustomRange ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {p === "day" ? "Hoje" : p === "week" ? "7 dias" : p === "month" ? "30 dias" : "Tudo"}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-1 bg-secondary rounded-md p-1">
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="bg-background border border-border rounded px-2 py-1 text-xs focus:outline-none focus:border-primary"
+                />
+                <span className="text-xs text-muted-foreground">até</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="bg-background border border-border rounded px-2 py-1 text-xs focus:outline-none focus:border-primary"
+                />
+                {hasCustomRange && (
+                  <button
+                    onClick={() => { setDateFrom(""); setDateTo(""); }}
+                    className="text-xs text-muted-foreground hover:text-foreground px-2"
+                    title="Limpar datas"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -287,8 +353,41 @@ function OrdersPanel() {
               {stats.orders.length === 0
                 ? "Sem pedidos no período."
                 : `${Math.round((stats.deliveryCount / Math.max(1, stats.orders.length)) * 100)}% dos pedidos pedem entrega.`}
-            </div>
           </div>
+        </div>
+
+        {/* Category breakdown */}
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-border bg-secondary">
+            <h2 className="display text-lg">Vendas por categoria</h2>
+            <p className="text-xs text-muted-foreground">Distribuição de receita e quantidade por categoria de produto</p>
+          </div>
+          {isLoading ? (
+            <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
+          ) : stats.categoryRanking.length === 0 ? (
+            <div className="p-6 text-sm text-muted-foreground">Sem vendas no período.</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+                <tr><th className="p-3">Categoria</th><th className="p-3 text-right">Itens</th><th className="p-3 text-right">Receita</th><th className="p-3 text-right">% Receita</th></tr>
+              </thead>
+              <tbody>
+                {stats.categoryRanking.map((c) => {
+                  const totalRev = stats.categoryRanking.reduce((s, x) => s + x.revenue, 0);
+                  const pct = totalRev > 0 ? Math.round((c.revenue / totalRev) * 100) : 0;
+                  return (
+                    <tr key={c.name} className="border-t border-border">
+                      <td className="p-3 font-semibold">{c.name}</td>
+                      <td className="p-3 text-right font-bold">{c.qty}</td>
+                      <td className="p-3 text-right text-price font-bold">{brl(c.revenue)}</td>
+                      <td className="p-3 text-right text-muted-foreground">{pct}%</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
         </div>
 
         {/* Orders list */}
@@ -335,7 +434,7 @@ function OrdersPanel() {
               )}
 
               {showFilters && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
                   <select
                     value={filterDelivery}
                     onChange={(e) => setFilterDelivery(e.target.value as any)}
@@ -362,6 +461,16 @@ function OrdersPanel() {
                     <option value="all">Todos os status</option>
                     <option value="paid">Pago</option>
                     <option value="cancelled">Cancelado</option>
+                  </select>
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="all">Todas as categorias</option>
+                    {PRODUCT_CATEGORIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
                   </select>
                 </div>
               )}
