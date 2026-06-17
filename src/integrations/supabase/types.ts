@@ -85,7 +85,14 @@ export type Database = {
           label_status: string
           mp_payment_id: string | null
           mp_preference_id: string | null
+          mp_refund_id: string | null
           payment_method: string
+          refund_reason: string | null
+          refund_status: string | null
+          refunded_amount: number | null
+          refunded_at: string | null
+          refunded_by: string | null
+          refunded_by_name: string | null
           shipping_address: string | null
           shipping_city: string | null
           shipping_complement: string | null
@@ -119,7 +126,14 @@ export type Database = {
           label_status?: string
           mp_payment_id?: string | null
           mp_preference_id?: string | null
+          mp_refund_id?: string | null
           payment_method?: string
+          refund_reason?: string | null
+          refund_status?: string | null
+          refunded_amount?: number | null
+          refunded_at?: string | null
+          refunded_by?: string | null
+          refunded_by_name?: string | null
           shipping_address?: string | null
           shipping_city?: string | null
           shipping_complement?: string | null
@@ -153,7 +167,14 @@ export type Database = {
           label_status?: string
           mp_payment_id?: string | null
           mp_preference_id?: string | null
+          mp_refund_id?: string | null
           payment_method?: string
+          refund_reason?: string | null
+          refund_status?: string | null
+          refunded_amount?: number | null
+          refunded_at?: string | null
+          refunded_by?: string | null
+          refunded_by_name?: string | null
           shipping_address?: string | null
           shipping_city?: string | null
           shipping_complement?: string | null

@@ -1,13 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, TrendingUp, Package, DollarSign, ShoppingBag, Sparkles, Truck, Store, Trash2, AlertTriangle, Search, Filter, X } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { ArrowLeft, TrendingUp, Package, DollarSign, ShoppingBag, Sparkles, Truck, Store, Trash2, AlertTriangle, Search, Filter, X, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { isAdmin, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
+import { refundOrder } from "@/lib/refunds.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/pedidos")({
   head: () => ({ meta: [{ title: "Pedidos · Admin" }] }),
@@ -28,6 +30,9 @@ type OrderRow = {
   delivery_method: string;
   status: string;
   total: number;
+  mp_payment_id: string | null;
+  refund_status: string | null;
+  refunded_amount: number | null;
 };
 type ItemRow = {
   id: string;
@@ -63,6 +68,8 @@ function OrdersPanel() {
   const [filterStatus, setFilterStatus] = useState<"all" | "paid" | "cancelled">("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
+  const refundFn = useServerFn(refundOrder);
   const qc = useQueryClient();
 
   useEffect(() => {
@@ -525,7 +532,22 @@ function OrdersPanel() {
                         <td className="p-3 text-xs uppercase">{o.payment_method}</td>
                         <td className="p-3 text-right font-bold text-price">{brl(Number(o.total))}</td>
                         {superAdmin && (
-                          <td className="p-3 text-right">
+                          <td className="p-3 text-right whitespace-nowrap">
+                            {o.status === "paid" && o.mp_payment_id && !o.refund_status && (
+                              <button
+                                onClick={() => setRefundTarget(o)}
+                                disabled={busy}
+                                title="Estornar via Mercado Pago"
+                                className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 px-2 py-1 rounded disabled:opacity-50 mr-1"
+                              >
+                                <Undo2 className="h-3.5 w-3.5" /> Estornar
+                              </button>
+                            )}
+                            {o.refund_status && (
+                              <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 mr-1">
+                                {o.refund_status === "refunded" ? "Reembolsado" : "Reemb. parcial"}
+                              </span>
+                            )}
                             <button
                               onClick={() => deleteOrder(o.id)}
                               disabled={busy}
@@ -566,6 +588,20 @@ function OrdersPanel() {
                         {o.delivery_method === "pickup" ? "Retirada" : "Entrega"}
                       </span>
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-secondary">{o.payment_method}</span>
+                      {o.refund_status && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                          {o.refund_status === "refunded" ? "Reembolsado" : "Reemb. parcial"}
+                        </span>
+                      )}
+                      {superAdmin && o.status === "paid" && o.mp_payment_id && !o.refund_status && (
+                        <button
+                          onClick={() => setRefundTarget(o)}
+                          disabled={busy}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 border border-amber-500/40 px-2 py-1 rounded disabled:opacity-50"
+                        >
+                          <Undo2 className="h-3 w-3" /> Estornar
+                        </button>
+                      )}
                       {superAdmin && (
                         <button
                           onClick={() => deleteOrder(o.id)}
@@ -637,6 +673,26 @@ function OrdersPanel() {
           </div>
         )}
       </section>
+      {refundTarget && (
+        <RefundModal
+          order={refundTarget}
+          busy={busy}
+          onClose={() => setRefundTarget(null)}
+          onConfirm={async (amount, reason, confirmText) => {
+            setBusy(true);
+            try {
+              const res = await refundFn({ data: { orderId: refundTarget.id, amount, reason, confirmText } });
+              toast.success(res.full ? "Reembolso total efetuado" : `Reembolso parcial de ${brl(res.amount)} efetuado`);
+              setRefundTarget(null);
+              qc.invalidateQueries({ queryKey: ["admin-orders"] });
+            } catch (err: any) {
+              toast.error(err?.message ?? "Falha no estorno");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      )}
     </Shell>
   );
 }
@@ -692,6 +748,176 @@ function generateInsight(
   }
 
   return parts.join("\n");
+}
+
+function RefundModal({
+  order,
+  busy,
+  onClose,
+  onConfirm,
+}: {
+  order: OrderRow;
+  busy: boolean;
+  onClose: () => void;
+  onConfirm: (amount: number, reason: string, confirmText: string) => void | Promise<void>;
+}) {
+  const total = Number(order.total);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [kind, setKind] = useState<"full" | "partial">("full");
+  const [amountStr, setAmountStr] = useState(total.toFixed(2));
+  const [reason, setReason] = useState("");
+  const [ack1, setAck1] = useState(false);
+  const [ack2, setAck2] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+
+  const amount = kind === "full" ? total : Number(amountStr.replace(",", "."));
+  const amountValid = isFinite(amount) && amount > 0 && amount <= total + 0.001;
+  const reasonValid = reason.trim().length >= 5;
+  const finalValid = ack1 && ack2 && confirmText === "REEMBOLSAR";
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+      <div className="bg-card border border-border rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="p-5 border-b border-border flex items-center justify-between">
+          <div>
+            <h3 className="display text-lg text-amber-700 dark:text-amber-400">Reembolsar pedido</h3>
+            <p className="text-xs font-mono text-muted-foreground mt-0.5">
+              #{order.id.slice(0, 8).toUpperCase()} · {order.customer_name}
+            </p>
+          </div>
+          <button onClick={onClose} disabled={busy} className="p-1 hover:bg-secondary rounded">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {step === 1 && (
+            <>
+              <div className="text-sm">
+                <div className="text-muted-foreground">Total do pedido</div>
+                <div className="display text-2xl text-price">{brl(total)}</div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider">Tipo de reembolso</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => { setKind("full"); setAmountStr(total.toFixed(2)); }}
+                    className={`p-3 rounded border text-sm font-bold ${kind === "full" ? "border-primary bg-primary/10 text-primary" : "border-border"}`}
+                  >
+                    Total
+                  </button>
+                  <button
+                    onClick={() => setKind("partial")}
+                    className={`p-3 rounded border text-sm font-bold ${kind === "partial" ? "border-primary bg-primary/10 text-primary" : "border-border"}`}
+                  >
+                    Parcial
+                  </button>
+                </div>
+              </div>
+              {kind === "partial" && (
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase tracking-wider">Valor a estornar (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max={total}
+                    value={amountStr}
+                    onChange={(e) => setAmountStr(e.target.value)}
+                    className="w-full px-3 py-2 rounded border border-border bg-background text-sm"
+                  />
+                  {!amountValid && <p className="text-xs text-destructive">Valor inválido (máx. {brl(total)})</p>}
+                </div>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <button onClick={onClose} className="text-xs font-bold uppercase px-4 py-2 rounded border border-border">Cancelar</button>
+                <button
+                  onClick={() => setStep(2)}
+                  disabled={!amountValid}
+                  className="text-xs font-bold uppercase px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
+                >
+                  Avançar
+                </button>
+              </div>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+              <div className="space-y-1">
+                <label className="text-xs font-bold uppercase tracking-wider">Motivo do reembolso *</label>
+                <textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  rows={3}
+                  maxLength={500}
+                  placeholder="Ex.: produto indisponível, solicitação do cliente, defeito..."
+                  className="w-full px-3 py-2 rounded border border-border bg-background text-sm"
+                />
+                <p className="text-[11px] text-muted-foreground">Mín. 5 caracteres · {reason.length}/500</p>
+              </div>
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-xs space-y-2">
+                <p className="font-bold text-amber-700 dark:text-amber-400">⚠️ Atenção</p>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input type="checkbox" checked={ack1} onChange={(e) => setAck1(e.target.checked)} className="mt-0.5" />
+                  <span>O estorno será enviado ao Mercado Pago e <b>não pode ser desfeito</b>. O cliente receberá o valor no método original (cartão em até 2 faturas; PIX em minutos).</span>
+                </label>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input type="checkbox" checked={ack2} onChange={(e) => setAck2(e.target.checked)} className="mt-0.5" />
+                  <span>O <b>estoque NÃO será devolvido automaticamente</b>. Eu farei o ajuste manualmente se necessário.</span>
+                </label>
+              </div>
+              <div className="flex justify-between gap-2 pt-2">
+                <button onClick={() => setStep(1)} className="text-xs font-bold uppercase px-4 py-2 rounded border border-border">Voltar</button>
+                <button
+                  onClick={() => setStep(3)}
+                  disabled={!reasonValid || !ack1 || !ack2}
+                  className="text-xs font-bold uppercase px-4 py-2 rounded bg-primary text-primary-foreground disabled:opacity-50"
+                >
+                  Avançar
+                </button>
+              </div>
+            </>
+          )}
+
+          {step === 3 && (
+            <>
+              <div className="rounded-md border border-border p-3 text-sm space-y-1">
+                <div className="flex justify-between"><span className="text-muted-foreground">Pedido</span><span className="font-mono">#{order.id.slice(0, 8).toUpperCase()}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Cliente</span><span>{order.customer_name}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Tipo</span><span className="font-bold uppercase">{kind === "full" ? "Total" : "Parcial"}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Valor a estornar</span><span className="display text-amber-700 dark:text-amber-400">{brl(amount)}</span></div>
+                <div className="pt-1"><span className="text-muted-foreground">Motivo:</span> <span>{reason}</span></div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                  Digite <span className="font-mono">REEMBOLSAR</span> para confirmar:
+                </label>
+                <input
+                  type="text"
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
+                  placeholder="REEMBOLSAR"
+                  className="w-full px-3 py-2 rounded border border-amber-500/40 bg-background font-mono text-sm"
+                />
+              </div>
+              <div className="flex justify-between gap-2 pt-2">
+                <button onClick={() => setStep(2)} disabled={busy} className="text-xs font-bold uppercase px-4 py-2 rounded border border-border">Voltar</button>
+                <button
+                  onClick={() => onConfirm(amount, reason.trim(), confirmText)}
+                  disabled={busy || !finalValid}
+                  className="inline-flex items-center gap-2 text-xs font-bold uppercase px-4 py-2 rounded bg-amber-600 text-white hover:opacity-90 disabled:opacity-50"
+                >
+                  <Undo2 className="h-4 w-4" />
+                  {busy ? "Processando..." : "Confirmar reembolso"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function Kpi({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent?: boolean }) {
