@@ -68,6 +68,8 @@ function OrdersPanel() {
   const [filterStatus, setFilterStatus] = useState<"all" | "paid" | "cancelled">("all");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
+  const refundFn = useServerFn(refundOrder);
   const qc = useQueryClient();
 
   useEffect(() => {
