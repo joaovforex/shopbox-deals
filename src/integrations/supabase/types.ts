@@ -269,6 +269,69 @@ export type Database = {
         }
         Relationships: []
       }
+      refunds: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_cpf: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          is_full: boolean
+          items: Json
+          mp_payment_id: string | null
+          mp_refund_id: string | null
+          operator_id: string | null
+          operator_name: string | null
+          order_created_at: string | null
+          order_id: string
+          order_total: number | null
+          payment_method: string | null
+          reason: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          customer_cpf?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          is_full?: boolean
+          items?: Json
+          mp_payment_id?: string | null
+          mp_refund_id?: string | null
+          operator_id?: string | null
+          operator_name?: string | null
+          order_created_at?: string | null
+          order_id: string
+          order_total?: number | null
+          payment_method?: string | null
+          reason: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_cpf?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          is_full?: boolean
+          items?: Json
+          mp_payment_id?: string | null
+          mp_refund_id?: string | null
+          operator_id?: string | null
+          operator_name?: string | null
+          order_created_at?: string | null
+          order_id?: string
+          order_total?: number | null
+          payment_method?: string | null
+          reason?: string
+        }
+        Relationships: []
+      }
       site_visits: {
         Row: {
           created_at: string
