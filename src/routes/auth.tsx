@@ -66,23 +66,27 @@ function AuthPage() {
     e.preventDefault();
     setBusy(true);
     try {
+      const emailTrim = email.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim)) throw new Error("E-mail inválido");
+      if (password.length < 6) throw new Error("A senha precisa ter pelo menos 6 caracteres");
+
       if (mode === "signup") {
         if (fullName.trim().length < 3) throw new Error("Informe seu nome completo");
         const phoneDigits = phone.replace(/\D/g, "");
-        if (phoneDigits.length < 10 || phoneDigits.length > 11) throw new Error("WhatsApp inválido (com DDD)");
+        if (phoneDigits.length < 10 || phoneDigits.length > 11) throw new Error("WhatsApp inválido — inclua o DDD");
         const cpfDigits = cpf.replace(/\D/g, "");
         if (!isValidCpf(cpfDigits)) throw new Error("CPF inválido");
 
         const { error } = await supabase.auth.signUp({
-          email,
+          email: emailTrim,
           password,
           options: {
-            data: { full_name: fullName, phone: phoneDigits, cpf: cpfDigits },
+            data: { full_name: fullName.trim(), phone: phoneDigits, cpf: cpfDigits },
             emailRedirectTo: window.location.origin,
           },
         });
         if (error) throw error;
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email: emailTrim, password });
         if (signInError) {
           toast.success("Conta criada! Você já pode entrar.");
         } else {
@@ -90,13 +94,35 @@ function AuthPage() {
           window.location.href = redirectTo;
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email: emailTrim, password });
         if (error) throw error;
         toast.success("Bem-vindo!");
         window.location.href = redirectTo;
       }
     } catch (err: any) {
-      toast.error(err.message ?? "Erro");
+      const raw = String(err?.message ?? err ?? "").trim();
+      const lower = raw.toLowerCase();
+      let msg = raw || "Erro ao processar o cadastro. Tente novamente.";
+      if (lower === "failed" || lower === "failed to fetch" || lower.includes("network")) {
+        msg = "Sem conexão com o servidor. Verifique sua internet e tente novamente.";
+      } else if (lower.includes("user already registered") || lower.includes("already registered") || lower.includes("user_already_exists")) {
+        msg = "Este e-mail já está cadastrado. Faça login ou recupere sua senha.";
+      } else if (lower.includes("invalid login credentials")) {
+        msg = "E-mail ou senha incorretos.";
+      } else if (lower.includes("email not confirmed")) {
+        msg = "Confirme seu e-mail antes de entrar.";
+      } else if (lower.includes("password") && lower.includes("short")) {
+        msg = "A senha precisa ter pelo menos 6 caracteres.";
+      } else if (lower.includes("rate") && lower.includes("limit")) {
+        msg = "Muitas tentativas seguidas. Aguarde alguns segundos e tente novamente.";
+      } else if (lower.includes("cpf")) {
+        msg = "CPF inválido. Verifique e tente novamente.";
+      } else if (lower.includes("telefone") || lower.includes("phone")) {
+        msg = "WhatsApp inválido. Use DDD + número.";
+      } else if (lower.includes("email") && lower.includes("inv")) {
+        msg = "E-mail inválido. Verifique e tente novamente.";
+      }
+      toast.error(msg);
     } finally {
       setBusy(false);
     }

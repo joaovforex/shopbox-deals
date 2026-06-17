@@ -2,6 +2,12 @@ import { queryOptions, infiniteQueryOptions, useQuery } from "@tanstack/react-qu
 import { supabase } from "@/integrations/supabase/client";
 
 
+export type ColorVariant = {
+  color: string;
+  hex?: string | null;
+  stock: number;
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -15,6 +21,7 @@ export type Product = {
   active: boolean;
   sku: string;
   created_at: string;
+  color_variants?: ColorVariant[] | null;
 };
 
 /** Versão enxuta usada na listagem (sem description). */
@@ -29,7 +36,9 @@ export type ProductCard = {
   stock: number;
   sku: string;
   created_at: string;
+  color_variants?: ColorVariant[] | null;
 };
+
 
 
 export type TeamRole = "admin" | "manager" | "catalog" | "fulfillment" | "user";
