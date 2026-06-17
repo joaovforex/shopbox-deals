@@ -12,11 +12,11 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import shopboxLogo from "@/assets/shopbox-logo.png";
 
-
 export const Route = createFileRoute("/etiqueta/$id")({
   head: () => ({ meta: [{ title: "Etiqueta · shopbox" }] }),
   component: LabelPage,
 });
+
 
 function formatPhone(d: string | null) {
   if (!d) return "";
