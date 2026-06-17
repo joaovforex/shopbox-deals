@@ -676,13 +676,13 @@ function OrdersPanel() {
       </section>
       {refundTarget && (
         <RefundModal
-          order={refundTarget}
+          orderId={refundTarget.id}
           busy={busy}
           onClose={() => setRefundTarget(null)}
-          onConfirm={async (amount, reason, confirmText, customerConfirm) => {
+          onConfirm={async (payload) => {
             setBusy(true);
             try {
-              const res = await refundFn({ data: { orderId: refundTarget.id, amount, reason, confirmText, customerConfirm } });
+              const res = await refundFn({ data: { orderId: refundTarget.id, ...payload } });
               toast.success((res.full ? "Reembolso total efetuado" : `Reembolso parcial de ${brl(res.amount)} efetuado`) + " · pedido removido");
               if (res.receipt) {
                 const { printRefundReceipt } = await import("@/lib/refundReceipt");
