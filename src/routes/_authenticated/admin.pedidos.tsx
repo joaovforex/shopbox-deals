@@ -7,6 +7,7 @@ import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { isAdmin, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
+import { PRODUCT_CATEGORIES } from "@/lib/categories";
 
 export const Route = createFileRoute("/_authenticated/admin/pedidos")({
   head: () => ({ meta: [{ title: "Pedidos · Admin" }] }),
