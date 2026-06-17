@@ -14,15 +14,23 @@ export function MegaOffersCarousel({ products }: { products: ProductCardData[] }
   const pausedRef = useRef(false);
   const resumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Dedup por id para garantir um único card por produto
+  const seen = new Set<string>();
   const mega = products
+    .filter((p) => {
+      if (seen.has(p.id)) return false;
+      seen.add(p.id);
+      return true;
+    })
     .map((p) => ({ p, off: discountPct(p.original_price, p.price) }))
     .filter((x) => x.off >= MIN_OFF && x.p.stock > 0)
     .sort((a, b) => b.off - a.off);
 
   if (mega.length === 0) return null;
 
-  // Duplica os itens para criar loop contínuo e imperceptível
-  const items = [...mega, ...mega];
+  // Só duplica a lista para o efeito de loop quando há itens suficientes;
+  // com poucos itens, repetir cria a sensação de "produto duplicado".
+  const items = mega.length >= 6 ? [...mega, ...mega] : mega;
 
   const stepWidth = () => {
     const el = scrollRef.current;
