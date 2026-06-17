@@ -439,6 +439,9 @@ function ProductForm({
       (product ? (product.images?.length ? product.images : product.image_url ? [product.image_url] : []) : []),
   );
   const [active, setActive] = useState(draft?.active ?? product?.active ?? true);
+  const [colorVariants, setColorVariants] = useState<ColorVariant[]>(
+    draft?.colorVariants ?? (product?.color_variants ?? []),
+  );
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -447,15 +450,18 @@ function ProductForm({
   const streamRef = useRef<MediaStream | null>(null);
   const fallbackCameraInputRef = useRef<HTMLInputElement | null>(null);
 
+  const hasVariants = colorVariants.length > 0;
+  const variantStockTotal = colorVariants.reduce((s, v) => s + (Number.isFinite(v.stock) ? Math.max(0, v.stock) : 0), 0);
+
   // Persist draft to sessionStorage so the form survives mobile WebView reloads
   // (when the native camera app is launched and the page is evicted from memory).
   useEffect(() => {
     const d: Draft = {
       productId: product?.id ?? null,
-      name, description, price, originalPrice, category, stock, images, active,
+      name, description, price, originalPrice, category, stock, images, active, colorVariants,
     };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch {}
-  }, [product?.id, name, description, price, originalPrice, category, stock, images, active]);
+  }, [product?.id, name, description, price, originalPrice, category, stock, images, active, colorVariants]);
 
   const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} };
 
