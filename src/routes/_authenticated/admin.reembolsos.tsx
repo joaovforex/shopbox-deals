@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowLeft, Undo2, Printer, Search, X, AlertTriangle } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { isSuperAdmin } from "@/lib/products";
@@ -10,21 +10,20 @@ import { listRefunds, type RefundHistoryRow } from "@/lib/refunds.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/reembolsos")({
   head: () => ({ meta: [{ title: "Reembolsos · Admin" }] }),
+  beforeLoad: async () => {
+    const allowed = await isSuperAdmin();
+    if (!allowed) throw redirect({ to: "/admin" });
+  },
   component: RefundsPage,
 });
 
+
 function RefundsPage() {
-  const [allowed, setAllowed] = useState<boolean | null>(null);
   const [search, setSearch] = useState("");
   const fetchRefunds = useServerFn(listRefunds);
 
-  useEffect(() => {
-    isSuperAdmin().then(setAllowed);
-  }, []);
-
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-refunds"],
-    enabled: allowed === true,
     queryFn: () => fetchRefunds({}),
   });
 
@@ -53,22 +52,6 @@ function RefundsPage() {
     };
   }, [data]);
 
-  if (allowed === null) {
-    return (
-      <Shell>
-        <div className="flex-1 flex items-center justify-center">Carregando...</div>
-      </Shell>
-    );
-  }
-  if (!allowed) {
-    return (
-      <Shell>
-        <div className="flex-1 flex items-center justify-center p-6 text-muted-foreground">
-          Acesso restrito ao Super Admin.
-        </div>
-      </Shell>
-    );
-  }
 
   const reprint = async (r: RefundHistoryRow) => {
     const { printRefundReceipt } = await import("@/lib/refundReceipt");
