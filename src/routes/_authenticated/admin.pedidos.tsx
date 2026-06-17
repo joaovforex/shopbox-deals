@@ -353,8 +353,41 @@ function OrdersPanel() {
               {stats.orders.length === 0
                 ? "Sem pedidos no período."
                 : `${Math.round((stats.deliveryCount / Math.max(1, stats.orders.length)) * 100)}% dos pedidos pedem entrega.`}
-            </div>
           </div>
+        </div>
+
+        {/* Category breakdown */}
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-border bg-secondary">
+            <h2 className="display text-lg">Vendas por categoria</h2>
+            <p className="text-xs text-muted-foreground">Distribuição de receita e quantidade por categoria de produto</p>
+          </div>
+          {isLoading ? (
+            <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
+          ) : stats.categoryRanking.length === 0 ? (
+            <div className="p-6 text-sm text-muted-foreground">Sem vendas no período.</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+                <tr><th className="p-3">Categoria</th><th className="p-3 text-right">Itens</th><th className="p-3 text-right">Receita</th><th className="p-3 text-right">% Receita</th></tr>
+              </thead>
+              <tbody>
+                {stats.categoryRanking.map((c) => {
+                  const totalRev = stats.categoryRanking.reduce((s, x) => s + x.revenue, 0);
+                  const pct = totalRev > 0 ? Math.round((c.revenue / totalRev) * 100) : 0;
+                  return (
+                    <tr key={c.name} className="border-t border-border">
+                      <td className="p-3 font-semibold">{c.name}</td>
+                      <td className="p-3 text-right font-bold">{c.qty}</td>
+                      <td className="p-3 text-right text-price font-bold">{brl(c.revenue)}</td>
+                      <td className="p-3 text-right text-muted-foreground">{pct}%</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
         </div>
 
         {/* Orders list */}
