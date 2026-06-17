@@ -7,7 +7,15 @@ type RefundInput = {
   reason: string;
   confirmText: string;
   customerConfirm: string;
+  customerVerify: string;
+  expectedCustomerName: string;
+  expectedTotal: number;
+  expectedMpPaymentId: string | null;
 };
+
+function digitsOnly(s: string | null | undefined) {
+  return (s ?? "").replace(/\D/g, "");
+}
 
 export const refundOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -22,11 +30,24 @@ export const refundOrder = createServerFn({ method: "POST" })
     if (typeof data.customerConfirm !== "string" || data.customerConfirm.trim().length < 2) {
       throw new Error("Confirme o nome do cliente");
     }
+    if (typeof data.customerVerify !== "string" || !/^\d{4}$/.test(data.customerVerify)) {
+      throw new Error("Confirme os 4 últimos dígitos do telefone ou CPF do cliente");
+    }
+    if (typeof data.expectedCustomerName !== "string" || data.expectedCustomerName.trim().length < 2) {
+      throw new Error("Faltam dados de verificação do pedido (nome esperado)");
+    }
+    if (typeof data.expectedTotal !== "number" || !isFinite(data.expectedTotal) || data.expectedTotal <= 0) {
+      throw new Error("Faltam dados de verificação do pedido (total esperado)");
+    }
     return {
       orderId: data.orderId,
       amount: Math.round(data.amount * 100) / 100,
       reason: data.reason.trim(),
       customerConfirm: data.customerConfirm.trim().toLowerCase(),
+      customerVerify: data.customerVerify,
+      expectedCustomerName: data.expectedCustomerName.trim(),
+      expectedTotal: Math.round(data.expectedTotal * 100) / 100,
+      expectedMpPaymentId: data.expectedMpPaymentId ?? null,
     };
   })
   .handler(async ({ data, context }) => {
@@ -58,18 +79,64 @@ export const refundOrder = createServerFn({ method: "POST" })
       throw new Error("Pedido sem pagamento Mercado Pago associado — estorne manualmente");
     }
 
-    // Verificação CRÍTICA: o nome confirmado pelo operador precisa bater com o pedido,
-    // evitando reembolso no cliente errado por click acidental.
-    const realName = (order.customer_name ?? "").trim().toLowerCase();
-    const normReal = realName.replace(/\s+/g, " ");
+    // ============================================================
+    // BLINDAGEM ANTI-REEMBOLSO-NO-CLIENTE-ERRADO
+    // Cliente envia o que está visível na tela. Se qualquer um dos
+    // campos esperados não bater com o pedido real no DB, ABORTAR.
+    // ============================================================
+    const normalize = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+    const realName = normalize(order.customer_name ?? "");
+    const expectedName = normalize(data.expectedCustomerName);
+    if (realName !== expectedName) {
+      console.error("[refund] ABORT: expectedCustomerName mismatch", {
+        orderId: order.id, expected: data.expectedCustomerName, actual: order.customer_name, operator: userId,
+      });
+      throw new Error(
+        `Inconsistência detectada: a tela mostrava "${data.expectedCustomerName}" mas o pedido no banco é de "${order.customer_name}". Reembolso ABORTADO. Recarregue a página e tente novamente.`,
+      );
+    }
+    const realTotal = Math.round(Number(order.total) * 100) / 100;
+    if (Math.abs(realTotal - data.expectedTotal) > 0.01) {
+      console.error("[refund] ABORT: expectedTotal mismatch", {
+        orderId: order.id, expected: data.expectedTotal, actual: realTotal, operator: userId,
+      });
+      throw new Error(
+        `Inconsistência detectada: a tela mostrava total ${data.expectedTotal} mas o pedido no banco é ${realTotal}. Reembolso ABORTADO.`,
+      );
+    }
+    if (data.expectedMpPaymentId && data.expectedMpPaymentId !== order.mp_payment_id) {
+      console.error("[refund] ABORT: expectedMpPaymentId mismatch", {
+        orderId: order.id, expected: data.expectedMpPaymentId, actual: order.mp_payment_id, operator: userId,
+      });
+      throw new Error(`Inconsistência detectada no ID de pagamento. Reembolso ABORTADO.`);
+    }
+
+    // Operador deve digitar primeiro nome do cliente
     const normConf = data.customerConfirm.replace(/\s+/g, " ");
     const namesMatch =
-      normReal === normConf ||
-      normReal.startsWith(normConf) ||
-      normReal.split(" ")[0] === normConf.split(" ")[0];
+      realName === normConf ||
+      realName.startsWith(normConf) ||
+      realName.split(" ")[0] === normConf.split(" ")[0];
     if (!namesMatch) {
       throw new Error(
         `Nome confirmado ("${data.customerConfirm}") não corresponde ao cliente do pedido ("${order.customer_name}"). Reembolso ABORTADO.`,
+      );
+    }
+
+    // Operador deve digitar os 4 últimos dígitos do telefone OU CPF do cliente.
+    // Isso garante que ela está olhando para o cliente certo, não apenas clicou
+    // numa linha de tabela que pode ter mudado de posição por refetch.
+    const phoneDigits = digitsOnly(order.customer_phone);
+    const cpfDigits = digitsOnly(order.customer_cpf);
+    const verifyMatches =
+      (phoneDigits.length >= 4 && phoneDigits.slice(-4) === data.customerVerify) ||
+      (cpfDigits.length >= 4 && cpfDigits.slice(-4) === data.customerVerify);
+    if (!verifyMatches) {
+      console.error("[refund] ABORT: customerVerify mismatch", {
+        orderId: order.id, operator: userId,
+      });
+      throw new Error(
+        "Os 4 dígitos não conferem com o telefone nem com o CPF deste pedido. Reembolso ABORTADO.",
       );
     }
 
