@@ -729,13 +729,89 @@ function ProductForm({
         <div className="grid grid-cols-3 gap-3">
           <Input label="Preço (R$)" type="number" step="0.01" value={price} onChange={setPrice} required />
           <Input label="De (R$)" type="number" step="0.01" value={originalPrice} onChange={setOriginalPrice} placeholder="opcional" />
-          <Input label="Estoque" type="number" value={stock} onChange={setStock} required />
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Estoque {hasVariants && <span className="text-[10px] text-primary normal-case">(soma das cores)</span>}
+            </label>
+            <input
+              type="number"
+              value={hasVariants ? variantStockTotal : stock}
+              onChange={(e) => setStock(e.target.value)}
+              disabled={hasVariants}
+              required={!hasVariants}
+              className="w-full bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary mt-1 disabled:opacity-60"
+            />
+          </div>
+        </div>
+
+        {/* Color variants editor */}
+        <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-2">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <div className="text-sm font-bold uppercase tracking-wider">Variações de cor</div>
+              <div className="text-[11px] text-muted-foreground">
+                Cadastre cores diferentes da mesma capinha. O cliente escolhe a cor no anúncio e o estoque é controlado por cor.
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setColorVariants((p) => [...p, { color: "", hex: "#000000", stock: 0 }])}
+              className="inline-flex items-center gap-1 text-xs bg-primary text-primary-foreground font-bold uppercase tracking-wider px-3 py-1.5 rounded"
+            >
+              <Plus className="h-3.5 w-3.5" /> Adicionar cor
+            </button>
+          </div>
+
+          {colorVariants.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Nenhuma cor cadastrada. O produto usará o estoque único acima.</p>
+          ) : (
+            <div className="space-y-2">
+              {colorVariants.map((v, i) => (
+                <div key={i} className="flex items-center gap-2 bg-card border border-border rounded-md p-2">
+                  <input
+                    type="color"
+                    value={v.hex || "#000000"}
+                    onChange={(e) => setColorVariants((p) => p.map((x, j) => j === i ? { ...x, hex: e.target.value } : x))}
+                    className="h-9 w-12 rounded border border-border bg-transparent cursor-pointer flex-shrink-0"
+                    title="Cor visual"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Nome da cor (ex: Preto)"
+                    value={v.color}
+                    onChange={(e) => setColorVariants((p) => p.map((x, j) => j === i ? { ...x, color: e.target.value } : x))}
+                    className="flex-1 min-w-0 bg-input rounded-md px-3 py-2 border border-border text-sm focus:outline-none focus:border-primary"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="Estoque"
+                    value={v.stock}
+                    onChange={(e) => setColorVariants((p) => p.map((x, j) => j === i ? { ...x, stock: Math.max(0, Math.floor(Number(e.target.value) || 0)) } : x))}
+                    className="w-24 bg-input rounded-md px-3 py-2 border border-border text-sm focus:outline-none focus:border-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setColorVariants((p) => p.filter((_, j) => j !== i))}
+                    className="p-2 hover:bg-destructive/10 text-destructive rounded"
+                    title="Remover cor"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              <div className="text-[11px] text-muted-foreground text-right">
+                Total: <span className="font-bold text-foreground">{variantStockTotal}</span> unidade(s)
+              </div>
+            </div>
+          )}
         </div>
 
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="accent-primary h-4 w-4" />
           <span className="text-sm">Produto ativo (visível na loja)</span>
         </label>
+
 
         <div className="flex gap-2 justify-end pt-2 border-t border-border">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-md hover:bg-secondary text-sm">Cancelar</button>
