@@ -1,6 +1,6 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Share2, MessageCircle, Minus, Plus, ArrowLeft, Copy } from "lucide-react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
