@@ -12,7 +12,7 @@ type RefundModalProps = {
   order: RefundModalOrder;
   busy: boolean;
   onClose: () => void;
-  onConfirm: (amount: number, reason: string, confirmText: string) => void | Promise<void>;
+  onConfirm: (amount: number, reason: string, confirmText: string, customerConfirm: string) => void | Promise<void>;
 };
 
 export function RefundModal({ order, busy, onClose, onConfirm }: RefundModalProps) {
@@ -24,11 +24,17 @@ export function RefundModal({ order, busy, onClose, onConfirm }: RefundModalProp
   const [ack1, setAck1] = useState(false);
   const [ack2, setAck2] = useState(false);
   const [confirmText, setConfirmText] = useState("");
+  const [customerConfirm, setCustomerConfirm] = useState("");
 
   const amount = kind === "full" ? total : Number(amountStr.replace(",", "."));
   const amountValid = isFinite(amount) && amount > 0 && amount <= total + 0.001;
   const reasonValid = reason.trim().length >= 5;
-  const finalValid = ack1 && ack2 && confirmText === "REEMBOLSAR" && reasonValid;
+  const realName = (order.customer_name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+  const typed = customerConfirm.trim().toLowerCase().replace(/\s+/g, " ");
+  const customerOk =
+    typed.length >= 2 &&
+    (realName === typed || realName.startsWith(typed) || realName.split(" ")[0] === typed.split(" ")[0]);
+  const finalValid = ack1 && ack2 && confirmText === "REEMBOLSAR" && reasonValid && customerOk;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
@@ -137,11 +143,30 @@ export function RefundModal({ order, busy, onClose, onConfirm }: RefundModalProp
 
           {step === 3 && (
             <>
-              <div className="rounded-md border border-border p-3 text-sm space-y-1">
+              <div className="rounded-md border-2 border-amber-500/60 bg-amber-500/5 p-3 text-sm space-y-2">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-amber-700 dark:text-amber-400">Confira antes de enviar</div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Pedido</span><span className="font-mono">#{order.id.slice(0, 8).toUpperCase()}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Cliente</span><span>{order.customer_name}</span></div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Cliente</span>
+                  <span className="display text-base text-right break-all">{order.customer_name}</span>
+                </div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Tipo</span><span className="font-bold uppercase">{kind === "full" ? "Total" : "Parcial"}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Valor a estornar</span><span className="display text-amber-700 dark:text-amber-400">{brl(amount)}</span></div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                  Digite o nome (ou primeiro nome) do cliente para confirmar *
+                </label>
+                <input
+                  type="text"
+                  value={customerConfirm}
+                  onChange={(e) => setCustomerConfirm(e.target.value)}
+                  placeholder={(order.customer_name ?? "").split(" ")[0]}
+                  className={`w-full px-3 py-2 rounded border bg-background text-sm ${customerOk || !customerConfirm ? "border-amber-500/40" : "border-destructive"}`}
+                />
+                {customerConfirm && !customerOk && (
+                  <p className="text-xs text-destructive">Não bate com o cliente do pedido.</p>
+                )}
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
@@ -171,7 +196,7 @@ export function RefundModal({ order, busy, onClose, onConfirm }: RefundModalProp
               <div className="flex justify-between gap-2 pt-2">
                 <button onClick={() => setStep(2)} disabled={busy} className="text-xs font-bold uppercase px-4 py-2 rounded border border-border">Voltar</button>
                 <button
-                  onClick={() => onConfirm(amount, reason.trim(), confirmText)}
+                  onClick={() => onConfirm(amount, reason.trim(), confirmText, customerConfirm.trim())}
                   disabled={busy || !finalValid}
                   className="inline-flex items-center gap-2 text-xs font-bold uppercase px-4 py-2 rounded bg-amber-600 text-white hover:opacity-90 disabled:opacity-50"
                 >
