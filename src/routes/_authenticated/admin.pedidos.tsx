@@ -242,16 +242,42 @@ function OrdersPanel() {
               <div className="text-xs uppercase tracking-widest text-accent font-bold">Painel</div>
               <h1 className="display text-3xl md:text-4xl">Pedidos & Relatórios</h1>
             </div>
-            <div className="inline-flex bg-secondary rounded-md p-1">
-              {(["day", "week", "month", "all"] as Period[]).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded ${period === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  {p === "day" ? "Hoje" : p === "week" ? "7 dias" : p === "month" ? "30 dias" : "Tudo"}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex bg-secondary rounded-md p-1">
+                {(["day", "week", "month", "all"] as Period[]).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => { setPeriod(p); setDateFrom(""); setDateTo(""); }}
+                    className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded ${period === p && !hasCustomRange ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {p === "day" ? "Hoje" : p === "week" ? "7 dias" : p === "month" ? "30 dias" : "Tudo"}
+                  </button>
+                ))}
+              </div>
+              <div className="flex items-center gap-1 bg-secondary rounded-md p-1">
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="bg-background border border-border rounded px-2 py-1 text-xs focus:outline-none focus:border-primary"
+                />
+                <span className="text-xs text-muted-foreground">até</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="bg-background border border-border rounded px-2 py-1 text-xs focus:outline-none focus:border-primary"
+                />
+                {hasCustomRange && (
+                  <button
+                    onClick={() => { setDateFrom(""); setDateTo(""); }}
+                    className="text-xs text-muted-foreground hover:text-foreground px-2"
+                    title="Limpar datas"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
