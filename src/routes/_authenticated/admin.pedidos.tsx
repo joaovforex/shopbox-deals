@@ -462,6 +462,16 @@ function OrdersPanel() {
                     <option value="paid">Pago</option>
                     <option value="cancelled">Cancelado</option>
                   </select>
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="w-full px-3 py-2 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="all">Todas as categorias</option>
+                    {PRODUCT_CATEGORIES.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
                 </div>
               )}
             </div>
