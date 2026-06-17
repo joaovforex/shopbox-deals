@@ -37,7 +37,7 @@ export const refundOrder = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: order, error: oerr } = await supabaseAdmin
       .from("orders")
-      .select("id,status,total,mp_payment_id,refund_status,customer_name")
+      .select("id,status,total,mp_payment_id,refund_status,customer_name,customer_phone,customer_email,payment_method,created_at")
       .eq("id", data.orderId)
       .maybeSingle();
     if (oerr) throw new Error("Falha ao buscar pedido");
@@ -53,6 +53,12 @@ export const refundOrder = createServerFn({ method: "POST" })
     const total = Number(order.total);
     if (data.amount > total + 0.001) throw new Error(`Valor maior que o total do pedido (${total})`);
     const isFull = Math.abs(total - data.amount) < 0.01;
+
+    // Buscar itens antes da remoção (para a etiqueta)
+    const { data: items } = await supabaseAdmin
+      .from("order_items")
+      .select("product_name,variant_color,quantity,unit_price")
+      .eq("order_id", order.id);
 
     // Call Mercado Pago refund API
     const idempotencyKey = `refund-${order.id}-${Date.now()}`;
@@ -73,7 +79,7 @@ export const refundOrder = createServerFn({ method: "POST" })
 
     // Resolve operator name
     const { data: prof } = await supabaseAdmin.from("profiles").select("full_name").eq("id", userId).maybeSingle();
-    const operatorName = prof?.full_name || null;
+    const operatorName = prof?.full_name || "—";
 
     console.log("[refund] success", {
       orderId: order.id,
@@ -107,5 +113,25 @@ export const refundOrder = createServerFn({ method: "POST" })
       amount: data.amount,
       full: isFull,
       removed: true,
+      receipt: {
+        orderId: order.id,
+        customerName: order.customer_name,
+        customerPhone: order.customer_phone,
+        customerEmail: order.customer_email,
+        paymentMethod: order.payment_method,
+        orderTotal: total,
+        refundedAmount: data.amount,
+        isFull,
+        reason: data.reason,
+        operatorName,
+        refundedAt: new Date().toISOString(),
+        mpRefundId: String(mpJson?.id ?? ""),
+        items: (items ?? []).map((it: any) => ({
+          name: it.product_name,
+          color: it.variant_color,
+          quantity: it.quantity,
+          unitPrice: Number(it.unit_price),
+        })),
+      },
     };
   });
