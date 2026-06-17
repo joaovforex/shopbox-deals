@@ -1,13 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, Bell, CheckCheck, ScanLine, BellRing, XCircle, Hourglass, Search, X } from "lucide-react";
+import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, Bell, CheckCheck, ScanLine, BellRing, XCircle, Hourglass, Search, X, Undo2 } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
+import { RefundModal } from "@/components/RefundModal";
 import { supabase } from "@/integrations/supabase/client";
-import { hasAnyRole } from "@/lib/products";
+import { hasAnyRole, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
 import { openWhatsApp, orderReminderMessage, orderDeliveredMessage } from "@/lib/whatsapp";
+import { refundOrder } from "@/lib/refunds.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/expedicao")({
   head: () => ({ meta: [{ title: "Expedição · Admin" }] }),
@@ -30,6 +33,8 @@ type OrderRow = {
   status: string;
   fulfillment_status: string;
   total: number;
+  mp_payment_id?: string | null;
+  refund_status?: string | null;
   label_status?: string | null;
   label_generated_at?: string | null;
   label_generated_by_name?: string | null;
@@ -82,14 +87,19 @@ function barcodeValue(id: string) {
 
 function FulfillmentPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [superAdmin, setSuperAdmin] = useState<boolean | null>(null);
   const [tab, setTab] = useState<"pickup" | "delivery" | "done" | "notifications">("pickup");
   const [labelFilter, setLabelFilter] = useState<"all" | "none" | "generated" | "printed">("all");
   const [search, setSearch] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
+  const refundFn = useServerFn(refundOrder);
   const searchActive = search.trim().length >= 2;
   const qc = useQueryClient();
 
   useEffect(() => {
     hasAnyRole(["admin", "manager", "fulfillment"]).then(setAllowed);
+    isSuperAdmin().then(setSuperAdmin);
   }, []);
 
   const { data, isLoading } = useQuery({
@@ -566,6 +576,16 @@ function FulfillmentPage() {
                         <CheckCheck className="h-3.5 w-3.5" /> Entregue
                       </button>
                     )}
+                    {superAdmin && o.status === "paid" && o.mp_payment_id && !o.refund_status && o.fulfillment_status !== "completed" && (
+                      <button
+                        onClick={() => setRefundTarget(o)}
+                        disabled={busy}
+                        className="inline-flex items-center gap-1.5 text-xs bg-amber-600 text-white hover:opacity-90 px-3 py-2 rounded font-bold uppercase tracking-wider disabled:opacity-50"
+                        title="Estornar via Mercado Pago"
+                      >
+                        <Undo2 className="h-3.5 w-3.5" /> Estornar
+                      </button>
+                    )}
                   </div>
                 </article>
               );
@@ -573,6 +593,27 @@ function FulfillmentPage() {
           </div>
         )}
       </section>
+      {refundTarget && (
+        <RefundModal
+          order={refundTarget}
+          busy={busy}
+          onClose={() => setRefundTarget(null)}
+          onConfirm={async (amount, reason, confirmText) => {
+            setBusy(true);
+            try {
+              const res = await refundFn({ data: { orderId: refundTarget.id, amount, reason, confirmText } });
+              toast.success((res.full ? "Reembolso total efetuado" : `Reembolso parcial de ${brl(res.amount)} efetuado`) + " · pedido removido");
+              setRefundTarget(null);
+              qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
+              qc.invalidateQueries({ queryKey: ["fulfillment-search"] });
+            } catch (err: any) {
+              toast.error(err?.message ?? "Falha no estorno");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      )}
     </Shell>
   );
 }
