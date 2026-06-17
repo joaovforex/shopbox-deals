@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Flame, Zap } from "lucide-react";
 import { brl, discountPct } from "@/lib/format";
@@ -6,24 +6,84 @@ import type { ProductCard as ProductCardData } from "@/lib/products";
 import { productImages } from "@/lib/products";
 
 const MIN_OFF = 30;
-const MAX_ITEMS = 12;
+const SPEED_MS = 1200; // 1.2s por card
+const PAUSE_AFTER_MANUAL_MS = 2500;
 
 export function MegaOffersCarousel({ products }: { products: ProductCardData[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pausedRef = useRef(false);
+  const resumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const mega = products
     .map((p) => ({ p, off: discountPct(p.original_price, p.price) }))
     .filter((x) => x.off >= MIN_OFF && x.p.stock > 0)
-    .sort((a, b) => b.off - a.off)
-    .slice(0, MAX_ITEMS);
+    .sort((a, b) => b.off - a.off);
 
   if (mega.length === 0) return null;
+
+  // Duplica os itens para criar loop contínuo e imperceptível
+  const items = [...mega, ...mega];
+
+  const stepWidth = () => {
+    const el = scrollRef.current;
+    if (!el) return 260;
+    const card = el.querySelector("[data-mega-card]") as HTMLElement | null;
+    return card ? card.offsetWidth + 12 : 260; // 12 = gap-3
+  };
 
   const scroll = (dir: "left" | "right") => {
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollBy({ left: dir === "left" ? -260 : 260, behavior: "smooth" });
+    const step = stepWidth();
+    el.scrollBy({ left: dir === "left" ? -step : step, behavior: "smooth" });
   };
+
+  const pauseAuto = () => {
+    pausedRef.current = true;
+    if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+    resumeTimeoutRef.current = setTimeout(() => {
+      pausedRef.current = false;
+    }, PAUSE_AFTER_MANUAL_MS);
+  };
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || items.length === 0) return;
+
+    const step = stepWidth();
+    const pxPerMs = step / SPEED_MS;
+
+    let raf: number;
+    let last = performance.now();
+
+    const loop = (now: number) => {
+      if (!pausedRef.current) {
+        const dt = now - last;
+        el.scrollLeft += pxPerMs * dt;
+        const half = el.scrollWidth / 2;
+        if (el.scrollLeft >= half) {
+          el.scrollLeft = el.scrollLeft - half;
+        }
+      }
+      last = now;
+      raf = requestAnimationFrame(loop);
+    };
+
+    const onEnter = () => { pausedRef.current = true; };
+    const onLeave = () => { pausedRef.current = false; };
+
+    el.addEventListener("mouseenter", onEnter);
+    el.addEventListener("mouseleave", onLeave);
+
+    raf = requestAnimationFrame(loop);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      el.removeEventListener("mouseenter", onEnter);
+      el.removeEventListener("mouseleave", onLeave);
+      if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+    };
+  }, [items.length]);
 
   return (
     <section className="relative mb-5 sm:mb-7 rounded-2xl border-2 border-deal/40 bg-gradient-to-br from-deal/15 via-background to-background p-3 sm:p-4 shadow-deal/20 shadow-lg">
@@ -38,14 +98,14 @@ export function MegaOffersCarousel({ products }: { products: ProductCardData[] }
         </div>
         <div className="flex items-center gap-1.5">
           <button
-            onClick={() => scroll("left")}
+            onClick={() => { pauseAuto(); scroll("left"); }}
             className="h-8 w-8 rounded-full bg-card border border-border flex items-center justify-center hover:bg-deal hover:text-deal-foreground hover:border-deal transition-colors active:scale-90"
             aria-label="Anterior"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
-            onClick={() => scroll("right")}
+            onClick={() => { pauseAuto(); scroll("right"); }}
             className="h-8 w-8 rounded-full bg-card border border-border flex items-center justify-center hover:bg-deal hover:text-deal-foreground hover:border-deal transition-colors active:scale-90"
             aria-label="Próximo"
           >
@@ -59,11 +119,12 @@ export function MegaOffersCarousel({ products }: { products: ProductCardData[] }
         className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
-        {mega.map(({ p, off }) => {
+        {items.map(({ p, off }, i) => {
           const cover = productImages(p)[0];
           return (
             <Link
-              key={p.id}
+              key={`${p.id}-${i}`}
+              data-mega-card
               to="/produto/$id"
               params={{ id: p.id }}
               className="snap-start flex-shrink-0 w-[170px] sm:w-[200px] bg-card rounded-xl border border-border hover:border-deal transition-all overflow-hidden group active:scale-[0.98]"
