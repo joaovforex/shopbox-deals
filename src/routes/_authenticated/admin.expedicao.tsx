@@ -99,6 +99,7 @@ function FulfillmentPage() {
 
   useEffect(() => {
     hasAnyRole(["admin", "manager", "fulfillment"]).then(setAllowed);
+    isSuperAdmin().then(setSuperAdmin);
   }, []);
 
   const { data, isLoading } = useQuery({
