@@ -222,6 +222,7 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-2 justify-end">
+            <OnlineCounter />
             {user && !hasTeamRole && (
               <Link
                 to="/meus-pedidos"
