@@ -17,8 +17,8 @@ export const Route = createFileRoute("/etiqueta/$id")({
   component: LabelPage,
 });
 
-
 function formatPhone(d: string | null) {
+
   if (!d) return "";
   const s = d.replace(/\D/g, "");
   if (s.length === 11) return `(${s.slice(0, 2)}) ${s.slice(2, 7)}-${s.slice(7)}`;
