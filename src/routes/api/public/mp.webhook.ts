@@ -142,6 +142,19 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
             return new Response("update failed", { status: 500 });
           }
           console.info("[mp:webhook] confirm result", result);
+
+          // ============================================================
+          // BLINDAGEM CRÍTICA — REEMBOLSO AUTOMÁTICO POR OUT-OF-STOCK
+          // Se o estoque esgotou no meio do caminho (race condition entre
+          // dois clientes pagando o mesmo último item), o pedido foi
+          // cancelado. NÃO podemos deixar o cliente sem o produto E sem
+          // o dinheiro — disparamos o estorno integral no MP imediatamente
+          // e registramos no histórico de reembolsos.
+          // ============================================================
+          if (result === "out_of_stock") {
+            console.warn("[mp:webhook] auto-refund triggered for out_of_stock", { orderId, paymentId: payment.id });
+            await autoRefundOutOfStock({ orderId, paymentId: String(payment.id), accessToken });
+          }
         } else if (newStatus === "cancelled") {
           const { error: updErr } = await supabaseAdmin
             .from("orders")
