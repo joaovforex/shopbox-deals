@@ -211,37 +211,40 @@ function ProductPage() {
 
   const nativeShare = shareWithImage;
 
-  const addToCart = () => {
+  const addToCart = async () => {
     if (needsColorChoice) { toast.error("Escolha uma cor antes de adicionar"); return; }
     if (variantOut) { toast.error(`A cor "${selectedColor}" está esgotada`); return; }
     if (effectiveStock <= 0) { toast.error("Produto esgotado"); return; }
     if (qty > effectiveStock) { toast.error(`Apenas ${effectiveStock} disponível(is)${selectedColor ? ` em ${selectedColor}` : ""}`); return; }
     if (requireLogin("/carrinho")) return;
-    add({
+    const result = await add({
       id: product.id,
       name: product.name,
       price: product.price,
       image_url: product.image_url,
       variant_color: selectedColor,
     }, qty);
-    toast.success(`Adicionado ao carrinho (${qty}x)${selectedColor ? ` · ${selectedColor}` : ""}`);
+    if (result === "ok") {
+      toast.success(`Adicionado ao carrinho (${qty}x)${selectedColor ? ` · ${selectedColor}` : ""}`);
+    }
   };
 
-  const buyNow = () => {
+  const buyNow = async () => {
     if (needsColorChoice) { toast.error("Escolha uma cor antes de comprar"); return; }
     if (variantOut) { toast.error(`A cor "${selectedColor}" está esgotada`); return; }
     if (effectiveStock <= 0) { toast.error("Produto esgotado"); return; }
     if (qty > effectiveStock) { toast.error(`Apenas ${effectiveStock} disponível(is)${selectedColor ? ` em ${selectedColor}` : ""}`); return; }
     if (requireLogin("/checkout")) return;
-    add({
+    const result = await add({
       id: product.id,
       name: product.name,
       price: product.price,
       image_url: productImages(product)[0] ?? null,
       variant_color: selectedColor,
     }, qty);
-    navigate({ to: "/checkout" });
+    if (result === "ok") navigate({ to: "/checkout" });
   };
+
 
 
   return (
