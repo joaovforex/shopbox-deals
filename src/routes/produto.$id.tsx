@@ -1,15 +1,17 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Share2, MessageCircle, Minus, Plus, ArrowLeft, Copy } from "lucide-react";
+import { Share2, MessageCircle, Minus, Plus, ArrowLeft, Copy, Pencil } from "lucide-react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { ProductCarousel } from "@/components/ProductCarousel";
+import { ProductForm } from "@/components/ProductForm";
 import { brl, discountPct } from "@/lib/format";
 import { fetchProduct, getRoleSummary, productImages, type Product } from "@/lib/products";
 import { getRequestOrigin } from "@/lib/origin.functions";
 import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
+
 
 export const Route = createFileRoute("/produto/$id")({
   loader: async ({ params, context }) => {
