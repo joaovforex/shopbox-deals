@@ -272,10 +272,20 @@ function ProductPage() {
           </div>
 
           <div className="flex flex-col gap-4">
+            {admin && (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="self-start inline-flex items-center gap-2 bg-accent text-accent-foreground font-bold uppercase text-xs tracking-wider px-3 py-2 rounded-md hover:opacity-90"
+              >
+                <Pencil className="h-3.5 w-3.5" /> Editar produto
+              </button>
+            )}
             {product.category && (
               <span className="text-xs font-bold uppercase tracking-widest text-accent">{product.category}</span>
             )}
             <h1 className="display text-3xl md:text-4xl leading-tight">{product.name}</h1>
+
 
             <div className="bg-card rounded-xl p-5 border border-border">
               {product.original_price && product.original_price > product.price && (
