@@ -10,6 +10,8 @@ import { fetchProducts, getRoleSummary, isVideoUrl, uploadProductImage, type Col
 import { claimFirstAdmin } from "@/lib/admin.functions";
 import { brl, discountPct } from "@/lib/format";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
+import { ProductForm, PRODUCT_FORM_DRAFT_KEY as DRAFT_KEY } from "@/components/ProductForm";
+
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [{ title: "Admin · shopbox" }] }),
