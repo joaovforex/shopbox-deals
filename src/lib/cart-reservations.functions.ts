@@ -32,8 +32,9 @@ export const releaseCartReservation = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: ok, error } = await context.supabase.rpc("release_cart_reservation", {
       p_product_id: data.productId,
-      p_variant_color: data.variantColor ?? null,
+      p_variant_color: (data.variantColor ?? null) as string,
     });
+
     if (error) throw new Error(error.message);
     return { released: !!ok };
   });
