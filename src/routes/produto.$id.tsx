@@ -104,9 +104,12 @@ function ProductPage() {
   });
   const { add } = useCart();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [qty, setQty] = useState(1);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
   const user = useAuthUser();
+
 
   const requireLogin = (target: "/carrinho" | "/checkout") => {
     if (user) return false;
