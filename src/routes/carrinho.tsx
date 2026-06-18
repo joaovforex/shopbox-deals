@@ -91,7 +91,9 @@ function CartPage() {
                       {i.variant_color && (
                         <span className="text-[11px] font-bold uppercase tracking-wider text-accent">Cor: {i.variant_color}</span>
                       )}
+                      <ReservationBadge item={i} />
                       <div className="text-price font-black">{brl(i.price)}</div>
+
                       <div className="flex items-center gap-2 mt-auto">
                         <div className="inline-flex items-center bg-secondary rounded-md">
                           <button onClick={() => setQty(k, i.quantity - 1)} className="p-1.5 hover:bg-muted rounded-l-md" aria-label="Diminuir"><Minus className="h-3.5 w-3.5" /></button>
