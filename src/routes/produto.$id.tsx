@@ -1,15 +1,17 @@
 import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Share2, MessageCircle, Minus, Plus, ArrowLeft, Copy } from "lucide-react";
+import { Share2, MessageCircle, Minus, Plus, ArrowLeft, Copy, Pencil } from "lucide-react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { ProductCarousel } from "@/components/ProductCarousel";
+import { ProductForm } from "@/components/ProductForm";
 import { brl, discountPct } from "@/lib/format";
 import { fetchProduct, getRoleSummary, productImages, type Product } from "@/lib/products";
 import { getRequestOrigin } from "@/lib/origin.functions";
 import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
+
 
 export const Route = createFileRoute("/produto/$id")({
   loader: async ({ params, context }) => {
@@ -102,9 +104,12 @@ function ProductPage() {
   });
   const { add } = useCart();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [qty, setQty] = useState(1);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
   const user = useAuthUser();
+
 
   const requireLogin = (target: "/carrinho" | "/checkout") => {
     if (user) return false;
@@ -211,37 +216,40 @@ function ProductPage() {
 
   const nativeShare = shareWithImage;
 
-  const addToCart = () => {
+  const addToCart = async () => {
     if (needsColorChoice) { toast.error("Escolha uma cor antes de adicionar"); return; }
     if (variantOut) { toast.error(`A cor "${selectedColor}" está esgotada`); return; }
     if (effectiveStock <= 0) { toast.error("Produto esgotado"); return; }
     if (qty > effectiveStock) { toast.error(`Apenas ${effectiveStock} disponível(is)${selectedColor ? ` em ${selectedColor}` : ""}`); return; }
     if (requireLogin("/carrinho")) return;
-    add({
+    const result = await add({
       id: product.id,
       name: product.name,
       price: product.price,
       image_url: product.image_url,
       variant_color: selectedColor,
     }, qty);
-    toast.success(`Adicionado ao carrinho (${qty}x)${selectedColor ? ` · ${selectedColor}` : ""}`);
+    if (result === "ok") {
+      toast.success(`Adicionado ao carrinho (${qty}x)${selectedColor ? ` · ${selectedColor}` : ""}`);
+    }
   };
 
-  const buyNow = () => {
+  const buyNow = async () => {
     if (needsColorChoice) { toast.error("Escolha uma cor antes de comprar"); return; }
     if (variantOut) { toast.error(`A cor "${selectedColor}" está esgotada`); return; }
     if (effectiveStock <= 0) { toast.error("Produto esgotado"); return; }
     if (qty > effectiveStock) { toast.error(`Apenas ${effectiveStock} disponível(is)${selectedColor ? ` em ${selectedColor}` : ""}`); return; }
     if (requireLogin("/checkout")) return;
-    add({
+    const result = await add({
       id: product.id,
       name: product.name,
       price: product.price,
       image_url: productImages(product)[0] ?? null,
       variant_color: selectedColor,
     }, qty);
-    navigate({ to: "/checkout" });
+    if (result === "ok") navigate({ to: "/checkout" });
   };
+
 
 
   return (
@@ -264,10 +272,20 @@ function ProductPage() {
           </div>
 
           <div className="flex flex-col gap-4">
+            {admin && (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="self-start inline-flex items-center gap-2 bg-accent text-accent-foreground font-bold uppercase text-xs tracking-wider px-3 py-2 rounded-md hover:opacity-90"
+              >
+                <Pencil className="h-3.5 w-3.5" /> Editar produto
+              </button>
+            )}
             {product.category && (
               <span className="text-xs font-bold uppercase tracking-widest text-accent">{product.category}</span>
             )}
             <h1 className="display text-3xl md:text-4xl leading-tight">{product.name}</h1>
+
 
             <div className="bg-card rounded-xl p-5 border border-border">
               {product.original_price && product.original_price > product.price && (
@@ -417,6 +435,18 @@ function ProductPage() {
 
       <Footer />
       <MobileBottomNav />
+
+      {editing && admin && (
+        <ProductForm
+          product={product}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            qc.invalidateQueries({ queryKey: ["product", id] });
+            qc.invalidateQueries({ queryKey: ["products"] });
+          }}
+        />
+      )}
     </div>
   );
 }

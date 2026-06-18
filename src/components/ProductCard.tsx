@@ -30,23 +30,24 @@ export function ProductCard({ product, priority = false }: { product: Product | 
     return true;
   };
 
-  const addToCart = (e: React.MouseEvent) => {
+  const addToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (product.stock === 0) return;
     if (requireLogin("/carrinho")) return;
-    add(cartItem, 1);
-    toast.success("Adicionado ao carrinho");
+    const result = await add(cartItem, 1);
+    if (result === "ok") toast.success("Adicionado ao carrinho");
   };
 
-  const buyNow = (e: React.MouseEvent) => {
+  const buyNow = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (product.stock === 0) return;
     if (requireLogin("/checkout")) return;
-    add(cartItem, 1);
-    navigate({ to: "/checkout" });
+    const result = await add(cartItem, 1);
+    if (result === "ok") navigate({ to: "/checkout" });
   };
+
 
   return (
     <Link

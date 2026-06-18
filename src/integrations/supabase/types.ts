@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      cart_reservations: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          product_id: string
+          quantity: number
+          user_id: string
+          variant_color: string | null
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          product_id: string
+          quantity: number
+          user_id: string
+          variant_color?: string | null
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          user_id?: string
+          variant_color?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cart_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -415,6 +453,7 @@ export type Database = {
         }
         Returns: string
       }
+      expire_cart_reservations: { Args: never; Returns: number }
       expire_stale_pending_orders: {
         Args: { p_minutes?: number }
         Returns: number
@@ -505,12 +544,24 @@ export type Database = {
             Returns: string
           }
       record_visit: { Args: { p_session_id: string }; Returns: number }
+      release_cart_reservation: {
+        Args: { p_product_id: string; p_variant_color: string }
+        Returns: boolean
+      }
       remove_team_role: {
         Args: {
           p_role: Database["public"]["Enums"]["app_role"]
           p_user_id: string
         }
         Returns: boolean
+      }
+      reserve_cart_last_stock: {
+        Args: {
+          p_product_id: string
+          p_quantity: number
+          p_variant_color: string
+        }
+        Returns: string
       }
       search_products_quick: {
         Args: { p_term: string }
