@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { Trash2, Minus, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Trash2, Minus, Plus, Clock } from "lucide-react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
-import { useCart, cartItemKey } from "@/lib/cart";
+import { useCart, cartItemKey, type CartItem } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
 
@@ -10,6 +10,30 @@ export const Route = createFileRoute("/carrinho")({
   head: () => ({ meta: [{ title: "Carrinho · shopbox" }] }),
   component: CartPage,
 });
+
+function ReservationBadge({ item }: { item: CartItem }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    if (!item.reserved_until) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [item.reserved_until]);
+  if (!item.reserved_until) return null;
+  const ms = new Date(item.reserved_until).getTime() - now;
+  if (ms <= 0) return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-destructive/15 text-destructive px-2 py-0.5 rounded">
+      <Clock className="h-3 w-3" /> Reserva expirada
+    </span>
+  );
+  const m = Math.floor(ms / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-primary/15 text-primary px-2 py-0.5 rounded">
+      <Clock className="h-3 w-3" /> Reservado · {m}:{s.toString().padStart(2, "0")}
+    </span>
+  );
+}
+
 
 function CartPage() {
   const { items, setQty, remove, total, clear } = useCart();
