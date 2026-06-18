@@ -18,12 +18,13 @@ export const reserveCartLastStock = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: res, error } = await context.supabase.rpc("reserve_cart_last_stock", {
       p_product_id: data.productId,
-      p_variant_color: data.variantColor ?? null,
+      p_variant_color: (data.variantColor ?? null) as string,
       p_quantity: data.quantity,
     });
     if (error) throw new Error(error.message);
     return { status: (res as ReserveResult) ?? "not_found" };
   });
+
 
 export const releaseCartReservation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
