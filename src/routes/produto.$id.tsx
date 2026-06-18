@@ -435,6 +435,18 @@ function ProductPage() {
 
       <Footer />
       <MobileBottomNav />
+
+      {editing && admin && (
+        <ProductForm
+          product={product}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            qc.invalidateQueries({ queryKey: ["product", id] });
+            qc.invalidateQueries({ queryKey: ["products"] });
+          }}
+        />
+      )}
     </div>
   );
 }
