@@ -142,6 +142,19 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
             return new Response("update failed", { status: 500 });
           }
           console.info("[mp:webhook] confirm result", result);
+
+          // ============================================================
+          // BLINDAGEM CRÍTICA — REEMBOLSO AUTOMÁTICO POR OUT-OF-STOCK
+          // Se o estoque esgotou no meio do caminho (race condition entre
+          // dois clientes pagando o mesmo último item), o pedido foi
+          // cancelado. NÃO podemos deixar o cliente sem o produto E sem
+          // o dinheiro — disparamos o estorno integral no MP imediatamente
+          // e registramos no histórico de reembolsos.
+          // ============================================================
+          if (result === "out_of_stock") {
+            console.warn("[mp:webhook] auto-refund triggered for out_of_stock", { orderId, paymentId: payment.id });
+            await autoRefundOutOfStock({ orderId, paymentId: String(payment.id), accessToken });
+          }
         } else if (newStatus === "cancelled") {
           const { error: updErr } = await supabaseAdmin
             .from("orders")
@@ -165,3 +178,87 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
     },
   },
 });
+
+async function autoRefundOutOfStock(args: { orderId: string; paymentId: string; accessToken: string }) {
+  const { orderId, paymentId, accessToken } = args;
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Já existe refund para esse pagamento? Idempotência defensiva.
+    const { data: existing } = await supabaseAdmin
+      .from("refunds")
+      .select("id")
+      .eq("mp_payment_id", paymentId)
+      .maybeSingle();
+    if (existing) {
+      console.info("[mp:webhook] auto-refund skipped (already recorded)", { orderId, paymentId });
+      return;
+    }
+
+    // Snapshot do pedido (já cancelado neste ponto pelo confirm_order_paid)
+    const { data: order } = await supabaseAdmin
+      .from("orders")
+      .select("id,total,customer_name,customer_email,customer_phone,customer_cpf,payment_method,created_at")
+      .eq("id", orderId)
+      .maybeSingle();
+    if (!order) {
+      console.error("[mp:webhook] auto-refund: order disappeared", { orderId });
+      return;
+    }
+
+    const { data: items } = await supabaseAdmin
+      .from("order_items")
+      .select("product_name,variant_color,quantity,unit_price")
+      .eq("order_id", orderId);
+
+    const idempotencyKey = `auto-refund-oos-${orderId}`;
+    const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}/refunds`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+        "X-Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify({}),
+    });
+    const mpJson: any = await mpRes.json().catch(() => ({}));
+    if (!mpRes.ok) {
+      console.error("[mp:webhook] auto-refund MP failed", { orderId, paymentId, status: mpRes.status, body: mpJson });
+      return;
+    }
+
+    const itemsSnapshot = (items ?? []).map((it: any) => ({
+      name: it.product_name,
+      color: it.variant_color,
+      quantity: it.quantity,
+      unitPrice: Number(it.unit_price),
+    }));
+
+    const total = Number(order.total);
+    const { error: insErr } = await supabaseAdmin.from("refunds").insert({
+      order_id: order.id,
+      mp_payment_id: paymentId,
+      mp_refund_id: String(mpJson?.id ?? ""),
+      amount: total,
+      is_full: true,
+      reason: "Estorno automático: estoque esgotou durante a confirmação do pagamento (race condition entre clientes). Cliente foi reembolsado integralmente sem precisar de ação manual.",
+      customer_name: order.customer_name,
+      customer_email: order.customer_email,
+      customer_phone: order.customer_phone,
+      customer_cpf: order.customer_cpf,
+      payment_method: order.payment_method,
+      order_total: total,
+      order_created_at: order.created_at,
+      items: itemsSnapshot,
+      operator_id: null,
+      operator_name: "Sistema / webhook MP (auto out_of_stock)",
+    });
+    if (insErr) {
+      console.error("[mp:webhook] auto-refund history insert failed", insErr);
+      return;
+    }
+    console.info("[mp:webhook] auto-refund completed", { orderId, paymentId, mpRefundId: mpJson?.id, amount: total });
+  } catch (err) {
+    console.error("[mp:webhook] auto-refund unexpected error", err);
+  }
+}
