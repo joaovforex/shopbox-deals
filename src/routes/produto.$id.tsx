@@ -11,6 +11,7 @@ import { fetchProduct, getRoleSummary, productImages, type Product } from "@/lib
 import { getRequestOrigin } from "@/lib/origin.functions";
 import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
+import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
 
 
 export const Route = createFileRoute("/produto/$id")({
@@ -108,6 +109,7 @@ function ProductPage() {
   const [qty, setQty] = useState(1);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  useRealtimeProducts(id);
   const user = useAuthUser();
 
 

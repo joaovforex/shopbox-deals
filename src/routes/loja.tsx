@@ -5,6 +5,7 @@ import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { ProductCard } from "@/components/ProductCard";
 import { MegaOffersCarousel } from "@/components/MegaOffersCarousel";
 import { pagedProductsQuery, productImages } from "@/lib/products";
+import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
 import { Search, X, Loader2 } from "lucide-react";
 
 type LojaSearch = { cat?: string; q?: string; focus?: number };
@@ -44,6 +45,7 @@ function Loja() {
   const navigate = useNavigate();
   const [q, setQ] = useState(qParam ?? "");
   const debouncedQ = useDebounced(q, 350);
+  useRealtimeProducts();
 
   // Sincroniza busca com URL (sem recarregar a rota — search params atualizam loaderDeps)
   useEffect(() => {
