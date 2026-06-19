@@ -21,6 +21,7 @@ import { Route as PedidoIdRouteImport } from './routes/pedido.$id'
 import { Route as EtiquetaIdRouteImport } from './routes/etiqueta.$id'
 import { Route as AuthenticatedMeusPedidosRouteImport } from './routes/_authenticated/meus-pedidos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as ApiPublicReconcileOrdersRouteImport } from './routes/api/public/reconcile-orders'
 import { Route as AuthenticatedAdminReembolsosRouteImport } from './routes/_authenticated/admin.reembolsos'
 import { Route as AuthenticatedAdminPedidosRouteImport } from './routes/_authenticated/admin.pedidos'
 import { Route as AuthenticatedAdminExpedicaoRouteImport } from './routes/_authenticated/admin.expedicao'
@@ -87,6 +88,12 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicReconcileOrdersRoute =
+  ApiPublicReconcileOrdersRouteImport.update({
+    id: '/api/public/reconcile-orders',
+    path: '/api/public/reconcile-orders',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedAdminReembolsosRoute =
   AuthenticatedAdminReembolsosRouteImport.update({
     id: '/reembolsos',
@@ -133,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
+  '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -151,6 +159,7 @@ export interface FileRoutesByTo {
   '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
+  '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
 }
 export interface FileRoutesById {
@@ -171,6 +180,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/_authenticated/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/_authenticated/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
+  '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
 }
 export interface FileRouteTypes {
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
     | '/admin/expedicao'
     | '/admin/pedidos'
     | '/admin/reembolsos'
+    | '/api/public/reconcile-orders'
     | '/api/public/mp/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -209,6 +220,7 @@ export interface FileRouteTypes {
     | '/admin/expedicao'
     | '/admin/pedidos'
     | '/admin/reembolsos'
+    | '/api/public/reconcile-orders'
     | '/api/public/mp/webhook'
   id:
     | '__root__'
@@ -228,6 +240,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/expedicao'
     | '/_authenticated/admin/pedidos'
     | '/_authenticated/admin/reembolsos'
+    | '/api/public/reconcile-orders'
     | '/api/public/mp/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -242,6 +255,7 @@ export interface RootRouteChildren {
   EtiquetaIdRoute: typeof EtiquetaIdRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
+  ApiPublicReconcileOrdersRoute: typeof ApiPublicReconcileOrdersRoute
   ApiPublicMpWebhookRoute: typeof ApiPublicMpWebhookRoute
 }
 
@@ -331,6 +345,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/reconcile-orders': {
+      id: '/api/public/reconcile-orders'
+      path: '/api/public/reconcile-orders'
+      fullPath: '/api/public/reconcile-orders'
+      preLoaderRoute: typeof ApiPublicReconcileOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin/reembolsos': {
       id: '/_authenticated/admin/reembolsos'
       path: '/reembolsos'
@@ -410,18 +431,9 @@ const rootRouteChildren: RootRouteChildren = {
   EtiquetaIdRoute: EtiquetaIdRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
+  ApiPublicReconcileOrdersRoute: ApiPublicReconcileOrdersRoute,
   ApiPublicMpWebhookRoute: ApiPublicMpWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
