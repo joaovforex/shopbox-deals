@@ -105,17 +105,14 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-        // Mapeia status MP -> status da loja
-        let newStatus: "paid" | "pending" | "cancelled" = "pending";
-        if (payment.status === "approved") newStatus = "paid";
-        else if (
-          payment.status === "rejected" ||
-          payment.status === "cancelled" ||
-          payment.status === "refunded" ||
-          payment.status === "charged_back"
-        ) {
-          newStatus = "cancelled";
-        }
+        // Mapeia status MP -> ação no pedido
+        // IMPORTANTE: pagamento "rejected" NÃO cancela o pedido — o cliente
+        // pode tentar novamente (ex.: cair no Pix após cartão recusado).
+        // Só "approved" finaliza como pago. Estornos/chargebacks finalizam
+        // como cancelado. Demais status apenas registram o mp_payment_id.
+        let action: "paid" | "cancelled" | "noop" = "noop";
+        if (payment.status === "approved") action = "paid";
+        else if (payment.status === "refunded" || payment.status === "charged_back") action = "cancelled";
 
         // Não rebaixa um pedido já pago/cancelado
         const { data: current } = await supabaseAdmin
@@ -131,7 +128,7 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
           return new Response("already finalized", { status: 200 });
         }
 
-        if (newStatus === "paid") {
+        if (action === "paid") {
           // Debita estoque atomicamente; se faltar, marca como cancelado.
           const { data: result, error: rpcErr } = await supabaseAdmin.rpc(
             "confirm_order_paid" as never,
@@ -143,19 +140,11 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
           }
           console.info("[mp:webhook] confirm result", result);
 
-          // ============================================================
-          // BLINDAGEM CRÍTICA — REEMBOLSO AUTOMÁTICO POR OUT-OF-STOCK
-          // Se o estoque esgotou no meio do caminho (race condition entre
-          // dois clientes pagando o mesmo último item), o pedido foi
-          // cancelado. NÃO podemos deixar o cliente sem o produto E sem
-          // o dinheiro — disparamos o estorno integral no MP imediatamente
-          // e registramos no histórico de reembolsos.
-          // ============================================================
           if (result === "out_of_stock") {
             console.warn("[mp:webhook] auto-refund triggered for out_of_stock", { orderId, paymentId: payment.id });
             await autoRefundOutOfStock({ orderId, paymentId: String(payment.id), accessToken });
           }
-        } else if (newStatus === "cancelled") {
+        } else if (action === "cancelled") {
           const { error: updErr } = await supabaseAdmin
             .from("orders")
             .update({ status: "cancelled", mp_payment_id: String(payment.id) })
@@ -165,7 +154,8 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
             return new Response("update failed", { status: 500 });
           }
         } else {
-          // pending: apenas guarda o id do pagamento
+          // rejected / pending / in_process: apenas registra o mp_payment_id mais recente
+          // sem mudar o status — o cliente ainda pode tentar pagar novamente.
           await supabaseAdmin
             .from("orders")
             .update({ mp_payment_id: String(payment.id) })
