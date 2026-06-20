@@ -109,25 +109,64 @@ function OrderPage() {
             </div>
           )}
 
-          {/* PICKUP INFO — reforçado quando pronto */}
-          <div className={`rounded-xl border-2 p-5 mb-6 flex gap-4 ${isReady ? "border-primary bg-primary/5" : "border-border bg-card"}`}>
-            <div className={`shrink-0 h-11 w-11 rounded-full flex items-center justify-center ${isReady ? "bg-primary text-primary-foreground" : "bg-primary/15 text-primary"}`}>
-              <Store className="h-5 w-5" />
+          {/* DELIVERY OR PICKUP INFO */}
+          {isDelivery ? (
+            <div className="rounded-xl border-2 p-5 mb-6 flex gap-4 border-primary bg-primary/5">
+              <div className="shrink-0 h-11 w-11 rounded-full flex items-center justify-center bg-primary text-primary-foreground">
+                <Truck className="h-5 w-5" />
+              </div>
+              <div className="text-sm flex-1">
+                <p className="font-bold text-foreground mb-1">Entrega em casa</p>
+                {order?.shipping_street && (
+                  <p className="text-foreground font-semibold">
+                    {order.shipping_street}, {order.shipping_number}
+                    {order.shipping_complement ? ` — ${order.shipping_complement}` : ""}
+                    {order.shipping_district ? `, ${order.shipping_district}` : ""}
+                    {order.shipping_city ? ` — ${order.shipping_city}/${order.shipping_state ?? "PR"}` : ""}
+                  </p>
+                )}
+                {meStatus && (
+                  <p className="text-muted-foreground mt-1">
+                    Status: <strong className="text-foreground capitalize">{meStatus}</strong>
+                  </p>
+                )}
+                {order?.maisentregas_tracking_url && (
+                  <a
+                    href={order.maisentregas_tracking_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 mt-3 bg-primary text-primary-foreground font-bold px-3 py-2 rounded text-xs"
+                  >
+                    Acompanhar entrega em tempo real <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+                {!order?.maisentregas_tracking_url && isPaid && (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    O link de rastreio fica disponível assim que um entregador aceitar a corrida.
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="text-sm flex-1">
-              <p className="font-bold text-foreground mb-1">
-                {isReady ? "Retire seu pedido na loja" : "Retirada na loja"}
-              </p>
-              <p className="text-foreground font-semibold">{STORE_ADDRESS}</p>
-              <p className="text-muted-foreground inline-flex items-center gap-1.5 mt-1">
-                <Clock className="h-3.5 w-3.5" /> {STORE_HOURS}
-              </p>
-              {isPaid && !isDone && !isCancelled && (
-                <p className="mt-3 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-3 py-2 rounded">
-                  ⏰ Você tem até 5 dias para retirar o produto na loja.
+          ) : (
+            <div className={`rounded-xl border-2 p-5 mb-6 flex gap-4 ${isReady ? "border-primary bg-primary/5" : "border-border bg-card"}`}>
+              <div className={`shrink-0 h-11 w-11 rounded-full flex items-center justify-center ${isReady ? "bg-primary text-primary-foreground" : "bg-primary/15 text-primary"}`}>
+                <Store className="h-5 w-5" />
+              </div>
+              <div className="text-sm flex-1">
+                <p className="font-bold text-foreground mb-1">
+                  {isReady ? "Retire seu pedido na loja" : "Retirada na loja"}
                 </p>
-              )}
-            </div>
+                <p className="text-foreground font-semibold">{STORE_ADDRESS}</p>
+                <p className="text-muted-foreground inline-flex items-center gap-1.5 mt-1">
+                  <Clock className="h-3.5 w-3.5" /> {STORE_HOURS}
+                </p>
+                {isPaid && !isDone && !isCancelled && (
+                  <p className="mt-3 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-3 py-2 rounded">
+                    ⏰ Você tem até 5 dias para retirar o produto na loja.
+                  </p>
+                )}
+              </div>
+
           </div>
 
           {/* ORDER DETAILS */}
