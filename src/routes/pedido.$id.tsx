@@ -81,7 +81,7 @@ function OrderPage() {
                       : isReady
                         ? "Seu pedido já está separado e te aguarda na loja."
                         : isPreparing
-                          ? "Nosso time está separando seus itens. Você receberá um aviso no WhatsApp assim que estiver pronto."
+                          ? "Nosso time está separando seus itens. Acompanhe o status em Meus Pedidos."
                           : "Recebemos seu pedido com sucesso 🎉"}
             </p>
 
