@@ -35,7 +35,7 @@ function statusLabel(s: string | null): string {
   const map: Record<string, string> = {
     "contatando_parceiro": "Procurando entregador",
     "parceiro_confirmado": "Entregador confirmado",
-    "parceiro_a_caminho": "Entregador a caminho",
+    "parceiro_a_caminho": "Em rota de entrega",
     "servico_finalizado": "Entregue",
     "pendente": "Pendente",
     "aguardando_preparo": "Aguardando preparo",
@@ -51,6 +51,7 @@ function statusBadge(o: Row): { label: string; cls: string; icon: React.ReactNod
   if (o.delivery_method === "delivery") {
     const s = (o.maisentregas_status ?? "").toLowerCase().trim();
     if (s === "servico_finalizado" || o.fulfillment_status === "completed") return { label: "Entregue", cls: "bg-[#25D366]/20 text-[#25D366]", icon: <CheckCircle2 className="h-3.5 w-3.5" /> };
+    if (s === "parceiro_a_caminho") return { label: "Em rota de entrega", cls: "bg-primary text-primary-foreground", icon: <Truck className="h-3.5 w-3.5" /> };
     if (s) return { label: statusLabel(o.maisentregas_status), cls: "bg-primary/15 text-primary", icon: <Truck className="h-3.5 w-3.5" /> };
     return { label: "Preparando envio", cls: "bg-accent/20 text-accent", icon: <Package className="h-3.5 w-3.5" /> };
   }

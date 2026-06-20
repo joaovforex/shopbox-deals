@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, Package, Store, Clock, ArrowRight, Sparkles, Truck, ExternalLink } from "lucide-react";
+import { CheckCircle2, Package, Store, Clock, ArrowRight, Sparkles, Truck } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { getPublicOrder } from "@/lib/orders.functions";
 import { brl } from "@/lib/format";
@@ -132,22 +132,12 @@ function OrderPage() {
                 )}
                 {meStatus && (
                   <p className="text-muted-foreground mt-1">
-                    Status: <strong className="text-foreground capitalize">{meStatus}</strong>
+                    Status: <strong className="text-foreground capitalize">{meStatus.replace(/_/g, " ")}</strong>
                   </p>
                 )}
-                {order?.maisentregas_tracking_url && (
-                  <a
-                    href={order.maisentregas_tracking_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 mt-3 bg-primary text-primary-foreground font-bold px-3 py-2 rounded text-xs"
-                  >
-                    Acompanhar entrega em tempo real <ExternalLink className="h-3 w-3" />
-                  </a>
-                )}
-                {!order?.maisentregas_tracking_url && isPaid && (
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    O link de rastreio fica disponível assim que um entregador aceitar a corrida.
+                {isPaid && !isDelivered && (
+                  <p className="mt-3 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-3 py-2 rounded">
+                    ⏱ Sua entrega chega em até <strong>2 dias úteis</strong>. Acompanhe o status em Meus Pedidos.
                   </p>
                 )}
               </div>

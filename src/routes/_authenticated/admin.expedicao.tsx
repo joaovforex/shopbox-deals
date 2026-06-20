@@ -3,13 +3,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, Bell, CheckCheck, ScanLine, BellRing, XCircle, Hourglass, Search, X, Undo2 } from "lucide-react";
+import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
 import { supabase } from "@/integrations/supabase/client";
 import { hasAnyRole, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
-import { openWhatsApp, orderReminderMessage, orderDeliveredMessage } from "@/lib/whatsapp";
 import { refundOrder } from "@/lib/refunds.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/expedicao")({
@@ -40,6 +39,8 @@ type OrderRow = {
   label_generated_by_name?: string | null;
   label_printed_at?: string | null;
   label_printed_by_name?: string | null;
+  maisentregas_order_id?: string | null;
+  maisentregas_status?: string | null;
 };
 
 type ItemRow = {
@@ -109,7 +110,6 @@ function FulfillmentPage() {
       const { data: orders, error } = await supabase
         .from("orders")
         .select("*")
-        .eq("delivery_method", "pickup")
         .eq("status", "paid")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -252,46 +252,25 @@ function FulfillmentPage() {
   };
 
   const markDelivered = async (o: OrderRow) => {
-    // Abre a aba do WhatsApp ANTES do await para preservar o gesto do usuário
-    // (caso contrário o navegador bloqueia o popup e o time pensa que falhou).
-    let waWindow: Window | null = null;
-    if (o.customer_phone) {
-      try { waWindow = window.open("about:blank", "_blank", "noopener,noreferrer"); } catch { waWindow = null; }
-    }
     try {
       const { error } = await supabase.rpc("set_fulfillment_status" as never, { p_order_id: o.id, p_status: "completed" } as never);
       if (error) {
-        if (waWindow) try { waWindow.close(); } catch { /* ignore */ }
         console.error("[markDelivered] erro RPC:", error);
         return toast.error(error.message || "Não foi possível marcar como entregue. Atualize a página e tente novamente.");
       }
     } catch (e: any) {
-      if (waWindow) try { waWindow.close(); } catch { /* ignore */ }
       console.error("[markDelivered] exceção:", e);
       return toast.error(e?.message || "Falha ao atualizar o pedido.");
     }
-    // Atualização otimista imediata na UI
     qc.setQueryData(["fulfillment-orders"], (prev: any) => {
       if (!prev?.orders) return prev;
       return { ...prev, orders: prev.orders.map((x: OrderRow) => x.id === o.id ? { ...x, fulfillment_status: "completed" } : x) };
     });
-    // Direciona a aba já aberta para a mensagem do WhatsApp
-    const msg = orderDeliveredMessage(o.customer_name, o.id);
-    const phone = (o.customer_phone || "").replace(/\D/g, "");
-    if (waWindow && phone) {
-      const num = phone.startsWith("55") ? phone : `55${phone}`;
-      try { waWindow.location.href = `https://wa.me/${num}?text=${encodeURIComponent(msg)}`; } catch { /* ignore */ }
-    } else if (waWindow) {
-      try { waWindow.close(); } catch { /* ignore */ }
-    }
     toast.success("Pedido marcado como entregue.");
     qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
   };
 
-  const remindCustomer = (o: OrderRow) => {
-    if (!o.customer_phone) return toast.error("Cliente sem telefone cadastrado.");
-    openWhatsApp(o.customer_phone, orderReminderMessage(o.customer_name, o.id));
-  };
+
 
   const itemsByOrder = useMemo(() => {
     const map = new Map<string, ItemRow[]>();
@@ -306,15 +285,15 @@ function FulfillmentPage() {
 
   const orders = useMemo(() => {
     if (searchActive) {
-      // Em modo busca: retorna todos os resultados, ordenados por data desc, ignorando aba e filtro de etiqueta
       return [...(searchData?.orders ?? [])].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
     }
     let list = (data?.orders ?? []).filter((o) => {
       if (tab === "done") return o.fulfillment_status === "completed";
-      if (tab === "delivery") return o.fulfillment_status === "ready";
-      return o.fulfillment_status !== "completed" && o.fulfillment_status !== "ready";
+      if (tab === "pickup") return o.delivery_method === "pickup" && o.fulfillment_status !== "completed";
+      if (tab === "delivery") return o.delivery_method === "delivery" && o.fulfillment_status !== "completed";
+      return false;
     });
     if (labelFilter !== "all") {
       list = list.filter((o) => {
@@ -354,7 +333,7 @@ function FulfillmentPage() {
           <div className="text-xs uppercase tracking-widest text-accent font-bold">Departamento</div>
           <h1 className="display text-3xl md:text-4xl">Expedição</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Acompanhe os pedidos de <strong>retirada na loja</strong>. Imprima a etiqueta, avise o cliente e marque como entregue.
+            Separe os pedidos por <strong>Retirada na loja</strong> e <strong>Entrega motoboy</strong>. Escaneie a etiqueta para confirmar a entrega.
           </p>
         </div>
       </section>
@@ -391,17 +370,21 @@ function FulfillmentPage() {
           )}
         </div>
 
-        {!searchActive && tab === "delivery" && (
-          <ScannerPanel orders={data?.orders ?? []} onDeliver={markDelivered} />
+        {!searchActive && (tab === "pickup" || tab === "delivery") && (
+          <ScannerPanel
+            orders={(data?.orders ?? []).filter((o) => o.delivery_method === tab)}
+            onDeliver={markDelivered}
+            mode={tab}
+          />
         )}
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex bg-secondary rounded-md p-1">
             <TabBtn active={tab === "pickup"} onClick={() => setTab("pickup")} icon={<Store className="h-4 w-4" />}>
-              Em aberto ({(data?.orders ?? []).filter((o) => o.fulfillment_status !== "completed" && o.fulfillment_status !== "ready").length})
+              Retirada ({(data?.orders ?? []).filter((o) => o.delivery_method === "pickup" && o.fulfillment_status !== "completed").length})
             </TabBtn>
-            <TabBtn active={tab === "delivery"} onClick={() => setTab("delivery")} icon={<Package className="h-4 w-4" />}>
-              Entrega ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "ready").length})
+            <TabBtn active={tab === "delivery"} onClick={() => setTab("delivery")} icon={<Truck className="h-4 w-4" />}>
+              Entrega ({(data?.orders ?? []).filter((o) => o.delivery_method === "delivery" && o.fulfillment_status !== "completed").length})
             </TabBtn>
             <TabBtn active={tab === "done"} onClick={() => setTab("done")} icon={<CheckCircle2 className="h-4 w-4" />}>
               Entregues ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "completed").length})
@@ -478,14 +461,19 @@ function FulfillmentPage() {
                     </div>
                   </header>
 
-                  <div className="text-xs text-muted-foreground border-y border-border py-2">
+                  <div className="text-xs text-muted-foreground border-y border-border py-2 space-y-1">
                     {o.delivery_method === "delivery" ? (
                       <>
-                        <strong className="text-foreground">Endereço:</strong> {o.shipping_address}
+                        <div><strong className="text-foreground inline-flex items-center gap-1"><Truck className="h-3 w-3" /> Entrega motoboy:</strong> {o.shipping_address}</div>
+                        {o.maisentregas_status && (
+                          <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                            Mais Entregas: {o.maisentregas_status.replace(/_/g, " ")}
+                          </div>
+                        )}
                       </>
                     ) : (
                       <>
-                        <strong className="text-foreground">Retirada:</strong> aguardando cliente · {o.customer_phone}
+                        <strong className="text-foreground">Retirada na loja:</strong> aguardando cliente · {o.customer_phone}
                       </>
                     )}
                   </div>
@@ -559,20 +547,11 @@ function FulfillmentPage() {
                         Avançar → {STATUS_LABEL[nextStatus(o.fulfillment_status, o.delivery_method)]}
                       </button>
                     )}
-                    {o.fulfillment_status === "ready" && o.customer_phone && (
-                      <button
-                        onClick={() => remindCustomer(o)}
-                        className="inline-flex items-center gap-1.5 text-xs bg-accent/20 text-accent hover:bg-accent/30 px-3 py-2 rounded font-bold uppercase tracking-wider"
-                        title="Enviar lembrete via WhatsApp"
-                      >
-                        <Bell className="h-3.5 w-3.5" /> Lembrar cliente
-                      </button>
-                    )}
                     {o.fulfillment_status !== "completed" && (
                       <button
                         onClick={() => markDelivered(o)}
                         className="inline-flex items-center gap-1.5 text-xs bg-[#25D366] text-white hover:opacity-90 px-3 py-2 rounded font-bold uppercase tracking-wider"
-                        title="Confirmar entrega ao cliente e enviar agradecimento"
+                        title="Confirmar entrega ao cliente"
                       >
                         <CheckCheck className="h-3.5 w-3.5" /> Entregue
                       </button>
@@ -634,7 +613,7 @@ function TabBtn({ active, onClick, icon, children }: { active: boolean; onClick:
   );
 }
 
-function ScannerPanel({ orders, onDeliver }: { orders: OrderRow[]; onDeliver: (o: OrderRow) => void }) {
+function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliver: (o: OrderRow) => void; mode: "pickup" | "delivery" }) {
   const [code, setCode] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const [last, setLast] = useState<{ id: string; name: string; ok: boolean } | null>(null);
@@ -690,7 +669,9 @@ function ScannerPanel({ orders, onDeliver }: { orders: OrderRow[]; onDeliver: (o
     >
       <div className="flex items-center gap-2 text-primary">
         <ScanLine className="h-5 w-5" />
-        <span className="font-bold uppercase tracking-wider text-xs">Leitor de código</span>
+        <span className="font-bold uppercase tracking-wider text-xs">
+          Leitor · {mode === "pickup" ? "Retirada na loja" : "Entrega motoboy"}
+        </span>
       </div>
       <input
         ref={inputRef}
@@ -853,16 +834,6 @@ function NotificationsPanel({ rows, itemsByOrder }: { rows: NotifRow[]; itemsByO
                 <span>{o.payment_method === "pix" ? "PIX" : "Cartão / MP"} · {o.delivery_method === "pickup" ? "Retirada" : "Entrega"}</span>
                 <span className="font-bold text-foreground">{brl(Number(o.total))}</span>
               </div>
-              {o.customer_phone && (
-                <a
-                  href={`https://wa.me/55${o.customer_phone.replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-[#25D366] text-white px-3 py-1.5 rounded hover:opacity-90"
-                >
-                  <Bell className="h-3.5 w-3.5" /> Falar com cliente
-                </a>
-              )}
             </article>
           );
         })}
