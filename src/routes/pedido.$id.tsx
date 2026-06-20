@@ -63,7 +63,8 @@ function OrderPage() {
             <h1 className="display text-3xl md:text-5xl mb-2">
               {isCancelled ? "Pagamento não concluído"
                 : isPending ? "Aguardando pagamento"
-                : isDone ? "Pedido entregue!"
+                : isDone ? (isDelivery ? "Pedido entregue!" : "Pedido entregue!")
+                : isDelivery ? "EM ROTA DE ENTREGA"
                 : isReady ? "PRONTO PARA RETIRADA"
                 : isPreparing ? "EM SEPARAÇÃO"
                 : "Pagamento confirmado!"}
@@ -75,12 +76,15 @@ function OrderPage() {
                   ? "Assim que o Mercado Pago confirmar, atualizamos esta página automaticamente."
                   : isDone
                     ? "Obrigado pela compra! 💚"
-                    : isReady
-                      ? "Seu pedido já está separado e te aguarda na loja."
-                      : isPreparing
-                        ? "Nosso time está separando seus itens. Você receberá um aviso no WhatsApp assim que estiver pronto."
-                        : "Recebemos seu pedido com sucesso 🎉"}
+                    : isDelivery
+                      ? (meStatus ? `Status atual: ${meStatus}` : "Estamos preparando seu envio.")
+                      : isReady
+                        ? "Seu pedido já está separado e te aguarda na loja."
+                        : isPreparing
+                          ? "Nosso time está separando seus itens. Você receberá um aviso no WhatsApp assim que estiver pronto."
+                          : "Recebemos seu pedido com sucesso 🎉"}
             </p>
+
 
             <div className="inline-flex items-center gap-2 mt-4 bg-background/60 backdrop-blur border border-border px-4 py-2 rounded-full">
               <Package className="h-4 w-4 text-primary" />
