@@ -61,9 +61,9 @@ export const quoteDelivery = createServerFn({ method: "POST" })
     return {
       ok: true as const,
       fee,
-      raw: res,
     };
   });
+
 
 // =====================================================================
 // createDeliveryForOrder — chamado internamente após pagamento aprovado.
