@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { Package, ArrowRight, Clock, CheckCircle2, Store, XCircle, Truck, ExternalLink } from "lucide-react";
+import { Package, ArrowRight, Clock, CheckCircle2, Store, XCircle, Truck, Hash } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
