@@ -111,6 +111,7 @@ export type Database = {
           customer_email: string | null
           customer_name: string
           customer_phone: string | null
+          delivery_fee: number
           delivery_method: string
           fulfillment_status: string
           id: string
@@ -121,6 +122,12 @@ export type Database = {
           label_printed_by: string | null
           label_printed_by_name: string | null
           label_status: string
+          maisentregas_created_at: string | null
+          maisentregas_last_check_at: string | null
+          maisentregas_last_error: string | null
+          maisentregas_order_id: string | null
+          maisentregas_status: string | null
+          maisentregas_tracking_url: string | null
           mp_payment_id: string | null
           mp_preference_id: string | null
           mp_refund_id: string | null
@@ -136,6 +143,8 @@ export type Database = {
           shipping_complement: string | null
           shipping_district: string | null
           shipping_number: string | null
+          shipping_recipient_name: string | null
+          shipping_recipient_phone: string | null
           shipping_state: string | null
           shipping_street: string | null
           shipping_zip: string | null
@@ -152,6 +161,7 @@ export type Database = {
           customer_email?: string | null
           customer_name: string
           customer_phone?: string | null
+          delivery_fee?: number
           delivery_method?: string
           fulfillment_status?: string
           id?: string
@@ -162,6 +172,12 @@ export type Database = {
           label_printed_by?: string | null
           label_printed_by_name?: string | null
           label_status?: string
+          maisentregas_created_at?: string | null
+          maisentregas_last_check_at?: string | null
+          maisentregas_last_error?: string | null
+          maisentregas_order_id?: string | null
+          maisentregas_status?: string | null
+          maisentregas_tracking_url?: string | null
           mp_payment_id?: string | null
           mp_preference_id?: string | null
           mp_refund_id?: string | null
@@ -177,6 +193,8 @@ export type Database = {
           shipping_complement?: string | null
           shipping_district?: string | null
           shipping_number?: string | null
+          shipping_recipient_name?: string | null
+          shipping_recipient_phone?: string | null
           shipping_state?: string | null
           shipping_street?: string | null
           shipping_zip?: string | null
@@ -193,6 +211,7 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string | null
+          delivery_fee?: number
           delivery_method?: string
           fulfillment_status?: string
           id?: string
@@ -203,6 +222,12 @@ export type Database = {
           label_printed_by?: string | null
           label_printed_by_name?: string | null
           label_status?: string
+          maisentregas_created_at?: string | null
+          maisentregas_last_check_at?: string | null
+          maisentregas_last_error?: string | null
+          maisentregas_order_id?: string | null
+          maisentregas_status?: string | null
+          maisentregas_tracking_url?: string | null
           mp_payment_id?: string | null
           mp_preference_id?: string | null
           mp_refund_id?: string | null
@@ -218,6 +243,8 @@ export type Database = {
           shipping_complement?: string | null
           shipping_district?: string | null
           shipping_number?: string | null
+          shipping_recipient_name?: string | null
+          shipping_recipient_phone?: string | null
           shipping_state?: string | null
           shipping_street?: string | null
           shipping_zip?: string | null
