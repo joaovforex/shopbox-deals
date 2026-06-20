@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, MessageCircle, Package, Store, Clock, ArrowRight, Sparkles } from "lucide-react";
+import { CheckCircle2, MessageCircle, Package, Store, Clock, ArrowRight, Sparkles, Truck, ExternalLink } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { getPublicOrder } from "@/lib/orders.functions";
 import { brl } from "@/lib/format";
