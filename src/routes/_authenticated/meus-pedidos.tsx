@@ -116,7 +116,9 @@ function MyOrdersPage() {
           <ul className="space-y-3">
             {orders.map((o) => {
               const b = statusBadge(o);
-              const isReady = o.status === "paid" && (o.fulfillment_status === "ready" || o.fulfillment_status === "shipped");
+              const isReady = o.status === "paid" && o.delivery_method !== "delivery" && (o.fulfillment_status === "ready" || o.fulfillment_status === "shipped");
+              const isDelivery = o.status === "paid" && o.delivery_method === "delivery";
+
               return (
                 <li key={o.id}>
                   <Link
