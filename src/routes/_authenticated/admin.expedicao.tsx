@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2 } from "lucide-react";
+import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
 import { supabase } from "@/integrations/supabase/client";
@@ -253,46 +253,25 @@ function FulfillmentPage() {
   };
 
   const markDelivered = async (o: OrderRow) => {
-    // Abre a aba do WhatsApp ANTES do await para preservar o gesto do usuário
-    // (caso contrário o navegador bloqueia o popup e o time pensa que falhou).
-    let waWindow: Window | null = null;
-    if (o.customer_phone) {
-      try { waWindow = window.open("about:blank", "_blank", "noopener,noreferrer"); } catch { waWindow = null; }
-    }
     try {
       const { error } = await supabase.rpc("set_fulfillment_status" as never, { p_order_id: o.id, p_status: "completed" } as never);
       if (error) {
-        if (waWindow) try { waWindow.close(); } catch { /* ignore */ }
         console.error("[markDelivered] erro RPC:", error);
         return toast.error(error.message || "Não foi possível marcar como entregue. Atualize a página e tente novamente.");
       }
     } catch (e: any) {
-      if (waWindow) try { waWindow.close(); } catch { /* ignore */ }
       console.error("[markDelivered] exceção:", e);
       return toast.error(e?.message || "Falha ao atualizar o pedido.");
     }
-    // Atualização otimista imediata na UI
     qc.setQueryData(["fulfillment-orders"], (prev: any) => {
       if (!prev?.orders) return prev;
       return { ...prev, orders: prev.orders.map((x: OrderRow) => x.id === o.id ? { ...x, fulfillment_status: "completed" } : x) };
     });
-    // Direciona a aba já aberta para a mensagem do WhatsApp
-    const msg = orderDeliveredMessage(o.customer_name, o.id);
-    const phone = (o.customer_phone || "").replace(/\D/g, "");
-    if (waWindow && phone) {
-      const num = phone.startsWith("55") ? phone : `55${phone}`;
-      try { waWindow.location.href = `https://wa.me/${num}?text=${encodeURIComponent(msg)}`; } catch { /* ignore */ }
-    } else if (waWindow) {
-      try { waWindow.close(); } catch { /* ignore */ }
-    }
     toast.success("Pedido marcado como entregue.");
     qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
   };
 
-  const remindCustomer = (o: OrderRow) => {
-    if (!o.customer_phone) return toast.error("Cliente sem telefone cadastrado.");
-    openWhatsApp(o.customer_phone, orderReminderMessage(o.customer_name, o.id));
-  };
+
 
   const itemsByOrder = useMemo(() => {
     const map = new Map<string, ItemRow[]>();
@@ -560,13 +539,13 @@ function FulfillmentPage() {
                         Avançar → {STATUS_LABEL[nextStatus(o.fulfillment_status, o.delivery_method)]}
                       </button>
                     )}
-                    {o.fulfillment_status === "ready" && o.customer_phone && (
+                    {o.fulfillment_status !== "completed" && (
                       <button
-                        onClick={() => remindCustomer(o)}
-                        className="inline-flex items-center gap-1.5 text-xs bg-accent/20 text-accent hover:bg-accent/30 px-3 py-2 rounded font-bold uppercase tracking-wider"
-                        title="Enviar lembrete via WhatsApp"
+                        onClick={() => markDelivered(o)}
+                        className="inline-flex items-center gap-1.5 text-xs bg-[#25D366] text-white hover:opacity-90 px-3 py-2 rounded font-bold uppercase tracking-wider"
+                        title="Confirmar entrega ao cliente"
                       >
-                        <Bell className="h-3.5 w-3.5" /> Lembrar cliente
+                        <CheckCheck className="h-3.5 w-3.5" /> Entregue
                       </button>
                     )}
                     {o.fulfillment_status !== "completed" && (
