@@ -81,12 +81,8 @@ export async function createDeliveryForOrder(orderId: string): Promise<{
 
   const { data: order, error } = await supabaseAdmin
     .from("orders")
-    .select(
-      "id,status,delivery_method,customer_name,customer_phone,customer_email,customer_cpf," +
-      "shipping_zip,shipping_street,shipping_number,shipping_complement,shipping_district," +
-      "shipping_city,shipping_state,shipping_recipient_name,shipping_recipient_phone," +
-      "maisentregas_order_id",
-    )
+    .select("id,status,delivery_method,customer_name,customer_phone,customer_email,customer_cpf,shipping_zip,shipping_street,shipping_number,shipping_complement,shipping_district,shipping_city,shipping_state,shipping_recipient_name,shipping_recipient_phone,maisentregas_order_id")
+
     .eq("id", orderId)
     .maybeSingle();
   if (error) throw new Error(error.message);
