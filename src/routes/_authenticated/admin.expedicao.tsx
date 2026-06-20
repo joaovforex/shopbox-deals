@@ -548,15 +548,6 @@ function FulfillmentPage() {
                         <CheckCheck className="h-3.5 w-3.5" /> Entregue
                       </button>
                     )}
-                    {o.fulfillment_status !== "completed" && (
-                      <button
-                        onClick={() => markDelivered(o)}
-                        className="inline-flex items-center gap-1.5 text-xs bg-[#25D366] text-white hover:opacity-90 px-3 py-2 rounded font-bold uppercase tracking-wider"
-                        title="Confirmar entrega ao cliente e enviar agradecimento"
-                      >
-                        <CheckCheck className="h-3.5 w-3.5" /> Entregue
-                      </button>
-                    )}
                     {superAdmin && o.status === "paid" && o.mp_payment_id && !o.refund_status && o.fulfillment_status !== "completed" && (
                       <button
                         onClick={() => setRefundTarget(o)}
@@ -833,16 +824,6 @@ function NotificationsPanel({ rows, itemsByOrder }: { rows: NotifRow[]; itemsByO
                 <span>{o.payment_method === "pix" ? "PIX" : "Cartão / MP"} · {o.delivery_method === "pickup" ? "Retirada" : "Entrega"}</span>
                 <span className="font-bold text-foreground">{brl(Number(o.total))}</span>
               </div>
-              {o.customer_phone && (
-                <a
-                  href={`https://wa.me/55${o.customer_phone.replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-[#25D366] text-white px-3 py-1.5 rounded hover:opacity-90"
-                >
-                  <Bell className="h-3.5 w-3.5" /> Falar com cliente
-                </a>
-              )}
             </article>
           );
         })}
