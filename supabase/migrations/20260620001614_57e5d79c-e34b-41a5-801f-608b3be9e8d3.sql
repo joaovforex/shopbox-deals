@@ -13,7 +13,7 @@ ALTER TABLE public.orders
 CREATE INDEX IF NOT EXISTS orders_maisentregas_poll_idx
   ON public.orders (maisentregas_status)
   WHERE maisentregas_order_id IS NOT NULL
-    AND maisentregas_status NOT IN ('entregue','cancelado','devolvido');
+    AND maisentregas_status NOT IN ('servico_finalizado','cancelado');
 
 CREATE INDEX IF NOT EXISTS orders_delivery_pending_create_idx
   ON public.orders (status, delivery_method)
