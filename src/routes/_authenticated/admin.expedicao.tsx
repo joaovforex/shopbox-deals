@@ -90,6 +90,7 @@ function FulfillmentPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [superAdmin, setSuperAdmin] = useState<boolean | null>(null);
   const [tab, setTab] = useState<"pickup" | "delivery" | "done" | "notifications">("pickup");
+  const [scanMode, setScanMode] = useState<"pickup" | "delivery">("pickup");
   const [labelFilter, setLabelFilter] = useState<"all" | "none" | "generated" | "printed">("all");
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
@@ -110,7 +111,6 @@ function FulfillmentPage() {
       const { data: orders, error } = await supabase
         .from("orders")
         .select("*")
-        .eq("delivery_method", "pickup")
         .eq("status", "paid")
         .order("created_at", { ascending: false });
       if (error) throw error;
