@@ -20,6 +20,13 @@ type Row = {
   fulfillment_status: string;
   total: number;
   payment_method: string;
+  delivery_method: string | null;
+  shipping_street: string | null;
+  shipping_number: string | null;
+  shipping_district: string | null;
+  shipping_city: string | null;
+  maisentregas_status: string | null;
+  maisentregas_tracking_url: string | null;
   order_items: OrderItem[] | null;
 };
 
@@ -27,11 +34,18 @@ function statusBadge(o: Row): { label: string; cls: string; icon: React.ReactNod
   if (o.status === "cancelled") return { label: "Cancelado", cls: "bg-destructive/15 text-destructive", icon: <XCircle className="h-3.5 w-3.5" /> };
   if (o.status === "pending") return { label: "Aguardando pagamento", cls: "bg-muted text-muted-foreground", icon: <Clock className="h-3.5 w-3.5" /> };
   // paid
+  if (o.delivery_method === "delivery") {
+    const s = (o.maisentregas_status ?? "").toLowerCase();
+    if (s.startsWith("entregue")) return { label: "Entregue", cls: "bg-[#25D366]/20 text-[#25D366]", icon: <CheckCircle2 className="h-3.5 w-3.5" /> };
+    if (s) return { label: s, cls: "bg-primary/15 text-primary", icon: <Truck className="h-3.5 w-3.5" /> };
+    return { label: "Preparando envio", cls: "bg-accent/20 text-accent", icon: <Package className="h-3.5 w-3.5" /> };
+  }
   if (o.fulfillment_status === "completed") return { label: "Entregue", cls: "bg-[#25D366]/20 text-[#25D366]", icon: <CheckCircle2 className="h-3.5 w-3.5" /> };
   if (o.fulfillment_status === "ready" || o.fulfillment_status === "shipped") return { label: "Pronto para retirada", cls: "bg-primary text-primary-foreground", icon: <Store className="h-3.5 w-3.5" /> };
   if (o.fulfillment_status === "preparing") return { label: "Em separação", cls: "bg-accent/20 text-accent", icon: <Package className="h-3.5 w-3.5" /> };
   return { label: "Pagamento confirmado", cls: "bg-primary/15 text-primary", icon: <CheckCircle2 className="h-3.5 w-3.5" /> };
 }
+
 
 function MyOrdersPage() {
   const queryClient = useQueryClient();
