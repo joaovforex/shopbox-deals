@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, MessageCircle, Package, Store, Clock, ArrowRight, Sparkles } from "lucide-react";
+import { CheckCircle2, MessageCircle, Package, Store, Clock, ArrowRight, Sparkles, Truck, ExternalLink } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { getPublicOrder } from "@/lib/orders.functions";
 import { brl } from "@/lib/format";
@@ -28,16 +28,21 @@ function OrderPage() {
     },
   });
 
-  const status = data?.order?.status;
-  const fulfillment = data?.order?.fulfillment_status;
+  const order = data?.order;
+  const status = order?.status;
+  const fulfillment = order?.fulfillment_status;
   const isPaid = status === "paid";
   const isCancelled = status === "cancelled";
   const isPending = !isPaid && !isCancelled;
-  const isReady = isPaid && (fulfillment === "ready" || fulfillment === "shipped");
-  const isDone = isPaid && fulfillment === "completed";
-  const isPreparing = isPaid && (fulfillment === "pending" || fulfillment === "preparing");
+  const isDelivery = order?.delivery_method === "delivery";
+  const meStatus = (order?.maisentregas_status ?? "").toLowerCase();
+  const isDelivered = isPaid && isDelivery && meStatus.startsWith("entregue");
+  const isReady = isPaid && !isDelivery && (fulfillment === "ready" || fulfillment === "shipped");
+  const isDone = isDelivered || (isPaid && !isDelivery && fulfillment === "completed");
+  const isPreparing = isPaid && !isDelivery && (fulfillment === "pending" || fulfillment === "preparing");
 
   const shortId = id.slice(0, 8).toUpperCase();
+
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -58,7 +63,8 @@ function OrderPage() {
             <h1 className="display text-3xl md:text-5xl mb-2">
               {isCancelled ? "Pagamento não concluído"
                 : isPending ? "Aguardando pagamento"
-                : isDone ? "Pedido entregue!"
+                : isDone ? (isDelivery ? "Pedido entregue!" : "Pedido entregue!")
+                : isDelivery ? "EM ROTA DE ENTREGA"
                 : isReady ? "PRONTO PARA RETIRADA"
                 : isPreparing ? "EM SEPARAÇÃO"
                 : "Pagamento confirmado!"}
@@ -70,12 +76,15 @@ function OrderPage() {
                   ? "Assim que o Mercado Pago confirmar, atualizamos esta página automaticamente."
                   : isDone
                     ? "Obrigado pela compra! 💚"
-                    : isReady
-                      ? "Seu pedido já está separado e te aguarda na loja."
-                      : isPreparing
-                        ? "Nosso time está separando seus itens. Você receberá um aviso no WhatsApp assim que estiver pronto."
-                        : "Recebemos seu pedido com sucesso 🎉"}
+                    : isDelivery
+                      ? (meStatus ? `Status atual: ${meStatus}` : "Estamos preparando seu envio.")
+                      : isReady
+                        ? "Seu pedido já está separado e te aguarda na loja."
+                        : isPreparing
+                          ? "Nosso time está separando seus itens. Você receberá um aviso no WhatsApp assim que estiver pronto."
+                          : "Recebemos seu pedido com sucesso 🎉"}
             </p>
+
 
             <div className="inline-flex items-center gap-2 mt-4 bg-background/60 backdrop-blur border border-border px-4 py-2 rounded-full">
               <Package className="h-4 w-4 text-primary" />
@@ -100,26 +109,66 @@ function OrderPage() {
             </div>
           )}
 
-          {/* PICKUP INFO — reforçado quando pronto */}
-          <div className={`rounded-xl border-2 p-5 mb-6 flex gap-4 ${isReady ? "border-primary bg-primary/5" : "border-border bg-card"}`}>
-            <div className={`shrink-0 h-11 w-11 rounded-full flex items-center justify-center ${isReady ? "bg-primary text-primary-foreground" : "bg-primary/15 text-primary"}`}>
-              <Store className="h-5 w-5" />
+          {/* DELIVERY OR PICKUP INFO */}
+          {isDelivery ? (
+            <div className="rounded-xl border-2 p-5 mb-6 flex gap-4 border-primary bg-primary/5">
+              <div className="shrink-0 h-11 w-11 rounded-full flex items-center justify-center bg-primary text-primary-foreground">
+                <Truck className="h-5 w-5" />
+              </div>
+              <div className="text-sm flex-1">
+                <p className="font-bold text-foreground mb-1">Entrega em casa</p>
+                {order?.shipping_street && (
+                  <p className="text-foreground font-semibold">
+                    {order.shipping_street}, {order.shipping_number}
+                    {order.shipping_complement ? ` — ${order.shipping_complement}` : ""}
+                    {order.shipping_district ? `, ${order.shipping_district}` : ""}
+                    {order.shipping_city ? ` — ${order.shipping_city}/${order.shipping_state ?? "PR"}` : ""}
+                  </p>
+                )}
+                {meStatus && (
+                  <p className="text-muted-foreground mt-1">
+                    Status: <strong className="text-foreground capitalize">{meStatus}</strong>
+                  </p>
+                )}
+                {order?.maisentregas_tracking_url && (
+                  <a
+                    href={order.maisentregas_tracking_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 mt-3 bg-primary text-primary-foreground font-bold px-3 py-2 rounded text-xs"
+                  >
+                    Acompanhar entrega em tempo real <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
+                {!order?.maisentregas_tracking_url && isPaid && (
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    O link de rastreio fica disponível assim que um entregador aceitar a corrida.
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="text-sm flex-1">
-              <p className="font-bold text-foreground mb-1">
-                {isReady ? "Retire seu pedido na loja" : "Retirada na loja"}
-              </p>
-              <p className="text-foreground font-semibold">{STORE_ADDRESS}</p>
-              <p className="text-muted-foreground inline-flex items-center gap-1.5 mt-1">
-                <Clock className="h-3.5 w-3.5" /> {STORE_HOURS}
-              </p>
-              {isPaid && !isDone && !isCancelled && (
-                <p className="mt-3 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-3 py-2 rounded">
-                  ⏰ Você tem até 5 dias para retirar o produto na loja.
+          ) : (
+            <div className={`rounded-xl border-2 p-5 mb-6 flex gap-4 ${isReady ? "border-primary bg-primary/5" : "border-border bg-card"}`}>
+              <div className={`shrink-0 h-11 w-11 rounded-full flex items-center justify-center ${isReady ? "bg-primary text-primary-foreground" : "bg-primary/15 text-primary"}`}>
+                <Store className="h-5 w-5" />
+              </div>
+              <div className="text-sm flex-1">
+                <p className="font-bold text-foreground mb-1">
+                  {isReady ? "Retire seu pedido na loja" : "Retirada na loja"}
                 </p>
-              )}
+                <p className="text-foreground font-semibold">{STORE_ADDRESS}</p>
+                <p className="text-muted-foreground inline-flex items-center gap-1.5 mt-1">
+                  <Clock className="h-3.5 w-3.5" /> {STORE_HOURS}
+                </p>
+                {isPaid && !isDone && !isCancelled && (
+                  <p className="mt-3 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-3 py-2 rounded">
+                    ⏰ Você tem até 5 dias para retirar o produto na loja.
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
 
           {/* ORDER DETAILS */}
           {isLoading ? (

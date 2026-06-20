@@ -114,6 +114,13 @@ export const Route = createFileRoute("/api/public/reconcile-orders")({
                 paymentId: String(approved.id),
                 amount: approved.transaction_amount,
               });
+              // Se for delivery, garante que a corrida foi criada.
+              try {
+                const { createDeliveryForOrder } = await import("@/lib/maisentregas.functions");
+                await createDeliveryForOrder(order.id);
+              } catch (err) {
+                console.error("[reconcile] maisentregas create error", order.id, err);
+              }
             } else {
               // out_of_stock etc — registra para o operador resolver
               summary.errors++;
@@ -123,6 +130,7 @@ export const Route = createFileRoute("/api/public/reconcile-orders")({
                 reason: result,
               });
             }
+
           } catch (err) {
             console.error("[reconcile] unexpected", { orderId: order.id, err });
             summary.errors++;

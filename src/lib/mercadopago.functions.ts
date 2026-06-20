@@ -4,14 +4,28 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type CartItemInput = { product_id: string; quantity: number; color?: string | null };
 
+type ShippingInput = {
+  zip: string;
+  street: string;
+  number: string;
+  complement?: string | null;
+  district?: string | null;
+  city: string;
+  state: string;
+  recipient_name?: string | null;
+  recipient_phone?: string | null;
+};
+
 type CreatePreferenceInput = {
   customer_name: string;
   customer_email: string;
   customer_phone: string; // digits only
   customer_cpf: string; // digits only
   delivery_method: "pickup" | "delivery";
+  shipping?: ShippingInput | null;
   items: CartItemInput[];
 };
+
 
 function originFromRequest(): string {
   const req = getRequest();
@@ -33,8 +47,18 @@ export const createMpPreference = createServerFn({ method: "POST" })
       }
       if (it.color != null && typeof it.color !== "string") throw new Error("Cor inválida");
     }
+    if (data.delivery_method === "delivery") {
+      const s = data.shipping;
+      if (!s) throw new Error("Endereço de entrega obrigatório");
+      const zip = (s.zip ?? "").replace(/\D/g, "");
+      if (zip.length !== 8) throw new Error("CEP inválido");
+      if (!s.street || s.street.length < 2) throw new Error("Rua obrigatória");
+      if (!s.number) throw new Error("Número obrigatório");
+      if (!/curitiba/i.test(s.city ?? "")) throw new Error("Por enquanto entregamos apenas em Curitiba");
+    }
     return data;
   })
+
   .handler(async ({ data, context }) => {
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
     if (!accessToken) throw new Error("Mercado Pago não configurado");
@@ -62,12 +86,46 @@ export const createMpPreference = createServerFn({ method: "POST" })
       throw new Error(orderErr?.message ?? "Falha ao criar pedido");
     }
 
-    // Garantia extra: se por algum motivo user_id veio nulo, força com o userId do contexto
+    // Garantia extra: se por algum motivo user_id veio nulo, força com o userId do contexto.
+    // Também salva o endereço de entrega quando aplicável.
+    const orderUpdate: {
+      user_id?: string;
+      shipping_zip?: string;
+      shipping_street?: string;
+      shipping_number?: string;
+      shipping_complement?: string | null;
+      shipping_district?: string | null;
+      shipping_city?: string;
+      shipping_state?: string;
+      shipping_recipient_name?: string | null;
+      shipping_recipient_phone?: string | null;
+      shipping_address?: string;
+    } = {};
+    if (data.delivery_method === "delivery" && data.shipping) {
+      const s = data.shipping;
+      orderUpdate.shipping_zip = s.zip.replace(/\D/g, "");
+      orderUpdate.shipping_street = s.street.trim();
+      orderUpdate.shipping_number = String(s.number).trim();
+      orderUpdate.shipping_complement = s.complement?.trim() || null;
+      orderUpdate.shipping_district = s.district?.trim() || null;
+      orderUpdate.shipping_city = s.city.trim();
+      orderUpdate.shipping_state = (s.state || "PR").toUpperCase();
+      orderUpdate.shipping_recipient_name = (s.recipient_name ?? data.customer_name).trim();
+      orderUpdate.shipping_recipient_phone = (s.recipient_phone ?? data.customer_phone).replace(/\D/g, "");
+      orderUpdate.shipping_address = `${orderUpdate.shipping_street}, ${orderUpdate.shipping_number}${orderUpdate.shipping_complement ? " - " + orderUpdate.shipping_complement : ""}, ${orderUpdate.shipping_district ?? ""} - ${orderUpdate.shipping_city}/${orderUpdate.shipping_state} - ${orderUpdate.shipping_zip}`;
+    }
+    if (Object.keys(orderUpdate).length > 0) {
+      await supabaseAdmin
+        .from("orders")
+        .update(orderUpdate)
+        .eq("id", orderId as string);
+    }
     await supabaseAdmin
       .from("orders")
       .update({ user_id: context.userId })
       .eq("id", orderId as string)
       .is("user_id", null);
+
 
     // 2) Busca itens já gravados para montar a preferência com nome/preço reais
     const { data: orderItems, error: itemsErr } = await supabaseAdmin
