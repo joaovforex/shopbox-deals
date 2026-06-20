@@ -177,13 +177,19 @@ export async function pollOrderStatus(orderRowId: string, meOrderId: string): Pr
     const res = await me.getOrderStatus(meOrderId);
     const status = (res.ultimo_status_text ?? res.status ?? "")?.toString().toLowerCase().trim() || null;
     const trackingUrl = (res.tracking_url ?? res.url ?? null) as string | null;
-    const update: Record<string, unknown> = {
+    const update: {
+      maisentregas_last_check_at: string;
+      maisentregas_last_error: string | null;
+      maisentregas_status?: string;
+      maisentregas_tracking_url?: string;
+    } = {
       maisentregas_last_check_at: new Date().toISOString(),
       maisentregas_last_error: null,
     };
     if (status) update.maisentregas_status = status;
     if (trackingUrl) update.maisentregas_tracking_url = trackingUrl;
     await supabaseAdmin.from("orders").update(update).eq("id", orderRowId);
+
 
     // Quando entregue, marca o pedido como completed
     if (me.isFinalStatus(status) && status?.startsWith("entregue")) {
