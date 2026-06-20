@@ -1,80 +1,102 @@
-## Visão geral
-1. Quando o cliente logado adicionar ao carrinho a **última peça em estoque** (ou a última de uma cor), o item fica reservado para ele por **5 minutos**. Durante esse tempo o produto aparece como **Esgotado** para os demais visitantes. Se não pagar em 5min, o estoque volta automaticamente.
-2. Botão de **edição inline** na página `/produto/:id` para admin/catalog/manager, abrindo o mesmo formulário usado em `/admin`.
+# Integração Mais Entregas (entregas em Curitiba)
+
+Adicionar opção de **entrega em domicílio** no checkout, em paralelo à retirada na loja que já existe. Frete grátis por enquanto (a loja absorve o custo).
 
 ---
 
-## Parte 1 — Reserva de carrinho (5 min)
+## 1. Banco de dados
 
-### Banco de dados (migração)
-- Nova tabela `public.cart_reservations`:
-  - `user_id` (FK auth.users, cascade)
-  - `product_id` (FK products, cascade)
-  - `variant_color` (texto, opcional)
-  - `quantity` (int)
-  - `expires_at` (timestamptz)
-  - índice único `(user_id, product_id, coalesce(variant_color,''))`
-  - RLS: usuário só vê/gerencia suas próprias reservas; service_role acesso total
-- Função `reserve_cart_last_stock(product_id, variant_color, quantity)`:
-  - SECURITY DEFINER, lock na linha do produto
-  - Calcula estoque restante (considerando variantes)
-  - Se `restante == quantidade` → decrementa estoque, grava reserva com `expires_at = now() + 5min`, retorna `reserved`
-  - Se `restante > quantidade` → não cria reserva, retorna `not_last` (cliente continua no carrinho normal)
-  - Se `restante == 0` → `out_of_stock`
-  - Se já existir reserva do próprio usuário → renova `expires_at` (até atingir quantidade pedida)
-- Função `release_cart_reservation(product_id, variant_color)`:
-  - Devolve o estoque e apaga o registro do próprio usuário
-- Função `consume_cart_reservations_for_user(user_id, items jsonb)`:
-  - Chamada por `create_pending_order` no início — devolve estoque das reservas e apaga os registros, antes do fluxo normal que vai re-reservar via pedido pendente
-- Função `expire_cart_reservations()`:
-  - Para cada registro expirado: devolve estoque e apaga
-- Cron job (pg_cron) executando `expire_cart_reservations()` a cada 1 minuto
+Novas colunas em `orders`:
+- `delivery_method` (`pickup` | `delivery`) — já existe parcialmente
+- `delivery_cep`, `delivery_street`, `delivery_number`, `delivery_complement`, `delivery_neighborhood`, `delivery_city`, `delivery_state`, `delivery_recipient_name`, `delivery_recipient_phone`
+- `delivery_fee` (numeric, R$ — sempre 0 por enquanto)
+- `maisentregas_order_id` (id retornado pela API)
+- `maisentregas_status` (último status_text)
+- `maisentregas_tracking_url` (link público de rastreio do cliente)
+- `maisentregas_last_check_at` (timestamp do último poll)
 
-### Server functions (`src/lib/cart-reservations.functions.ts`)
-- `reserveCartLastStock({ productId, variantColor, quantity })`
-- `releaseCartReservation({ productId, variantColor })`
-- `listMyActiveReservations()` (para a timer/contagem regressiva)
-- Todas com `requireSupabaseAuth`
+Endereço de retirada da loja fica hardcoded em `src/lib/config.server.ts`:
+- CEP 83408-290, Rua Emílio Gleber, 1118, Curitiba/PR
 
-### Cliente (`src/lib/cart.tsx`)
-- Adicionar campo `reserved_until` em `CartItem`
-- `add()` passa a ser `async`:
-  - Exige login (já é o caso na maioria dos call-sites, mas validar)
-  - Chama `reserveCartLastStock`
-  - Se `out_of_stock`: toast e não adiciona
-  - Se `reserved`: salva `reserved_until` no item
-  - Se `not_last`: adiciona normalmente
-- `remove()`/`setQty(0)`: se item tinha `reserved_until`, chama `releaseCartReservation`
-- `clear()`: solta todas as reservas
-- Novo hook/efeito: a cada 30s revalidar reservas do servidor; se uma expirou, remover do carrinho e avisar via toast (`"Tempo de reserva expirou para X"`)
+## 2. Secrets
 
-### UI
-- Página `/carrinho`: badge "⏱ Reservado · MM:SS" em itens com reserva ativa, com contagem regressiva
-- Mantém o ProductCard mostrando "Esgotado" quando `stock === 0` (já funciona, pois o estoque DB foi decrementado)
+Vou solicitar 2 secrets via formulário seguro:
+- `MAISENTREGAS_EMAIL` — email da conta Mais Entregas do dono
+- `MAISENTREGAS_APIKEY` — apikey gerada no painel deles
 
----
+(O `APP_ID` fica fixo como `"shopbox"` no código.)
 
-## Parte 2 — Edição inline na página do produto
+## 3. Server functions e rotas (TanStack)
 
-### Extração
-- Mover `ProductForm` e o helper `Input` de `src/routes/_authenticated/admin.tsx` para `src/components/ProductForm.tsx` (export nomeado). `admin.tsx` passa a importar de lá. Sem mudança de comportamento.
+Helper `src/lib/maisentregas.server.ts`:
+- `auth()` — POST /auth, cache do JWT em memória até expirar
+- `preconfirm(payload)` — cota de frete
+- `confirm(payload)` — cria entrega real
+- `getOrderStatus(id)` — busca status
 
-### Página do produto (`src/routes/produto.$id.tsx`)
-- Detectar permissão via `getRoleSummary()` → `canEdit = isSuperAdmin || isManager || isCatalog`
-- Botão flutuante "✏️ Editar produto" (visível só para `canEdit`) próximo ao topo da coluna direita
-- Ao clicar, abre o mesmo `ProductForm` em modal sobre a página
-- `onSaved`: invalidar `['product', id]` e fechar modal
+Server functions client-safe (`src/lib/maisentregas.functions.ts`):
+- `quoteDelivery({ cep })` — chamada do checkout para mostrar preço e validar CEP (mesmo que frete seja 0, valida cobertura)
+- `getMyOrderTracking({ orderId })` — usado em `/meus-pedidos` (com `requireSupabaseAuth`)
 
----
+Rotas públicas:
+- `/api/public/maisentregas/poll` — cron a cada 10 min: pega pedidos com `maisentregas_order_id` cujo status não é final, atualiza status no banco
+
+Trigger automático na confirmação de pagamento:
+- Em `confirm_order_paid` (RPC) ou no webhook do MP, após marcar `paid`, se `delivery_method = 'delivery'` e ainda não tem `maisentregas_order_id`, chama `createDeliveryForOrder(orderId)` em background, que faz o POST /order/confirm na Mais Entregas e salva o id + tracking_url
+
+## 4. Frontend — checkout
+
+Na tela `/checkout`, adiciona um seletor:
+- ( ) Retirar na loja — Grátis
+- ( ) Receber em casa — Grátis (promoção de abertura)
+
+Quando "Receber em casa" estiver marcado, mostra campos:
+- CEP (com autocomplete via ViaCEP — já é API pública grátis)
+- Rua, número, complemento, bairro (preenchidos do ViaCEP)
+- Cidade trava em "Curitiba" (se ViaCEP retornar outra cidade, mostra erro: "Por enquanto entregamos apenas em Curitiba")
+- Nome de quem recebe (default: o nome do cliente)
+- Telefone de quem recebe (default: o WhatsApp do cliente)
+
+Antes de "Pagar", chama `quoteDelivery` pra validar cobertura na Mais Entregas. Se falhar, mostra erro e bloqueia.
+
+Salva todos os campos de entrega no `createMpPreference` (vou estender essa server fn).
+
+## 5. Frontend — meus pedidos
+
+Em `/meus-pedidos`, para cada pedido de delivery pago:
+- Mostra status atual da entrega (`maisentregas_status`)
+- Botão "Acompanhar entrega" → abre `maisentregas_tracking_url` em nova aba
+- Endereço pra onde foi enviado
+
+## 6. Frontend — admin
+
+Em `/admin/expedicao`:
+- Coluna mostrando se é Retirada ou Entrega
+- Para entregas, mostra status atual da Mais Entregas + link de rastreio
+- Em `/admin/pedidos`, mostra os dados completos de endereço
+
+## 7. Integração com fluxo existente
+
+- **Reservas de estoque**: continuam idênticas, não muda nada
+- **Webhook MP** (`mp.webhook.ts`): após `confirm_order_paid` retornar sucesso, se for delivery, dispara `createDeliveryForOrder` (em background, com try/catch — se a Mais Entregas falhar, o pedido continua pago e a gente loga pra retry manual; vou adicionar isso ao cron de reconciliação também)
+- **Reembolsos**: ao reembolsar um pedido com `maisentregas_order_id`, tenta cancelar a entrega na Mais Entregas se ela ainda não saiu
 
 ## Detalhes técnicos
-- A reserva via `cart_reservations` decrementa `products.stock` diretamente (igual ao que `create_pending_order` faz hoje), então a lógica de "Esgotado" no `ProductCard`/`/produto/:id` continua válida sem mudanças adicionais.
-- `create_pending_order` recebe um novo bloco que libera as reservas do usuário antes do `FOR LOOP` de itens — evita decrementar o estoque duas vezes na transição carrinho → checkout.
-- Cron job: `SELECT cron.schedule('expire-cart-reservations', '* * * * *', $$ SELECT public.expire_cart_reservations(); $$);`
-- Para visitante não logado: tentar adicionar ao carrinho redireciona para `/auth` (já é o comportamento atual em `ProductCard`/`produto.$id.tsx`).
-- Garantir que `release_cart_reservation` é chamado também no `useEffect` de unmount do carrinho? Não — manter por 5min ainda que ele saia da página. Só liberar em remoção explícita ou expiração.
 
-## Arquivos afetados
-- **Migração:** nova tabela + 4 funções + cron job
-- **Novo:** `src/lib/cart-reservations.functions.ts`, `src/components/ProductForm.tsx`
-- **Editar:** `src/lib/cart.tsx`, `src/routes/carrinho.tsx`, `src/routes/produto.$id.tsx`, `src/routes/_authenticated/admin.tsx` (passa a importar ProductForm), `create_pending_order` (libera reservas no início)
+- Cache do JWT da Mais Entregas em variável de módulo no Worker, com refresh quando faltar < 5 min pra expirar
+- Toda chamada externa tem timeout de 10s e retry simples (1x) em erros de rede
+- Endereço na Mais Entregas: `address[0]` = loja (pickup), `address[1]` = cliente (delivery), conforme docs
+- `payment.modality = "sender"` (a loja paga o frete), `payment.method = "billed"` (cobrança via fatura mensal da Mais Entregas)
+- Status finais que param o polling: `entregue`, `cancelado`, `devolvido`
+- ViaCEP via `fetch("https://viacep.com.br/ws/{cep}/json/")` — sem secret
+
+## Ordem de execução
+
+1. Migration (colunas novas em `orders`)
+2. Pedir os 2 secrets
+3. Helpers da Mais Entregas + server functions
+4. UI do checkout (seletor + endereço + CEP)
+5. Hook no webhook MP pra criar entrega
+6. UI em `/meus-pedidos` e `/admin/expedicao`
+7. Cron de polling de status
+8. Cancelamento de entrega no fluxo de reembolso
