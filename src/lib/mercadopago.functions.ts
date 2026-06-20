@@ -4,14 +4,28 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type CartItemInput = { product_id: string; quantity: number; color?: string | null };
 
+type ShippingInput = {
+  zip: string;
+  street: string;
+  number: string;
+  complement?: string | null;
+  district?: string | null;
+  city: string;
+  state: string;
+  recipient_name?: string | null;
+  recipient_phone?: string | null;
+};
+
 type CreatePreferenceInput = {
   customer_name: string;
   customer_email: string;
   customer_phone: string; // digits only
   customer_cpf: string; // digits only
   delivery_method: "pickup" | "delivery";
+  shipping?: ShippingInput | null;
   items: CartItemInput[];
 };
+
 
 function originFromRequest(): string {
   const req = getRequest();
