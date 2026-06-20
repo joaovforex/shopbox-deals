@@ -47,8 +47,18 @@ export const createMpPreference = createServerFn({ method: "POST" })
       }
       if (it.color != null && typeof it.color !== "string") throw new Error("Cor inválida");
     }
+    if (data.delivery_method === "delivery") {
+      const s = data.shipping;
+      if (!s) throw new Error("Endereço de entrega obrigatório");
+      const zip = (s.zip ?? "").replace(/\D/g, "");
+      if (zip.length !== 8) throw new Error("CEP inválido");
+      if (!s.street || s.street.length < 2) throw new Error("Rua obrigatória");
+      if (!s.number) throw new Error("Número obrigatório");
+      if (!/curitiba/i.test(s.city ?? "")) throw new Error("Por enquanto entregamos apenas em Curitiba");
+    }
     return data;
   })
+
   .handler(async ({ data, context }) => {
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
     if (!accessToken) throw new Error("Mercado Pago não configurado");
