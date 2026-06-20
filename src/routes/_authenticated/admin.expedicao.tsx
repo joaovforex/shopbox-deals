@@ -286,15 +286,15 @@ function FulfillmentPage() {
 
   const orders = useMemo(() => {
     if (searchActive) {
-      // Em modo busca: retorna todos os resultados, ordenados por data desc, ignorando aba e filtro de etiqueta
       return [...(searchData?.orders ?? [])].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
     }
     let list = (data?.orders ?? []).filter((o) => {
       if (tab === "done") return o.fulfillment_status === "completed";
-      if (tab === "delivery") return o.fulfillment_status === "ready";
-      return o.fulfillment_status !== "completed" && o.fulfillment_status !== "ready";
+      if (tab === "pickup") return o.delivery_method === "pickup" && o.fulfillment_status !== "completed";
+      if (tab === "delivery") return o.delivery_method === "delivery" && o.fulfillment_status !== "completed";
+      return false;
     });
     if (labelFilter !== "all") {
       list = list.filter((o) => {
@@ -371,17 +371,21 @@ function FulfillmentPage() {
           )}
         </div>
 
-        {!searchActive && tab === "delivery" && (
-          <ScannerPanel orders={data?.orders ?? []} onDeliver={markDelivered} />
+        {!searchActive && (tab === "pickup" || tab === "delivery") && (
+          <ScannerPanel
+            orders={(data?.orders ?? []).filter((o) => o.delivery_method === tab)}
+            onDeliver={markDelivered}
+            mode={tab}
+          />
         )}
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex bg-secondary rounded-md p-1">
             <TabBtn active={tab === "pickup"} onClick={() => setTab("pickup")} icon={<Store className="h-4 w-4" />}>
-              Em aberto ({(data?.orders ?? []).filter((o) => o.fulfillment_status !== "completed" && o.fulfillment_status !== "ready").length})
+              Retirada ({(data?.orders ?? []).filter((o) => o.delivery_method === "pickup" && o.fulfillment_status !== "completed").length})
             </TabBtn>
-            <TabBtn active={tab === "delivery"} onClick={() => setTab("delivery")} icon={<Package className="h-4 w-4" />}>
-              Entrega ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "ready").length})
+            <TabBtn active={tab === "delivery"} onClick={() => setTab("delivery")} icon={<Truck className="h-4 w-4" />}>
+              Entrega ({(data?.orders ?? []).filter((o) => o.delivery_method === "delivery" && o.fulfillment_status !== "completed").length})
             </TabBtn>
             <TabBtn active={tab === "done"} onClick={() => setTab("done")} icon={<CheckCircle2 className="h-4 w-4" />}>
               Entregues ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "completed").length})
