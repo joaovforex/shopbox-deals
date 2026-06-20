@@ -53,7 +53,7 @@ export const quoteDelivery = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: {
     zip: string; street: string; number: string;
-    district?: string; complement?: string;
+    district?: string; complement?: string; city?: string;
   }) => {
     const zip = (data?.zip ?? "").replace(/\D/g, "");
     if (zip.length !== 8) throw new Error("CEP inválido");
@@ -65,6 +65,7 @@ export const quoteDelivery = createServerFn({ method: "POST" })
       number: String(data.number).trim().slice(0, 20),
       district: (data.district ?? "").trim().slice(0, 80),
       complement: (data.complement ?? "").trim().slice(0, 80),
+      city: (data.city ?? "Curitiba").trim().slice(0, 60) || "Curitiba",
     };
   })
   .handler(async ({ data }) => {
@@ -96,7 +97,7 @@ export const quoteDelivery = createServerFn({ method: "POST" })
           number: data.number,
           complement: data.complement,
           district: data.district,
-          city: "Curitiba",
+          city: data.city,
           state: "PR",
           zip: data.zip,
           comment: "entrega",
