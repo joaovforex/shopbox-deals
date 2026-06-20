@@ -166,8 +166,9 @@ function OrderPage() {
                   </p>
                 )}
               </div>
+            </div>
+          )}
 
-          </div>
 
           {/* ORDER DETAILS */}
           {isLoading ? (
