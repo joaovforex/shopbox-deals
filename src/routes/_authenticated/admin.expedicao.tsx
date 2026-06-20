@@ -609,7 +609,7 @@ function TabBtn({ active, onClick, icon, children }: { active: boolean; onClick:
   );
 }
 
-function ScannerPanel({ orders, onDeliver }: { orders: OrderRow[]; onDeliver: (o: OrderRow) => void }) {
+function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliver: (o: OrderRow) => void; mode: "pickup" | "delivery" }) {
   const [code, setCode] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const [last, setLast] = useState<{ id: string; name: string; ok: boolean } | null>(null);
@@ -665,7 +665,9 @@ function ScannerPanel({ orders, onDeliver }: { orders: OrderRow[]; onDeliver: (o
     >
       <div className="flex items-center gap-2 text-primary">
         <ScanLine className="h-5 w-5" />
-        <span className="font-bold uppercase tracking-wider text-xs">Leitor de código</span>
+        <span className="font-bold uppercase tracking-wider text-xs">
+          Leitor · {mode === "pickup" ? "Retirada na loja" : "Entrega motoboy"}
+        </span>
       </div>
       <input
         ref={inputRef}
