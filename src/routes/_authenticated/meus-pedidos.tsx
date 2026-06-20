@@ -155,7 +155,29 @@ function MyOrdersPage() {
                         <span className="text-accent font-bold">Você tem até 5 dias para retirar.</span>
                       </div>
                     )}
+                    {isDelivery && (
+                      <div className="mt-3 text-xs bg-primary/10 border border-primary/30 rounded px-3 py-2 flex flex-wrap items-center gap-2 justify-between">
+                        <div>
+                          <strong className="text-primary inline-flex items-center gap-1"><Truck className="h-3.5 w-3.5" /> Entrega em casa</strong>{" "}
+                          {o.shipping_street && (
+                            <span className="text-muted-foreground">— {o.shipping_street}, {o.shipping_number}{o.shipping_district ? `, ${o.shipping_district}` : ""}</span>
+                          )}
+                        </div>
+                        {o.maisentregas_tracking_url && (
+                          <a
+                            href={o.maisentregas_tracking_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 font-bold text-primary hover:underline"
+                          >
+                            Acompanhar <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </Link>
+
                 </li>
               );
             })}
