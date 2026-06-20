@@ -56,12 +56,13 @@ function MyOrdersPage() {
       if (!user) return [] as Row[];
       const { data, error } = await supabase
         .from("orders")
-        .select("id, created_at, status, fulfillment_status, total, payment_method, order_items(id, product_name, quantity)")
+        .select("id, created_at, status, fulfillment_status, total, payment_method, delivery_method, shipping_street, shipping_number, shipping_district, shipping_city, maisentregas_status, maisentregas_tracking_url, order_items(id, product_name, quantity)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Row[];
     },
+
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
   });
