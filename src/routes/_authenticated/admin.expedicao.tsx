@@ -333,7 +333,7 @@ function FulfillmentPage() {
           <div className="text-xs uppercase tracking-widest text-accent font-bold">Departamento</div>
           <h1 className="display text-3xl md:text-4xl">Expedição</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Acompanhe os pedidos de <strong>retirada na loja</strong>. Imprima a etiqueta, avise o cliente e marque como entregue.
+            Separe os pedidos por <strong>Retirada na loja</strong> e <strong>Entrega motoboy</strong>. Escaneie a etiqueta para confirmar a entrega.
           </p>
         </div>
       </section>
