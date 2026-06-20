@@ -1,0 +1,71 @@
+import { createFileRoute } from "@tanstack/react-router";
+
+/**
+ * Cron de polling de status da Mais Entregas.
+ * Roda a cada 10 minutos via pg_cron. Para cada pedido de delivery com
+ * `maisentregas_order_id` cujo status NÃO é final, busca o status atual e
+ * atualiza no banco. Quando o status indica entregue, marca o pedido como
+ * fulfillment_status='completed'.
+ *
+ * Também tenta criar a corrida (createDeliveryForOrder) para pedidos pagos
+ * de entrega que ainda não têm `maisentregas_order_id` — rede de segurança
+ * caso o webhook MP tenha falhado.
+ */
+export const Route = createFileRoute("/api/public/maisentregas/poll")({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        const apikey = request.headers.get("apikey") ?? request.headers.get("x-api-key") ?? "";
+        const expected = process.env.SUPABASE_PUBLISHABLE_KEY ?? "";
+        if (!expected || apikey !== expected) {
+          return new Response("unauthorized", { status: 401 });
+        }
+
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { createDeliveryForOrder, pollOrderStatus } = await import("@/lib/maisentregas.functions");
+
+        const summary = { created: 0, polled: 0, errors: 0 };
+
+        // 1) Pedidos pagos de delivery sem corrida criada — tenta criar agora.
+        const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: pendingCreate } = await supabaseAdmin
+          .from("orders")
+          .select("id")
+          .eq("status", "paid")
+          .eq("delivery_method", "delivery")
+          .is("maisentregas_order_id", null)
+          .gte("created_at", sinceIso)
+          .limit(50);
+        for (const o of pendingCreate ?? []) {
+          try {
+            const r = await createDeliveryForOrder(o.id);
+            if (r.ok) summary.created++;
+          } catch (err) {
+            summary.errors++;
+            console.error("[me:poll] create error", o.id, err);
+          }
+        }
+
+        // 2) Pedidos com corrida ativa — atualiza status.
+        const { data: active } = await supabaseAdmin
+          .from("orders")
+          .select("id, maisentregas_order_id")
+          .not("maisentregas_order_id", "is", null)
+          .not("maisentregas_status", "in", "(entregue,cancelado,devolvido)")
+          .limit(100);
+        for (const o of active ?? []) {
+          try {
+            await pollOrderStatus(o.id, o.maisentregas_order_id!);
+            summary.polled++;
+          } catch (err) {
+            summary.errors++;
+            console.error("[me:poll] poll error", o.id, err);
+          }
+        }
+
+        console.info("[me:poll] done", summary);
+        return Response.json({ ok: true, summary });
+      },
+    },
+  },
+});
