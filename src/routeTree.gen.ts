@@ -27,6 +27,7 @@ import { Route as AuthenticatedAdminPedidosRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminExpedicaoRouteImport } from './routes/_authenticated/admin.expedicao'
 import { Route as AuthenticatedAdminEquipeRouteImport } from './routes/_authenticated/admin.equipe'
 import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp.webhook'
+import { Route as ApiPublicMaisentregasPollRouteImport } from './routes/api/public/maisentregas/poll'
 
 const RedirecionandoRoute = RedirecionandoRouteImport.update({
   id: '/redirecionando',
@@ -123,6 +124,12 @@ const ApiPublicMpWebhookRoute = ApiPublicMpWebhookRouteImport.update({
   path: '/api/public/mp/webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicMaisentregasPollRoute =
+  ApiPublicMaisentregasPollRouteImport.update({
+    id: '/api/public/maisentregas/poll',
+    path: '/api/public/maisentregas/poll',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
+  '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -160,6 +168,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
+  '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
 }
 export interface FileRoutesById {
@@ -181,6 +190,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/_authenticated/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
+  '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
 }
 export interface FileRouteTypes {
@@ -202,6 +212,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/reembolsos'
     | '/api/public/reconcile-orders'
+    | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -221,6 +232,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/reembolsos'
     | '/api/public/reconcile-orders'
+    | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
   id:
     | '__root__'
@@ -241,6 +253,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/pedidos'
     | '/_authenticated/admin/reembolsos'
     | '/api/public/reconcile-orders'
+    | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -256,6 +269,7 @@ export interface RootRouteChildren {
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
   ApiPublicReconcileOrdersRoute: typeof ApiPublicReconcileOrdersRoute
+  ApiPublicMaisentregasPollRoute: typeof ApiPublicMaisentregasPollRoute
   ApiPublicMpWebhookRoute: typeof ApiPublicMpWebhookRoute
 }
 
@@ -387,6 +401,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMpWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/maisentregas/poll': {
+      id: '/api/public/maisentregas/poll'
+      path: '/api/public/maisentregas/poll'
+      fullPath: '/api/public/maisentregas/poll'
+      preLoaderRoute: typeof ApiPublicMaisentregasPollRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -432,6 +453,7 @@ const rootRouteChildren: RootRouteChildren = {
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
   ApiPublicReconcileOrdersRoute: ApiPublicReconcileOrdersRoute,
+  ApiPublicMaisentregasPollRoute: ApiPublicMaisentregasPollRoute,
   ApiPublicMpWebhookRoute: ApiPublicMpWebhookRoute,
 }
 export const routeTree = rootRouteImport
