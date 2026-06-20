@@ -2,11 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
-import { Printer, Truck, Download, MessageCircle, Store } from "lucide-react";
+import { Printer, Truck, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { markLabelEvent } from "@/lib/labels.functions";
 import { brl } from "@/lib/format";
-import { openWhatsApp, orderReadyMessage } from "@/lib/whatsapp";
 import { Barcode } from "@/components/Barcode";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -156,15 +155,6 @@ function LabelPage() {
               Etiqueta de {isPickup ? "retirada" : "envio (padrão Correios)"}
             </div>
             <div className="flex gap-2 flex-wrap justify-end">
-              {isPickup && o.customer_phone && (
-                <button
-                  onClick={() => openWhatsApp(o.customer_phone, orderReadyMessage(o.customer_name, o.id))}
-                  className="inline-flex items-center gap-1.5 bg-[#25D366] text-white font-bold text-xs uppercase tracking-wider px-3 py-2 rounded hover:opacity-90"
-                  title="Avisar o cliente que o pedido está pronto para retirada"
-                >
-                  <MessageCircle className="h-3.5 w-3.5" /> Avisar cliente
-                </button>
-              )}
               <button
                 onClick={handleDownloadPdf}
                 disabled={downloading}
@@ -235,59 +225,48 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-function ShippingLabel({ o, items }: { o: any; items: any[] }) {
+function ShippingLabel({ o }: { o: any; items: any[] }) {
   return (
     <div className="label-doc bg-white text-black p-3">
       <LabelHeader
-        title="CORREIOS · ENVIO"
-        subtitle="Encomenda · PAC"
+        title="ENTREGA EM DOMICÍLIO"
+        subtitle="Pedido shopbox"
         icon={<Truck className="h-5 w-5 inline" />}
       />
 
-      <Row label="Código de rastreio">
-        <div className="text-center">
-          <div className="font-mono text-sm tracking-widest">BR{o.id.replace(/-/g, "").slice(0, 9).toUpperCase()}BR</div>
-          <div className="flex justify-center mt-1">
-            <Barcode value={barcodeValue(o.id)} height={34} width={1.7} fontSize={10} />
-          </div>
-          <div className="text-[10px] mt-0.5 font-bold">Escaneie para localizar o pedido</div>
+      <Row label={`Pedido #${o.id.slice(0, 8).toUpperCase()}`}>
+        <div className="flex justify-center mt-1">
+          <Barcode value={barcodeValue(o.id)} height={44} width={2} fontSize={11} />
         </div>
+        <div className="text-[10px] mt-0.5 text-center font-bold">Escaneie para confirmar a entrega</div>
       </Row>
 
       <Row label="Destinatário">
-        <div className="font-bold text-sm uppercase">{o.customer_name}</div>
-        {o.customer_cpf && <div className="text-[10px]">CPF: {formatCpf(o.customer_cpf)}</div>}
-        <div className="text-xs leading-tight mt-0.5">
+        <div className="font-black text-base uppercase leading-tight">{o.customer_name}</div>
+        {o.customer_phone && (
+          <div className="text-sm font-bold mt-1">📱 {formatPhone(o.customer_phone)}</div>
+        )}
+      </Row>
+
+      <Row label="Endereço de entrega">
+        <div className="text-sm leading-snug font-bold">
           {o.shipping_street}, {o.shipping_number}
-          {o.shipping_complement ? ` — ${o.shipping_complement}` : ""}
         </div>
-        {o.shipping_district && <div className="text-xs leading-tight">Bairro: {o.shipping_district}</div>}
-        <div className="text-xs leading-tight">{o.shipping_city} / {o.shipping_state}</div>
-        <div className="text-base font-black tracking-widest mt-0.5">CEP: {formatCep(o.shipping_zip)}</div>
-        {o.customer_phone && <div className="text-[10px] mt-0.5">Tel: {formatPhone(o.customer_phone)}</div>}
+        {o.shipping_complement && (
+          <div className="text-sm leading-snug font-bold">Compl.: {o.shipping_complement}</div>
+        )}
+        {o.shipping_district && (
+          <div className="text-sm leading-snug font-bold">Bairro: {o.shipping_district}</div>
+        )}
+        <div className="text-sm leading-snug font-bold">
+          {o.shipping_city} / {o.shipping_state}
+        </div>
+        <div className="text-lg font-black tracking-widest mt-1">CEP: {formatCep(o.shipping_zip)}</div>
       </Row>
 
-      <Row label="Remetente">
-        <div className="font-black text-sm uppercase">{STORE.name}</div>
-        <div className="text-xs leading-tight font-bold">{STORE.street}, {STORE.number} — {STORE.district}</div>
-        <div className="text-xs leading-tight font-bold">{STORE.city} / {STORE.state}</div>
-        <div className="text-xs font-black">CEP: {STORE.zip}</div>
-      </Row>
-
-      <Row label={`Conteúdo · Pedido #${o.id.slice(0, 8).toUpperCase()}`}>
-        <ul className="text-xs leading-tight font-bold">
-          {items.map((it: any, i: number) => (
-            <li key={i}>
-              • {it.quantity}x {it.product_name}
-              {it.variant_color && <span> · {it.variant_color}</span>}
-            </li>
-          ))}
-        </ul>
-        <div className="text-[11px] mt-1 pt-1 border-t-2 border-dashed border-black flex justify-between font-bold">
-          <span>Valor declarado: {brl(Number(o.total))}</span>
-          <span>{new Date(o.created_at).toLocaleDateString("pt-BR")}</span>
-        </div>
-      </Row>
+      <div className="text-[10px] text-center mt-2 pt-1 border-t-2 border-dashed border-black">
+        Emitido em {new Date(o.created_at).toLocaleDateString("pt-BR")} · shopbox · Colombo / PR
+      </div>
     </div>
   );
 }
