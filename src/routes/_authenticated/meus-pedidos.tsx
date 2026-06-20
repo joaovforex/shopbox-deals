@@ -25,10 +25,24 @@ type Row = {
   shipping_number: string | null;
   shipping_district: string | null;
   shipping_city: string | null;
+  maisentregas_order_id: string | null;
   maisentregas_status: string | null;
-  maisentregas_tracking_url: string | null;
   order_items: OrderItem[] | null;
 };
+
+function statusLabel(s: string | null): string {
+  if (!s) return "Aguardando";
+  const map: Record<string, string> = {
+    "contatando_parceiro": "Procurando entregador",
+    "parceiro_confirmado": "Entregador confirmado",
+    "parceiro_a_caminho": "Entregador a caminho",
+    "servico_finalizado": "Entregue",
+    "pendente": "Pendente",
+    "aguardando_preparo": "Aguardando preparo",
+    "criado": "Pedido criado",
+  };
+  return map[s.toLowerCase().trim().replace(/ /g, "_")] || s.replace(/_/g, " ");
+}
 
 function statusBadge(o: Row): { label: string; cls: string; icon: React.ReactNode } {
   if (o.status === "cancelled") return { label: "Cancelado", cls: "bg-destructive/15 text-destructive", icon: <XCircle className="h-3.5 w-3.5" /> };
