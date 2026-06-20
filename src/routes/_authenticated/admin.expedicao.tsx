@@ -3,13 +3,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, Bell, CheckCheck, ScanLine, BellRing, XCircle, Hourglass, Search, X, Undo2 } from "lucide-react";
+import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2 } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
 import { supabase } from "@/integrations/supabase/client";
 import { hasAnyRole, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
-import { openWhatsApp, orderReminderMessage, orderDeliveredMessage } from "@/lib/whatsapp";
 import { refundOrder } from "@/lib/refunds.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/expedicao")({
@@ -40,6 +39,8 @@ type OrderRow = {
   label_generated_by_name?: string | null;
   label_printed_at?: string | null;
   label_printed_by_name?: string | null;
+  maisentregas_order_id?: string | null;
+  maisentregas_status?: string | null;
 };
 
 type ItemRow = {
