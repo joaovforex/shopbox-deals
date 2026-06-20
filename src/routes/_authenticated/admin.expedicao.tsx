@@ -461,14 +461,19 @@ function FulfillmentPage() {
                     </div>
                   </header>
 
-                  <div className="text-xs text-muted-foreground border-y border-border py-2">
+                  <div className="text-xs text-muted-foreground border-y border-border py-2 space-y-1">
                     {o.delivery_method === "delivery" ? (
                       <>
-                        <strong className="text-foreground">Endereço:</strong> {o.shipping_address}
+                        <div><strong className="text-foreground inline-flex items-center gap-1"><Truck className="h-3 w-3" /> Entrega motoboy:</strong> {o.shipping_address}</div>
+                        {o.maisentregas_status && (
+                          <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                            Mais Entregas: {o.maisentregas_status.replace(/_/g, " ")}
+                          </div>
+                        )}
                       </>
                     ) : (
                       <>
-                        <strong className="text-foreground">Retirada:</strong> aguardando cliente · {o.customer_phone}
+                        <strong className="text-foreground">Retirada na loja:</strong> aguardando cliente · {o.customer_phone}
                       </>
                     )}
                   </div>
