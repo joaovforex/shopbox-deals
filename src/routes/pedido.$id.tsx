@@ -28,16 +28,21 @@ function OrderPage() {
     },
   });
 
-  const status = data?.order?.status;
-  const fulfillment = data?.order?.fulfillment_status;
+  const order = data?.order;
+  const status = order?.status;
+  const fulfillment = order?.fulfillment_status;
   const isPaid = status === "paid";
   const isCancelled = status === "cancelled";
   const isPending = !isPaid && !isCancelled;
-  const isReady = isPaid && (fulfillment === "ready" || fulfillment === "shipped");
-  const isDone = isPaid && fulfillment === "completed";
-  const isPreparing = isPaid && (fulfillment === "pending" || fulfillment === "preparing");
+  const isDelivery = order?.delivery_method === "delivery";
+  const meStatus = (order?.maisentregas_status ?? "").toLowerCase();
+  const isDelivered = isPaid && isDelivery && meStatus.startsWith("entregue");
+  const isReady = isPaid && !isDelivery && (fulfillment === "ready" || fulfillment === "shipped");
+  const isDone = isDelivered || (isPaid && !isDelivery && fulfillment === "completed");
+  const isPreparing = isPaid && !isDelivery && (fulfillment === "pending" || fulfillment === "preparing");
 
   const shortId = id.slice(0, 8).toUpperCase();
+
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
