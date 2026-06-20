@@ -52,6 +52,28 @@ function isValidCpf(v: string) {
 
 type DeliveryChoice = "pickup" | "delivery";
 
+// Curitiba + Região Metropolitana (atendidas pela Mais Entregas)
+const RMC_CITIES = [
+  "Curitiba",
+  "Almirante Tamandaré",
+  "Araucária",
+  "Campina Grande do Sul",
+  "Campo Largo",
+  "Campo Magro",
+  "Colombo",
+  "Fazenda Rio Grande",
+  "Pinhais",
+  "Piraquara",
+  "Quatro Barras",
+  "São José dos Pinhais",
+] as const;
+
+function isRmcCity(name: string | undefined | null): boolean {
+  if (!name) return false;
+  const norm = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  return RMC_CITIES.some((c) => c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === norm);
+}
+
 function CheckoutPage() {
   const { items, total, clear } = useCart();
   const [busy, setBusy] = useState(false);
@@ -129,14 +151,14 @@ function CheckoutPage() {
           setCepError("CEP não encontrado");
           return;
         }
-        if (json.localidade && !/curitiba/i.test(json.localidade)) {
-          setCepError(`Por enquanto entregamos apenas em Curitiba. CEP é de ${json.localidade}/${json.uf}.`);
+        if (json.localidade && !isRmcCity(json.localidade)) {
+          setCepError(`Entregamos apenas em Curitiba e região metropolitana. Este CEP é de ${json.localidade}/${json.uf}.`);
           setCoverageOk(false);
           return;
         }
         if (json.logradouro) setStreet(json.logradouro);
         if (json.bairro) setDistrict(json.bairro);
-        if (json.localidade) setCity(json.localidade);
+        if (json.localidade && isRmcCity(json.localidade)) setCity(json.localidade);
       } catch {
         if (!cancelled) setCepError("Não conseguimos buscar este CEP, tente novamente");
       } finally {
@@ -162,13 +184,13 @@ function CheckoutPage() {
     (async () => {
       try {
         const res = await quote({
-          data: { zip: d, street: street.trim(), number: number.trim(), district, complement },
+          data: { zip: d, street: street.trim(), number: number.trim(), district, complement, city: city.trim() || "Curitiba" },
         });
         if (cancelled) return;
         setCoverageOk(true);
         setCoverageMsg(res.fee > 0
-          ? `Frete: ${brl(res.fee)} (cortesia da loja — você não paga)`
-          : "Entrega disponível neste endereço");
+          ? `Frete: ${brl(res.fee)} — cortesia da loja. Entrega em até 2 dias úteis.`
+          : "Entrega disponível. Prazo de até 2 dias úteis.");
       } catch (err) {
         if (cancelled) return;
         setCoverageOk(false);
@@ -176,7 +198,7 @@ function CheckoutPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [delivery, cep, street, number, district, complement, cepError, quote]);
+  }, [delivery, cep, street, number, district, complement, city, cepError, quote]);
 
   if (user === undefined || user === null) {
     return (
@@ -317,8 +339,9 @@ function CheckoutPage() {
                 active={delivery === "delivery"}
                 onClick={() => setDelivery("delivery")}
                 title="Receber em casa"
-                subtitle="Grátis em Curitiba"
-                description="Entrega rápida via Mais Entregas"
+                subtitle="SOMENTE CURITIBA E REGIÃO"
+                description="Entrega em até 2 dias úteis — frete grátis"
+                highlight
               />
             </div>
 
@@ -328,11 +351,14 @@ function CheckoutPage() {
                 <p className="text-muted-foreground mt-1">{STORE_ADDRESS}</p>
                 <p className="text-muted-foreground">{STORE_HOURS}</p>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Você receberá um aviso no WhatsApp assim que o pagamento for confirmado e novamente quando o pedido estiver pronto para retirada.
+                  Acompanhe o status do pedido em <strong>Meus pedidos</strong> assim que o pagamento for confirmado.
                 </p>
               </div>
             ) : (
               <div className="space-y-3">
+                <div className="bg-accent/10 border border-accent/30 text-accent rounded-md px-3 py-2 text-xs font-bold uppercase tracking-wider">
+                  ⏱ Entrega em até 2 dias úteis · somente Curitiba e região metropolitana
+                </div>
                 <div className="grid sm:grid-cols-[160px_1fr] gap-3">
                   <Field
                     label="CEP *"
@@ -344,17 +370,30 @@ function CheckoutPage() {
                     autoComplete="postal-code"
                   />
                   <div className="flex items-end text-xs text-muted-foreground">
-                    {cepBusy ? "Buscando endereço..." : cepError ? <span className="text-destructive">{cepError}</span> : "Atendemos apenas Curitiba por enquanto"}
+                    {cepBusy ? "Buscando endereço..." : cepError ? <span className="text-destructive">{cepError}</span> : "Atendemos Curitiba e região metropolitana"}
                   </div>
                 </div>
-                <Field label="Rua *" value={street} onChange={setStreet} required placeholder="Rua, avenida..." />
+                <Field label="Nome do destinatário *" value={name} onChange={setName} required placeholder="Como o entregador vai chamar" />
+                <Field label="Endereço (rua, avenida) *" value={street} onChange={setStreet} required placeholder="Ex.: Av. Marechal Floriano Peixoto" />
                 <div className="grid sm:grid-cols-[140px_1fr] gap-3">
                   <Field label="Número *" value={number} onChange={setNumber} required placeholder="123" inputMode="numeric" />
-                  <Field label="Complemento" value={complement} onChange={setComplement} placeholder="Apto, bloco, referência" />
+                  <Field label="Complemento" value={complement} onChange={setComplement} placeholder="Apto, bloco, ponto de referência" />
                 </div>
                 <div className="grid sm:grid-cols-2 gap-3">
                   <Field label="Bairro" value={district} onChange={setDistrict} placeholder="Centro" />
-                  <Field label="Cidade" value={city} onChange={setCity} placeholder="Curitiba" />
+                  <label className="block">
+                    <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cidade *</span>
+                    <select
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      required
+                      className="w-full bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary mt-1"
+                    >
+                      {RMC_CITIES.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
                 {coverageMsg && (
                   <div className={`text-xs px-3 py-2 rounded ${coverageOk ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
@@ -362,7 +401,7 @@ function CheckoutPage() {
                   </div>
                 )}
                 <p className="text-[11px] text-muted-foreground">
-                  A entrega é feita por um entregador parceiro da Mais Entregas após a confirmação do pagamento. Você acompanha em tempo real em "Meus pedidos".
+                  Um entregador parceiro da Mais Entregas leva seu pedido em até 2 dias úteis após a confirmação do pagamento. Acompanhe em "Meus pedidos".
                 </p>
               </div>
             )}
@@ -422,17 +461,17 @@ function CheckoutPage() {
 }
 
 function DeliveryOption({
-  active, onClick, title, subtitle, description,
-}: { active: boolean; onClick: () => void; title: string; subtitle: string; description: string }) {
+  active, onClick, title, subtitle, description, highlight,
+}: { active: boolean; onClick: () => void; title: string; subtitle: string; description: string; highlight?: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={`text-left rounded-md border-2 p-3 transition-colors ${active ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40"}`}
     >
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <span className="font-bold">{title}</span>
-        <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded ${active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>{subtitle}</span>
+        <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded whitespace-nowrap ${highlight ? "bg-accent text-accent-foreground" : active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>{subtitle}</span>
       </div>
       <p className="text-xs text-muted-foreground mt-1">{description}</p>
     </button>
