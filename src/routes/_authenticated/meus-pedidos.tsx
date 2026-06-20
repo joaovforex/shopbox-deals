@@ -49,9 +49,9 @@ function statusBadge(o: Row): { label: string; cls: string; icon: React.ReactNod
   if (o.status === "pending") return { label: "Aguardando pagamento", cls: "bg-muted text-muted-foreground", icon: <Clock className="h-3.5 w-3.5" /> };
   // paid
   if (o.delivery_method === "delivery") {
-    const s = (o.maisentregas_status ?? "").toLowerCase();
-    if (s.startsWith("entregue")) return { label: "Entregue", cls: "bg-[#25D366]/20 text-[#25D366]", icon: <CheckCircle2 className="h-3.5 w-3.5" /> };
-    if (s) return { label: s, cls: "bg-primary/15 text-primary", icon: <Truck className="h-3.5 w-3.5" /> };
+    const s = (o.maisentregas_status ?? "").toLowerCase().trim();
+    if (s === "servico_finalizado" || o.fulfillment_status === "completed") return { label: "Entregue", cls: "bg-[#25D366]/20 text-[#25D366]", icon: <CheckCircle2 className="h-3.5 w-3.5" /> };
+    if (s) return { label: statusLabel(o.maisentregas_status), cls: "bg-primary/15 text-primary", icon: <Truck className="h-3.5 w-3.5" /> };
     return { label: "Preparando envio", cls: "bg-accent/20 text-accent", icon: <Package className="h-3.5 w-3.5" /> };
   }
   if (o.fulfillment_status === "completed") return { label: "Entregue", cls: "bg-[#25D366]/20 text-[#25D366]", icon: <CheckCircle2 className="h-3.5 w-3.5" /> };
