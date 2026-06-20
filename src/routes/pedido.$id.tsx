@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, MessageCircle, Package, Store, Clock, ArrowRight, Sparkles, Truck, ExternalLink } from "lucide-react";
+import { CheckCircle2, Package, Store, Clock, ArrowRight, Sparkles, Truck, ExternalLink } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { getPublicOrder } from "@/lib/orders.functions";
 import { brl } from "@/lib/format";
@@ -81,7 +81,7 @@ function OrderPage() {
                       : isReady
                         ? "Seu pedido já está separado e te aguarda na loja."
                         : isPreparing
-                          ? "Nosso time está separando seus itens. Você receberá um aviso no WhatsApp assim que estiver pronto."
+                          ? "Nosso time está separando seus itens. Acompanhe o status em Meus Pedidos."
                           : "Recebemos seu pedido com sucesso 🎉"}
             </p>
 
@@ -93,18 +93,23 @@ function OrderPage() {
             </div>
           </div>
 
-          {/* WHATSAPP NOTICE — apenas enquanto não estiver pronto */}
-          {(isPaid && !isReady && !isDone) && (
-            <div className="rounded-xl border-2 border-[#25D366]/30 bg-[#25D366]/5 p-5 mb-6 flex gap-4">
-              <div className="shrink-0 h-11 w-11 rounded-full bg-[#25D366]/15 text-[#25D366] flex items-center justify-center">
-                <MessageCircle className="h-5 w-5" />
+          {/* MEUS PEDIDOS NOTICE — apenas enquanto não estiver concluído */}
+          {(isPaid && !isDone) && (
+            <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-5 mb-6 flex gap-4">
+              <div className="shrink-0 h-11 w-11 rounded-full bg-primary/15 text-primary flex items-center justify-center">
+                <Package className="h-5 w-5" />
               </div>
-              <div className="text-sm">
-                <p className="font-bold text-foreground mb-1">Acompanhe pelo WhatsApp</p>
+              <div className="text-sm flex-1">
+                <p className="font-bold text-foreground mb-1">Acompanhe seu pedido</p>
                 <p className="text-muted-foreground leading-relaxed">
-                  Assim que nosso time iniciar a <strong className="text-foreground">separação</strong>, você recebe um aviso.
-                  Quando o pedido estiver <strong className="text-foreground">pronto para retirada</strong>, te avisamos novamente.
+                  Você pode acompanhar o status do seu pedido a qualquer momento na área <strong className="text-foreground">Meus Pedidos</strong>.
                 </p>
+                <Link
+                  to="/meus-pedidos"
+                  className="inline-flex items-center gap-1 mt-3 bg-primary text-primary-foreground font-bold px-3 py-2 rounded text-xs"
+                >
+                  Ir para Meus Pedidos <ArrowRight className="h-3 w-3" />
+                </Link>
               </div>
             </div>
           )}
