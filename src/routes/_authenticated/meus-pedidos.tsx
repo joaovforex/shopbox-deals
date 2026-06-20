@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { Package, ArrowRight, Clock, CheckCircle2, Store, XCircle, Truck, ExternalLink } from "lucide-react";
+import { Package, ArrowRight, Clock, CheckCircle2, Store, XCircle, Truck, Hash } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
@@ -25,19 +25,33 @@ type Row = {
   shipping_number: string | null;
   shipping_district: string | null;
   shipping_city: string | null;
+  maisentregas_order_id: string | null;
   maisentregas_status: string | null;
-  maisentregas_tracking_url: string | null;
   order_items: OrderItem[] | null;
 };
+
+function statusLabel(s: string | null): string {
+  if (!s) return "Aguardando";
+  const map: Record<string, string> = {
+    "contatando_parceiro": "Procurando entregador",
+    "parceiro_confirmado": "Entregador confirmado",
+    "parceiro_a_caminho": "Entregador a caminho",
+    "servico_finalizado": "Entregue",
+    "pendente": "Pendente",
+    "aguardando_preparo": "Aguardando preparo",
+    "criado": "Pedido criado",
+  };
+  return map[s.toLowerCase().trim().replace(/ /g, "_")] || s.replace(/_/g, " ");
+}
 
 function statusBadge(o: Row): { label: string; cls: string; icon: React.ReactNode } {
   if (o.status === "cancelled") return { label: "Cancelado", cls: "bg-destructive/15 text-destructive", icon: <XCircle className="h-3.5 w-3.5" /> };
   if (o.status === "pending") return { label: "Aguardando pagamento", cls: "bg-muted text-muted-foreground", icon: <Clock className="h-3.5 w-3.5" /> };
   // paid
   if (o.delivery_method === "delivery") {
-    const s = (o.maisentregas_status ?? "").toLowerCase();
-    if (s.startsWith("entregue")) return { label: "Entregue", cls: "bg-[#25D366]/20 text-[#25D366]", icon: <CheckCircle2 className="h-3.5 w-3.5" /> };
-    if (s) return { label: s, cls: "bg-primary/15 text-primary", icon: <Truck className="h-3.5 w-3.5" /> };
+    const s = (o.maisentregas_status ?? "").toLowerCase().trim();
+    if (s === "servico_finalizado" || o.fulfillment_status === "completed") return { label: "Entregue", cls: "bg-[#25D366]/20 text-[#25D366]", icon: <CheckCircle2 className="h-3.5 w-3.5" /> };
+    if (s) return { label: statusLabel(o.maisentregas_status), cls: "bg-primary/15 text-primary", icon: <Truck className="h-3.5 w-3.5" /> };
     return { label: "Preparando envio", cls: "bg-accent/20 text-accent", icon: <Package className="h-3.5 w-3.5" /> };
   }
   if (o.fulfillment_status === "completed") return { label: "Entregue", cls: "bg-[#25D366]/20 text-[#25D366]", icon: <CheckCircle2 className="h-3.5 w-3.5" /> };
@@ -56,7 +70,7 @@ function MyOrdersPage() {
       if (!user) return [] as Row[];
       const { data, error } = await supabase
         .from("orders")
-        .select("id, created_at, status, fulfillment_status, total, payment_method, delivery_method, shipping_street, shipping_number, shipping_district, shipping_city, maisentregas_status, maisentregas_tracking_url, order_items(id, product_name, quantity)")
+        .select("id, created_at, status, fulfillment_status, total, payment_method, delivery_method, shipping_street, shipping_number, shipping_district, shipping_city, maisentregas_order_id, maisentregas_status, order_items(id, product_name, quantity)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
