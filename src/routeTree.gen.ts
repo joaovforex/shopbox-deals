@@ -22,6 +22,7 @@ import { Route as EtiquetaIdRouteImport } from './routes/etiqueta.$id'
 import { Route as AuthenticatedMeusPedidosRouteImport } from './routes/_authenticated/meus-pedidos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ApiPublicReconcileOrdersRouteImport } from './routes/api/public/reconcile-orders'
+import { Route as ApiPublicMeDebugRouteImport } from './routes/api/public/me-debug'
 import { Route as AuthenticatedAdminReembolsosRouteImport } from './routes/_authenticated/admin.reembolsos'
 import { Route as AuthenticatedAdminPedidosRouteImport } from './routes/_authenticated/admin.pedidos'
 import { Route as AuthenticatedAdminExpedicaoRouteImport } from './routes/_authenticated/admin.expedicao'
@@ -95,6 +96,11 @@ const ApiPublicReconcileOrdersRoute =
     path: '/api/public/reconcile-orders',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicMeDebugRoute = ApiPublicMeDebugRouteImport.update({
+  id: '/api/public/me-debug',
+  path: '/api/public/me-debug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedAdminReembolsosRoute =
   AuthenticatedAdminReembolsosRouteImport.update({
     id: '/reembolsos',
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
+  '/api/public/me-debug': typeof ApiPublicMeDebugRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
@@ -167,6 +174,7 @@ export interface FileRoutesByTo {
   '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
+  '/api/public/me-debug': typeof ApiPublicMeDebugRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
@@ -189,6 +197,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/_authenticated/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/_authenticated/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
+  '/api/public/me-debug': typeof ApiPublicMeDebugRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
@@ -211,6 +220,7 @@ export interface FileRouteTypes {
     | '/admin/expedicao'
     | '/admin/pedidos'
     | '/admin/reembolsos'
+    | '/api/public/me-debug'
     | '/api/public/reconcile-orders'
     | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/admin/expedicao'
     | '/admin/pedidos'
     | '/admin/reembolsos'
+    | '/api/public/me-debug'
     | '/api/public/reconcile-orders'
     | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
@@ -252,6 +263,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/expedicao'
     | '/_authenticated/admin/pedidos'
     | '/_authenticated/admin/reembolsos'
+    | '/api/public/me-debug'
     | '/api/public/reconcile-orders'
     | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
@@ -268,6 +280,7 @@ export interface RootRouteChildren {
   EtiquetaIdRoute: typeof EtiquetaIdRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
+  ApiPublicMeDebugRoute: typeof ApiPublicMeDebugRoute
   ApiPublicReconcileOrdersRoute: typeof ApiPublicReconcileOrdersRoute
   ApiPublicMaisentregasPollRoute: typeof ApiPublicMaisentregasPollRoute
   ApiPublicMpWebhookRoute: typeof ApiPublicMpWebhookRoute
@@ -366,6 +379,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicReconcileOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/me-debug': {
+      id: '/api/public/me-debug'
+      path: '/api/public/me-debug'
+      fullPath: '/api/public/me-debug'
+      preLoaderRoute: typeof ApiPublicMeDebugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/admin/reembolsos': {
       id: '/_authenticated/admin/reembolsos'
       path: '/reembolsos'
@@ -452,6 +472,7 @@ const rootRouteChildren: RootRouteChildren = {
   EtiquetaIdRoute: EtiquetaIdRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
+  ApiPublicMeDebugRoute: ApiPublicMeDebugRoute,
   ApiPublicReconcileOrdersRoute: ApiPublicReconcileOrdersRoute,
   ApiPublicMaisentregasPollRoute: ApiPublicMaisentregasPollRoute,
   ApiPublicMpWebhookRoute: ApiPublicMpWebhookRoute,
