@@ -143,7 +143,18 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
           if (result === "out_of_stock") {
             console.warn("[mp:webhook] auto-refund triggered for out_of_stock", { orderId, paymentId: payment.id });
             await autoRefundOutOfStock({ orderId, paymentId: String(payment.id), accessToken });
+          } else if (result === "ok" || result === "already_paid") {
+            // Se for entrega em casa, dispara criação da corrida na Mais Entregas.
+            // Falha aqui NÃO bloqueia o webhook — o cron de poll/reconcile tenta de novo.
+            try {
+              const { createDeliveryForOrder } = await import("@/lib/maisentregas.functions");
+              const r = await createDeliveryForOrder(orderId);
+              if (!r.ok) console.warn("[mp:webhook] maisentregas not created", { orderId, reason: r.reason });
+            } catch (err) {
+              console.error("[mp:webhook] maisentregas create error", err);
+            }
           }
+
         } else if (action === "cancelled") {
           const { error: updErr } = await supabaseAdmin
             .from("orders")
