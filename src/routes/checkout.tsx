@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
@@ -9,13 +9,12 @@ import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
 import { createMpPreference } from "@/lib/mercadopago.functions";
+import { quoteDelivery } from "@/lib/maisentregas.functions";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Finalizar compra · shopbox" }] }),
   component: CheckoutPage,
 });
-
-const delivery = "pickup" as const;
 
 function maskPhone(v: string) {
   const d = v.replace(/\D/g, "").slice(0, 11);
@@ -32,6 +31,12 @@ function maskCpf(v: string) {
   return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
 }
 
+function maskCep(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 8);
+  if (d.length <= 5) return d;
+  return `${d.slice(0, 5)}-${d.slice(5)}`;
+}
+
 function isValidCpf(v: string) {
   const cpf = v.replace(/\D/g, "");
   if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
@@ -45,11 +50,14 @@ function isValidCpf(v: string) {
   return d2 === parseInt(cpf[10]);
 }
 
+type DeliveryChoice = "pickup" | "delivery";
+
 function CheckoutPage() {
   const { items, total, clear } = useCart();
   const [busy, setBusy] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const createPref = useServerFn(createMpPreference);
+  const quote = useServerFn(quoteDelivery);
   const user = useAuthUser();
   const navigate = useNavigate();
 
@@ -63,6 +71,21 @@ function CheckoutPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [cpf, setCpf] = useState("");
+
+  // Delivery
+  const [delivery, setDelivery] = useState<DeliveryChoice>("pickup");
+  const [cep, setCep] = useState("");
+  const [street, setStreet] = useState("");
+  const [number, setNumber] = useState("");
+  const [complement, setComplement] = useState("");
+  const [district, setDistrict] = useState("");
+  const [city, setCity] = useState("Curitiba");
+  const [stateUf] = useState("PR");
+  const [cepBusy, setCepBusy] = useState(false);
+  const [cepError, setCepError] = useState<string | null>(null);
+  const [coverageOk, setCoverageOk] = useState<null | boolean>(null);
+  const [coverageMsg, setCoverageMsg] = useState<string | null>(null);
+  const lastQuotedRef = useRef<string>("");
 
   // Pré-preenche do perfil do cliente logado
   useEffect(() => {
@@ -82,6 +105,78 @@ function CheckoutPage() {
       }
     })();
   }, []);
+
+  // Busca ViaCEP quando CEP completa 8 dígitos
+  useEffect(() => {
+    const d = cep.replace(/\D/g, "");
+    if (d.length !== 8) {
+      setCepError(null);
+      setCoverageOk(null);
+      setCoverageMsg(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setCepBusy(true);
+      setCepError(null);
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${d}/json/`);
+        const json = (await res.json()) as {
+          logradouro?: string; bairro?: string; localidade?: string; uf?: string; erro?: boolean;
+        };
+        if (cancelled) return;
+        if (json.erro) {
+          setCepError("CEP não encontrado");
+          return;
+        }
+        if (json.localidade && !/curitiba/i.test(json.localidade)) {
+          setCepError(`Por enquanto entregamos apenas em Curitiba. CEP é de ${json.localidade}/${json.uf}.`);
+          setCoverageOk(false);
+          return;
+        }
+        if (json.logradouro) setStreet(json.logradouro);
+        if (json.bairro) setDistrict(json.bairro);
+        if (json.localidade) setCity(json.localidade);
+      } catch {
+        if (!cancelled) setCepError("Não conseguimos buscar este CEP, tente novamente");
+      } finally {
+        if (!cancelled) setCepBusy(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [cep]);
+
+  // Valida cobertura na Mais Entregas quando todos os campos mínimos estiverem prontos
+  useEffect(() => {
+    if (delivery !== "delivery") return;
+    const d = cep.replace(/\D/g, "");
+    if (d.length !== 8 || !street.trim() || !number.trim() || cepError) {
+      setCoverageOk(null);
+      setCoverageMsg(null);
+      return;
+    }
+    const sig = `${d}|${street}|${number}`;
+    if (lastQuotedRef.current === sig) return;
+    lastQuotedRef.current = sig;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await quote({
+          data: { zip: d, street: street.trim(), number: number.trim(), district, complement },
+        });
+        if (cancelled) return;
+        setCoverageOk(true);
+        setCoverageMsg(res.fee > 0
+          ? `Frete: ${brl(res.fee)} (cortesia da loja — você não paga)`
+          : "Entrega disponível neste endereço");
+      } catch (err) {
+        if (cancelled) return;
+        setCoverageOk(false);
+        setCoverageMsg(err instanceof Error ? err.message : "Não foi possível validar a entrega");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [delivery, cep, street, number, district, complement, cepError, quote]);
 
   if (user === undefined || user === null) {
     return (
@@ -119,6 +214,27 @@ function CheckoutPage() {
     const cpfDigits = cpf.replace(/\D/g, "");
     if (!isValidCpf(cpfDigits)) return toast.error("CPF inválido");
 
+    let shipping: Parameters<typeof createPref>[0]["data"]["shipping"] = null;
+    if (delivery === "delivery") {
+      const cepDigits = cep.replace(/\D/g, "");
+      if (cepDigits.length !== 8) return toast.error("CEP inválido");
+      if (!street.trim()) return toast.error("Informe a rua");
+      if (!number.trim()) return toast.error("Informe o número");
+      if (coverageOk === false) return toast.error(coverageMsg ?? "Endereço fora da área de entrega");
+      if (coverageOk !== true) return toast.error("Aguarde a validação do endereço");
+      shipping = {
+        zip: cepDigits,
+        street: street.trim(),
+        number: number.trim(),
+        complement: complement.trim() || null,
+        district: district.trim() || null,
+        city: city.trim() || "Curitiba",
+        state: stateUf,
+        recipient_name: name.trim(),
+        recipient_phone: phoneDigits,
+      };
+    }
+
     setBusy(true);
     try {
       const res = await createPref({
@@ -128,17 +244,15 @@ function CheckoutPage() {
           customer_phone: phoneDigits,
           customer_cpf: cpfDigits,
           delivery_method: delivery,
+          shipping,
           items: items.map((i) => ({ product_id: i.id, quantity: i.quantity, color: i.variant_color ?? null })),
         },
       });
-      // Marca como redirecionando ANTES de limpar o carrinho, para não mostrar tela de "carrinho vazio"
       setRedirecting(true);
-      // Força o checkout web do Mercado Pago (evita abrir o app instalado no celular).
       const sep = res.initPoint.includes("?") ? "&" : "?";
       const webUrl = `${res.initPoint}${sep}source=web&platform=web`;
       sessionStorage.setItem("mp_init_point", webUrl);
       clear();
-      // Vai para a tela de redirecionamento (que dispara window.location.replace imediatamente).
       navigate({ to: "/redirecionando" });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao iniciar pagamento";
@@ -190,15 +304,68 @@ function CheckoutPage() {
             <Field label="CPF *" value={cpf} onChange={(v) => setCpf(maskCpf(v))} required placeholder="000.000.000-00" inputMode="numeric" autoComplete="off" />
           </Section>
 
-          <Section title="Retirada na loja">
-            <div className="bg-secondary rounded-md p-4 text-sm">
-              <p className="font-semibold">Retire na loja</p>
-              <p className="text-muted-foreground mt-1">{STORE_ADDRESS}</p>
-              <p className="text-muted-foreground">{STORE_HOURS}</p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Você receberá um aviso no WhatsApp assim que o pagamento for confirmado e novamente quando o pedido estiver pronto para retirada.
-              </p>
+          <Section title="Como você quer receber?">
+            <div className="grid sm:grid-cols-2 gap-3">
+              <DeliveryOption
+                active={delivery === "pickup"}
+                onClick={() => setDelivery("pickup")}
+                title="Retirar na loja"
+                subtitle="Grátis"
+                description="Retire no mesmo dia após a confirmação"
+              />
+              <DeliveryOption
+                active={delivery === "delivery"}
+                onClick={() => setDelivery("delivery")}
+                title="Receber em casa"
+                subtitle="Grátis em Curitiba"
+                description="Entrega rápida via Mais Entregas"
+              />
             </div>
+
+            {delivery === "pickup" ? (
+              <div className="bg-secondary rounded-md p-4 text-sm">
+                <p className="font-semibold">Retire na loja</p>
+                <p className="text-muted-foreground mt-1">{STORE_ADDRESS}</p>
+                <p className="text-muted-foreground">{STORE_HOURS}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Você receberá um aviso no WhatsApp assim que o pagamento for confirmado e novamente quando o pedido estiver pronto para retirada.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid sm:grid-cols-[160px_1fr] gap-3">
+                  <Field
+                    label="CEP *"
+                    value={cep}
+                    onChange={(v) => setCep(maskCep(v))}
+                    required
+                    placeholder="00000-000"
+                    inputMode="numeric"
+                    autoComplete="postal-code"
+                  />
+                  <div className="flex items-end text-xs text-muted-foreground">
+                    {cepBusy ? "Buscando endereço..." : cepError ? <span className="text-destructive">{cepError}</span> : "Atendemos apenas Curitiba por enquanto"}
+                  </div>
+                </div>
+                <Field label="Rua *" value={street} onChange={setStreet} required placeholder="Rua, avenida..." />
+                <div className="grid sm:grid-cols-[140px_1fr] gap-3">
+                  <Field label="Número *" value={number} onChange={setNumber} required placeholder="123" inputMode="numeric" />
+                  <Field label="Complemento" value={complement} onChange={setComplement} placeholder="Apto, bloco, referência" />
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <Field label="Bairro" value={district} onChange={setDistrict} placeholder="Centro" />
+                  <Field label="Cidade" value={city} onChange={setCity} placeholder="Curitiba" />
+                </div>
+                {coverageMsg && (
+                  <div className={`text-xs px-3 py-2 rounded ${coverageOk ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
+                    {coverageMsg}
+                  </div>
+                )}
+                <p className="text-[11px] text-muted-foreground">
+                  A entrega é feita por um entregador parceiro da Mais Entregas após a confirmação do pagamento. Você acompanha em tempo real em "Meus pedidos".
+                </p>
+              </div>
+            )}
           </Section>
 
           <Section title="Pagamento">
@@ -229,7 +396,7 @@ function CheckoutPage() {
             <span className="font-semibold">{brl(total)}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Retirada</span>
+            <span className="text-muted-foreground">{delivery === "pickup" ? "Retirada" : "Entrega"}</span>
             <span className="font-semibold">Grátis</span>
           </div>
           <div className="border-t border-border pt-3 flex justify-between items-baseline">
@@ -238,7 +405,7 @@ function CheckoutPage() {
           </div>
           <button
             type="submit"
-            disabled={busy}
+            disabled={busy || (delivery === "delivery" && coverageOk !== true)}
             className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] transition-transform disabled:opacity-60 disabled:scale-100"
           >
             {busy ? "Redirecionando..." : `Pagar ${brl(total)}`}
@@ -251,6 +418,24 @@ function CheckoutPage() {
 
       <Footer />
     </div>
+  );
+}
+
+function DeliveryOption({
+  active, onClick, title, subtitle, description,
+}: { active: boolean; onClick: () => void; title: string; subtitle: string; description: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-left rounded-md border-2 p-3 transition-colors ${active ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40"}`}
+    >
+      <div className="flex items-center justify-between">
+        <span className="font-bold">{title}</span>
+        <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded ${active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>{subtitle}</span>
+      </div>
+      <p className="text-xs text-muted-foreground mt-1">{description}</p>
+    </button>
   );
 }
 
