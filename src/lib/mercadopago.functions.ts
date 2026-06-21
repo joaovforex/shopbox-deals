@@ -159,6 +159,10 @@ export const createMpPreference = createServerFn({ method: "POST" })
         },
         identification: { type: "CPF", number: data.customer_cpf },
       },
+      payment_methods: {
+        installments: 7,
+        default_installments: 1,
+      },
       back_urls: {
         success: `${origin}/pedido/${orderId}`,
         pending: `${origin}/pedido/${orderId}`,
