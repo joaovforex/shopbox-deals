@@ -93,7 +93,7 @@ function Loja() {
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const preloadImgs = useMemo(
-    () => products.slice(0, 8).map((p) => productImages(p)[0]).filter(Boolean) as string[],
+    () => products.slice(0, 3).map((p) => productImages(p)[0]).filter(Boolean) as string[],
     [products],
   );
 
@@ -140,7 +140,7 @@ function Loja() {
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
               {products.map((p, i) => (
-                <ProductCard key={p.id} product={p as any} priority={i < 8} />
+                <ProductCard key={p.id} product={p as any} priority={i < 3} />
               ))}
             </div>
             <div ref={sentinelRef} className="h-10" />
