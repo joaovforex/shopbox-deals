@@ -202,12 +202,12 @@ function LabelPage() {
 
 function LabelHeader({ logoOnly = false, title, subtitle, icon }: { logoOnly?: boolean; title?: string; subtitle?: string; icon?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 pb-2">
-      <img src={shopboxLogo} alt="shopbox" className="h-12 w-auto" />
+    <div className="flex items-center justify-between gap-2 pb-1">
+      <img src={shopboxLogo} alt="shopbox" className="h-10 w-auto" />
       {!logoOnly && (
         <div className="text-right">
           {icon}
-          {title && <div className="font-black text-sm tracking-wider">{title}</div>}
+          {title && <div className="font-black text-xs tracking-wider leading-tight">{title}</div>}
           {subtitle && <div className="text-[10px] uppercase">{subtitle}</div>}
         </div>
       )}
