@@ -420,6 +420,7 @@ function CheckoutPage() {
           </Section>
         </div>
 
+        {(() => null)()}
         <aside className="bg-card border border-border rounded-lg p-5 h-fit lg:sticky lg:top-24 space-y-3">
           <h2 className="display text-xl">Resumo</h2>
           <ul className="space-y-2 text-sm border-b border-border pb-3">
@@ -430,25 +431,40 @@ function CheckoutPage() {
               </li>
             ))}
           </ul>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Subtotal</span>
-            <span className="font-semibold">{brl(total)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">{delivery === "pickup" ? "Retirada" : "Entrega"}</span>
-            <span className="font-semibold">Grátis</span>
-          </div>
-          <div className="border-t border-border pt-3 flex justify-between items-baseline">
-            <span className="font-bold">Total</span>
-            <span className="display text-2xl text-price">{brl(total)}</span>
-          </div>
-          <button
-            type="submit"
-            disabled={busy || (delivery === "delivery" && coverageOk !== true)}
-            className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] transition-transform disabled:opacity-60 disabled:scale-100"
-          >
-            {busy ? "Redirecionando..." : `Pagar ${brl(total)}`}
-          </button>
+          {(() => {
+            const shippingFee = delivery === "delivery" ? (total < 80 ? 10 : 0) : 0;
+            const grandTotal = total + shippingFee;
+            return (
+              <>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span className="font-semibold">{brl(total)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{delivery === "pickup" ? "Retirada" : "Entrega"}</span>
+                  <span className="font-semibold">{shippingFee > 0 ? brl(shippingFee) : "Grátis"}</span>
+                </div>
+                {delivery === "delivery" && (
+                  <p className="text-[11px] text-muted-foreground -mt-1">
+                    {shippingFee > 0
+                      ? `Frete R$ 10,00 para pedidos abaixo de R$ 80,00. Faltam ${brl(80 - total)} para frete grátis.`
+                      : "Frete grátis em pedidos a partir de R$ 80,00."}
+                  </p>
+                )}
+                <div className="border-t border-border pt-3 flex justify-between items-baseline">
+                  <span className="font-bold">Total</span>
+                  <span className="display text-2xl text-price">{brl(grandTotal)}</span>
+                </div>
+                <button
+                  type="submit"
+                  disabled={busy || (delivery === "delivery" && coverageOk !== true)}
+                  className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] transition-transform disabled:opacity-60 disabled:scale-100"
+                >
+                  {busy ? "Redirecionando..." : `Pagar ${brl(grandTotal)}`}
+                </button>
+              </>
+            );
+          })()}
           <p className="text-[11px] text-muted-foreground text-center">
             Ao confirmar você aceita os termos da loja. Pagamento processado pelo Mercado Pago.
           </p>
