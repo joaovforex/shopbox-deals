@@ -132,20 +132,19 @@ function LabelPage() {
   return (
     <>
       <style>{`
-        @page { size: ${isPickup ? "A6" : "110mm 150mm"}; margin: 0; }
+        @page { size: ${isPickup ? "A6" : "100mm 150mm"}; margin: 0; }
         @media print {
           .no-print { display: none !important; }
-          html, body { width: ${isPickup ? "105mm" : "110mm"} !important; height: ${isPickup ? "148mm" : "150mm"} !important; background: white !important; color: black !important; margin: 0 !important; padding: 0 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          html, body { width: ${isPickup ? "105mm" : "100mm"} !important; height: ${isPickup ? "148mm" : "150mm"} !important; background: white !important; color: #000 !important; margin: 0 !important; padding: 0 !important; print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
           body * { visibility: hidden !important; }
           .label-doc, .label-doc * { visibility: visible !important; }
-          .label-doc { position: fixed !important; left: 0 !important; top: 0 !important; width: ${isPickup ? "105mm" : "110mm"} !important; height: ${isPickup ? "148mm" : "150mm"} !important; padding: 3mm !important; margin: 0 !important; box-sizing: border-box !important; background: white !important; color: black !important; font-family: Arial, Helvetica, sans-serif !important; font-weight: 700 !important; overflow: hidden !important; page-break-after: avoid !important; page-break-inside: avoid !important; }
-          .label-doc * { color: black !important; border-color: black !important; opacity: 1 !important; background: white !important; text-shadow: 0 0 0 black !important; -webkit-font-smoothing: none !important; }
-          .label-doc .pickup-header { background: black !important; color: white !important; }
-          .label-doc .pickup-header * { color: white !important; background: black !important; }
-          .label-doc img { filter: none !important; }
-          .label-doc svg { shape-rendering: crispEdges !important; }
+          .label-doc { position: fixed !important; left: 0 !important; top: 0 !important; width: ${isPickup ? "105mm" : "100mm"} !important; height: ${isPickup ? "148mm" : "150mm"} !important; padding: 2mm !important; margin: 0 !important; box-sizing: border-box !important; background: white !important; color: #000 !important; font-family: 'Arial Black', Arial, Helvetica, sans-serif !important; font-weight: 900 !important; overflow: hidden !important; overflow-wrap: break-word !important; page-break-after: avoid !important; page-break-inside: avoid !important; print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
+          .label-doc * { color: #000 !important; border-color: #000 !important; opacity: 1 !important; background: white !important; text-shadow: none !important; -webkit-font-smoothing: none !important; font-weight: 900 !important; text-rendering: geometricPrecision !important; }
+          .label-doc .pickup-header { background: #000 !important; color: #fff !important; }
+          .label-doc .pickup-header * { color: #fff !important; background: #000 !important; }
+          .label-doc img, .label-doc svg { filter: none !important; image-rendering: pixelated !important; shape-rendering: crispEdges !important; }
         }
-        .label-doc { font-family: Arial, Helvetica, sans-serif; font-weight: 600; width: ${isPickup ? "105mm" : "110mm"}; min-height: ${isPickup ? "148mm" : "150mm"}; margin: 0 auto; box-sizing: border-box; }
+        .label-doc { font-family: 'Arial Black', Arial, Helvetica, sans-serif; font-weight: 700; width: ${isPickup ? "105mm" : "100mm"}; min-height: ${isPickup ? "148mm" : "150mm"}; margin: 0 auto; box-sizing: border-box; overflow-wrap: break-word; }
       `}</style>
 
       <div className="min-h-screen bg-muted py-6 px-4">
