@@ -277,7 +277,7 @@ function PickupLabel({ o, items }: { o: any; items: any[] }) {
   const fullCode = o.id.replace(/-/g, "").slice(0, 14).toUpperCase();
   const shortCode = o.id.slice(0, 6).toUpperCase();
   return (
-    <div className="label-doc bg-white text-black p-3">
+    <div className="label-doc bg-white text-black p-2">
       <div className="pb-1">
         <img src={shopboxLogo} alt="shopbox" className="h-8 w-auto" />
       </div>
@@ -285,14 +285,14 @@ function PickupLabel({ o, items }: { o: any; items: any[] }) {
       <div className="border-t-2 border-black pt-2">
         <div className="text-[10px] font-bold uppercase">Senha do pedido</div>
         <div className="text-center">
-          <div className="font-black text-3xl tracking-[0.25em] mt-0.5">{shortCode}</div>
+          <div className="font-black text-3xl tracking-[0.12em] mt-0.5">{shortCode}</div>
           <div className="flex justify-center mt-1">
-            <Barcode value={barcodeValue(o.id)} height={38} width={1.7} fontSize={10} />
+            <Barcode value={barcodeValue(o.id)} height={38} width={1.5} fontSize={10} />
           </div>
           <div className="text-[10px] mt-0.5">{fullCode}</div>
         </div>
-        <div className="text-[11px] mt-1 font-bold">Escaneie na expedição para confirmar a entrega</div>
-        <div className="text-[11px] font-bold">Confira documento do cliente ao entregar</div>
+        <div className="text-[11px] mt-1 font-bold leading-tight">Escaneie na expedição para confirmar a entrega</div>
+        <div className="text-[11px] font-bold leading-tight">Confira documento do cliente ao entregar</div>
       </div>
 
       <div className="border-t-2 border-black pt-1 mt-2">
