@@ -104,8 +104,8 @@ function LabelPage() {
         useCORS: true,
       });
       const img = canvas.toDataURL("image/jpeg", 0.95);
-      // Etiqueta de retirada: A6 (105x148 mm) colante; envio: 110x150 mm.
-      const pdfFormat = isPickup ? "A6" : [110, 150];
+      // Etiqueta de retirada: A6 (105x148 mm) colante; envio: 100x150 mm.
+      const pdfFormat = isPickup ? "A6" : [100, 150];
       const pdf = new jsPDF({ unit: "mm", format: pdfFormat, orientation: "portrait" });
 
 
@@ -132,20 +132,19 @@ function LabelPage() {
   return (
     <>
       <style>{`
-        @page { size: ${isPickup ? "A6" : "110mm 150mm"}; margin: 0; }
+        @page { size: ${isPickup ? "A6" : "100mm 150mm"}; margin: 0; }
         @media print {
           .no-print { display: none !important; }
-          html, body { width: ${isPickup ? "105mm" : "110mm"} !important; height: ${isPickup ? "148mm" : "150mm"} !important; background: white !important; color: black !important; margin: 0 !important; padding: 0 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          html, body { width: ${isPickup ? "105mm" : "100mm"} !important; height: ${isPickup ? "148mm" : "150mm"} !important; background: white !important; color: #000 !important; margin: 0 !important; padding: 0 !important; print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
           body * { visibility: hidden !important; }
           .label-doc, .label-doc * { visibility: visible !important; }
-          .label-doc { position: fixed !important; left: 0 !important; top: 0 !important; width: ${isPickup ? "105mm" : "110mm"} !important; height: ${isPickup ? "148mm" : "150mm"} !important; padding: 3mm !important; margin: 0 !important; box-sizing: border-box !important; background: white !important; color: black !important; font-family: Arial, Helvetica, sans-serif !important; font-weight: 700 !important; overflow: hidden !important; page-break-after: avoid !important; page-break-inside: avoid !important; }
-          .label-doc * { color: black !important; border-color: black !important; opacity: 1 !important; background: white !important; text-shadow: 0 0 0 black !important; -webkit-font-smoothing: none !important; }
-          .label-doc .pickup-header { background: black !important; color: white !important; }
-          .label-doc .pickup-header * { color: white !important; background: black !important; }
-          .label-doc img { filter: none !important; }
-          .label-doc svg { shape-rendering: crispEdges !important; }
+          .label-doc { position: fixed !important; left: 0 !important; top: 0 !important; width: ${isPickup ? "105mm" : "100mm"} !important; height: ${isPickup ? "148mm" : "150mm"} !important; padding: 2mm !important; margin: 0 !important; box-sizing: border-box !important; background: white !important; color: #000 !important; font-family: 'Arial Black', Arial, Helvetica, sans-serif !important; font-weight: 900 !important; overflow: hidden !important; overflow-wrap: break-word !important; page-break-after: avoid !important; page-break-inside: avoid !important; print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
+          .label-doc * { color: #000 !important; border-color: #000 !important; opacity: 1 !important; background: white !important; text-shadow: none !important; -webkit-font-smoothing: none !important; font-weight: 900 !important; text-rendering: geometricPrecision !important; }
+          .label-doc .pickup-header { background: #000 !important; color: #fff !important; }
+          .label-doc .pickup-header * { color: #fff !important; background: #000 !important; }
+          .label-doc img, .label-doc svg { filter: none !important; image-rendering: pixelated !important; shape-rendering: crispEdges !important; }
         }
-        .label-doc { font-family: Arial, Helvetica, sans-serif; font-weight: 600; width: ${isPickup ? "105mm" : "110mm"}; min-height: ${isPickup ? "148mm" : "150mm"}; margin: 0 auto; box-sizing: border-box; }
+        .label-doc { font-family: 'Arial Black', Arial, Helvetica, sans-serif; font-weight: 700; width: ${isPickup ? "105mm" : "100mm"}; min-height: ${isPickup ? "148mm" : "150mm"}; margin: 0 auto; box-sizing: border-box; overflow-wrap: break-word; }
       `}</style>
 
       <div className="min-h-screen bg-muted py-6 px-4">
@@ -203,12 +202,12 @@ function LabelPage() {
 
 function LabelHeader({ logoOnly = false, title, subtitle, icon }: { logoOnly?: boolean; title?: string; subtitle?: string; icon?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 pb-2">
-      <img src={shopboxLogo} alt="shopbox" className="h-12 w-auto" />
+    <div className="flex items-center justify-between gap-2 pb-1">
+      <img src={shopboxLogo} alt="shopbox" className="h-10 w-auto" />
       {!logoOnly && (
         <div className="text-right">
           {icon}
-          {title && <div className="font-black text-sm tracking-wider">{title}</div>}
+          {title && <div className="font-black text-xs tracking-wider leading-tight">{title}</div>}
           {subtitle && <div className="text-[10px] uppercase">{subtitle}</div>}
         </div>
       )}
@@ -228,20 +227,20 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 function ShippingLabel({ o }: { o: any; items: any[] }) {
   const orderCode = o.id.slice(0, 8).toUpperCase();
   return (
-    <div className="label-doc bg-white text-black p-3">
+    <div className="label-doc bg-white text-black p-2">
       <LabelHeader
         title="ENTREGA EM DOMICÍLIO"
         subtitle="Pedido shopbox"
         icon={<Truck className="h-5 w-5 inline" />}
       />
 
-      <div className="border-2 border-black rounded-md p-2 mt-1 text-center">
+      <div className="border-2 border-black rounded-md p-1.5 mt-1 text-center">
         <div className="text-[10px] font-black uppercase tracking-widest">Nº do Pedido</div>
-        <div className="font-black text-2xl tracking-[0.2em] leading-tight">#{orderCode}</div>
+        <div className="font-black text-2xl tracking-[0.1em] leading-none">#{orderCode}</div>
         <div className="flex justify-center mt-1">
-          <Barcode value={barcodeValue(o.id)} height={40} width={1.9} fontSize={10} />
+          <Barcode value={barcodeValue(o.id)} height={40} width={1.6} fontSize={10} />
         </div>
-        <div className="text-[9px] mt-0.5 font-bold uppercase">Informe este número ao retirar / entregar</div>
+        <div className="text-[9px] mt-0.5 font-black uppercase leading-tight">Informe este número ao retirar / entregar</div>
       </div>
 
       <Row label="Destinatário">
@@ -252,16 +251,16 @@ function ShippingLabel({ o }: { o: any; items: any[] }) {
       </Row>
 
       <Row label="Endereço de entrega">
-        <div className="text-sm leading-snug font-bold">
+        <div className="text-sm leading-snug font-bold break-words">
           {o.shipping_street}, {o.shipping_number}
         </div>
         {o.shipping_complement && (
-          <div className="text-sm leading-snug font-bold">Compl.: {o.shipping_complement}</div>
+          <div className="text-sm leading-snug font-bold break-words">Compl.: {o.shipping_complement}</div>
         )}
         {o.shipping_district && (
-          <div className="text-sm leading-snug font-bold">Bairro: {o.shipping_district}</div>
+          <div className="text-sm leading-snug font-bold break-words">Bairro: {o.shipping_district}</div>
         )}
-        <div className="text-sm leading-snug font-bold">
+        <div className="text-sm leading-snug font-bold break-words">
           {o.shipping_city} / {o.shipping_state}
         </div>
         <div className="text-lg font-black tracking-widest mt-1">CEP: {formatCep(o.shipping_zip)}</div>
@@ -278,7 +277,7 @@ function PickupLabel({ o, items }: { o: any; items: any[] }) {
   const fullCode = o.id.replace(/-/g, "").slice(0, 14).toUpperCase();
   const shortCode = o.id.slice(0, 6).toUpperCase();
   return (
-    <div className="label-doc bg-white text-black p-3">
+    <div className="label-doc bg-white text-black p-2">
       <div className="pb-1">
         <img src={shopboxLogo} alt="shopbox" className="h-8 w-auto" />
       </div>
@@ -286,14 +285,14 @@ function PickupLabel({ o, items }: { o: any; items: any[] }) {
       <div className="border-t-2 border-black pt-2">
         <div className="text-[10px] font-bold uppercase">Senha do pedido</div>
         <div className="text-center">
-          <div className="font-black text-3xl tracking-[0.25em] mt-0.5">{shortCode}</div>
+          <div className="font-black text-3xl tracking-[0.12em] mt-0.5">{shortCode}</div>
           <div className="flex justify-center mt-1">
-            <Barcode value={barcodeValue(o.id)} height={38} width={1.7} fontSize={10} />
+            <Barcode value={barcodeValue(o.id)} height={38} width={1.5} fontSize={10} />
           </div>
           <div className="text-[10px] mt-0.5">{fullCode}</div>
         </div>
-        <div className="text-[11px] mt-1 font-bold">Escaneie na expedição para confirmar a entrega</div>
-        <div className="text-[11px] font-bold">Confira documento do cliente ao entregar</div>
+        <div className="text-[11px] mt-1 font-bold leading-tight">Escaneie na expedição para confirmar a entrega</div>
+        <div className="text-[11px] font-bold leading-tight">Confira documento do cliente ao entregar</div>
       </div>
 
       <div className="border-t-2 border-black pt-1 mt-2">
