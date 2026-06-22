@@ -134,21 +134,49 @@ export const createMpPreference = createServerFn({ method: "POST" })
       .eq("order_id", orderId as string);
     if (itemsErr || !orderItems) throw new Error("Falha ao carregar itens do pedido");
 
+    // 2.1) Calcula frete (apenas entrega): pedidos < R$80 pagam R$10, >= R$80 grátis.
+    const subtotal = orderItems.reduce(
+      (acc, it) => acc + Number(it.unit_price) * Number(it.quantity),
+      0,
+    );
+    const shippingFee =
+      data.delivery_method === "delivery" ? (subtotal < 80 ? 10 : 0) : 0;
+    if (shippingFee > 0 || data.delivery_method === "delivery") {
+      await supabaseAdmin
+        .from("orders")
+        .update({
+          delivery_fee: shippingFee,
+          total: subtotal + shippingFee,
+        })
+        .eq("id", orderId as string);
+    }
+
     const origin = originFromRequest();
 
     const nameParts = data.customer_name.trim().split(/\s+/);
     const firstName = nameParts[0] ?? "";
     const lastName = nameParts.slice(1).join(" ") || firstName;
 
+    const mpItems = orderItems.map((it) => ({
+      id: orderId as string,
+      title: String(it.product_name).slice(0, 250),
+      quantity: it.quantity,
+      unit_price: Number(it.unit_price),
+      currency_id: "BRL",
+    }));
+    if (shippingFee > 0) {
+      mpItems.push({
+        id: orderId as string,
+        title: "Frete - Entrega Curitiba e região",
+        quantity: 1,
+        unit_price: shippingFee,
+        currency_id: "BRL",
+      });
+    }
+
     const preferenceBody = {
       external_reference: orderId,
-      items: orderItems.map((it) => ({
-        id: orderId as string,
-        title: String(it.product_name).slice(0, 250),
-        quantity: it.quantity,
-        unit_price: Number(it.unit_price),
-        currency_id: "BRL",
-      })),
+      items: mpItems,
       payer: {
         name: firstName,
         surname: lastName,
