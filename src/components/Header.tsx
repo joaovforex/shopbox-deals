@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCart } from "@/lib/cart";
-import { getRoleSummary, usedCategoriesQuery } from "@/lib/products";
+import { getRoleSummary, readCachedTeamRoleSync, clearRolesCache, usedCategoriesQuery } from "@/lib/products";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import logo from "@/assets/shopbox-logo.png";
 import { OnlineCounter } from "@/components/OnlineCounter";
@@ -174,22 +174,23 @@ function MobileMenu({ user, signOut, hasTeamRole }: { user: { email?: string } |
 export function Header() {
   const { count } = useCart();
   const [user, setUser] = useState<{ email?: string } | null>(null);
-  const [hasTeamRole, setHasTeamRole] = useState(false);
+  const [hasTeamRole, setHasTeamRole] = useState<boolean>(() => readCachedTeamRoleSync() ?? false);
 
   useEffect(() => {
     const sync = () => getRoleSummary().then((r) => setHasTeamRole(r.hasAnyTeamRole));
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user ? { email: data.user.email ?? undefined } : null);
-      if (data.user) sync(); else setHasTeamRole(false);
+      if (data.user) sync(); else { setHasTeamRole(false); clearRolesCache(); }
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ? { email: session.user.email ?? undefined } : null);
-      if (session?.user) sync(); else setHasTeamRole(false);
+      if (session?.user) sync(); else { setHasTeamRole(false); clearRolesCache(); }
     });
     return () => sub.subscription.unsubscribe();
   }, []);
 
   const signOut = async () => {
+    clearRolesCache();
     await supabase.auth.signOut();
     window.location.href = "/";
   };
