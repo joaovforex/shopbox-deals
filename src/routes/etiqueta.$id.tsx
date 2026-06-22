@@ -226,6 +226,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 function ShippingLabel({ o }: { o: any; items: any[] }) {
+  const orderCode = o.id.slice(0, 8).toUpperCase();
   return (
     <div className="label-doc bg-white text-black p-3">
       <LabelHeader
@@ -234,12 +235,14 @@ function ShippingLabel({ o }: { o: any; items: any[] }) {
         icon={<Truck className="h-5 w-5 inline" />}
       />
 
-      <Row label={`Pedido #${o.id.slice(0, 8).toUpperCase()}`}>
+      <div className="border-2 border-black rounded-md p-2 mt-1 text-center">
+        <div className="text-[10px] font-black uppercase tracking-widest">Nº do Pedido</div>
+        <div className="font-black text-2xl tracking-[0.2em] leading-tight">#{orderCode}</div>
         <div className="flex justify-center mt-1">
-          <Barcode value={barcodeValue(o.id)} height={44} width={2} fontSize={11} />
+          <Barcode value={barcodeValue(o.id)} height={40} width={1.9} fontSize={10} />
         </div>
-        <div className="text-[10px] mt-0.5 text-center font-bold">Escaneie para confirmar a entrega</div>
-      </Row>
+        <div className="text-[9px] mt-0.5 font-bold uppercase">Informe este número ao retirar / entregar</div>
+      </div>
 
       <Row label="Destinatário">
         <div className="font-black text-base uppercase leading-tight">{o.customer_name}</div>
@@ -264,8 +267,8 @@ function ShippingLabel({ o }: { o: any; items: any[] }) {
         <div className="text-lg font-black tracking-widest mt-1">CEP: {formatCep(o.shipping_zip)}</div>
       </Row>
 
-      <div className="text-[10px] text-center mt-2 pt-1 border-t-2 border-dashed border-black">
-        Emitido em {new Date(o.created_at).toLocaleDateString("pt-BR")} · shopbox · Colombo / PR
+      <div className="text-[10px] text-center mt-2 pt-1 border-t-2 border-dashed border-black font-bold">
+        Pedido #{orderCode} · Emitido em {new Date(o.created_at).toLocaleDateString("pt-BR")} · shopbox
       </div>
     </div>
   );
