@@ -227,20 +227,20 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 function ShippingLabel({ o }: { o: any; items: any[] }) {
   const orderCode = o.id.slice(0, 8).toUpperCase();
   return (
-    <div className="label-doc bg-white text-black p-3">
+    <div className="label-doc bg-white text-black p-2">
       <LabelHeader
         title="ENTREGA EM DOMICÍLIO"
         subtitle="Pedido shopbox"
         icon={<Truck className="h-5 w-5 inline" />}
       />
 
-      <div className="border-2 border-black rounded-md p-2 mt-1 text-center">
+      <div className="border-2 border-black rounded-md p-1.5 mt-1 text-center">
         <div className="text-[10px] font-black uppercase tracking-widest">Nº do Pedido</div>
-        <div className="font-black text-2xl tracking-[0.2em] leading-tight">#{orderCode}</div>
+        <div className="font-black text-2xl tracking-[0.1em] leading-none">#{orderCode}</div>
         <div className="flex justify-center mt-1">
-          <Barcode value={barcodeValue(o.id)} height={40} width={1.9} fontSize={10} />
+          <Barcode value={barcodeValue(o.id)} height={40} width={1.6} fontSize={10} />
         </div>
-        <div className="text-[9px] mt-0.5 font-bold uppercase">Informe este número ao retirar / entregar</div>
+        <div className="text-[9px] mt-0.5 font-black uppercase leading-tight">Informe este número ao retirar / entregar</div>
       </div>
 
       <Row label="Destinatário">
