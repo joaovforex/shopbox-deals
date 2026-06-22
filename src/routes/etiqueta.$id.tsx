@@ -251,16 +251,16 @@ function ShippingLabel({ o }: { o: any; items: any[] }) {
       </Row>
 
       <Row label="Endereço de entrega">
-        <div className="text-sm leading-snug font-bold">
+        <div className="text-sm leading-snug font-bold break-words">
           {o.shipping_street}, {o.shipping_number}
         </div>
         {o.shipping_complement && (
-          <div className="text-sm leading-snug font-bold">Compl.: {o.shipping_complement}</div>
+          <div className="text-sm leading-snug font-bold break-words">Compl.: {o.shipping_complement}</div>
         )}
         {o.shipping_district && (
-          <div className="text-sm leading-snug font-bold">Bairro: {o.shipping_district}</div>
+          <div className="text-sm leading-snug font-bold break-words">Bairro: {o.shipping_district}</div>
         )}
-        <div className="text-sm leading-snug font-bold">
+        <div className="text-sm leading-snug font-bold break-words">
           {o.shipping_city} / {o.shipping_state}
         </div>
         <div className="text-lg font-black tracking-widest mt-1">CEP: {formatCep(o.shipping_zip)}</div>
