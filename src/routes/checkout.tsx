@@ -420,7 +420,7 @@ function CheckoutPage() {
           </Section>
         </div>
 
-        {(() => null)()}
+        
         <aside className="bg-card border border-border rounded-lg p-5 h-fit lg:sticky lg:top-24 space-y-3">
           <h2 className="display text-xl">Resumo</h2>
           <ul className="space-y-2 text-sm border-b border-border pb-3">
