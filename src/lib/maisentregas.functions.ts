@@ -146,6 +146,7 @@ export async function createDeliveryForOrder(orderId: string): Promise<{
   try {
     const recipientName = order.shipping_recipient_name?.trim() || order.customer_name;
     const recipientPhone = normalizePhone(order.shipping_recipient_phone ?? order.customer_phone);
+    const orderCode = order.id.slice(0, 8).toUpperCase();
 
     const confirmRes = await me.confirm({
       client: email,
@@ -153,7 +154,7 @@ export async function createDeliveryForOrder(orderId: string): Promise<{
       payment: ME_PAYMENT,
       billing: ME_BILLING,
       delivery: ME_DELIVERY,
-      order: order.id,
+      order: `Pedido #${orderCode}`,
       document: order.customer_cpf ?? undefined,
       address: [
         buildAddress({
@@ -166,7 +167,7 @@ export async function createDeliveryForOrder(orderId: string): Promise<{
           zip: me.PICKUP_ADDRESS.zip,
           name: me.PICKUP_ADDRESS.recipient_name,
           phone: me.PICKUP_ADDRESS.recipient_phone,
-          comment: "coleta",
+          comment: `Coleta do pedido shopbox #${orderCode}`,
         }),
         buildAddress({
           street: order.shipping_street,
@@ -178,7 +179,7 @@ export async function createDeliveryForOrder(orderId: string): Promise<{
           zip: order.shipping_zip,
           name: recipientName,
           phone: recipientPhone,
-          comment: "entrega",
+          comment: `Entrega do pedido shopbox #${orderCode}`,
         }),
       ],
     });
