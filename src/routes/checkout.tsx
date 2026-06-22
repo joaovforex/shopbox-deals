@@ -339,8 +339,8 @@ function CheckoutPage() {
                 active={delivery === "delivery"}
                 onClick={() => setDelivery("delivery")}
                 title="Receber em casa"
-                subtitle="SOMENTE CURITIBA E REGIÃO"
-                description="Entrega em até 2 dias úteis — frete grátis"
+                subtitle="FRETE R$10 ABAIXO DE R$80"
+                description="Acima de R$ 80,00 o frete é grátis. Entrega em até 2 dias úteis."
                 highlight
               />
             </div>
