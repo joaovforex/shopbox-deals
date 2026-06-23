@@ -9,7 +9,7 @@ import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
 import { createMpPreference } from "@/lib/mercadopago.functions";
-import { quoteDelivery } from "@/lib/maisentregas.functions";
+
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Finalizar compra · shopbox" }] }),
