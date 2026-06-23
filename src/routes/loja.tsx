@@ -70,7 +70,7 @@ function Loja() {
   }, [focus, cat, qParam, navigate]);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useSuspenseInfiniteQuery(
-    pagedProductsQuery({ search: qParam, category: cat }),
+    pagedProductsQuery({ search: qParam, category: cat, stock: "in_stock" }),
   );
 
   const products = useMemo(() => data.pages.flatMap((p) => p.items), [data]);
