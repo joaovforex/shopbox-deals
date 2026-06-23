@@ -107,7 +107,7 @@ function CheckoutPage() {
   const [cepError, setCepError] = useState<string | null>(null);
   const [coverageOk, setCoverageOk] = useState<null | boolean>(null);
   const [coverageMsg, setCoverageMsg] = useState<string | null>(null);
-  const lastQuotedRef = useRef<string>("");
+  
 
   // Pré-preenche do perfil do cliente logado
   useEffect(() => {
