@@ -6,17 +6,24 @@ import { ProductCard } from "@/components/ProductCard";
 import { MegaOffersCarousel } from "@/components/MegaOffersCarousel";
 import { pagedProductsQuery, productImages } from "@/lib/products";
 import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
+import { cn } from "@/lib/utils";
 import { Search, X, Loader2 } from "lucide-react";
 
-type LojaSearch = { cat?: string; q?: string; focus?: number };
+type LojaSearch = { cat?: string; q?: string; focus?: number; esgotados?: boolean };
 
 export const Route = createFileRoute("/loja")({
   validateSearch: (search: Record<string, unknown>): LojaSearch => ({
     cat: typeof search.cat === "string" ? search.cat : undefined,
     q: typeof search.q === "string" ? search.q : undefined,
     focus: search.focus ? 1 : undefined,
+    esgotados:
+      search.esgotados === true ||
+      search.esgotados === 1 ||
+      String(search.esgotados).toLowerCase() === "true"
+        ? true
+        : undefined,
   }),
-  loaderDeps: ({ search }) => ({ cat: search.cat, q: search.q }),
+  loaderDeps: ({ search }) => ({ cat: search.cat, q: search.q, esgotados: search.esgotados }),
   head: () => ({
     meta: [
       { title: "Ofertas · shopbox" },
@@ -25,7 +32,11 @@ export const Route = createFileRoute("/loja")({
   }),
   loader: ({ context, deps }) =>
     context.queryClient.ensureInfiniteQueryData(
-      pagedProductsQuery({ search: deps.q, category: deps.cat }),
+      pagedProductsQuery({
+        search: deps.q,
+        category: deps.cat,
+        stock: deps.esgotados ? "out_of_stock" : undefined,
+      }),
     ),
   component: Loja,
   pendingMs: 0,
@@ -41,21 +52,30 @@ function useDebounced<T>(value: T, ms = 300): T {
 }
 
 function Loja() {
-  const { cat, q: qParam, focus } = Route.useSearch();
+  const { cat, q: qParam, focus, esgotados } = Route.useSearch();
   const navigate = useNavigate();
   const [q, setQ] = useState(qParam ?? "");
   const debouncedQ = useDebounced(q, 350);
   useRealtimeProducts();
+
+  const baseSearch = useMemo(
+    () => ({
+      ...(cat ? { cat } : {}),
+      ...(qParam ? { q: qParam } : {}),
+      ...(esgotados ? { esgotados: true as const } : {}),
+    }),
+    [cat, qParam, esgotados],
+  );
 
   // Sincroniza busca com URL (sem recarregar a rota — search params atualizam loaderDeps)
   useEffect(() => {
     if ((debouncedQ || "") === (qParam ?? "")) return;
     navigate({
       to: "/loja",
-      search: { ...(cat ? { cat } : {}), ...(debouncedQ ? { q: debouncedQ } : {}) },
+      search: { ...(cat ? { cat } : {}), ...(debouncedQ ? { q: debouncedQ } : {}), ...(esgotados ? { esgotados: true } : {}) },
       replace: true,
     });
-  }, [debouncedQ, qParam, cat, navigate]);
+  }, [debouncedQ, qParam, cat, esgotados, navigate]);
 
   useEffect(() => {
     if (!focus) return;
@@ -64,13 +84,17 @@ function Loja() {
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
     navigate({
       to: "/loja",
-      search: { ...(cat ? { cat } : {}), ...(qParam ? { q: qParam } : {}) },
+      search: baseSearch,
       replace: true,
     });
-  }, [focus, cat, qParam, navigate]);
+  }, [focus, baseSearch, navigate]);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useSuspenseInfiniteQuery(
-    pagedProductsQuery({ search: qParam, category: cat }),
+    pagedProductsQuery({
+      search: qParam,
+      category: cat,
+      stock: esgotados ? "out_of_stock" : undefined,
+    }),
   );
 
   const products = useMemo(() => data.pages.flatMap((p) => p.items), [data]);
@@ -119,7 +143,12 @@ function Loja() {
           {cat && (
             <button
               type="button"
-              onClick={() => navigate({ to: "/loja", search: q ? { q } : {} })}
+              onClick={() =>
+                navigate({
+                  to: "/loja",
+                  search: { ...(q ? { q } : {}), ...(esgotados ? { esgotados: true } : {}) },
+                })
+              }
               className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider self-start sm:self-auto"
             >
               {cat}
@@ -128,13 +157,47 @@ function Loja() {
           )}
         </div>
 
-        {!qParam && !cat && products.length > 0 && (
+        <div className="mb-4 sm:mb-6 inline-flex items-center gap-1 rounded-lg bg-muted p-1">
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/loja", search: { ...(cat ? { cat } : {}), ...(qParam ? { q: qParam } : {}) } })}
+            className={cn(
+              "px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
+              !esgotados
+                ? "bg-background text-foreground shadow"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Disponíveis
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              navigate({
+                to: "/loja",
+                search: { ...(cat ? { cat } : {}), ...(qParam ? { q: qParam } : {}), esgotados: true },
+              })
+            }
+            className={cn(
+              "px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
+              esgotados
+                ? "bg-background text-foreground shadow"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Esgotados
+          </button>
+        </div>
+
+        {!qParam && !cat && !esgotados && products.length > 0 && (
           <MegaOffersCarousel products={products as any} />
         )}
 
         {products.length === 0 ? (
           <div className="text-center py-16 sm:py-20 bg-card rounded-xl border border-border">
-            <p className="text-muted-foreground">Nenhum produto encontrado.</p>
+            <p className="text-muted-foreground">
+              {esgotados ? "Nenhum produto esgotado no momento." : "Nenhum produto encontrado."}
+            </p>
           </div>
         ) : (
           <>

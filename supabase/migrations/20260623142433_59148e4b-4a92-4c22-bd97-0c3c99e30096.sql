@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.list_products_paged(text, text, integer, integer);

@@ -78,6 +78,7 @@ type PagedResult = { items: ProductCard[]; total: number; nextOffset: number | n
 export async function fetchProductsPaged(args: {
   search?: string;
   category?: string;
+  stock?: "in_stock" | "out_of_stock";
   offset: number;
   limit: number;
 }): Promise<PagedResult> {
@@ -86,6 +87,7 @@ export async function fetchProductsPaged(args: {
     p_category: args.category ? args.category : undefined,
     p_limit: args.limit,
     p_offset: args.offset,
+    ...(args.stock ? { p_stock_status: args.stock } : {}),
   });
   if (error) throw error;
   const rows = (data ?? []) as PagedRow[];
@@ -95,13 +97,14 @@ export async function fetchProductsPaged(args: {
   return { items, total, nextOffset };
 }
 
-export const pagedProductsQuery = (args: { search?: string; category?: string }) =>
+export const pagedProductsQuery = (args: { search?: string; category?: string; stock?: "in_stock" | "out_of_stock" }) =>
   infiniteQueryOptions({
-    queryKey: ["products", "paged", args.category ?? null, args.search ?? ""],
+    queryKey: ["products", "paged", args.category ?? null, args.search ?? "", args.stock ?? "all"],
     queryFn: ({ pageParam }) =>
       fetchProductsPaged({
         search: args.search,
         category: args.category,
+        stock: args.stock,
         offset: pageParam as number,
         limit: PRODUCTS_PAGE_SIZE,
       }),

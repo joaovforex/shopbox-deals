@@ -507,6 +507,7 @@ export type Database = {
           p_limit?: number
           p_offset?: number
           p_search?: string
+          p_stock_status?: string
         }
         Returns: {
           category: string
