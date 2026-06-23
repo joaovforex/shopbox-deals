@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/ProductCard";
 import { MegaOffersCarousel } from "@/components/MegaOffersCarousel";
 import { pagedProductsQuery, productImages } from "@/lib/products";
 import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
+import { cn } from "@/lib/utils";
 import { Search, X, Loader2 } from "lucide-react";
 
 type LojaSearch = { cat?: string; q?: string; focus?: number; esgotados?: boolean };
