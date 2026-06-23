@@ -216,7 +216,10 @@ export async function createDeliveryForOrder(orderId: string): Promise<{
       maisentregas_last_check_at: new Date().toISOString(),
     }).eq("id", orderId);
     return { ok: false, reason: "api_error" };
+  }
 }
+
+
 
 // =====================================================================
 // dispatchDelivery — chamada pelo painel de expedição quando o pedido
