@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { hasAnyRole, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
 import { refundOrder } from "@/lib/refunds.functions";
+import { openWhatsApp, orderReminderMessage } from "@/lib/whatsapp";
 
 export const Route = createFileRoute("/_authenticated/admin/expedicao")({
   head: () => ({ meta: [{ title: "Expedição · Admin" }] }),
@@ -558,6 +559,15 @@ function FulfillmentPage() {
                         title="Confirmar entrega ao cliente"
                       >
                         <CheckCheck className="h-3.5 w-3.5" /> Entregue
+                      </button>
+                    )}
+                    {o.delivery_method === "pickup" && delayed && o.customer_phone && (
+                      <button
+                        onClick={() => openWhatsApp(o.customer_phone, orderReminderMessage(o.customer_name, o.id))}
+                        className="inline-flex items-center gap-1.5 text-xs bg-[#25D366] text-white hover:opacity-90 px-3 py-2 rounded font-bold uppercase tracking-wider"
+                        title="Enviar lembrete de retirada via WhatsApp"
+                      >
+                        <BellRing className="h-3.5 w-3.5" /> Lembrar WhatsApp
                       </button>
                     )}
                     {superAdmin && o.status === "paid" && o.mp_payment_id && !o.refund_status && o.fulfillment_status !== "completed" && (
