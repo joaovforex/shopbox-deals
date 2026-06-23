@@ -216,7 +216,30 @@ export async function createDeliveryForOrder(orderId: string): Promise<{
       maisentregas_last_check_at: new Date().toISOString(),
     }).eq("id", orderId);
     return { ok: false, reason: "api_error" };
-  }
+}
+
+// =====================================================================
+// dispatchDelivery — chamada pelo painel de expedição quando o pedido
+// for marcado como "Pronto". Cria a corrida na Mais Entregas (TBT Express).
+// =====================================================================
+export const dispatchDelivery = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { orderId: string }) => {
+    if (!data?.orderId) throw new Error("orderId obrigatório");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const allowed = (roles ?? []).some((r) =>
+      ["admin", "manager", "fulfillment", "owner"].includes(r.role as string),
+    );
+    if (!allowed) throw new Error("Sem permissão para despachar entregas.");
+    return await createDeliveryForOrder(data.orderId);
+  });
 }
 
 // =====================================================================
