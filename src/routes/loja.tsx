@@ -137,7 +137,12 @@ function Loja() {
           {cat && (
             <button
               type="button"
-              onClick={() => navigate({ to: "/loja", search: q ? { q } : {} })}
+              onClick={() =>
+                navigate({
+                  to: "/loja",
+                  search: { ...(q ? { q } : {}), ...(esgotados ? { esgotados: 1 } : {}) },
+                })
+              }
               className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider self-start sm:self-auto"
             >
               {cat}
@@ -146,13 +151,47 @@ function Loja() {
           )}
         </div>
 
-        {!qParam && !cat && products.length > 0 && (
+        <div className="mb-4 sm:mb-6 inline-flex items-center gap-1 rounded-lg bg-muted p-1">
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/loja", search: { ...(cat ? { cat } : {}), ...(qParam ? { q: qParam } : {}) } })}
+            className={cn(
+              "px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
+              !esgotados
+                ? "bg-background text-foreground shadow"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Disponíveis
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              navigate({
+                to: "/loja",
+                search: { ...(cat ? { cat } : {}), ...(qParam ? { q: qParam } : {}), esgotados: 1 },
+              })
+            }
+            className={cn(
+              "px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
+              esgotados
+                ? "bg-background text-foreground shadow"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Esgotados
+          </button>
+        </div>
+
+        {!qParam && !cat && !esgotados && products.length > 0 && (
           <MegaOffersCarousel products={products as any} />
         )}
 
         {products.length === 0 ? (
           <div className="text-center py-16 sm:py-20 bg-card rounded-xl border border-border">
-            <p className="text-muted-foreground">Nenhum produto encontrado.</p>
+            <p className="text-muted-foreground">
+              {esgotados ? "Nenhum produto esgotado no momento." : "Nenhum produto encontrado."}
+            </p>
           </div>
         ) : (
           <>
