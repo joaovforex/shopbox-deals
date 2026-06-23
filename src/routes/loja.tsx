@@ -16,7 +16,12 @@ export const Route = createFileRoute("/loja")({
     cat: typeof search.cat === "string" ? search.cat : undefined,
     q: typeof search.q === "string" ? search.q : undefined,
     focus: search.focus ? 1 : undefined,
-    esgotados: search.esgotados === 1 || search.esgotados === true ? true : undefined,
+    esgotados:
+      search.esgotados === true ||
+      search.esgotados === 1 ||
+      String(search.esgotados).toLowerCase() === "true"
+        ? true
+        : undefined,
   }),
   loaderDeps: ({ search }) => ({ cat: search.cat, q: search.q, esgotados: search.esgotados }),
   head: () => ({
