@@ -51,6 +51,8 @@ function AdminPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<"todos" | "esgotados">("todos");
+
 
   // If a draft for an existing product was in progress, reopen edit form once loaded.
   useEffect(() => {
