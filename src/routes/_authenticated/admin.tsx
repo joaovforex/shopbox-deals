@@ -222,7 +222,7 @@ function AdminPage() {
               )}
             </div>
             <h1 className="display text-4xl">Produtos</h1>
-            <p className="text-sm text-muted-foreground">{products.length} cadastrados</p>
+            <p className="text-sm text-muted-foreground">{products.filter((p) => p.stock > 0).length} cadastrados</p>
             {!roles.isSuperAdmin && !roles.isManager && (
               <p className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
                 <ShieldAlert className="h-3 w-3" /> Você só pode gerenciar produtos. Pedidos, expedição e métricas são restritos ao Super Admin.
