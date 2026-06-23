@@ -240,7 +240,7 @@ export const dispatchDelivery = createServerFn({ method: "POST" })
     if (!allowed) throw new Error("Sem permissão para despachar entregas.");
     return await createDeliveryForOrder(data.orderId);
   });
-}
+
 
 // =====================================================================
 // pollOrderStatus — atualiza status de UMA entrega já criada.
