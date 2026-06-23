@@ -11,6 +11,7 @@ import { hasAnyRole, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
 import { refundOrder } from "@/lib/refunds.functions";
 import { openWhatsApp, orderReminderMessage } from "@/lib/whatsapp";
+import { dispatchDelivery } from "@/lib/maisentregas.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/expedicao")({
   head: () => ({ meta: [{ title: "Expedição · Admin" }] }),
@@ -243,12 +244,23 @@ function FulfillmentPage() {
     };
   }, [allowed, qc]);
 
+  const dispatchFn = useServerFn(dispatchDelivery);
   const advance = async (o: OrderRow) => {
     const ns = nextStatus(o.fulfillment_status, o.delivery_method);
     if (ns === o.fulfillment_status) return;
     const { error } = await supabase.rpc("set_fulfillment_status" as never, { p_order_id: o.id, p_status: ns } as never);
     if (error) return toast.error(error.message);
     toast.success(`Status atualizado para "${STATUS_LABEL[ns]}"`);
+    // Quando o pedido de entrega vira "Pronto", dispara a corrida na TBT Express.
+    if (ns === "ready" && o.delivery_method === "delivery" && !o.maisentregas_order_id) {
+      try {
+        const r = await dispatchFn({ data: { orderId: o.id } });
+        if (r?.ok) toast.success("Entrega enviada para a TBT Express.");
+        else toast.error(`Não foi possível despachar a entrega: ${r?.reason ?? "erro"}`);
+      } catch (e: any) {
+        toast.error(e?.message || "Falha ao despachar entrega.");
+      }
+    }
     qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
   };
 
