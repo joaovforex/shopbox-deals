@@ -79,7 +79,7 @@ function CheckoutPage() {
   const [busy, setBusy] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const createPref = useServerFn(createMpPreference);
-  const quote = useServerFn(quoteDelivery);
+
   const user = useAuthUser();
   const navigate = useNavigate();
 
