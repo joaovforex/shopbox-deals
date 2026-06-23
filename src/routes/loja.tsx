@@ -62,7 +62,7 @@ function Loja() {
     () => ({
       ...(cat ? { cat } : {}),
       ...(qParam ? { q: qParam } : {}),
-      ...(esgotados ? { esgotados: 1 as const } : {}),
+      ...(esgotados ? { esgotados: true as const } : {}),
     }),
     [cat, qParam, esgotados],
   );
@@ -72,7 +72,7 @@ function Loja() {
     if ((debouncedQ || "") === (qParam ?? "")) return;
     navigate({
       to: "/loja",
-      search: { ...(cat ? { cat } : {}), ...(debouncedQ ? { q: debouncedQ } : {}), ...(esgotados ? { esgotados: 1 } : {}) },
+      search: { ...(cat ? { cat } : {}), ...(debouncedQ ? { q: debouncedQ } : {}), ...(esgotados ? { esgotados: true } : {}) },
       replace: true,
     });
   }, [debouncedQ, qParam, cat, esgotados, navigate]);
@@ -146,7 +146,7 @@ function Loja() {
               onClick={() =>
                 navigate({
                   to: "/loja",
-                  search: { ...(q ? { q } : {}), ...(esgotados ? { esgotados: 1 } : {}) },
+                  search: { ...(q ? { q } : {}), ...(esgotados ? { esgotados: true } : {}) },
                 })
               }
               className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider self-start sm:self-auto"
@@ -175,7 +175,7 @@ function Loja() {
             onClick={() =>
               navigate({
                 to: "/loja",
-                search: { ...(cat ? { cat } : {}), ...(qParam ? { q: qParam } : {}), esgotados: 1 },
+                search: { ...(cat ? { cat } : {}), ...(qParam ? { q: qParam } : {}), esgotados: true },
               })
             }
             className={cn(
