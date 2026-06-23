@@ -11,6 +11,7 @@ import { hasAnyRole, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
 import { refundOrder } from "@/lib/refunds.functions";
 import { openWhatsApp, orderReminderMessage } from "@/lib/whatsapp";
+import { dispatchDelivery } from "@/lib/maisentregas.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/expedicao")({
   head: () => ({ meta: [{ title: "Expedição · Admin" }] }),
