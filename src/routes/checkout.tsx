@@ -168,37 +168,25 @@ function CheckoutPage() {
     return () => { cancelled = true; };
   }, [cep]);
 
-  // Valida cobertura na Mais Entregas quando todos os campos mínimos estiverem prontos
+  // Libera o botão de pagamento assim que os campos mínimos estiverem ok.
+  // Não chamamos mais a Mais Entregas aqui (preconfirm) — era lento (2-5s) e
+  // a corrida só é criada após o pagamento aprovado de qualquer jeito.
   useEffect(() => {
-    if (delivery !== "delivery") return;
+    if (delivery !== "delivery") {
+      setCoverageOk(null);
+      setCoverageMsg(null);
+      return;
+    }
     const d = cep.replace(/\D/g, "");
     if (d.length !== 8 || !street.trim() || !number.trim() || cepError) {
       setCoverageOk(null);
       setCoverageMsg(null);
       return;
     }
-    const sig = `${d}|${street}|${number}`;
-    if (lastQuotedRef.current === sig) return;
-    lastQuotedRef.current = sig;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await quote({
-          data: { zip: d, street: street.trim(), number: number.trim(), district, complement, city: city.trim() || "Curitiba" },
-        });
-        if (cancelled) return;
-        setCoverageOk(true);
-        setCoverageMsg(res.fee > 0
-          ? `Frete: ${brl(res.fee)} — cortesia da loja. Entrega em até 2 dias úteis.`
-          : "Entrega disponível. Prazo de até 2 dias úteis.");
-      } catch (err) {
-        if (cancelled) return;
-        setCoverageOk(false);
-        setCoverageMsg(err instanceof Error ? err.message : "Não foi possível validar a entrega");
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [delivery, cep, street, number, district, complement, city, cepError, quote]);
+    setCoverageOk(true);
+    setCoverageMsg("Entrega disponível. Prazo de até 2 dias úteis — frete por conta da loja.");
+  }, [delivery, cep, street, number, cepError]);
+
 
   if (user === undefined || user === null) {
     return (
