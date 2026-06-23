@@ -501,50 +501,28 @@ export type Database = {
         Args: { _role: string; _user_id: string }
         Returns: boolean
       }
-      list_products_paged:
-        | {
-            Args: {
-              p_category?: string
-              p_limit?: number
-              p_offset?: number
-              p_search?: string
-            }
-            Returns: {
-              category: string
-              created_at: string
-              id: string
-              image_url: string
-              images: string[]
-              name: string
-              original_price: number
-              price: number
-              sku: string
-              stock: number
-              total_count: number
-            }[]
-          }
-        | {
-            Args: {
-              p_category?: string
-              p_limit?: number
-              p_offset?: number
-              p_search?: string
-              p_stock_status?: string
-            }
-            Returns: {
-              category: string
-              created_at: string
-              id: string
-              image_url: string
-              images: string[]
-              name: string
-              original_price: number
-              price: number
-              sku: string
-              stock: number
-              total_count: number
-            }[]
-          }
+      list_products_paged: {
+        Args: {
+          p_category?: string
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_stock_status?: string
+        }
+        Returns: {
+          category: string
+          created_at: string
+          id: string
+          image_url: string
+          images: string[]
+          name: string
+          original_price: number
+          price: number
+          sku: string
+          stock: number
+          total_count: number
+        }[]
+      }
       list_used_categories: {
         Args: never
         Returns: {
