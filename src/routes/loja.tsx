@@ -46,21 +46,30 @@ function useDebounced<T>(value: T, ms = 300): T {
 }
 
 function Loja() {
-  const { cat, q: qParam, focus } = Route.useSearch();
+  const { cat, q: qParam, focus, esgotados } = Route.useSearch();
   const navigate = useNavigate();
   const [q, setQ] = useState(qParam ?? "");
   const debouncedQ = useDebounced(q, 350);
   useRealtimeProducts();
+
+  const baseSearch = useMemo(
+    () => ({
+      ...(cat ? { cat } : {}),
+      ...(qParam ? { q: qParam } : {}),
+      ...(esgotados ? { esgotados: 1 as const } : {}),
+    }),
+    [cat, qParam, esgotados],
+  );
 
   // Sincroniza busca com URL (sem recarregar a rota — search params atualizam loaderDeps)
   useEffect(() => {
     if ((debouncedQ || "") === (qParam ?? "")) return;
     navigate({
       to: "/loja",
-      search: { ...(cat ? { cat } : {}), ...(debouncedQ ? { q: debouncedQ } : {}) },
+      search: { ...(cat ? { cat } : {}), ...(debouncedQ ? { q: debouncedQ } : {}), ...(esgotados ? { esgotados: 1 } : {}) },
       replace: true,
     });
-  }, [debouncedQ, qParam, cat, navigate]);
+  }, [debouncedQ, qParam, cat, esgotados, navigate]);
 
   useEffect(() => {
     if (!focus) return;
@@ -69,13 +78,17 @@ function Loja() {
     el?.scrollIntoView({ behavior: "smooth", block: "center" });
     navigate({
       to: "/loja",
-      search: { ...(cat ? { cat } : {}), ...(qParam ? { q: qParam } : {}) },
+      search: baseSearch,
       replace: true,
     });
-  }, [focus, cat, qParam, navigate]);
+  }, [focus, baseSearch, navigate]);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useSuspenseInfiniteQuery(
-    pagedProductsQuery({ search: qParam, category: cat }),
+    pagedProductsQuery({
+      search: qParam,
+      category: cat,
+      stock: esgotados ? "out_of_stock" : undefined,
+    }),
   );
 
   const products = useMemo(() => data.pages.flatMap((p) => p.items), [data]);
