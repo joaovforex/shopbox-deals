@@ -304,6 +304,33 @@ function AdminPage() {
 
 
       <section className="container mx-auto px-4 py-8 flex-1">
+        <div className="mb-4 inline-flex items-center gap-1 rounded-lg bg-muted p-1">
+          <button
+            type="button"
+            onClick={() => setTab("todos")}
+            className={cn(
+              "px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
+              tab === "todos"
+                ? "bg-background text-foreground shadow"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Todos
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("esgotados")}
+            className={cn(
+              "px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
+              tab === "esgotados"
+                ? "bg-background text-foreground shadow"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Esgotados
+          </button>
+        </div>
+
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <div className="relative flex-1 min-w-[240px] max-w-md">
             <input
@@ -322,22 +349,24 @@ function AdminPage() {
           <span className="text-xs text-muted-foreground ml-auto">
             {(() => {
               const t = search.trim().toLowerCase();
+              const byTab = tab === "esgotados" ? products.filter((p) => p.stock === 0) : products;
               const match = (p: typeof products[number]) =>
                 p.name.toLowerCase().includes(t)
                 || (p.category ?? "").toLowerCase().includes(t)
                 || (p.sku ?? "").toLowerCase().includes(t);
-              const n = t ? products.filter(match).length : products.length;
+              const n = t ? byTab.filter(match).length : byTab.length;
               return `${n} ${n === 1 ? "resultado" : "resultados"}`;
             })()}
           </span>
         </div>
         {(() => {
           const t = search.trim().toLowerCase();
+          const byTab = tab === "esgotados" ? products.filter((p) => p.stock === 0) : products;
           const match = (p: typeof products[number]) =>
             p.name.toLowerCase().includes(t)
             || (p.category ?? "").toLowerCase().includes(t)
             || (p.sku ?? "").toLowerCase().includes(t);
-          const filtered = t ? products.filter(match) : products;
+          const filtered = t ? byTab.filter(match) : byTab;
           if (products.length === 0) {
             return (
               <div className="text-center py-20 bg-card rounded-lg border border-border">
@@ -348,7 +377,9 @@ function AdminPage() {
           if (filtered.length === 0) {
             return (
               <div className="text-center py-20 bg-card rounded-lg border border-border">
-                <p className="text-muted-foreground">Nenhum produto encontrado para "{search}".</p>
+                <p className="text-muted-foreground">
+                  {tab === "esgotados" ? "Nenhum produto esgotado." : `Nenhum produto encontrado para "${search}".`}
+                </p>
               </div>
             );
           }
