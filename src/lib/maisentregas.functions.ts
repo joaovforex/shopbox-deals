@@ -128,7 +128,7 @@ export async function createDeliveryForOrder(orderId: string): Promise<{
 
   const { data: order, error } = await supabaseAdmin
     .from("orders")
-    .select("id,status,delivery_method,customer_name,customer_phone,customer_email,customer_cpf,shipping_zip,shipping_street,shipping_number,shipping_complement,shipping_district,shipping_city,shipping_state,shipping_recipient_name,shipping_recipient_phone,maisentregas_order_id")
+    .select("id,status,fulfillment_status,delivery_method,customer_name,customer_phone,customer_email,customer_cpf,shipping_zip,shipping_street,shipping_number,shipping_complement,shipping_district,shipping_city,shipping_state,shipping_recipient_name,shipping_recipient_phone,maisentregas_order_id")
     .eq("id", orderId)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -136,6 +136,11 @@ export async function createDeliveryForOrder(orderId: string): Promise<{
   if (order.status !== "paid") return { ok: false, reason: "order_not_paid" };
   if (order.delivery_method !== "delivery") return { ok: false, reason: "pickup_order" };
   if (order.maisentregas_order_id) return { ok: true, meOrderId: order.maisentregas_order_id };
+  // Só dispara a TBT Express quando o pedido está separado e pronto na expedição.
+  const fs = (order as { fulfillment_status?: string | null }).fulfillment_status ?? "";
+  if (fs !== "ready" && fs !== "shipped" && fs !== "completed") {
+    return { ok: false, reason: "not_ready" };
+  }
   if (!order.shipping_zip || !order.shipping_street || !order.shipping_number) {
     return { ok: false, reason: "missing_shipping_address" };
   }
