@@ -8,15 +8,16 @@ import { pagedProductsQuery, productImages } from "@/lib/products";
 import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
 import { Search, X, Loader2 } from "lucide-react";
 
-type LojaSearch = { cat?: string; q?: string; focus?: number };
+type LojaSearch = { cat?: string; q?: string; focus?: number; esgotados?: boolean };
 
 export const Route = createFileRoute("/loja")({
   validateSearch: (search: Record<string, unknown>): LojaSearch => ({
     cat: typeof search.cat === "string" ? search.cat : undefined,
     q: typeof search.q === "string" ? search.q : undefined,
     focus: search.focus ? 1 : undefined,
+    esgotados: search.esgotados === 1 || search.esgotados === true ? true : undefined,
   }),
-  loaderDeps: ({ search }) => ({ cat: search.cat, q: search.q }),
+  loaderDeps: ({ search }) => ({ cat: search.cat, q: search.q, esgotados: search.esgotados }),
   head: () => ({
     meta: [
       { title: "Ofertas · shopbox" },
@@ -25,7 +26,11 @@ export const Route = createFileRoute("/loja")({
   }),
   loader: ({ context, deps }) =>
     context.queryClient.ensureInfiniteQueryData(
-      pagedProductsQuery({ search: deps.q, category: deps.cat }),
+      pagedProductsQuery({
+        search: deps.q,
+        category: deps.cat,
+        stock: deps.esgotados ? "out_of_stock" : undefined,
+      }),
     ),
   component: Loja,
   pendingMs: 0,
