@@ -54,7 +54,9 @@ export const createMpPreference = createServerFn({ method: "POST" })
       if (zip.length !== 8) throw new Error("CEP inválido");
       if (!s.street || s.street.length < 2) throw new Error("Rua obrigatória");
       if (!s.number) throw new Error("Número obrigatório");
-      if (!/curitiba/i.test(s.city ?? "")) throw new Error("Por enquanto entregamos apenas em Curitiba");
+      const cityNorm = (s.city ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+      const RMC = ["curitiba","almirante tamandare","araucaria","campina grande do sul","campo largo","campo magro","colombo","fazenda rio grande","pinhais","piraquara","quatro barras","sao jose dos pinhais"];
+      if (!RMC.includes(cityNorm)) throw new Error("Entregamos apenas em Curitiba e região metropolitana");
     }
     return data;
   })
