@@ -263,6 +263,7 @@ export type Database = {
           color_variants: Json
           created_at: string
           created_by: string | null
+          created_by_name: string | null
           description: string | null
           id: string
           image_url: string | null
@@ -280,6 +281,7 @@ export type Database = {
           color_variants?: Json
           created_at?: string
           created_by?: string | null
+          created_by_name?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
@@ -297,6 +299,7 @@ export type Database = {
           color_variants?: Json
           created_at?: string
           created_by?: string | null
+          created_by_name?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
