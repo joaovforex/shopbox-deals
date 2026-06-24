@@ -11,7 +11,7 @@ async function assertLabelAccess(context: { supabase: any; userId: string }) {
   if (error) throw new Error(error.message);
 
   const allowed = (roles ?? []).some((r: { role: string }) =>
-    ["admin", "fulfillment", "catalog"].includes(r.role),
+    ["admin", "manager", "fulfillment", "catalog", "owner"].includes(r.role),
   );
   if (!allowed) throw new Error("Sem permissão");
 }

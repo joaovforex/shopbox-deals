@@ -177,6 +177,15 @@ export function ProductForm({
     setBusy(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      let creatorName: string | null = null;
+      if (user) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", user.id)
+          .maybeSingle();
+        creatorName = (prof?.full_name?.trim() || user.email || null) ?? null;
+      }
       const cleanVariants: ColorVariant[] = [];
       const seen = new Set<string>();
       for (const v of colorVariants) {
@@ -194,7 +203,7 @@ export function ProductForm({
       const finalStock = cleanVariants.length > 0
         ? cleanVariants.reduce((s, v) => s + v.stock, 0)
         : Number(stock);
-      const payload = {
+      const basePayload = {
         name: name.trim(),
         description: description.trim() || null,
         price: Number(price),
@@ -205,14 +214,17 @@ export function ProductForm({
         images,
         active,
         color_variants: cleanVariants.length > 0 ? cleanVariants : [],
-        created_by: user?.id ?? null,
       };
       if (product) {
-        const { error } = await supabase.from("products").update(payload).eq("id", product.id);
+        const { error } = await supabase.from("products").update(basePayload).eq("id", product.id);
         if (error) throw error;
         toast.success("Produto atualizado");
       } else {
-        const { error } = await supabase.from("products").insert(payload);
+        const { error } = await supabase.from("products").insert({
+          ...basePayload,
+          created_by: user?.id ?? null,
+          created_by_name: creatorName,
+        });
         if (error) throw error;
         toast.success("Produto cadastrado");
       }
