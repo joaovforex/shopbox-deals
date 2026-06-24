@@ -287,6 +287,12 @@ function ProductPage() {
               <span className="text-xs font-bold uppercase tracking-widest text-accent">{product.category}</span>
             )}
             <h1 className="display text-3xl md:text-4xl leading-tight">{product.name}</h1>
+            {admin && (product as any).created_by_name && (
+              <div className="text-xs text-muted-foreground inline-flex items-center gap-1.5 bg-accent/10 border border-accent/30 rounded px-2 py-1 self-start">
+                <span className="font-bold uppercase tracking-wider text-accent">Cadastrado por</span>
+                <span className="font-semibold text-foreground">{(product as any).created_by_name}</span>
+              </div>
+            )}
 
 
             <div className="bg-card rounded-xl p-5 border border-border">
