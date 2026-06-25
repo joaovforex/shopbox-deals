@@ -238,10 +238,10 @@ export function ProductForm({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm overflow-y-auto overscroll-contain">
       <form
         onSubmit={save}
-        className="bg-card border-2 border-primary rounded-xl w-full max-w-2xl my-8 p-6 space-y-4 shadow-deal"
+        className="bg-card border-2 border-primary rounded-xl w-full max-w-2xl mx-auto my-4 sm:my-8 p-4 sm:p-6 space-y-4 shadow-deal"
       >
         <div className="flex items-center justify-between">
           <h2 className="display text-2xl">{product ? "Editar produto" : "Novo produto"}</h2>
