@@ -8,7 +8,6 @@ import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchProducts, getRoleSummary, type Product, type RoleSummary } from "@/lib/products";
 import { claimFirstAdmin } from "@/lib/admin.functions";
-import { createTestDelivery } from "@/lib/test-order.functions";
 import { brl, discountPct } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ProductForm, PRODUCT_FORM_DRAFT_KEY as DRAFT_KEY } from "@/components/ProductForm";
@@ -23,8 +22,6 @@ export const Route = createFileRoute("/_authenticated/admin")({
 function AdminPage() {
   const [roles, setRoles] = useState<RoleSummary | null>(null);
   const claim = useServerFn(claimFirstAdmin);
-  const runTestDelivery = useServerFn(createTestDelivery);
-  const [testingDelivery, setTestingDelivery] = useState(false);
   const qc = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
@@ -263,33 +260,6 @@ function AdminPage() {
                 >
                   <Undo2 className="h-4 w-4" /> Reembolsos
                 </Link>
-                <button
-                  onClick={async () => {
-                    if (testingDelivery) return;
-                    if (!confirm("Criar um pedido de TESTE em Curitiba e disparar a corrida na Mais Entregas?")) return;
-                    setTestingDelivery(true);
-                    const t = toast.loading("Gerando pedido de teste...");
-                    try {
-                      const r = await runTestDelivery({});
-                      toast.dismiss(t);
-                      if (r.ok && r.meOrderId) {
-                        toast.success(`OK! Corrida criada: OS ${r.meOrderId}`);
-                      } else {
-                        toast.error(`Pedido criado mas a corrida falhou: ${r.reason ?? "erro"}`);
-                      }
-                    } catch (e: any) {
-                      toast.dismiss(t);
-                      toast.error(e?.message ?? "Falha no pedido de teste");
-                    } finally {
-                      setTestingDelivery(false);
-                    }
-                  }}
-                  disabled={testingDelivery}
-                  className="inline-flex items-center gap-2 bg-card border border-dashed border-primary/60 text-primary font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-primary/10 text-sm disabled:opacity-60"
-                  title="Cria pedido fake em Curitiba para testar a integração Mais Entregas"
-                >
-                  <Truck className="h-4 w-4" /> {testingDelivery ? "Testando..." : "Pedido de teste"}
-                </button>
               </>
             )}
             <button
