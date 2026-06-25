@@ -22,8 +22,6 @@ export const Route = createFileRoute("/_authenticated/admin")({
 function AdminPage() {
   const [roles, setRoles] = useState<RoleSummary | null>(null);
   const claim = useServerFn(claimFirstAdmin);
-  const runTestDelivery = useServerFn(createTestDelivery);
-  const [testingDelivery, setTestingDelivery] = useState(false);
   const qc = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
