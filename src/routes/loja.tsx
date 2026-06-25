@@ -25,7 +25,7 @@ export const Route = createFileRoute("/loja")({
   }),
   loader: ({ context, deps }) =>
     context.queryClient.ensureInfiniteQueryData(
-      pagedProductsQuery({ search: deps.q, category: deps.cat, stock: "in_stock" }),
+      pagedProductsQuery({ search: deps.q, category: deps.cat }),
     ),
   component: Loja,
   pendingMs: 0,
