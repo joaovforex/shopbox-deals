@@ -39,7 +39,6 @@ export const Route = createFileRoute("/api/public/reconcile-orders")({
           return new Response("config", { status: 500 });
         }
 
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
