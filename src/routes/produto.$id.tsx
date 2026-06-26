@@ -265,7 +265,7 @@ function ProductPage() {
 
         <div className="grid md:grid-cols-2 gap-8">
           <div className="relative">
-            <ProductCarousel images={productImages(product)} alt={product.name} />
+            <ProductCarousel images={productImages(product)} alt={product.name} static />
             {off > 0 && (
               <div className="absolute top-4 left-4 z-10 bg-deal text-deal-foreground px-4 py-2 rounded-lg font-black text-xl shadow-lg -rotate-6">
                 -{off}%
