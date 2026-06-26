@@ -518,14 +518,24 @@ function OrdersPanel() {
                       <td className="p-3 text-right text-price font-bold">{brl(c.revenue)}</td>
                       <td className="p-3 text-right text-muted-foreground">{pct}%</td>
                       <td className="p-3 text-right">
-                        <button
-                          onClick={() => { setFilterCategory(c.name); setShowFilters(true); }}
-                          className="text-[11px] font-bold uppercase tracking-wider text-primary hover:underline"
-                          title="Ver produtos desta categoria"
-                        >
-                          Ver itens
-                        </button>
+                        <div className="inline-flex items-center gap-3 justify-end">
+                          <button
+                            onClick={() => { setFilterCategory(c.name); setShowFilters(true); }}
+                            className="text-[11px] font-bold uppercase tracking-wider text-primary hover:underline"
+                            title="Ver produtos desta categoria"
+                          >
+                            Ver itens
+                          </button>
+                          <button
+                            onClick={() => shareReport(buildCategoryReport(c.name), `Relatório · ${c.name} · ${periodLabel}`)}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-2 py-1 rounded hover:opacity-90"
+                            title={`Exportar relatório de ${c.name} (${periodLabel}) para WhatsApp`}
+                          >
+                            <Share2 className="h-3 w-3" /> WhatsApp
+                          </button>
+                        </div>
                       </td>
+
                     </tr>
                   );
                 })}
