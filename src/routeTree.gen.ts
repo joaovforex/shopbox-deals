@@ -27,6 +27,7 @@ import { Route as AuthenticatedAdminReembolsosRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminPedidosRouteImport } from './routes/_authenticated/admin.pedidos'
 import { Route as AuthenticatedAdminExpedicaoRouteImport } from './routes/_authenticated/admin.expedicao'
 import { Route as AuthenticatedAdminEquipeRouteImport } from './routes/_authenticated/admin.equipe'
+import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp.webhook'
 import { Route as ApiPublicMaisentregasPollRouteImport } from './routes/api/public/maisentregas/poll'
 
@@ -125,6 +126,12 @@ const AuthenticatedAdminEquipeRoute =
     path: '/equipe',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const LovableEmailQueueProcessRoute =
+  LovableEmailQueueProcessRouteImport.update({
+    id: '/lovable/email/queue/process',
+    path: '/lovable/email/queue/process',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicMpWebhookRoute = ApiPublicMpWebhookRouteImport.update({
   id: '/api/public/mp/webhook',
   path: '/api/public/mp/webhook',
@@ -157,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -178,6 +186,7 @@ export interface FileRoutesByTo {
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -201,6 +210,7 @@ export interface FileRoutesById {
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
+  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -224,6 +234,7 @@ export interface FileRouteTypes {
     | '/api/public/reconcile-orders'
     | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
+    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -245,6 +256,7 @@ export interface FileRouteTypes {
     | '/api/public/reconcile-orders'
     | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
+    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -267,6 +279,7 @@ export interface FileRouteTypes {
     | '/api/public/reconcile-orders'
     | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
+    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -284,6 +297,7 @@ export interface RootRouteChildren {
   ApiPublicReconcileOrdersRoute: typeof ApiPublicReconcileOrdersRoute
   ApiPublicMaisentregasPollRoute: typeof ApiPublicMaisentregasPollRoute
   ApiPublicMpWebhookRoute: typeof ApiPublicMpWebhookRoute
+  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -414,6 +428,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminEquipeRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/lovable/email/queue/process': {
+      id: '/lovable/email/queue/process'
+      path: '/lovable/email/queue/process'
+      fullPath: '/lovable/email/queue/process'
+      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/mp/webhook': {
       id: '/api/public/mp/webhook'
       path: '/api/public/mp/webhook'
@@ -476,6 +497,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicReconcileOrdersRoute: ApiPublicReconcileOrdersRoute,
   ApiPublicMaisentregasPollRoute: ApiPublicMaisentregasPollRoute,
   ApiPublicMpWebhookRoute: ApiPublicMpWebhookRoute,
+  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
