@@ -233,12 +233,44 @@ function OrdersPanel() {
     return lines.join("\n");
   }
 
-  function buildCategoryReport(): string {
-    const cat = filterCategory;
+  function buildCategoryReport(catName?: string): string {
+    const cat = catName ?? filterCategory;
     const lines: string[] = [];
     lines.push(`📊 *RELATÓRIO · ${cat.toUpperCase()}*`);
     lines.push(`🗓️ ${periodLabel}`);
     lines.push("");
+
+    // Se for chamada com categoria específica (independente do filtro), recalcula a partir do data bruto
+    if (catName && catName !== filterCategory) {
+      const allOrders = data?.orders ?? [];
+      const allItems = data?.items ?? [];
+      const cats = data?.categories ?? new Map<string, string>();
+      const paidIds = new Set(allOrders.filter((o) => o.status === "paid").map((o) => o.id));
+      const items = allItems.filter(
+        (i) => paidIds.has(i.order_id) && (cats.get(i.product_id) ?? "Sem categoria") === cat,
+      );
+      const orderIds = new Set(items.map((i) => i.order_id));
+      const revenue = items.reduce((s, i) => s + Number(i.unit_price) * Number(i.quantity), 0);
+      const units = items.reduce((s, i) => s + Number(i.quantity), 0);
+      const byProd = new Map<string, { name: string; qty: number; revenue: number }>();
+      for (const it of items) {
+        const cur = byProd.get(it.product_id) ?? { name: it.product_name, qty: 0, revenue: 0 };
+        cur.qty += Number(it.quantity);
+        cur.revenue += Number(it.unit_price) * Number(it.quantity);
+        byProd.set(it.product_id, cur);
+      }
+      const rank = [...byProd.values()].sort((a, b) => b.qty - a.qty);
+      lines.push(`🧾 ${orderIds.size} pedidos · 📦 ${units} itens · 💰 ${brl(revenue)}`);
+      lines.push("");
+      lines.push(`*ITENS VENDIDOS · ${cat.toUpperCase()}*`);
+      if (rank.length === 0) {
+        lines.push("— nenhum item vendido —");
+      } else {
+        for (const r of rank) lines.push(`• ${r.name} — ${r.qty}x · ${brl(r.revenue)}`);
+      }
+      return lines.join("\n");
+    }
+
     lines.push(`🧾 ${stats.orders.length} pedidos · 📦 ${stats.unitsSold} itens · 💰 ${brl(stats.revenue)}`);
     lines.push("");
     lines.push(`*ITENS VENDIDOS · ${cat.toUpperCase()}*`);
@@ -251,6 +283,7 @@ function OrdersPanel() {
     }
     return lines.join("\n");
   }
+
 
   async function shareReport(text: string, title: string) {
     const nav = typeof navigator !== "undefined" ? (navigator as any) : null;
@@ -485,14 +518,24 @@ function OrdersPanel() {
                       <td className="p-3 text-right text-price font-bold">{brl(c.revenue)}</td>
                       <td className="p-3 text-right text-muted-foreground">{pct}%</td>
                       <td className="p-3 text-right">
-                        <button
-                          onClick={() => { setFilterCategory(c.name); setShowFilters(true); }}
-                          className="text-[11px] font-bold uppercase tracking-wider text-primary hover:underline"
-                          title="Ver produtos desta categoria"
-                        >
-                          Ver itens
-                        </button>
+                        <div className="inline-flex items-center gap-3 justify-end">
+                          <button
+                            onClick={() => { setFilterCategory(c.name); setShowFilters(true); }}
+                            className="text-[11px] font-bold uppercase tracking-wider text-primary hover:underline"
+                            title="Ver produtos desta categoria"
+                          >
+                            Ver itens
+                          </button>
+                          <button
+                            onClick={() => shareReport(buildCategoryReport(c.name), `Relatório · ${c.name} · ${periodLabel}`)}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-2 py-1 rounded hover:opacity-90"
+                            title={`Exportar relatório de ${c.name} (${periodLabel}) para WhatsApp`}
+                          >
+                            <Share2 className="h-3 w-3" /> WhatsApp
+                          </button>
+                        </div>
                       </td>
+
                     </tr>
                   );
                 })}
