@@ -6,10 +6,12 @@ export function ProductCarousel({
   images,
   alt,
   autoPlayMs = 1800,
+  static: staticMode = false,
 }: {
   images: string[];
   alt: string;
   autoPlayMs?: number;
+  static?: boolean;
 }) {
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -18,10 +20,10 @@ export function ProductCarousel({
 
   const currentIsVideo = isVideoUrl(images[i]);
   useEffect(() => {
-    if (n <= 1 || paused || zoom || currentIsVideo) return;
+    if (staticMode || n <= 1 || paused || zoom || currentIsVideo) return;
     const t = setInterval(() => setI((p) => (p + 1) % n), autoPlayMs);
     return () => clearInterval(t);
-  }, [n, paused, autoPlayMs, zoom, currentIsVideo]);
+  }, [staticMode, n, paused, autoPlayMs, zoom, currentIsVideo]);
 
   useEffect(() => {
     if (!zoom) return;
