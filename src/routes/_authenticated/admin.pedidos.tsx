@@ -502,20 +502,7 @@ function OrdersPanel() {
         </div>
         </div>
 
-                  return (
-                    <tr key={c.name} className="border-t border-border">
-                      <td className="p-3 font-semibold">{c.name}</td>
-                      <td className="p-3 text-right font-bold">{c.qty}</td>
-                      <td className="p-3 text-right text-price font-bold">{brl(c.revenue)}</td>
-                      <td className="p-3 text-right text-muted-foreground">{pct}%</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-        </div>
+
 
         {/* Orders list */}
         <div className="bg-card border border-border rounded-lg overflow-hidden">
