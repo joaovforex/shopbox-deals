@@ -8,6 +8,7 @@ export const PRODUCT_CATEGORIES = [
   "Casa",
   "Casa e Decoração",
   "Calçados",
+  "Celulares",
   "Cosméticos e Perfumes",
   "Cozinha",
   "Decoração Comemorativa",
@@ -17,9 +18,12 @@ export const PRODUCT_CATEGORIES = [
   "Instrumentos Musicais",
   "Móveis",
   "Moda e Acessórios",
+  "Notebooks",
   "Papelaria",
+  "Pesca",
   "Pet",
   "Produtos de Limpeza",
+  "Roupas",
   "Saúde e Bem-Estar",
 ] as const;
 
