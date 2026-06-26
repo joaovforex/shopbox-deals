@@ -21,9 +21,15 @@ export const Route = createFileRoute("/api/public/reconcile-orders")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apikey = request.headers.get("apikey") ?? request.headers.get("x-api-key") ?? "";
-        const expectedKey = process.env.SUPABASE_PUBLISHABLE_KEY ?? "";
-        if (!expectedKey || apikey !== expectedKey) {
+        const provided = request.headers.get("x-cron-secret") ?? "";
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: secretRow } = await supabaseAdmin
+          .from("app_secrets" as never)
+          .select("value")
+          .eq("name", "cron_secret")
+          .maybeSingle();
+        const expected = (secretRow as { value?: string } | null)?.value ?? "";
+        if (!expected || provided.length !== expected.length || provided !== expected) {
           return new Response("unauthorized", { status: 401 });
         }
 
@@ -33,7 +39,6 @@ export const Route = createFileRoute("/api/public/reconcile-orders")({
           return new Response("config", { status: 500 });
         }
 
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
