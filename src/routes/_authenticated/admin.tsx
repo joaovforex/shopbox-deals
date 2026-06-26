@@ -260,6 +260,12 @@ function AdminPage() {
                 >
                   <Undo2 className="h-4 w-4" /> Reembolsos
                 </Link>
+                <Link
+                  to="/admin/venda-manual"
+                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] text-sm"
+                >
+                  <ShoppingBag className="h-4 w-4" /> Venda manual
+                </Link>
               </>
             )}
             <button
