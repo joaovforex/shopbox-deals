@@ -199,3 +199,77 @@ function MyOrdersPage() {
     </div>
   );
 }
+
+function ResumePaymentBlock({ orderId, createdAt }: { orderId: string; createdAt: string }) {
+  const queryClient = useQueryClient();
+  const deadline = new Date(createdAt).getTime() + 5 * 60 * 1000;
+  const [now, setNow] = useState(() => Date.now());
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const remaining = Math.max(0, Math.floor((deadline - now) / 1000));
+  const expired = remaining <= 0;
+
+  useEffect(() => {
+    if (expired) {
+      const t = setTimeout(() => queryClient.invalidateQueries({ queryKey: ["my-orders"] }), 1500);
+      return () => clearTimeout(t);
+    }
+  }, [expired, queryClient]);
+
+  const mm = String(Math.floor(remaining / 60)).padStart(2, "0");
+  const ss = String(remaining % 60).padStart(2, "0");
+
+  const onResume = async () => {
+    setLoading(true);
+    try {
+      const res = await resumePendingPayment({ data: { orderId } });
+      if (res?.initPoint) {
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("mp_init_point", res.initPoint);
+          window.location.assign("/redirecionando");
+        }
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível retomar o pagamento");
+      queryClient.invalidateQueries({ queryKey: ["my-orders"] });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (expired) {
+    return (
+      <div className="mt-2 text-xs bg-destructive/10 border border-destructive/30 rounded px-3 py-2 text-destructive">
+        Pedido expirado. O estoque foi devolvido — faça um novo pedido para concluir a compra.
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 bg-accent/10 border border-accent/30 rounded-lg px-3 py-3 flex flex-wrap items-center justify-between gap-3">
+      <div className="text-xs">
+        <div className="font-bold text-accent uppercase tracking-wider mb-0.5 inline-flex items-center gap-1">
+          <Clock className="h-3.5 w-3.5" /> Pagamento pendente
+        </div>
+        <div className="text-muted-foreground">
+          Você tem <span className="font-mono font-bold text-foreground">{mm}:{ss}</span> para concluir, ou o pedido será cancelado e o estoque devolvido.
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onResume}
+        disabled={loading}
+        className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider text-xs px-4 py-2.5 rounded-md hover:bg-primary/90 disabled:opacity-60"
+      >
+        <CreditCard className="h-4 w-4" />
+        {loading ? "Abrindo..." : "Pagar agora"}
+      </button>
+    </div>
+  );
+}
+
