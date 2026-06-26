@@ -67,8 +67,9 @@ export const createMpPreference = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // 0) Limpa pedidos pendentes antigos (>30min) devolvendo o estoque
-    await supabaseAdmin.rpc("expire_stale_pending_orders" as never, { p_minutes: 30 } as never);
+    // 0) Limpa pedidos pendentes antigos (>5min) devolvendo o estoque
+    await supabaseAdmin.rpc("expire_stale_pending_orders" as never, { p_minutes: 5 } as never);
+
 
     // 1) Cria pedido pendente usando o client AUTENTICADO do usuário
     //    para que auth.uid() dentro da RPC preencha orders.user_id corretamente.
@@ -224,7 +225,7 @@ export const createMpPreference = createServerFn({ method: "POST" })
 
     await supabaseAdmin
       .from("orders")
-      .update({ mp_preference_id: pref.id })
+      .update({ mp_preference_id: pref.id, mp_init_point: pref.init_point } as never)
       .eq("id", orderId as string);
 
     return {
@@ -233,3 +234,42 @@ export const createMpPreference = createServerFn({ method: "POST" })
       initPoint: pref.init_point,
     };
   });
+
+// Permite ao cliente retomar o pagamento de um pedido pendente
+// (caso ele tenha saído/atualizado a página do Mercado Pago).
+export const resumePendingPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { orderId: string }) => {
+    if (!data?.orderId || !/^[0-9a-f-]{36}$/i.test(data.orderId)) throw new Error("Pedido inválido");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Expira pendentes antigos antes de tudo (devolve estoque)
+    await supabaseAdmin.rpc("expire_stale_pending_orders" as never, { p_minutes: 5 } as never);
+
+    const { data: order, error } = await supabaseAdmin
+      .from("orders")
+      .select("id, user_id, status, mp_init_point, mp_preference_id, created_at")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!order) throw new Error("Pedido não encontrado");
+    if (order.user_id !== context.userId) throw new Error("Sem permissão");
+    if (order.status !== "pending") {
+      throw new Error(order.status === "paid" ? "Pedido já foi pago" : "Pedido expirado. Faça um novo pedido.");
+    }
+
+    const ageMs = Date.now() - new Date(order.created_at).getTime();
+    if (ageMs > 5 * 60 * 1000) throw new Error("Pedido expirado. Faça um novo pedido.");
+
+    const rec = order as unknown as { mp_init_point: string | null; mp_preference_id: string | null };
+    const link =
+      rec.mp_init_point ||
+      (rec.mp_preference_id
+        ? `https://www.mercadopago.com.br/checkout/v1/redirect?pref_id=${rec.mp_preference_id}`
+        : null);
+    if (!link) throw new Error("Link de pagamento indisponível");
+    return { initPoint: link };
+  });
+
