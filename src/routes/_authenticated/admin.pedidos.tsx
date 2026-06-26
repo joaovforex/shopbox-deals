@@ -193,6 +193,77 @@ function OrdersPanel() {
 
   const insight = useMemo(() => generateInsight(stats.ranking, stats.orders.length, period), [stats, period]);
 
+  const periodLabel = (() => {
+    if (hasCustomRange) {
+      const f = dateFrom ? new Date(dateFrom + "T00:00:00").toLocaleDateString("pt-BR") : "início";
+      const t = dateTo ? new Date(dateTo + "T00:00:00").toLocaleDateString("pt-BR") : "hoje";
+      return `${f} a ${t}`;
+    }
+    if (period === "day") return "Hoje";
+    if (period === "week") return "Últimos 7 dias";
+    if (period === "month") return "Últimos 30 dias";
+    return "Todo o período";
+  })();
+
+  function buildFullReport(): string {
+    const lines: string[] = [];
+    lines.push(`📊 *RELATÓRIO SHOPBOX*`);
+    lines.push(`🗓️ ${periodLabel}`);
+    lines.push("");
+    lines.push(`🧾 ${stats.orders.length} pedidos · 📦 ${stats.unitsSold} itens · 💰 ${brl(stats.revenue)}`);
+    lines.push(`🛵 Entrega: ${stats.deliveryCount} · 🏪 Retirada: ${stats.pickupCount}`);
+    lines.push("");
+    lines.push(`*VENDAS POR CATEGORIA*`);
+    if (stats.categoryRanking.length === 0) {
+      lines.push("— sem vendas no período —");
+    } else {
+      for (const c of stats.categoryRanking) {
+        lines.push(`• ${c.name}: ${c.qty} un · ${brl(c.revenue)}`);
+      }
+    }
+    lines.push("");
+    lines.push(`*ITENS VENDIDOS*`);
+    if (stats.ranking.length === 0) {
+      lines.push("— nenhum item vendido —");
+    } else {
+      for (const r of stats.ranking) {
+        lines.push(`• ${r.name} — ${r.qty}x · ${brl(r.revenue)}`);
+      }
+    }
+    return lines.join("\n");
+  }
+
+  function buildCategoryReport(): string {
+    const cat = filterCategory;
+    const lines: string[] = [];
+    lines.push(`📊 *RELATÓRIO · ${cat.toUpperCase()}*`);
+    lines.push(`🗓️ ${periodLabel}`);
+    lines.push("");
+    lines.push(`🧾 ${stats.orders.length} pedidos · 📦 ${stats.unitsSold} itens · 💰 ${brl(stats.revenue)}`);
+    lines.push("");
+    lines.push(`*ITENS VENDIDOS · ${cat.toUpperCase()}*`);
+    if (stats.ranking.length === 0) {
+      lines.push("— nenhum item vendido —");
+    } else {
+      for (const r of stats.ranking) {
+        lines.push(`• ${r.name} — ${r.qty}x · ${brl(r.revenue)}`);
+      }
+    }
+    return lines.join("\n");
+  }
+
+  async function shareReport(text: string, title: string) {
+    const nav = typeof navigator !== "undefined" ? (navigator as any) : null;
+    if (nav?.share) {
+      try { await nav.share({ title, text }); return; } catch {}
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Relatório copiado");
+    } catch {}
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  }
+
   async function deleteOrder(id: string) {
     if (!confirm("Excluir este pedido? Esta ação não pode ser desfeita.")) return;
     setBusy(true);
