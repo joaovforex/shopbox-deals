@@ -53,37 +53,63 @@ export function ProductCarousel({
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
       >
-        <div
-          className="flex h-full transition-transform duration-300 ease-out"
-          style={{ transform: `translateX(-${i * 100}%)` }}
-        >
-          {images.map((src, idx) => (
-            <button
-              key={src + idx}
-              type="button"
-              onClick={() => setZoom(true)}
-              className="w-full h-full shrink-0 cursor-zoom-in bg-card"
-              aria-label={isVideoUrl(src) ? "Ampliar vídeo" : "Ampliar imagem"}
-            >
-              {isVideoUrl(src) ? (
-                <video
-                  src={src}
-                  className="w-full h-full object-contain bg-black"
-                  controls
-                  playsInline
-                  preload="metadata"
-                />
-              ) : (
-                <img
-                  src={src}
-                  alt={`${alt} ${idx + 1}`}
-                  className="w-full h-full object-contain"
-                  draggable={false}
-                />
-              )}
-            </button>
-          ))}
-        </div>
+        {staticMode ? (
+          <button
+            type="button"
+            onClick={() => setZoom(true)}
+            className="w-full h-full cursor-zoom-in bg-card flex items-center justify-center"
+            aria-label={currentIsVideo ? "Ampliar vídeo" : "Ampliar imagem"}
+          >
+            {currentIsVideo ? (
+              <video
+                src={images[i]}
+                className="w-full h-full object-contain bg-black"
+                controls
+                playsInline
+                preload="metadata"
+              />
+            ) : (
+              <img
+                src={images[i]}
+                alt={`${alt} ${i + 1}`}
+                className="w-full h-full object-contain"
+                draggable={false}
+              />
+            )}
+          </button>
+        ) : (
+          <div
+            className="flex h-full transition-transform duration-300 ease-out"
+            style={{ transform: `translateX(-${i * 100}%)` }}
+          >
+            {images.map((src, idx) => (
+              <button
+                key={src + idx}
+                type="button"
+                onClick={() => setZoom(true)}
+                className="w-full h-full shrink-0 cursor-zoom-in bg-card"
+                aria-label={isVideoUrl(src) ? "Ampliar vídeo" : "Ampliar imagem"}
+              >
+                {isVideoUrl(src) ? (
+                  <video
+                    src={src}
+                    className="w-full h-full object-contain bg-black"
+                    controls
+                    playsInline
+                    preload="metadata"
+                  />
+                ) : (
+                  <img
+                    src={src}
+                    alt={`${alt} ${idx + 1}`}
+                    className="w-full h-full object-contain"
+                    draggable={false}
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
 
         <button
           type="button"
