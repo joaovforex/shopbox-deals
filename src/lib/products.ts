@@ -123,7 +123,8 @@ export const usedCategoriesQuery = () =>
   queryOptions({
     queryKey: ["categories", "used"],
     queryFn: fetchUsedCategories,
-    staleTime: 5 * 60_000,
+    staleTime: 30 * 60_000,
+    gcTime: 60 * 60_000,
   });
 
 export async function fetchProduct(id: string) {
