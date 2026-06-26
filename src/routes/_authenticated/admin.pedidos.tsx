@@ -385,35 +385,46 @@ function OrdersPanel() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Top products */}
-          <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <div className="px-4 py-3 border-b border-border bg-secondary">
-              <h2 className="display text-lg">Produtos vendidos</h2>
-              <p className="text-xs text-muted-foreground">Quantidade total no período selecionado</p>
+        <div className={`grid gap-6 ${filterCategory !== "all" ? "lg:grid-cols-2" : "lg:grid-cols-1"}`}>
+          {/* Top products — só aparece quando uma categoria é selecionada */}
+          {filterCategory !== "all" && (
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+              <div className="px-4 py-3 border-b border-border bg-secondary flex items-start justify-between gap-2">
+                <div>
+                  <h2 className="display text-lg">Vendidos · {filterCategory}</h2>
+                  <p className="text-xs text-muted-foreground">{stats.unitsSold} itens · {brl(stats.revenue)} · {periodLabel}</p>
+                </div>
+                <button
+                  onClick={() => shareReport(buildCategoryReport(), `Relatório · ${filterCategory}`)}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-3 py-1.5 rounded hover:opacity-90"
+                  title="Exportar relatório desta categoria"
+                >
+                  <Share2 className="h-3.5 w-3.5" /> WhatsApp
+                </button>
+              </div>
+              {isLoading ? (
+                <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
+              ) : stats.ranking.length === 0 ? (
+                <div className="p-6 text-sm text-muted-foreground">Nenhum produto vendido nesta categoria.</div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+                    <tr><th className="p-3">#</th><th className="p-3">Produto</th><th className="p-3 text-right">Qtd</th><th className="p-3 text-right">Receita</th></tr>
+                  </thead>
+                  <tbody>
+                    {stats.ranking.map((r, i) => (
+                      <tr key={r.id} className="border-t border-border">
+                        <td className="p-3 font-bold text-muted-foreground">{i + 1}</td>
+                        <td className="p-3">{r.name}</td>
+                        <td className="p-3 text-right font-bold">{r.qty}</td>
+                        <td className="p-3 text-right text-price font-bold">{brl(r.revenue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
-            {isLoading ? (
-              <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
-            ) : stats.ranking.length === 0 ? (
-              <div className="p-6 text-sm text-muted-foreground">Nenhum produto vendido neste período.</div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
-                  <tr><th className="p-3">#</th><th className="p-3">Produto</th><th className="p-3 text-right">Qtd</th><th className="p-3 text-right">Receita</th></tr>
-                </thead>
-                <tbody>
-                  {stats.ranking.map((r, i) => (
-                    <tr key={r.id} className="border-t border-border">
-                      <td className="p-3 font-bold text-muted-foreground">{i + 1}</td>
-                      <td className="p-3">{r.name}</td>
-                      <td className="p-3 text-right font-bold">{r.qty}</td>
-                      <td className="p-3 text-right text-price font-bold">{brl(r.revenue)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+          )}
 
           {/* Delivery split */}
           <div className="bg-card border border-border rounded-lg p-5 space-y-3">
@@ -436,10 +447,23 @@ function OrdersPanel() {
         </div>
 
         {/* Category breakdown */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-border bg-secondary">
-            <h2 className="display text-lg">Vendas por categoria</h2>
-            <p className="text-xs text-muted-foreground">Distribuição de receita e quantidade por categoria de produto</p>
+        <div className="bg-card border border-border rounded-lg overflow-hidden lg:col-span-2">
+          <div className="px-4 py-3 border-b border-border bg-secondary flex items-start justify-between gap-2">
+            <div>
+              <h2 className="display text-lg">Vendas por categoria</h2>
+              <p className="text-xs text-muted-foreground">
+                {filterCategory === "all"
+                  ? "Selecione uma categoria abaixo (filtro) para ver os produtos vendidos dela."
+                  : `Filtrando por: ${filterCategory}`}
+              </p>
+            </div>
+            <button
+              onClick={() => shareReport(buildFullReport(), "Relatório Shopbox")}
+              className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-3 py-1.5 rounded hover:opacity-90"
+              title="Exportar relatório completo para WhatsApp"
+            >
+              <Share2 className="h-3.5 w-3.5" /> Relatório completo · WhatsApp
+            </button>
           </div>
           {isLoading ? (
             <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
@@ -448,12 +472,36 @@ function OrdersPanel() {
           ) : (
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <tr><th className="p-3">Categoria</th><th className="p-3 text-right">Itens</th><th className="p-3 text-right">Receita</th><th className="p-3 text-right">% Receita</th></tr>
+                <tr><th className="p-3">Categoria</th><th className="p-3 text-right">Itens</th><th className="p-3 text-right">Receita</th><th className="p-3 text-right">% Receita</th><th className="p-3 text-right">Ação</th></tr>
               </thead>
               <tbody>
                 {stats.categoryRanking.map((c) => {
                   const totalRev = stats.categoryRanking.reduce((s, x) => s + x.revenue, 0);
                   const pct = totalRev > 0 ? Math.round((c.revenue / totalRev) * 100) : 0;
+                  return (
+                    <tr key={c.name} className="border-t border-border">
+                      <td className="p-3 font-semibold">{c.name}</td>
+                      <td className="p-3 text-right font-bold">{c.qty}</td>
+                      <td className="p-3 text-right text-price font-bold">{brl(c.revenue)}</td>
+                      <td className="p-3 text-right text-muted-foreground">{pct}%</td>
+                      <td className="p-3 text-right">
+                        <button
+                          onClick={() => { setFilterCategory(c.name); setShowFilters(true); }}
+                          className="text-[11px] font-bold uppercase tracking-wider text-primary hover:underline"
+                          title="Ver produtos desta categoria"
+                        >
+                          Ver itens
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+        </div>
+
                   return (
                     <tr key={c.name} className="border-t border-border">
                       <td className="p-3 font-semibold">{c.name}</td>
