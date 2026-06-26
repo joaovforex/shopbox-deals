@@ -128,6 +128,7 @@ export type Database = {
           maisentregas_order_id: string | null
           maisentregas_status: string | null
           maisentregas_tracking_url: string | null
+          mp_init_point: string | null
           mp_payment_id: string | null
           mp_preference_id: string | null
           mp_refund_id: string | null
@@ -178,6 +179,7 @@ export type Database = {
           maisentregas_order_id?: string | null
           maisentregas_status?: string | null
           maisentregas_tracking_url?: string | null
+          mp_init_point?: string | null
           mp_payment_id?: string | null
           mp_preference_id?: string | null
           mp_refund_id?: string | null
@@ -228,6 +230,7 @@ export type Database = {
           maisentregas_order_id?: string | null
           maisentregas_status?: string | null
           maisentregas_tracking_url?: string | null
+          mp_init_point?: string | null
           mp_payment_id?: string | null
           mp_preference_id?: string | null
           mp_refund_id?: string | null
