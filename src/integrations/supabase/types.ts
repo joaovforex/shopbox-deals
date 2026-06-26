@@ -233,6 +233,9 @@ export type Database = {
           maisentregas_order_id: string | null
           maisentregas_status: string | null
           maisentregas_tracking_url: string | null
+          manual_created_by: string | null
+          manual_created_by_name: string | null
+          manual_sale: boolean
           mp_init_point: string | null
           mp_payment_id: string | null
           mp_preference_id: string | null
@@ -284,6 +287,9 @@ export type Database = {
           maisentregas_order_id?: string | null
           maisentregas_status?: string | null
           maisentregas_tracking_url?: string | null
+          manual_created_by?: string | null
+          manual_created_by_name?: string | null
+          manual_sale?: boolean
           mp_init_point?: string | null
           mp_payment_id?: string | null
           mp_preference_id?: string | null
@@ -335,6 +341,9 @@ export type Database = {
           maisentregas_order_id?: string | null
           maisentregas_status?: string | null
           maisentregas_tracking_url?: string | null
+          manual_created_by?: string | null
+          manual_created_by_name?: string | null
+          manual_sale?: boolean
           mp_init_point?: string | null
           mp_payment_id?: string | null
           mp_preference_id?: string | null
@@ -601,6 +610,17 @@ export type Database = {
       claim_first_admin_if_none: { Args: never; Returns: boolean }
       confirm_order_paid: {
         Args: { p_mp_payment_id?: string; p_order_id: string }
+        Returns: string
+      }
+      create_manual_order: {
+        Args: {
+          p_customer_cpf?: string
+          p_customer_email?: string
+          p_customer_name: string
+          p_customer_phone: string
+          p_delivery_method: string
+          p_items: Json
+        }
         Returns: string
       }
       create_pending_order: {

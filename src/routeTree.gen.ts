@@ -23,6 +23,7 @@ import { Route as EtiquetaIdRouteImport } from './routes/etiqueta.$id'
 import { Route as AuthenticatedMeusPedidosRouteImport } from './routes/_authenticated/meus-pedidos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ApiPublicReconcileOrdersRouteImport } from './routes/api/public/reconcile-orders'
+import { Route as AuthenticatedAdminVendaManualRouteImport } from './routes/_authenticated/admin.venda-manual'
 import { Route as AuthenticatedAdminReembolsosRouteImport } from './routes/_authenticated/admin.reembolsos'
 import { Route as AuthenticatedAdminPedidosRouteImport } from './routes/_authenticated/admin.pedidos'
 import { Route as AuthenticatedAdminExpedicaoRouteImport } from './routes/_authenticated/admin.expedicao'
@@ -102,6 +103,12 @@ const ApiPublicReconcileOrdersRoute =
     path: '/api/public/reconcile-orders',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedAdminVendaManualRoute =
+  AuthenticatedAdminVendaManualRouteImport.update({
+    id: '/venda-manual',
+    path: '/venda-manual',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminReembolsosRoute =
   AuthenticatedAdminReembolsosRouteImport.update({
     id: '/reembolsos',
@@ -161,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
+  '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
@@ -183,6 +191,7 @@ export interface FileRoutesByTo {
   '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
+  '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
@@ -207,6 +216,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/_authenticated/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/_authenticated/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
+  '/_authenticated/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/admin/expedicao'
     | '/admin/pedidos'
     | '/admin/reembolsos'
+    | '/admin/venda-manual'
     | '/api/public/reconcile-orders'
     | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/admin/expedicao'
     | '/admin/pedidos'
     | '/admin/reembolsos'
+    | '/admin/venda-manual'
     | '/api/public/reconcile-orders'
     | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
@@ -276,6 +288,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/expedicao'
     | '/_authenticated/admin/pedidos'
     | '/_authenticated/admin/reembolsos'
+    | '/_authenticated/admin/venda-manual'
     | '/api/public/reconcile-orders'
     | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
@@ -400,6 +413,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicReconcileOrdersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/admin/venda-manual': {
+      id: '/_authenticated/admin/venda-manual'
+      path: '/venda-manual'
+      fullPath: '/admin/venda-manual'
+      preLoaderRoute: typeof AuthenticatedAdminVendaManualRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/reembolsos': {
       id: '/_authenticated/admin/reembolsos'
       path: '/reembolsos'
@@ -457,6 +477,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminExpedicaoRoute: typeof AuthenticatedAdminExpedicaoRoute
   AuthenticatedAdminPedidosRoute: typeof AuthenticatedAdminPedidosRoute
   AuthenticatedAdminReembolsosRoute: typeof AuthenticatedAdminReembolsosRoute
+  AuthenticatedAdminVendaManualRoute: typeof AuthenticatedAdminVendaManualRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
@@ -464,6 +485,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminExpedicaoRoute: AuthenticatedAdminExpedicaoRoute,
   AuthenticatedAdminPedidosRoute: AuthenticatedAdminPedidosRoute,
   AuthenticatedAdminReembolsosRoute: AuthenticatedAdminReembolsosRoute,
+  AuthenticatedAdminVendaManualRoute: AuthenticatedAdminVendaManualRoute,
 }
 
 const AuthenticatedAdminRouteWithChildren =
