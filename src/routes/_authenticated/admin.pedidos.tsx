@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, TrendingUp, Package, DollarSign, ShoppingBag, Sparkles, Truck, Store, Trash2, AlertTriangle, Search, Filter, X, Undo2 } from "lucide-react";
+import { ArrowLeft, TrendingUp, Package, DollarSign, ShoppingBag, Sparkles, Truck, Store, Trash2, AlertTriangle, Search, Filter, X, Undo2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
@@ -193,6 +193,77 @@ function OrdersPanel() {
 
   const insight = useMemo(() => generateInsight(stats.ranking, stats.orders.length, period), [stats, period]);
 
+  const periodLabel = (() => {
+    if (hasCustomRange) {
+      const f = dateFrom ? new Date(dateFrom + "T00:00:00").toLocaleDateString("pt-BR") : "início";
+      const t = dateTo ? new Date(dateTo + "T00:00:00").toLocaleDateString("pt-BR") : "hoje";
+      return `${f} a ${t}`;
+    }
+    if (period === "day") return "Hoje";
+    if (period === "week") return "Últimos 7 dias";
+    if (period === "month") return "Últimos 30 dias";
+    return "Todo o período";
+  })();
+
+  function buildFullReport(): string {
+    const lines: string[] = [];
+    lines.push(`📊 *RELATÓRIO SHOPBOX*`);
+    lines.push(`🗓️ ${periodLabel}`);
+    lines.push("");
+    lines.push(`🧾 ${stats.orders.length} pedidos · 📦 ${stats.unitsSold} itens · 💰 ${brl(stats.revenue)}`);
+    lines.push(`🛵 Entrega: ${stats.deliveryCount} · 🏪 Retirada: ${stats.pickupCount}`);
+    lines.push("");
+    lines.push(`*VENDAS POR CATEGORIA*`);
+    if (stats.categoryRanking.length === 0) {
+      lines.push("— sem vendas no período —");
+    } else {
+      for (const c of stats.categoryRanking) {
+        lines.push(`• ${c.name}: ${c.qty} un · ${brl(c.revenue)}`);
+      }
+    }
+    lines.push("");
+    lines.push(`*ITENS VENDIDOS*`);
+    if (stats.ranking.length === 0) {
+      lines.push("— nenhum item vendido —");
+    } else {
+      for (const r of stats.ranking) {
+        lines.push(`• ${r.name} — ${r.qty}x · ${brl(r.revenue)}`);
+      }
+    }
+    return lines.join("\n");
+  }
+
+  function buildCategoryReport(): string {
+    const cat = filterCategory;
+    const lines: string[] = [];
+    lines.push(`📊 *RELATÓRIO · ${cat.toUpperCase()}*`);
+    lines.push(`🗓️ ${periodLabel}`);
+    lines.push("");
+    lines.push(`🧾 ${stats.orders.length} pedidos · 📦 ${stats.unitsSold} itens · 💰 ${brl(stats.revenue)}`);
+    lines.push("");
+    lines.push(`*ITENS VENDIDOS · ${cat.toUpperCase()}*`);
+    if (stats.ranking.length === 0) {
+      lines.push("— nenhum item vendido —");
+    } else {
+      for (const r of stats.ranking) {
+        lines.push(`• ${r.name} — ${r.qty}x · ${brl(r.revenue)}`);
+      }
+    }
+    return lines.join("\n");
+  }
+
+  async function shareReport(text: string, title: string) {
+    const nav = typeof navigator !== "undefined" ? (navigator as any) : null;
+    if (nav?.share) {
+      try { await nav.share({ title, text }); return; } catch {}
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Relatório copiado");
+    } catch {}
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+  }
+
   async function deleteOrder(id: string) {
     if (!confirm("Excluir este pedido? Esta ação não pode ser desfeita.")) return;
     setBusy(true);
@@ -314,35 +385,46 @@ function OrdersPanel() {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Top products */}
-          <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <div className="px-4 py-3 border-b border-border bg-secondary">
-              <h2 className="display text-lg">Produtos vendidos</h2>
-              <p className="text-xs text-muted-foreground">Quantidade total no período selecionado</p>
+        <div className={`grid gap-6 ${filterCategory !== "all" ? "lg:grid-cols-2" : "lg:grid-cols-1"}`}>
+          {/* Top products — só aparece quando uma categoria é selecionada */}
+          {filterCategory !== "all" && (
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+              <div className="px-4 py-3 border-b border-border bg-secondary flex items-start justify-between gap-2">
+                <div>
+                  <h2 className="display text-lg">Vendidos · {filterCategory}</h2>
+                  <p className="text-xs text-muted-foreground">{stats.unitsSold} itens · {brl(stats.revenue)} · {periodLabel}</p>
+                </div>
+                <button
+                  onClick={() => shareReport(buildCategoryReport(), `Relatório · ${filterCategory}`)}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-3 py-1.5 rounded hover:opacity-90"
+                  title="Exportar relatório desta categoria"
+                >
+                  <Share2 className="h-3.5 w-3.5" /> WhatsApp
+                </button>
+              </div>
+              {isLoading ? (
+                <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
+              ) : stats.ranking.length === 0 ? (
+                <div className="p-6 text-sm text-muted-foreground">Nenhum produto vendido nesta categoria.</div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
+                    <tr><th className="p-3">#</th><th className="p-3">Produto</th><th className="p-3 text-right">Qtd</th><th className="p-3 text-right">Receita</th></tr>
+                  </thead>
+                  <tbody>
+                    {stats.ranking.map((r, i) => (
+                      <tr key={r.id} className="border-t border-border">
+                        <td className="p-3 font-bold text-muted-foreground">{i + 1}</td>
+                        <td className="p-3">{r.name}</td>
+                        <td className="p-3 text-right font-bold">{r.qty}</td>
+                        <td className="p-3 text-right text-price font-bold">{brl(r.revenue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
-            {isLoading ? (
-              <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
-            ) : stats.ranking.length === 0 ? (
-              <div className="p-6 text-sm text-muted-foreground">Nenhum produto vendido neste período.</div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
-                  <tr><th className="p-3">#</th><th className="p-3">Produto</th><th className="p-3 text-right">Qtd</th><th className="p-3 text-right">Receita</th></tr>
-                </thead>
-                <tbody>
-                  {stats.ranking.map((r, i) => (
-                    <tr key={r.id} className="border-t border-border">
-                      <td className="p-3 font-bold text-muted-foreground">{i + 1}</td>
-                      <td className="p-3">{r.name}</td>
-                      <td className="p-3 text-right font-bold">{r.qty}</td>
-                      <td className="p-3 text-right text-price font-bold">{brl(r.revenue)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+          )}
 
           {/* Delivery split */}
           <div className="bg-card border border-border rounded-lg p-5 space-y-3">
@@ -365,10 +447,23 @@ function OrdersPanel() {
         </div>
 
         {/* Category breakdown */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-border bg-secondary">
-            <h2 className="display text-lg">Vendas por categoria</h2>
-            <p className="text-xs text-muted-foreground">Distribuição de receita e quantidade por categoria de produto</p>
+        <div className="bg-card border border-border rounded-lg overflow-hidden lg:col-span-2">
+          <div className="px-4 py-3 border-b border-border bg-secondary flex items-start justify-between gap-2">
+            <div>
+              <h2 className="display text-lg">Vendas por categoria</h2>
+              <p className="text-xs text-muted-foreground">
+                {filterCategory === "all"
+                  ? "Selecione uma categoria abaixo (filtro) para ver os produtos vendidos dela."
+                  : `Filtrando por: ${filterCategory}`}
+              </p>
+            </div>
+            <button
+              onClick={() => shareReport(buildFullReport(), "Relatório Shopbox")}
+              className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-3 py-1.5 rounded hover:opacity-90"
+              title="Exportar relatório completo para WhatsApp"
+            >
+              <Share2 className="h-3.5 w-3.5" /> Relatório completo · WhatsApp
+            </button>
           </div>
           {isLoading ? (
             <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
@@ -377,7 +472,7 @@ function OrdersPanel() {
           ) : (
             <table className="w-full text-sm">
               <thead className="text-left text-xs uppercase tracking-wider text-muted-foreground">
-                <tr><th className="p-3">Categoria</th><th className="p-3 text-right">Itens</th><th className="p-3 text-right">Receita</th><th className="p-3 text-right">% Receita</th></tr>
+                <tr><th className="p-3">Categoria</th><th className="p-3 text-right">Itens</th><th className="p-3 text-right">Receita</th><th className="p-3 text-right">% Receita</th><th className="p-3 text-right">Ação</th></tr>
               </thead>
               <tbody>
                 {stats.categoryRanking.map((c) => {
@@ -389,6 +484,15 @@ function OrdersPanel() {
                       <td className="p-3 text-right font-bold">{c.qty}</td>
                       <td className="p-3 text-right text-price font-bold">{brl(c.revenue)}</td>
                       <td className="p-3 text-right text-muted-foreground">{pct}%</td>
+                      <td className="p-3 text-right">
+                        <button
+                          onClick={() => { setFilterCategory(c.name); setShowFilters(true); }}
+                          className="text-[11px] font-bold uppercase tracking-wider text-primary hover:underline"
+                          title="Ver produtos desta categoria"
+                        >
+                          Ver itens
+                        </button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -397,6 +501,8 @@ function OrdersPanel() {
           )}
         </div>
         </div>
+
+
 
         {/* Orders list */}
         <div className="bg-card border border-border rounded-lg overflow-hidden">
