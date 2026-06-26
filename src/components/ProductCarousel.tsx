@@ -16,11 +16,12 @@ export function ProductCarousel({
   const [zoom, setZoom] = useState(false);
   const n = images.length;
 
+  const currentIsVideo = isVideoUrl(images[i]);
   useEffect(() => {
-    if (n <= 1 || paused || zoom) return;
+    if (n <= 1 || paused || zoom || currentIsVideo) return;
     const t = setInterval(() => setI((p) => (p + 1) % n), autoPlayMs);
     return () => clearInterval(t);
-  }, [n, paused, autoPlayMs, zoom]);
+  }, [n, paused, autoPlayMs, zoom, currentIsVideo]);
 
   useEffect(() => {
     if (!zoom) return;
