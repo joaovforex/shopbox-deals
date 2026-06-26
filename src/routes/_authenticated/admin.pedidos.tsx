@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, TrendingUp, Package, DollarSign, ShoppingBag, Sparkles, Truck, Store, Trash2, AlertTriangle, Search, Filter, X, Undo2 } from "lucide-react";
+import { ArrowLeft, TrendingUp, Package, DollarSign, ShoppingBag, Sparkles, Truck, Store, Trash2, AlertTriangle, Search, Filter, X, Undo2, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
