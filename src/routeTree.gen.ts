@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RedirecionandoRouteImport } from './routes/redirecionando'
 import { Route as LojaRouteImport } from './routes/loja'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -29,6 +30,11 @@ import { Route as AuthenticatedAdminEquipeRouteImport } from './routes/_authenti
 import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp.webhook'
 import { Route as ApiPublicMaisentregasPollRouteImport } from './routes/api/public/maisentregas/poll'
 
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RedirecionandoRoute = RedirecionandoRouteImport.update({
   id: '/redirecionando',
   path: '/redirecionando',
@@ -138,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/loja': typeof LojaRoute
   '/redirecionando': typeof RedirecionandoRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
@@ -158,6 +165,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/loja': typeof LojaRoute
   '/redirecionando': typeof RedirecionandoRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
@@ -180,6 +188,7 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/loja': typeof LojaRoute
   '/redirecionando': typeof RedirecionandoRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
@@ -202,6 +211,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/loja'
     | '/redirecionando'
+    | '/reset-password'
     | '/admin'
     | '/meus-pedidos'
     | '/etiqueta/$id'
@@ -222,6 +232,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/loja'
     | '/redirecionando'
+    | '/reset-password'
     | '/admin'
     | '/meus-pedidos'
     | '/etiqueta/$id'
@@ -243,6 +254,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/loja'
     | '/redirecionando'
+    | '/reset-password'
     | '/_authenticated/admin'
     | '/_authenticated/meus-pedidos'
     | '/etiqueta/$id'
@@ -265,6 +277,7 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   LojaRoute: typeof LojaRoute
   RedirecionandoRoute: typeof RedirecionandoRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   EtiquetaIdRoute: typeof EtiquetaIdRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
@@ -275,6 +288,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/redirecionando': {
       id: '/redirecionando'
       path: '/redirecionando'
@@ -449,6 +469,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   LojaRoute: LojaRoute,
   RedirecionandoRoute: RedirecionandoRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   EtiquetaIdRoute: EtiquetaIdRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
