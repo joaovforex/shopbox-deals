@@ -324,7 +324,19 @@ function CheckoutPage() {
               </label>
             </div>
             <Field label="CPF *" value={cpf} onChange={(v) => setCpf(maskCpf(v))} required placeholder="000.000.000-00" inputMode="numeric" autoComplete="off" />
+            <label className="flex items-start gap-2 text-xs text-muted-foreground mt-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={saveProfile}
+                onChange={(e) => setSaveProfile(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-primary"
+              />
+              <span>
+                Salvar meus dados (e endereço, se preenchido) para agilizar próximas compras. Você pode editar a qualquer momento em <Link to="/perfil" className="underline text-primary">Meu perfil</Link>.
+              </span>
+            </label>
           </Section>
+
 
           <Section title="Como você quer receber?">
             <div className="grid sm:grid-cols-2 gap-3">
