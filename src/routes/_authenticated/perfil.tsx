@@ -1,0 +1,252 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Header, Footer } from "@/components/Header";
+import { supabase } from "@/integrations/supabase/client";
+import { updateMyProfile } from "@/lib/profile.functions";
+import { isValidCpf } from "@/lib/cpf";
+import { User, MapPin, Save, ArrowLeft } from "lucide-react";
+
+export const Route = createFileRoute("/_authenticated/perfil")({
+  head: () => ({ meta: [{ title: "Meu perfil · shopbox" }] }),
+  component: ProfilePage,
+});
+
+function maskPhone(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 2) return d.length ? `(${d}` : "";
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+function maskCpf(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+  if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
+function maskCep(v: string) {
+  const d = v.replace(/\D/g, "").slice(0, 8);
+  if (d.length <= 5) return d;
+  return `${d.slice(0, 5)}-${d.slice(5)}`;
+}
+
+const RMC_CITIES = ["Curitiba","Almirante Tamandaré","Araucária","Campina Grande do Sul","Campo Largo","Campo Magro","Colombo","Fazenda Rio Grande","Pinhais","Piraquara","Quatro Barras","São José dos Pinhais"];
+
+function ProfilePage() {
+  const update = useServerFn(updateMyProfile);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [zip, setZip] = useState("");
+  const [street, setStreet] = useState("");
+  const [number, setNumber] = useState("");
+  const [complement, setComplement] = useState("");
+  const [district, setDistrict] = useState("");
+  const [city, setCity] = useState("Curitiba");
+  const [stateUf, setStateUf] = useState("PR");
+  const [cepBusy, setCepBusy] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, phone, cpf, email, birth_date, address_zip, address_street, address_number, address_complement, address_district, address_city, address_state")
+        .eq("id", user.id)
+        .maybeSingle();
+      const p = (data ?? {}) as Record<string, string | null>;
+      setFullName(p.full_name ?? "");
+      setEmail(p.email ?? user.email ?? "");
+      setPhone(p.phone ? maskPhone(p.phone) : "");
+      setCpf(p.cpf ? maskCpf(p.cpf) : "");
+      setBirthDate(p.birth_date ?? "");
+      setZip(p.address_zip ? maskCep(p.address_zip) : "");
+      setStreet(p.address_street ?? "");
+      setNumber(p.address_number ?? "");
+      setComplement(p.address_complement ?? "");
+      setDistrict(p.address_district ?? "");
+      setCity(p.address_city ?? "Curitiba");
+      setStateUf(p.address_state ?? "PR");
+      setLoading(false);
+    })();
+  }, []);
+
+  // ViaCEP
+  useEffect(() => {
+    const d = zip.replace(/\D/g, "");
+    if (d.length !== 8) return;
+    let cancelled = false;
+    (async () => {
+      setCepBusy(true);
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${d}/json/`);
+        const j = (await res.json()) as { logradouro?: string; bairro?: string; localidade?: string; uf?: string; erro?: boolean };
+        if (cancelled || j.erro) return;
+        if (j.logradouro) setStreet((s) => s || j.logradouro!);
+        if (j.bairro) setDistrict((b) => b || j.bairro!);
+        if (j.localidade) setCity(j.localidade);
+        if (j.uf) setStateUf(j.uf.toUpperCase());
+      } finally {
+        if (!cancelled) setCepBusy(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [zip]);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (fullName.trim() && fullName.trim().length < 2) return toast.error("Nome inválido");
+    const phoneDigits = phone.replace(/\D/g, "");
+    if (phoneDigits && (phoneDigits.length < 10 || phoneDigits.length > 11)) return toast.error("Telefone inválido");
+    const cpfDigits = cpf.replace(/\D/g, "");
+    if (cpfDigits && !isValidCpf(cpfDigits)) return toast.error("CPF inválido");
+    setSaving(true);
+    try {
+      await update({
+        data: {
+          full_name: fullName,
+          email,
+          phone: phoneDigits,
+          cpf: cpfDigits,
+          birth_date: birthDate || null,
+          address_zip: zip.replace(/\D/g, ""),
+          address_street: street,
+          address_number: number,
+          address_complement: complement,
+          address_district: district,
+          address_city: city,
+          address_state: stateUf,
+        },
+      });
+      toast.success("Perfil atualizado!");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível salvar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <section className="bg-card border-b-4 border-primary">
+        <div className="container mx-auto px-4 py-6">
+          <Link to="/meus-pedidos" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-2">
+            <ArrowLeft className="h-3.5 w-3.5" /> Meus pedidos
+          </Link>
+          <h1 className="display text-3xl md:text-4xl">Meu perfil</h1>
+          <p className="text-sm text-muted-foreground">Esses dados aparecem pré-preenchidos quando você finaliza uma compra.</p>
+        </div>
+      </section>
+
+      <form onSubmit={submit} className="container mx-auto px-4 py-6 flex-1 max-w-3xl space-y-5">
+        {loading ? (
+          <div className="text-muted-foreground">Carregando...</div>
+        ) : (
+          <>
+            <Section title="Dados pessoais" icon={<User className="h-4 w-4" />}>
+              <Field label="Nome completo" value={fullName} onChange={setFullName} placeholder="Como aparece no documento" />
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="voce@email.com" />
+                <Field label="WhatsApp" value={phone} onChange={(v) => setPhone(maskPhone(v))} placeholder="(41) 99999-9999" inputMode="tel" />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Field label="CPF" value={cpf} onChange={(v) => setCpf(maskCpf(v))} placeholder="000.000.000-00" inputMode="numeric" />
+                <Field label="Data de nascimento" type="date" value={birthDate} onChange={setBirthDate} />
+              </div>
+            </Section>
+
+            <Section title="Endereço de entrega salvo" icon={<MapPin className="h-4 w-4" />}>
+              <p className="text-xs text-muted-foreground -mt-2 mb-2">
+                Atendemos somente Curitiba e região metropolitana.
+              </p>
+              <div className="grid sm:grid-cols-[160px_1fr] gap-3">
+                <Field label="CEP" value={zip} onChange={(v) => setZip(maskCep(v))} placeholder="00000-000" inputMode="numeric" />
+                <div className="flex items-end text-xs text-muted-foreground">
+                  {cepBusy ? "Buscando..." : "Preenche o resto automaticamente"}
+                </div>
+              </div>
+              <Field label="Rua / Avenida" value={street} onChange={setStreet} placeholder="Ex.: Av. Marechal Floriano" />
+              <div className="grid sm:grid-cols-[140px_1fr] gap-3">
+                <Field label="Número" value={number} onChange={setNumber} placeholder="123" inputMode="numeric" />
+                <Field label="Complemento" value={complement} onChange={setComplement} placeholder="Apto, bloco..." />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <Field label="Bairro" value={district} onChange={setDistrict} placeholder="Centro" />
+                <label className="block">
+                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Cidade</span>
+                  <select
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="w-full bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary mt-1"
+                  >
+                    {RMC_CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </label>
+              </div>
+            </Section>
+
+            <div className="flex items-center justify-end gap-3">
+              <Link to="/meus-pedidos" className="text-sm text-muted-foreground hover:text-foreground">Cancelar</Link>
+              <button
+                type="submit"
+                disabled={saving}
+                className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-5 py-3 rounded-md disabled:opacity-60"
+              >
+                <Save className="h-4 w-4" />
+                {saving ? "Salvando..." : "Salvar alterações"}
+              </button>
+            </div>
+          </>
+        )}
+      </form>
+      <Footer />
+    </div>
+  );
+}
+
+function Section({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="bg-card border border-border rounded-lg p-5 space-y-3">
+      <h2 className="display text-lg inline-flex items-center gap-2">{icon}{title}</h2>
+      {children}
+    </div>
+  );
+}
+
+function Field({
+  label, value, onChange, type = "text", placeholder, required, inputMode, autoComplete,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+  placeholder?: string;
+  required?: boolean;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  autoComplete?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required={required}
+        placeholder={placeholder}
+        inputMode={inputMode}
+        autoComplete={autoComplete}
+        className="w-full bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary mt-1"
+      />
+    </label>
+  );
+}
