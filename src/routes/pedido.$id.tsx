@@ -1,11 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, Package, Store, Clock, ArrowRight, Sparkles, Truck } from "lucide-react";
+import { CheckCircle2, Package, Store, Clock, ArrowRight, Sparkles, Truck, AlertTriangle, CreditCard } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { getPublicOrder } from "@/lib/orders.functions";
+import { resumePendingPayment } from "@/lib/mercadopago.functions";
 import { brl } from "@/lib/format";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
+import { mpStatusDetailMessage } from "@/lib/cpf";
+import { toast } from "sonner";
+import { useState } from "react";
+
 
 export const Route = createFileRoute("/pedido/$id")({
   head: () => ({ meta: [{ title: "Pedido confirmado · shopbox" }] }),
