@@ -93,6 +93,7 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
         const payment = (await payRes.json()) as {
           id: number;
           status: string;
+          status_detail?: string;
           external_reference?: string;
           payment_method_id?: string;
         };
@@ -105,16 +106,22 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-        // Mapeia status MP -> ação no pedido
-        // IMPORTANTE: pagamento "rejected" NÃO cancela o pedido — o cliente
-        // pode tentar novamente (ex.: cair no Pix após cartão recusado).
-        // Só "approved" finaliza como pago. Estornos/chargebacks finalizam
-        // como cancelado. Demais status apenas registram o mp_payment_id.
+        // Sempre registra o detalhe da última tentativa de pagamento — mesmo
+        // que rejeitada — para a UI mostrar o motivo real ao cliente.
+        await supabaseAdmin
+          .from("orders")
+          .update({
+            mp_payment_status: payment.status,
+            mp_status_detail: payment.status_detail ?? null,
+            mp_payment_method_id: payment.payment_method_id ?? null,
+            mp_last_attempt_at: new Date().toISOString(),
+          } as never)
+          .eq("id", orderId);
+
         let action: "paid" | "cancelled" | "noop" = "noop";
         if (payment.status === "approved") action = "paid";
         else if (payment.status === "refunded" || payment.status === "charged_back") action = "cancelled";
 
-        // Não rebaixa um pedido já pago/cancelado
         const { data: current } = await supabaseAdmin
           .from("orders")
           .select("status")
@@ -129,7 +136,6 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
         }
 
         if (action === "paid") {
-          // Debita estoque atomicamente; se faltar, marca como cancelado.
           const { data: result, error: rpcErr } = await supabaseAdmin.rpc(
             "confirm_order_paid" as never,
             { p_order_id: orderId, p_mp_payment_id: String(payment.id) } as never,
@@ -143,12 +149,7 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
           if (result === "out_of_stock") {
             console.warn("[mp:webhook] auto-refund triggered for out_of_stock", { orderId, paymentId: payment.id });
             await autoRefundOutOfStock({ orderId, paymentId: String(payment.id), accessToken });
-          } else if (result === "ok" || result === "already_paid") {
-            // Não cria mais a corrida na Mais Entregas aqui.
-            // O despacho para a TBT Express só acontece quando o pedido é
-            // marcado como "Pronto" no painel de expedição.
           }
-
         } else if (action === "cancelled") {
           const { error: updErr } = await supabaseAdmin
             .from("orders")
@@ -159,13 +160,13 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
             return new Response("update failed", { status: 500 });
           }
         } else {
-          // rejected / pending / in_process: apenas registra o mp_payment_id mais recente
-          // sem mudar o status — o cliente ainda pode tentar pagar novamente.
           await supabaseAdmin
             .from("orders")
             .update({ mp_payment_id: String(payment.id) })
             .eq("id", orderId);
         }
+
+
 
 
         return new Response("ok", { status: 200 });
