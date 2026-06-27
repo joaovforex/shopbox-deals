@@ -165,6 +165,7 @@ function ProductPage() {
     "",
     hasDiscount ? `DE ~${brl(product.original_price!)}~` : null,
     `POR ${brl(product.price)}${off > 0 ? ` (${off}% OFF)` : ""}`,
+    `ou em até 7x de ${brl(product.price / 7)} sem juros 💳`,
     product.description ? "" : null,
     product.description ?? null,
     "",
@@ -305,6 +306,11 @@ function ProductPage() {
                 <span className="text-5xl display text-price">{brl(product.price)}</span>
                 {off > 0 && <span className="text-deal font-black">-{off}%</span>}
               </div>
+              {product.price > 100 && (
+                <div className="mt-2 text-sm font-semibold text-primary">
+                  ou em até 7x de {brl(product.price / 7)} sem juros
+                </div>
+              )}
             </div>
 
             {product.description && (
