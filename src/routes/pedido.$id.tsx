@@ -1,11 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, Package, Store, Clock, ArrowRight, Sparkles, Truck } from "lucide-react";
+import { CheckCircle2, Package, Store, Clock, ArrowRight, Sparkles, Truck, AlertTriangle, CreditCard } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { getPublicOrder } from "@/lib/orders.functions";
+import { resumePendingPayment } from "@/lib/mercadopago.functions";
 import { brl } from "@/lib/format";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
+import { mpStatusDetailMessage } from "@/lib/cpf";
+import { toast } from "sonner";
+import { useState } from "react";
+
 
 export const Route = createFileRoute("/pedido/$id")({
   head: () => ({ meta: [{ title: "Pedido confirmado · shopbox" }] }),
@@ -41,7 +46,15 @@ function OrderPage() {
   const isDone = isDelivered || (isPaid && !isDelivery && fulfillment === "completed");
   const isPreparing = isPaid && !isDelivery && (fulfillment === "pending" || fulfillment === "preparing");
 
+  // Detalhe da rejeição do Mercado Pago (mostrado quando o pedido ainda pode pagar)
+  const mpStatus = (order as { mp_payment_status?: string | null } | undefined)?.mp_payment_status ?? null;
+  const mpDetail = (order as { mp_status_detail?: string | null } | undefined)?.mp_status_detail ?? null;
+  const showRejection = isPending && mpStatus && mpStatus !== "approved" && mpStatus !== "pending" && mpStatus !== "in_process";
+  const rejectionInfo = showRejection ? mpStatusDetailMessage(mpDetail) : null;
+
   const shortId = id.slice(0, 8).toUpperCase();
+
+
 
 
   return (
@@ -93,7 +106,23 @@ function OrderPage() {
             </div>
           </div>
 
-          {/* MEUS PEDIDOS NOTICE — apenas enquanto não estiver concluído */}
+          {/* MOTIVO REAL DA REJEIÇÃO DO MERCADO PAGO */}
+          {rejectionInfo && (
+            <div className="rounded-xl border-2 border-destructive/40 bg-destructive/5 p-5 mb-6 flex gap-4">
+              <div className="shrink-0 h-11 w-11 rounded-full bg-destructive/15 text-destructive flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="text-sm flex-1">
+                <p className="font-bold text-foreground mb-1">{rejectionInfo.title}</p>
+                <p className="text-muted-foreground leading-relaxed">{rejectionInfo.description}</p>
+                {rejectionInfo.retryable && (
+                  <RetryPaymentButton orderId={id} />
+                )}
+              </div>
+            </div>
+          )}
+
+
           {(isPaid && !isDone) && (
             <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-5 mb-6 flex gap-4">
               <div className="shrink-0 h-11 w-11 rounded-full bg-primary/15 text-primary flex items-center justify-center">
@@ -219,3 +248,34 @@ function OrderPage() {
     </div>
   );
 }
+
+function RetryPaymentButton({ orderId }: { orderId: string }) {
+  const [loading, setLoading] = useState(false);
+  const resume = useServerFn(resumePendingPayment);
+  const onClick = async () => {
+    setLoading(true);
+    try {
+      const res = await resume({ data: { orderId } });
+      if (res?.initPoint) {
+        sessionStorage.setItem("mp_init_point", res.initPoint);
+        window.location.assign("/redirecionando");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível retomar o pagamento");
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      className="mt-3 inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider text-xs px-4 py-2.5 rounded-md hover:bg-primary/90 disabled:opacity-60"
+    >
+      <CreditCard className="h-4 w-4" />
+      {loading ? "Abrindo..." : "Tentar pagar novamente"}
+    </button>
+  );
+}
+

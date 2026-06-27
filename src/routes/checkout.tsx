@@ -93,6 +93,7 @@ function CheckoutPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [cpf, setCpf] = useState("");
+  const [saveProfile, setSaveProfile] = useState(true);
 
   // Delivery
   const [delivery, setDelivery] = useState<DeliveryChoice>("pickup");
@@ -107,9 +108,9 @@ function CheckoutPage() {
   const [cepError, setCepError] = useState<string | null>(null);
   const [coverageOk, setCoverageOk] = useState<null | boolean>(null);
   const [coverageMsg, setCoverageMsg] = useState<string | null>(null);
-  
 
-  // Pré-preenche do perfil do cliente logado
+
+  // Pré-preenche do perfil do cliente logado (inclui endereço salvo)
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -117,16 +118,25 @@ function CheckoutPage() {
       setEmail((e) => e || (user.email ?? ""));
       const { data: prof } = await supabase
         .from("profiles")
-        .select("full_name, phone, cpf")
+        .select("full_name, phone, cpf, email, address_zip, address_street, address_number, address_complement, address_district, address_city, address_state")
         .eq("id", user.id)
         .maybeSingle();
       if (prof) {
-        if (prof.full_name) setName((n) => n || prof.full_name!);
-        if (prof.phone) setPhone((p) => p || maskPhone(prof.phone!));
-        if (prof.cpf) setCpf((c) => c || maskCpf(prof.cpf!));
+        const p = prof as Record<string, string | null>;
+        if (p.full_name) setName((n) => n || p.full_name!);
+        if (p.email) setEmail((e) => e || p.email!);
+        if (p.phone) setPhone((pp) => pp || maskPhone(p.phone!));
+        if (p.cpf) setCpf((c) => c || maskCpf(p.cpf!));
+        if (p.address_zip) setCep((c) => c || maskCep(p.address_zip!));
+        if (p.address_street) setStreet((s) => s || p.address_street!);
+        if (p.address_number) setNumber((n) => n || p.address_number!);
+        if (p.address_complement) setComplement((c) => c || p.address_complement!);
+        if (p.address_district) setDistrict((d) => d || p.address_district!);
+        if (p.address_city && isRmcCity(p.address_city)) setCity(p.address_city);
       }
     })();
   }, []);
+
 
   // Busca ViaCEP quando CEP completa 8 dígitos
   useEffect(() => {
@@ -256,6 +266,7 @@ function CheckoutPage() {
           delivery_method: delivery,
           shipping,
           items: items.map((i) => ({ product_id: i.id, quantity: i.quantity, color: i.variant_color ?? null })),
+          save_profile: saveProfile,
         },
       });
       setRedirecting(true);
@@ -270,6 +281,7 @@ function CheckoutPage() {
       setBusy(false);
     }
   };
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -312,7 +324,19 @@ function CheckoutPage() {
               </label>
             </div>
             <Field label="CPF *" value={cpf} onChange={(v) => setCpf(maskCpf(v))} required placeholder="000.000.000-00" inputMode="numeric" autoComplete="off" />
+            <label className="flex items-start gap-2 text-xs text-muted-foreground mt-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={saveProfile}
+                onChange={(e) => setSaveProfile(e.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-primary"
+              />
+              <span>
+                Salvar meus dados (e endereço, se preenchido) para agilizar próximas compras. Você pode editar a qualquer momento em <Link to="/perfil" className="underline text-primary">Meu perfil</Link>.
+              </span>
+            </label>
           </Section>
+
 
           <Section title="Como você quer receber?">
             <div className="grid sm:grid-cols-2 gap-3">

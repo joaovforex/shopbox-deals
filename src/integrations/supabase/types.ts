@@ -237,9 +237,13 @@ export type Database = {
           manual_created_by_name: string | null
           manual_sale: boolean
           mp_init_point: string | null
+          mp_last_attempt_at: string | null
           mp_payment_id: string | null
+          mp_payment_method_id: string | null
+          mp_payment_status: string | null
           mp_preference_id: string | null
           mp_refund_id: string | null
+          mp_status_detail: string | null
           payment_method: string
           refund_reason: string | null
           refund_status: string | null
@@ -291,9 +295,13 @@ export type Database = {
           manual_created_by_name?: string | null
           manual_sale?: boolean
           mp_init_point?: string | null
+          mp_last_attempt_at?: string | null
           mp_payment_id?: string | null
+          mp_payment_method_id?: string | null
+          mp_payment_status?: string | null
           mp_preference_id?: string | null
           mp_refund_id?: string | null
+          mp_status_detail?: string | null
           payment_method?: string
           refund_reason?: string | null
           refund_status?: string | null
@@ -345,9 +353,13 @@ export type Database = {
           manual_created_by_name?: string | null
           manual_sale?: boolean
           mp_init_point?: string | null
+          mp_last_attempt_at?: string | null
           mp_payment_id?: string | null
+          mp_payment_method_id?: string | null
+          mp_payment_status?: string | null
           mp_preference_id?: string | null
           mp_refund_id?: string | null
+          mp_status_detail?: string | null
           payment_method?: string
           refund_reason?: string | null
           refund_status?: string | null
@@ -432,25 +444,55 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address_city: string | null
+          address_complement: string | null
+          address_district: string | null
+          address_number: string | null
+          address_state: string | null
+          address_street: string | null
+          address_zip: string | null
+          birth_date: string | null
           cpf: string | null
           created_at: string
+          email: string | null
           full_name: string | null
           id: string
           phone: string | null
+          updated_at: string
         }
         Insert: {
+          address_city?: string | null
+          address_complement?: string | null
+          address_district?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
+          birth_date?: string | null
           cpf?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id: string
           phone?: string | null
+          updated_at?: string
         }
         Update: {
+          address_city?: string | null
+          address_complement?: string | null
+          address_district?: string | null
+          address_number?: string | null
+          address_state?: string | null
+          address_street?: string | null
+          address_zip?: string | null
+          birth_date?: string | null
           cpf?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
