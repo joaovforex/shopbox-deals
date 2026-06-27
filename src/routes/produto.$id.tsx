@@ -165,6 +165,7 @@ function ProductPage() {
     "",
     hasDiscount ? `DE ~${brl(product.original_price!)}~` : null,
     `POR ${brl(product.price)}${off > 0 ? ` (${off}% OFF)` : ""}`,
+    `ou em até 7x de ${brl(product.price / 7)} sem juros 💳`,
     product.description ? "" : null,
     product.description ?? null,
     "",
