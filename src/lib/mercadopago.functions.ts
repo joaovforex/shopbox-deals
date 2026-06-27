@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { isValidCpf } from "@/lib/cpf";
 
 type CartItemInput = { product_id: string; quantity: number; color?: string | null };
 
@@ -19,13 +20,26 @@ type ShippingInput = {
 type CreatePreferenceInput = {
   customer_name: string;
   customer_email: string;
-  customer_phone: string; // digits only
-  customer_cpf: string; // digits only
+  customer_phone: string;
+  customer_cpf: string;
   delivery_method: "pickup" | "delivery";
   shipping?: ShippingInput | null;
   items: CartItemInput[];
+  /** Salva os dados do cliente/endereço no perfil para reuso futuro. */
+  save_profile?: boolean;
 };
 
+// Endereço da loja — usado como payer.address de fallback quando o cliente
+// retira na loja e ainda não cadastrou endereço próprio. Melhora o score
+// antifraude do MP (cliente sem endereço = sinal ruim).
+const STORE_PAYER_ADDRESS = {
+  zip_code: "83408290",
+  street_name: "Rua Emílio Gleber",
+  street_number: "1118",
+  neighborhood: "Centro",
+  city: "Colombo",
+  federal_unit: "PR",
+} as const;
 
 function originFromRequest(): string {
   const req = getRequest();
@@ -47,6 +61,8 @@ export const createMpPreference = createServerFn({ method: "POST" })
       }
       if (it.color != null && typeof it.color !== "string") throw new Error("Cor inválida");
     }
+    const cpf = (data.customer_cpf ?? "").replace(/\D/g, "");
+    if (!isValidCpf(cpf)) throw new Error("CPF inválido");
     if (data.delivery_method === "delivery") {
       const s = data.shipping;
       if (!s) throw new Error("Endereço de entrega obrigatório");
@@ -60,19 +76,27 @@ export const createMpPreference = createServerFn({ method: "POST" })
     }
     return data;
   })
-
   .handler(async ({ data, context }) => {
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
     if (!accessToken) throw new Error("Mercado Pago não configurado");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // 0) Limpa pedidos pendentes antigos (>5min) devolvendo o estoque
+    // Limpa pedidos pendentes antigos devolvendo o estoque
     await supabaseAdmin.rpc("expire_stale_pending_orders" as never, { p_minutes: 5 } as never);
 
+    // Lê data de cadastro do usuário (melhora score antifraude)
+    const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(context.userId);
+    const userCreatedAt = authUser?.user?.created_at ?? null;
 
-    // 1) Cria pedido pendente usando o client AUTENTICADO do usuário
-    //    para que auth.uid() dentro da RPC preencha orders.user_id corretamente.
+    // Lê perfil salvo (endereço de cobrança / fallback no pickup)
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("address_zip, address_street, address_number, address_district, address_city, address_state")
+      .eq("id", context.userId)
+      .maybeSingle();
+
+    // 1) Cria pedido pendente
     const { data: orderId, error: orderErr } = await context.supabase.rpc(
       "create_pending_order" as never,
       {
@@ -89,21 +113,8 @@ export const createMpPreference = createServerFn({ method: "POST" })
       throw new Error(orderErr?.message ?? "Falha ao criar pedido");
     }
 
-    // Garantia extra: se por algum motivo user_id veio nulo, força com o userId do contexto.
-    // Também salva o endereço de entrega quando aplicável.
-    const orderUpdate: {
-      user_id?: string;
-      shipping_zip?: string;
-      shipping_street?: string;
-      shipping_number?: string;
-      shipping_complement?: string | null;
-      shipping_district?: string | null;
-      shipping_city?: string;
-      shipping_state?: string;
-      shipping_recipient_name?: string | null;
-      shipping_recipient_phone?: string | null;
-      shipping_address?: string;
-    } = {};
+    // Salva endereço no pedido + força user_id
+    const orderUpdate: Record<string, unknown> = {};
     if (data.delivery_method === "delivery" && data.shipping) {
       const s = data.shipping;
       orderUpdate.shipping_zip = s.zip.replace(/\D/g, "");
@@ -118,10 +129,7 @@ export const createMpPreference = createServerFn({ method: "POST" })
       orderUpdate.shipping_address = `${orderUpdate.shipping_street}, ${orderUpdate.shipping_number}${orderUpdate.shipping_complement ? " - " + orderUpdate.shipping_complement : ""}, ${orderUpdate.shipping_district ?? ""} - ${orderUpdate.shipping_city}/${orderUpdate.shipping_state} - ${orderUpdate.shipping_zip}`;
     }
     if (Object.keys(orderUpdate).length > 0) {
-      await supabaseAdmin
-        .from("orders")
-        .update(orderUpdate)
-        .eq("id", orderId as string);
+      await supabaseAdmin.from("orders").update(orderUpdate as never).eq("id", orderId as string);
     }
     await supabaseAdmin
       .from("orders")
@@ -129,15 +137,34 @@ export const createMpPreference = createServerFn({ method: "POST" })
       .eq("id", orderId as string)
       .is("user_id", null);
 
+    // Salva perfil do cliente se solicitado
+    if (data.save_profile) {
+      const profPatch: Record<string, unknown> = {
+        id: context.userId,
+        full_name: data.customer_name.trim(),
+        email: data.customer_email.trim().toLowerCase(),
+        phone: data.customer_phone.replace(/\D/g, ""),
+        cpf: data.customer_cpf.replace(/\D/g, ""),
+      };
+      if (data.delivery_method === "delivery" && data.shipping) {
+        profPatch.address_zip = data.shipping.zip.replace(/\D/g, "");
+        profPatch.address_street = data.shipping.street.trim();
+        profPatch.address_number = String(data.shipping.number).trim();
+        profPatch.address_complement = data.shipping.complement?.trim() || null;
+        profPatch.address_district = data.shipping.district?.trim() || null;
+        profPatch.address_city = data.shipping.city.trim();
+        profPatch.address_state = (data.shipping.state || "PR").toUpperCase();
+      }
+      await supabaseAdmin.from("profiles").upsert(profPatch as never, { onConflict: "id" } as never);
+    }
 
-    // 2) Busca itens já gravados para montar a preferência com nome/preço reais
+    // 2) Itens
     const { data: orderItems, error: itemsErr } = await supabaseAdmin
       .from("order_items")
       .select("product_name, unit_price, quantity")
       .eq("order_id", orderId as string);
     if (itemsErr || !orderItems) throw new Error("Falha ao carregar itens do pedido");
 
-    // 2.1) Calcula frete (apenas entrega): pedidos < R$80 pagam R$10, >= R$80 grátis.
     const subtotal = orderItems.reduce(
       (acc, it) => acc + Number(it.unit_price) * Number(it.quantity),
       0,
@@ -147,18 +174,16 @@ export const createMpPreference = createServerFn({ method: "POST" })
     if (shippingFee > 0 || data.delivery_method === "delivery") {
       await supabaseAdmin
         .from("orders")
-        .update({
-          delivery_fee: shippingFee,
-          total: subtotal + shippingFee,
-        })
+        .update({ delivery_fee: shippingFee, total: subtotal + shippingFee })
         .eq("id", orderId as string);
     }
 
     const origin = originFromRequest();
-
     const nameParts = data.customer_name.trim().split(/\s+/);
     const firstName = nameParts[0] ?? "";
     const lastName = nameParts.slice(1).join(" ") || firstName;
+    const phoneDigits = data.customer_phone.replace(/\D/g, "");
+    const cpfDigits = data.customer_cpf.replace(/\D/g, "");
 
     const mpItems = orderItems.map((it) => ({
       id: orderId as string,
@@ -177,6 +202,34 @@ export const createMpPreference = createServerFn({ method: "POST" })
       });
     }
 
+    // payer.address: usa shipping > perfil salvo > endereço da loja (fallback)
+    const profAddr = profile && profile.address_zip ? {
+      zip_code: (profile.address_zip ?? "").replace(/\D/g, ""),
+      street_name: profile.address_street ?? "",
+      street_number: profile.address_number ?? "",
+      neighborhood: profile.address_district ?? "",
+      city: profile.address_city ?? "",
+      federal_unit: profile.address_state ?? "PR",
+    } : null;
+    const shipAddr = data.shipping ? {
+      zip_code: (data.shipping.zip ?? "").replace(/\D/g, ""),
+      street_name: data.shipping.street,
+      street_number: String(data.shipping.number),
+      neighborhood: data.shipping.district ?? "",
+      city: data.shipping.city,
+      federal_unit: (data.shipping.state ?? "PR").toUpperCase(),
+    } : null;
+    const payerAddress = shipAddr ?? profAddr ?? { ...STORE_PAYER_ADDRESS };
+
+    // shipments: mesmo no pickup mandamos pickup mode pra o MP saber que é retirada
+    const shipments = data.delivery_method === "delivery" && shipAddr
+      ? {
+          mode: "not_specified",
+          cost: shippingFee,
+          receiver_address: shipAddr,
+        }
+      : { mode: "not_specified", local_pickup: true };
+
     const preferenceBody = {
       external_reference: orderId,
       items: mpItems,
@@ -185,23 +238,26 @@ export const createMpPreference = createServerFn({ method: "POST" })
         surname: lastName,
         email: data.customer_email,
         phone: {
-          area_code: data.customer_phone.slice(0, 2),
-          number: data.customer_phone.slice(2),
+          area_code: phoneDigits.slice(0, 2),
+          number: phoneDigits.slice(2),
         },
-        identification: { type: "CPF", number: data.customer_cpf },
+        identification: { type: "CPF", number: cpfDigits },
+        address: payerAddress,
+        ...(userCreatedAt ? { date_created: userCreatedAt } : {}),
       },
+      shipments,
       payment_methods: {
         default_installments: 1,
       },
       back_urls: {
         success: `${origin}/pedido/${orderId}`,
         pending: `${origin}/pedido/${orderId}`,
-        failure: `${origin}/loja`,
+        failure: `${origin}/pedido/${orderId}`,
       },
       auto_return: "approved",
       notification_url: `${origin}/api/public/mp/webhook`,
       statement_descriptor: "SHOPBOX",
-      metadata: { order_id: orderId },
+      metadata: { order_id: orderId, user_id: context.userId },
     };
 
     const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
@@ -216,7 +272,6 @@ export const createMpPreference = createServerFn({ method: "POST" })
     if (!mpRes.ok) {
       const errText = await mpRes.text();
       console.error("[mp] preference error", mpRes.status, errText);
-      // Cancela o pedido (estoque retorna via trigger restore_stock_on_cancel)
       await supabaseAdmin.from("orders").update({ status: "cancelled" }).eq("id", orderId as string);
       throw new Error("Falha ao iniciar pagamento");
     }
@@ -236,7 +291,6 @@ export const createMpPreference = createServerFn({ method: "POST" })
   });
 
 // Permite ao cliente retomar o pagamento de um pedido pendente
-// (caso ele tenha saído/atualizado a página do Mercado Pago).
 export const resumePendingPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: { orderId: string }) => {
@@ -245,7 +299,6 @@ export const resumePendingPayment = createServerFn({ method: "POST" })
   })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Expira pendentes antigos antes de tudo (devolve estoque)
     await supabaseAdmin.rpc("expire_stale_pending_orders" as never, { p_minutes: 5 } as never);
 
     const { data: order, error } = await supabaseAdmin
@@ -272,4 +325,3 @@ export const resumePendingPayment = createServerFn({ method: "POST" })
     if (!link) throw new Error("Link de pagamento indisponível");
     return { initPoint: link };
   });
-
