@@ -46,7 +46,15 @@ function OrderPage() {
   const isDone = isDelivered || (isPaid && !isDelivery && fulfillment === "completed");
   const isPreparing = isPaid && !isDelivery && (fulfillment === "pending" || fulfillment === "preparing");
 
+  // Detalhe da rejeição do Mercado Pago (mostrado quando o pedido ainda pode pagar)
+  const mpStatus = (order as { mp_payment_status?: string | null } | undefined)?.mp_payment_status ?? null;
+  const mpDetail = (order as { mp_status_detail?: string | null } | undefined)?.mp_status_detail ?? null;
+  const showRejection = isPending && mpStatus && mpStatus !== "approved" && mpStatus !== "pending" && mpStatus !== "in_process";
+  const rejectionInfo = showRejection ? mpStatusDetailMessage(mpDetail) : null;
+
   const shortId = id.slice(0, 8).toUpperCase();
+
+
 
 
   return (
