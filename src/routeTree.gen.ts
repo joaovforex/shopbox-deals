@@ -20,6 +20,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProdutoIdRouteImport } from './routes/produto.$id'
 import { Route as PedidoIdRouteImport } from './routes/pedido.$id'
 import { Route as EtiquetaIdRouteImport } from './routes/etiqueta.$id'
+import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedMeusPedidosRouteImport } from './routes/_authenticated/meus-pedidos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ApiPublicReconcileOrdersRouteImport } from './routes/api/public/reconcile-orders'
@@ -85,6 +86,11 @@ const EtiquetaIdRoute = EtiquetaIdRouteImport.update({
   id: '/etiqueta/$id',
   path: '/etiqueta/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMeusPedidosRoute =
   AuthenticatedMeusPedidosRouteImport.update({
@@ -161,6 +167,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
@@ -184,6 +191,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
+  '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
@@ -234,6 +243,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/meus-pedidos'
+    | '/perfil'
     | '/etiqueta/$id'
     | '/pedido/$id'
     | '/produto/$id'
@@ -257,6 +267,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/admin'
     | '/meus-pedidos'
+    | '/perfil'
     | '/etiqueta/$id'
     | '/pedido/$id'
     | '/produto/$id'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/_authenticated/admin'
     | '/_authenticated/meus-pedidos'
+    | '/_authenticated/perfil'
     | '/etiqueta/$id'
     | '/pedido/$id'
     | '/produto/$id'
@@ -392,6 +404,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EtiquetaIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/perfil': {
+      id: '/_authenticated/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/meus-pedidos': {
       id: '/_authenticated/meus-pedidos'
       path: '/meus-pedidos'
@@ -494,11 +513,13 @@ const AuthenticatedAdminRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedMeusPedidosRoute: typeof AuthenticatedMeusPedidosRoute
+  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedMeusPedidosRoute: AuthenticatedMeusPedidosRoute,
+  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

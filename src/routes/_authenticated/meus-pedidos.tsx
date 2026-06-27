@@ -111,12 +111,18 @@ function MyOrdersPage() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <section className="bg-card border-b-4 border-primary">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-xs uppercase tracking-widest text-accent font-bold">Sua conta</div>
-          <h1 className="display text-3xl md:text-4xl">Meus pedidos</h1>
-          <p className="text-sm text-muted-foreground">Acompanhe o status dos seus pedidos e a retirada na loja.</p>
+        <div className="container mx-auto px-4 py-8 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="text-xs uppercase tracking-widest text-accent font-bold">Sua conta</div>
+            <h1 className="display text-3xl md:text-4xl">Meus pedidos</h1>
+            <p className="text-sm text-muted-foreground">Acompanhe o status dos seus pedidos e a retirada na loja.</p>
+          </div>
+          <Link to="/perfil" className="text-xs uppercase tracking-wider font-bold bg-secondary hover:bg-secondary/80 text-foreground px-4 py-2 rounded-md inline-flex items-center gap-2">
+            Meu perfil
+          </Link>
         </div>
       </section>
+
 
       <section className="container mx-auto px-4 py-8 flex-1">
         {isLoading ? (
