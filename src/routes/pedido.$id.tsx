@@ -248,3 +248,34 @@ function OrderPage() {
     </div>
   );
 }
+
+function RetryPaymentButton({ orderId }: { orderId: string }) {
+  const [loading, setLoading] = useState(false);
+  const resume = useServerFn(resumePendingPayment);
+  const onClick = async () => {
+    setLoading(true);
+    try {
+      const res = await resume({ data: { orderId } });
+      if (res?.initPoint) {
+        sessionStorage.setItem("mp_init_point", res.initPoint);
+        window.location.assign("/redirecionando");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível retomar o pagamento");
+    } finally {
+      setLoading(false);
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={loading}
+      className="mt-3 inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider text-xs px-4 py-2.5 rounded-md hover:bg-primary/90 disabled:opacity-60"
+    >
+      <CreditCard className="h-4 w-4" />
+      {loading ? "Abrindo..." : "Tentar pagar novamente"}
+    </button>
+  );
+}
+
