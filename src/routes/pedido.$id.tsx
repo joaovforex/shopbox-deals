@@ -106,7 +106,23 @@ function OrderPage() {
             </div>
           </div>
 
-          {/* MEUS PEDIDOS NOTICE — apenas enquanto não estiver concluído */}
+          {/* MOTIVO REAL DA REJEIÇÃO DO MERCADO PAGO */}
+          {rejectionInfo && (
+            <div className="rounded-xl border-2 border-destructive/40 bg-destructive/5 p-5 mb-6 flex gap-4">
+              <div className="shrink-0 h-11 w-11 rounded-full bg-destructive/15 text-destructive flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="text-sm flex-1">
+                <p className="font-bold text-foreground mb-1">{rejectionInfo.title}</p>
+                <p className="text-muted-foreground leading-relaxed">{rejectionInfo.description}</p>
+                {rejectionInfo.retryable && (
+                  <RetryPaymentButton orderId={id} />
+                )}
+              </div>
+            </div>
+          )}
+
+
           {(isPaid && !isDone) && (
             <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-5 mb-6 flex gap-4">
               <div className="shrink-0 h-11 w-11 rounded-full bg-primary/15 text-primary flex items-center justify-center">
