@@ -266,6 +266,7 @@ function CheckoutPage() {
           delivery_method: delivery,
           shipping,
           items: items.map((i) => ({ product_id: i.id, quantity: i.quantity, color: i.variant_color ?? null })),
+          save_profile: saveProfile,
         },
       });
       setRedirecting(true);
@@ -280,6 +281,7 @@ function CheckoutPage() {
       setBusy(false);
     }
   };
+
 
   return (
     <div className="min-h-screen flex flex-col">
