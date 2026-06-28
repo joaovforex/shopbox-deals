@@ -70,7 +70,7 @@ export const activeProductsQuery = () =>
     staleTime: 60_000,
   });
 
-export const PRODUCTS_PAGE_SIZE = 24;
+export const PRODUCTS_PAGE_SIZE = 50;
 
 type PagedRow = ProductCard & { total_count: number };
 type PagedResult = { items: ProductCard[]; total: number; nextOffset: number | null };
@@ -79,6 +79,7 @@ export async function fetchProductsPaged(args: {
   search?: string;
   category?: string;
   stock?: "in_stock" | "out_of_stock";
+  maxPrice?: number;
   offset: number;
   limit: number;
 }): Promise<PagedResult> {
@@ -88,6 +89,7 @@ export async function fetchProductsPaged(args: {
     p_limit: args.limit,
     p_offset: args.offset,
     ...(args.stock ? { p_stock_status: args.stock } : {}),
+    ...(typeof args.maxPrice === "number" ? { p_max_price: args.maxPrice } : {}),
   });
   if (error) throw error;
   const rows = (data ?? []) as PagedRow[];
@@ -97,20 +99,37 @@ export async function fetchProductsPaged(args: {
   return { items, total, nextOffset };
 }
 
-export const pagedProductsQuery = (args: { search?: string; category?: string; stock?: "in_stock" | "out_of_stock" }) =>
+export const pagedProductsQuery = (args: { search?: string; category?: string; stock?: "in_stock" | "out_of_stock"; maxPrice?: number }) =>
   infiniteQueryOptions({
-    queryKey: ["products", "paged", args.category ?? null, args.search ?? "", args.stock ?? "all"],
+    queryKey: ["products", "paged", args.category ?? null, args.search ?? "", args.stock ?? "all", args.maxPrice ?? null],
     queryFn: ({ pageParam }) =>
       fetchProductsPaged({
         search: args.search,
         category: args.category,
         stock: args.stock,
+        maxPrice: args.maxPrice,
         offset: pageParam as number,
         limit: PRODUCTS_PAGE_SIZE,
       }),
     initialPageParam: 0,
     getNextPageParam: (last) => last.nextOffset,
     staleTime: 5 * 60_000,
+  });
+
+/** Query para uma página específica (paginação numerada). */
+export const pageProductsQuery = (args: { search?: string; category?: string; stock?: "in_stock" | "out_of_stock"; maxPrice?: number; page: number }) =>
+  queryOptions({
+    queryKey: ["products", "page", args.category ?? null, args.search ?? "", args.stock ?? "all", args.maxPrice ?? null, args.page],
+    queryFn: () =>
+      fetchProductsPaged({
+        search: args.search,
+        category: args.category,
+        stock: args.stock,
+        maxPrice: args.maxPrice,
+        offset: Math.max(0, (args.page - 1) * PRODUCTS_PAGE_SIZE),
+        limit: PRODUCTS_PAGE_SIZE,
+      }),
+    staleTime: 60_000,
   });
 
 export async function fetchUsedCategories(): Promise<string[]> {
