@@ -409,11 +409,46 @@ function AdminPage() {
               </div>
             );
           }
+          const activeEsgotados = tab === "esgotados" ? filtered.filter((p) => p.active) : [];
+          const allSelected = activeEsgotados.length > 0 && activeEsgotados.every((p) => selected.has(p.id));
+          const someSelected = activeEsgotados.some((p) => selected.has(p.id)) && !allSelected;
+
+          const toggleSelectAll = () => {
+            if (allSelected) {
+              const next = new Set(selected);
+              activeEsgotados.forEach((p) => next.delete(p.id));
+              setSelected(next);
+            } else {
+              const next = new Set(selected);
+              activeEsgotados.forEach((p) => next.add(p.id));
+              setSelected(next);
+            }
+          };
+
+          const toggleSelect = (id: string) => {
+            const next = new Set(selected);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            setSelected(next);
+          };
+
           return (
           <div className="overflow-x-auto bg-card rounded-lg border border-border">
             <table className="w-full text-sm">
               <thead className="bg-secondary text-left text-xs uppercase tracking-wider">
                 <tr>
+                  {tab === "esgotados" && (
+                    <th className="p-3 w-10">
+                      <button
+                        type="button"
+                        onClick={toggleSelectAll}
+                        className="inline-flex items-center justify-center"
+                        title={allSelected ? "Desmarcar todos" : "Selecionar todos"}
+                      >
+                        {allSelected ? <CheckSquare className="h-5 w-5 text-primary" /> : someSelected ? <XSquare className="h-5 w-5 text-primary" /> : <Square className="h-5 w-5 text-muted-foreground" />}
+                      </button>
+                    </th>
+                  )}
                   <th className="p-3">Produto</th>
                   <th className="p-3">Preço</th>
                   <th className="p-3">Estoque</th>
