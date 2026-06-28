@@ -12,6 +12,7 @@ import { type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { CartProvider } from "@/lib/cart";
 import { Toaster } from "@/components/ui/sonner";
+import { FloatingActions } from "@/components/FloatingActions";
 
 function NotFoundComponent() {
   return (
