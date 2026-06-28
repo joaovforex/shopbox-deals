@@ -299,7 +299,7 @@ export function MobileBottomNav() {
         >
           <Home className="h-5 w-5" /> Início
         </Link>
-        <Link to="/loja" search={{}} className={item(path === "/loja")}>
+        <Link to="/loja" search={{ max: 50 }} className={item(path === "/loja")}>
           <Store className="h-5 w-5" /> Ofertas
         </Link>
         <Link
