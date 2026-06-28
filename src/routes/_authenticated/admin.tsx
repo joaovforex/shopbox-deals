@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Crown, BarChart3, Truck, Users, Package, ShieldAlert, Undo2, ShoppingBag } from "lucide-react";
+import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Crown, BarChart3, Truck, Users, Package, ShieldAlert, Undo2, ShoppingBag, CheckSquare, Square, XSquare } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchProducts, getRoleSummary, type Product, type RoleSummary } from "@/lib/products";
@@ -49,6 +49,8 @@ function AdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"todos" | "esgotados">("todos");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [isBulkHiding, setIsBulkHiding] = useState(false);
 
 
   // If a draft for an existing product was in progress, reopen edit form once loaded.
@@ -64,6 +66,9 @@ function AdminPage() {
       if (p) { setEditing(p); setShowForm(true); }
     } catch {}
   }, [products, editing, showForm, isChildRoute]);
+
+  // Limpa seleção ao mudar de aba
+  useEffect(() => { setSelected(new Set()); }, [tab]);
 
   // Auto-reopen the product form when returning from a mobile camera launch that
   // evicted the page from memory (a saved draft exists in sessionStorage).
@@ -159,6 +164,19 @@ function AdminPage() {
   const toggleActive = async (p: Product) => {
     const { error } = await supabase.from("products").update({ active: !p.active }).eq("id", p.id);
     if (error) return toast.error(error.message);
+    refetch();
+    qc.invalidateQueries({ queryKey: ["products"] });
+  };
+
+  const bulkHide = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    if (!confirm(`Ocultar ${ids.length} ${ids.length === 1 ? "produto" : "produtos"}?`)) return;
+    setIsBulkHiding(true);
+    const { error } = await supabase.from("products").update({ active: false }).in("id", ids);
+    setIsBulkHiding(false);
+    if (error) return toast.error(error.message);
+    setSelected(new Set());
+    toast.success(`${ids.length} produto(s) ocultado(s)`);
     refetch();
     qc.invalidateQueries({ queryKey: ["products"] });
   };
@@ -281,31 +299,62 @@ function AdminPage() {
 
 
       <section className="container mx-auto px-4 py-8 flex-1">
-        <div className="mb-4 inline-flex items-center gap-1 rounded-lg bg-muted p-1">
-          <button
-            type="button"
-            onClick={() => setTab("todos")}
-            className={cn(
-              "px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
-              tab === "todos"
-                ? "bg-background text-foreground shadow"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Todos
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("esgotados")}
-            className={cn(
-              "px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
-              tab === "esgotados"
-                ? "bg-background text-foreground shadow"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Esgotados
-          </button>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="inline-flex items-center gap-1 rounded-lg bg-muted p-1">
+            <button
+              type="button"
+              onClick={() => setTab("todos")}
+              className={cn(
+                "px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
+                tab === "todos"
+                  ? "bg-background text-foreground shadow"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Todos
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("esgotados")}
+              className={cn(
+                "px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
+                tab === "esgotados"
+                  ? "bg-background text-foreground shadow"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Esgotados
+            </button>
+          </div>
+
+          {tab === "esgotados" && (
+            <div className="flex items-center gap-2">
+              {selected.size > 0 ? (
+                <button
+                  type="button"
+                  disabled={isBulkHiding}
+                  onClick={() => bulkHide(Array.from(selected))}
+                  className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-destructive/90 disabled:opacity-50"
+                >
+                  <EyeOff className="h-4 w-4" />
+                  Ocultar {selected.size} selecionado{selected.size === 1 ? "" : "s"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isBulkHiding}
+                  onClick={() => {
+                    const ids = products.filter((p) => p.stock === 0 && p.active).map((p) => p.id);
+                    bulkHide(ids);
+                  }}
+                  className="inline-flex items-center gap-2 bg-card border border-border text-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-secondary disabled:opacity-50"
+                >
+                  <EyeOff className="h-4 w-4" />
+                  Ocultar todos os esgotados
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -360,11 +409,46 @@ function AdminPage() {
               </div>
             );
           }
+          const activeEsgotados = tab === "esgotados" ? filtered.filter((p) => p.active) : [];
+          const allSelected = activeEsgotados.length > 0 && activeEsgotados.every((p) => selected.has(p.id));
+          const someSelected = activeEsgotados.some((p) => selected.has(p.id)) && !allSelected;
+
+          const toggleSelectAll = () => {
+            if (allSelected) {
+              const next = new Set(selected);
+              activeEsgotados.forEach((p) => next.delete(p.id));
+              setSelected(next);
+            } else {
+              const next = new Set(selected);
+              activeEsgotados.forEach((p) => next.add(p.id));
+              setSelected(next);
+            }
+          };
+
+          const toggleSelect = (id: string) => {
+            const next = new Set(selected);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            setSelected(next);
+          };
+
           return (
           <div className="overflow-x-auto bg-card rounded-lg border border-border">
             <table className="w-full text-sm">
               <thead className="bg-secondary text-left text-xs uppercase tracking-wider">
                 <tr>
+                  {tab === "esgotados" && (
+                    <th className="p-3 w-10">
+                      <button
+                        type="button"
+                        onClick={toggleSelectAll}
+                        className="inline-flex items-center justify-center"
+                        title={allSelected ? "Desmarcar todos" : "Selecionar todos"}
+                      >
+                        {allSelected ? <CheckSquare className="h-5 w-5 text-primary" /> : someSelected ? <XSquare className="h-5 w-5 text-primary" /> : <Square className="h-5 w-5 text-muted-foreground" />}
+                      </button>
+                    </th>
+                  )}
                   <th className="p-3">Produto</th>
                   <th className="p-3">Preço</th>
                   <th className="p-3">Estoque</th>
@@ -375,6 +459,18 @@ function AdminPage() {
               <tbody>
                 {filtered.map((p) => (
                   <tr key={p.id} className="border-t border-border">
+                    {tab === "esgotados" && (
+                      <td className="p-3 w-10">
+                        <button
+                          type="button"
+                          onClick={() => toggleSelect(p.id)}
+                          className="inline-flex items-center justify-center"
+                          title={selected.has(p.id) ? "Desmarcar" : "Selecionar"}
+                        >
+                          {selected.has(p.id) ? <CheckSquare className="h-5 w-5 text-primary" /> : <Square className="h-5 w-5 text-muted-foreground" />}
+                        </button>
+                      </td>
+                    )}
                     <td className="p-3">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded bg-muted overflow-hidden flex-shrink-0">
