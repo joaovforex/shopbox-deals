@@ -203,7 +203,7 @@ export function Header() {
             <div key={k} className="flex gap-8 sm:gap-12">
               <span>SUPER OFERTAS DA SEMANA</span>
               <span>PIX E CARTOES</span>
-              <span>ATE 70% OFF</span>
+              <span>FRETE GRÁTIS PARA CURITIBA E REGIÃO ACIMA DE R$ 80,00</span>
               <span>RETIRE NA LOJA EM COLOMBO</span>
             </div>
           ))}
