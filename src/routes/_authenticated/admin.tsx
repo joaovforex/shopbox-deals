@@ -168,6 +168,19 @@ function AdminPage() {
     qc.invalidateQueries({ queryKey: ["products"] });
   };
 
+  const bulkHide = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    if (!confirm(`Ocultar ${ids.length} ${ids.length === 1 ? "produto" : "produtos"}?`)) return;
+    setIsBulkHiding(true);
+    const { error } = await supabase.from("products").update({ active: false }).in("id", ids);
+    setIsBulkHiding(false);
+    if (error) return toast.error(error.message);
+    setSelected(new Set());
+    toast.success(`${ids.length} produto(s) ocultado(s)`);
+    refetch();
+    qc.invalidateQueries({ queryKey: ["products"] });
+  };
+
   const share = async (p: Product) => {
     const url = `${window.location.origin}/produto/${p.id}`;
     const off = discountPct(p.original_price, p.price);
