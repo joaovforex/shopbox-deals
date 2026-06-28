@@ -218,7 +218,7 @@ export function Header() {
 
           <nav className="hidden md:flex items-center justify-center gap-1 lg:gap-2 text-sm font-semibold uppercase tracking-wider min-w-0">
             <Link to="/" className="px-2 lg:px-3 h-9 inline-flex items-center rounded-md hover:bg-secondary transition-colors">Início</Link>
-            <Link to="/loja" className="px-2 lg:px-3 h-9 inline-flex items-center rounded-md hover:bg-secondary transition-colors">Ofertas</Link>
+            <Link to="/loja" search={{ max: 50 }} className="px-2 lg:px-3 h-9 inline-flex items-center rounded-md hover:bg-secondary transition-colors">Ofertas</Link>
             <CategoriesDropdown />
           </nav>
 
@@ -299,7 +299,7 @@ export function MobileBottomNav() {
         >
           <Home className="h-5 w-5" /> Início
         </Link>
-        <Link to="/loja" search={{}} className={item(path === "/loja")}>
+        <Link to="/loja" search={{ max: 50 }} className={item(path === "/loja")}>
           <Store className="h-5 w-5" /> Ofertas
         </Link>
         <Link

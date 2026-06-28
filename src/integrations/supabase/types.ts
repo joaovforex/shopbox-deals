@@ -710,6 +710,7 @@ export type Database = {
         Args: {
           p_category?: string
           p_limit?: number
+          p_max_price?: number
           p_offset?: number
           p_search?: string
           p_stock_status?: string
