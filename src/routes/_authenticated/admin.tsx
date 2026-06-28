@@ -67,6 +67,9 @@ function AdminPage() {
     } catch {}
   }, [products, editing, showForm, isChildRoute]);
 
+  // Limpa seleção ao mudar de aba
+  useEffect(() => { setSelected(new Set()); }, [tab]);
+
   // Auto-reopen the product form when returning from a mobile camera launch that
   // evicted the page from memory (a saved draft exists in sessionStorage).
   useEffect(() => {
