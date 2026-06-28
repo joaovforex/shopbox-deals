@@ -459,6 +459,18 @@ function AdminPage() {
               <tbody>
                 {filtered.map((p) => (
                   <tr key={p.id} className="border-t border-border">
+                    {tab === "esgotados" && (
+                      <td className="p-3 w-10">
+                        <button
+                          type="button"
+                          onClick={() => toggleSelect(p.id)}
+                          className="inline-flex items-center justify-center"
+                          title={selected.has(p.id) ? "Desmarcar" : "Selecionar"}
+                        >
+                          {selected.has(p.id) ? <CheckSquare className="h-5 w-5 text-primary" /> : <Square className="h-5 w-5 text-muted-foreground" />}
+                        </button>
+                      </td>
+                    )}
                     <td className="p-3">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded bg-muted overflow-hidden flex-shrink-0">
