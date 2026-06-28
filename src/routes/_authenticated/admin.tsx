@@ -299,31 +299,62 @@ function AdminPage() {
 
 
       <section className="container mx-auto px-4 py-8 flex-1">
-        <div className="mb-4 inline-flex items-center gap-1 rounded-lg bg-muted p-1">
-          <button
-            type="button"
-            onClick={() => setTab("todos")}
-            className={cn(
-              "px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
-              tab === "todos"
-                ? "bg-background text-foreground shadow"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Todos
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("esgotados")}
-            className={cn(
-              "px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
-              tab === "esgotados"
-                ? "bg-background text-foreground shadow"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            Esgotados
-          </button>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="inline-flex items-center gap-1 rounded-lg bg-muted p-1">
+            <button
+              type="button"
+              onClick={() => setTab("todos")}
+              className={cn(
+                "px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
+                tab === "todos"
+                  ? "bg-background text-foreground shadow"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Todos
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("esgotados")}
+              className={cn(
+                "px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
+                tab === "esgotados"
+                  ? "bg-background text-foreground shadow"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Esgotados
+            </button>
+          </div>
+
+          {tab === "esgotados" && (
+            <div className="flex items-center gap-2">
+              {selected.size > 0 ? (
+                <button
+                  type="button"
+                  disabled={isBulkHiding}
+                  onClick={() => bulkHide(Array.from(selected))}
+                  className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-destructive/90 disabled:opacity-50"
+                >
+                  <EyeOff className="h-4 w-4" />
+                  Ocultar {selected.size} selecionado{selected.size === 1 ? "" : "s"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isBulkHiding}
+                  onClick={() => {
+                    const ids = products.filter((p) => p.stock === 0 && p.active).map((p) => p.id);
+                    bulkHide(ids);
+                  }}
+                  className="inline-flex items-center gap-2 bg-card border border-border text-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-secondary disabled:opacity-50"
+                >
+                  <EyeOff className="h-4 w-4" />
+                  Ocultar todos os esgotados
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mb-4 flex flex-wrap items-center gap-3">
