@@ -1,14 +1,32 @@
+import { useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
-import { Instagram, MapPin, MessageCircle } from "lucide-react";
+import { Instagram, MapPin, MessageCircle, ChevronUp, X } from "lucide-react";
 
-const WHATSAPP_NUMBER = "5541995829892";
 const WHATSAPP_MESSAGE = "Preciso de ajuda com a loja online.";
 const INSTAGRAM_URL = "https://www.instagram.com/shopbox.colombo/";
 const MAPS_ADDRESS = "Rua Abel Scuissiato, 2996";
 
+const CONTACTS = [
+  {
+    label: "Juliana",
+    description: "Produtos diversos",
+    number: "5541995829892",
+  },
+  {
+    label: "João",
+    description: "Autopeças",
+    number: "5541999232414",
+  },
+];
+
+function whatsappHref(number: string) {
+  return `https://wa.me/${number}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
+}
+
 export function FloatingActions() {
   const router = useRouterState();
   const path = router.location.pathname;
+  const [whatsappOpen, setWhatsappOpen] = useState(false);
 
   // Não exibe em rotas de admin, pedidos autenticados, auth ou reset
   if (
@@ -21,7 +39,6 @@ export function FloatingActions() {
     return null;
   }
 
-  const whatsappHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(MAPS_ADDRESS)}`;
 
   return (
@@ -52,16 +69,42 @@ export function FloatingActions() {
         <MapPin className="h-6 w-6" />
       </a>
 
-      <a
-        href={whatsappHref}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Pedir ajuda no WhatsApp"
+      {whatsappOpen && (
+        <div className="flex flex-col gap-2 items-end animate-in fade-in slide-in-from-bottom-2 duration-200">
+          {CONTACTS.map((contact) => (
+            <a
+              key={contact.number}
+              href={whatsappHref(contact.number)}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`Pedir ajuda no WhatsApp - ${contact.label} (${contact.description})`}
+              className="group flex items-center gap-2 rounded-full bg-green-600 px-4 py-2 text-white shadow-lg transition-transform hover:scale-105 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              <span className="hidden max-w-0 overflow-hidden whitespace-nowrap text-sm font-bold transition-all duration-300 group-hover:max-w-xs group-hover:px-2 md:inline">
+                {contact.label} · {contact.description}
+              </span>
+              <span className="text-sm font-bold md:hidden">{contact.label}</span>
+              <MessageCircle className="h-5 w-5" />
+            </a>
+          ))}
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setWhatsappOpen((v) => !v)}
+        aria-label={whatsappOpen ? "Fechar opções de WhatsApp" : "Abrir opções de ajuda no WhatsApp"}
+        aria-expanded={whatsappOpen}
         className="flex items-center gap-2 rounded-full bg-green-500 px-4 py-3 text-white shadow-lg transition-transform hover:scale-105 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
       >
         <MessageCircle className="h-6 w-6" />
         <span className="text-sm font-bold">Ajuda</span>
-      </a>
+        {whatsappOpen ? (
+          <X className="h-4 w-4" />
+        ) : (
+          <ChevronUp className="h-4 w-4" />
+        )}
+      </button>
     </div>
   );
 }
