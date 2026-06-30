@@ -311,6 +311,9 @@ function ProductPage() {
                   ou em até 7x de {brl(product.price / 7)} sem juros
                 </div>
               )}
+              <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-[#25D366]/15 text-[#25D366] px-2.5 py-1 rounded">
+                💰 Ganhe {brl(product.price * 0.1)} em cashback
+              </div>
             </div>
 
             {product.description && (
