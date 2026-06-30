@@ -92,8 +92,8 @@ function MyOrdersPage() {
       if (error) throw error;
       return (data ?? []) as Row[];
     },
-
-    refetchInterval: 5000,
+    // Realtime channel abaixo já invalida a query quando há mudanças.
+    // Mantemos apenas refetch ao focar a janela; sem polling de 5s.
     refetchOnWindowFocus: true,
   });
 
