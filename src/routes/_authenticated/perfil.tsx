@@ -38,8 +38,10 @@ const RMC_CITIES = ["Curitiba","Almirante Tamandaré","Araucária","Campina Gran
 
 function ProfilePage() {
   const update = useServerFn(updateMyProfile);
+  const fetchCashback = useServerFn(getMyCashback);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [cashback, setCashback] = useState<{ balance: number; nextExpiry: { amount: number; expiresAt: string } | null }>({ balance: 0, nextExpiry: null });
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
