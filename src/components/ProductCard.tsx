@@ -4,6 +4,7 @@ import { brl, discountPct } from "@/lib/format";
 import { productImages, useHasTeamRole, type Product, type ProductCard as ProductCardData } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
+import { optimizedImage, optimizedSrcSet } from "@/lib/image-url";
 
 export function ProductCard({ product, priority = false }: { product: Product | ProductCardData; priority?: boolean }) {
   const off = discountPct(product.original_price, product.price);
