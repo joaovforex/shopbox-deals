@@ -292,6 +292,21 @@ export const createMpPreference = createServerFn({ method: "POST" })
       metadata: { order_id: orderId, user_id: context.userId },
     };
 
+    // GUARD-RAIL: jamais enviar shipments.cost ao MP — o frete já está embutido como item
+    // em `mpItems`. Enviar nos dois lugares faz o MP somar duas vezes (R$ 10 a mais cobrados
+    // no pedido do Edmilson em 30/06/2026). NÃO REMOVER ESTA TRAVA.
+    {
+      const hasFreteItem = mpItems.some((it) => /^frete/i.test(it.title));
+      const shipmentsHasCost =
+        preferenceBody.shipments &&
+        Object.prototype.hasOwnProperty.call(preferenceBody.shipments, "cost");
+      if (hasFreteItem && shipmentsHasCost) {
+        throw new Error(
+          "[mp] Frete duplicado: shipments.cost não pode coexistir com item de frete em mpItems",
+        );
+      }
+    }
+
     const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
       headers: {
