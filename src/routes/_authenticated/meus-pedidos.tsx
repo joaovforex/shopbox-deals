@@ -69,6 +69,16 @@ function statusBadge(o: Row): { label: string; cls: string; icon: React.ReactNod
 
 function MyOrdersPage() {
   const queryClient = useQueryClient();
+  const fetchCashback = useServerFn(getMyCashback);
+  const [cashback, setCashback] = useState<{ balance: number; nextExpiry: { amount: number; expiresAt: string } | null }>({ balance: 0, nextExpiry: null });
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetchCashback();
+        setCashback({ balance: Number(r.balance ?? 0), nextExpiry: r.nextExpiry ?? null });
+      } catch { /* noop */ }
+    })();
+  }, [fetchCashback]);
   const { data: orders, isLoading } = useQuery({
     queryKey: ["my-orders"],
     queryFn: async () => {
