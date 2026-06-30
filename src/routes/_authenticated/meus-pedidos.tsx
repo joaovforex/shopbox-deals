@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Package, ArrowRight, Clock, CheckCircle2, Store, XCircle, Truck, Hash, CreditCard } from "lucide-react";
+import { Package, ArrowRight, Clock, CheckCircle2, Store, XCircle, Truck, Hash, CreditCard, Wallet } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
 import { STORE_ADDRESS } from "@/lib/whatsapp";
 import { resumePendingPayment } from "@/lib/mercadopago.functions";
+import { getMyCashback } from "@/lib/cashback.functions";
 import { toast } from "sonner";
 
 
@@ -67,6 +69,16 @@ function statusBadge(o: Row): { label: string; cls: string; icon: React.ReactNod
 
 function MyOrdersPage() {
   const queryClient = useQueryClient();
+  const fetchCashback = useServerFn(getMyCashback);
+  const [cashback, setCashback] = useState<{ balance: number; nextExpiry: { amount: number; expiresAt: string } | null }>({ balance: 0, nextExpiry: null });
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetchCashback();
+        setCashback({ balance: Number(r.balance ?? 0), nextExpiry: r.nextExpiry ?? null });
+      } catch { /* noop */ }
+    })();
+  }, [fetchCashback]);
   const { data: orders, isLoading } = useQuery({
     queryKey: ["my-orders"],
     queryFn: async () => {
@@ -124,7 +136,23 @@ function MyOrdersPage() {
       </section>
 
 
-      <section className="container mx-auto px-4 py-8 flex-1">
+      <section className="container mx-auto px-4 py-8 flex-1 space-y-4">
+        {cashback.balance > 0 && (
+          <div className="bg-[#25D366]/10 border-l-4 border-[#25D366] rounded-md p-4 flex items-start gap-3">
+            <Wallet className="h-5 w-5 text-[#25D366] mt-0.5 shrink-0" />
+            <div className="text-sm flex-1">
+              <div className="font-bold text-[#25D366]">Você tem {brl(cashback.balance)} em cashback</div>
+              {cashback.nextExpiry && cashback.nextExpiry.amount > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  {brl(cashback.nextExpiry.amount)} expira em {Math.max(0, Math.ceil((new Date(cashback.nextExpiry.expiresAt).getTime() - Date.now()) / 86400000))} dia(s). Use na sua próxima compra como desconto.
+                </div>
+              )}
+            </div>
+            <Link to="/loja" className="text-xs uppercase tracking-wider font-bold bg-[#25D366] text-white px-3 py-2 rounded-md whitespace-nowrap">
+              Usar agora
+            </Link>
+          </div>
+        )}
         {isLoading ? (
           <div className="text-muted-foreground">Carregando...</div>
         ) : !orders || orders.length === 0 ? (

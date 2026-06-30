@@ -5,8 +5,10 @@ import { toast } from "sonner";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { updateMyProfile } from "@/lib/profile.functions";
+import { getMyCashback } from "@/lib/cashback.functions";
 import { isValidCpf } from "@/lib/cpf";
-import { User, MapPin, Save, ArrowLeft } from "lucide-react";
+import { brl } from "@/lib/format";
+import { User, MapPin, Save, ArrowLeft, Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/perfil")({
   head: () => ({ meta: [{ title: "Meu perfil · shopbox" }] }),
@@ -36,8 +38,10 @@ const RMC_CITIES = ["Curitiba","Almirante Tamandaré","Araucária","Campina Gran
 
 function ProfilePage() {
   const update = useServerFn(updateMyProfile);
+  const fetchCashback = useServerFn(getMyCashback);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [cashback, setCashback] = useState<{ balance: number; nextExpiry: { amount: number; expiresAt: string } | null }>({ balance: 0, nextExpiry: null });
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -77,7 +81,13 @@ function ProfilePage() {
       setStateUf(p.address_state ?? "PR");
       setLoading(false);
     })();
-  }, []);
+    (async () => {
+      try {
+        const r = await fetchCashback();
+        setCashback({ balance: Number(r.balance ?? 0), nextExpiry: r.nextExpiry ?? null });
+      } catch { /* noop */ }
+    })();
+  }, [fetchCashback]);
 
   // ViaCEP
   useEffect(() => {
@@ -152,6 +162,32 @@ function ProfilePage() {
           <div className="text-muted-foreground">Carregando...</div>
         ) : (
           <>
+            <div className="bg-gradient-to-br from-[#25D366]/15 to-[#25D366]/5 border-2 border-[#25D366]/40 rounded-xl p-5">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-full bg-[#25D366]/20 flex items-center justify-center">
+                    <Wallet className="h-6 w-6 text-[#25D366]" />
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase tracking-widest text-[#25D366] font-bold">Saldo de cashback</div>
+                    <div className="display text-3xl text-[#25D366]">{brl(cashback.balance)}</div>
+                  </div>
+                </div>
+                {cashback.nextExpiry && cashback.nextExpiry.amount > 0 && (
+                  <div className="text-xs text-right">
+                    <div className="text-muted-foreground">A vencer:</div>
+                    <div className="font-bold">{brl(cashback.nextExpiry.amount)}</div>
+                    <div className="text-muted-foreground">
+                      em {Math.max(0, Math.ceil((new Date(cashback.nextExpiry.expiresAt).getTime() - Date.now()) / 86400000))} dia(s)
+                    </div>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                Você ganha <strong>10% de cashback</strong> em todas as compras. O valor fica disponível por 30 dias e pode ser usado como desconto em qualquer pedido futuro.
+              </p>
+            </div>
+
             <Section title="Dados pessoais" icon={<User className="h-4 w-4" />}>
               <Field label="Nome completo" value={fullName} onChange={setFullName} placeholder="Como aparece no documento" />
               <div className="grid sm:grid-cols-2 gap-3">

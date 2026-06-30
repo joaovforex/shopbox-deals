@@ -32,6 +32,7 @@ import { Route as AuthenticatedAdminEquipeRouteImport } from './routes/_authenti
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp.webhook'
 import { Route as ApiPublicMaisentregasPollRouteImport } from './routes/api/public/maisentregas/poll'
+import { Route as ApiPublicCashbackExpireRouteImport } from './routes/api/public/cashback/expire'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -156,6 +157,11 @@ const ApiPublicMaisentregasPollRoute =
     path: '/api/public/maisentregas/poll',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCashbackExpireRoute = ApiPublicCashbackExpireRouteImport.update({
+  id: '/api/public/cashback/expire',
+  path: '/api/public/cashback/expire',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -177,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
+  '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -201,6 +208,7 @@ export interface FileRoutesByTo {
   '/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
+  '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -227,6 +235,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
   '/_authenticated/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
+  '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -253,6 +262,7 @@ export interface FileRouteTypes {
     | '/admin/reembolsos'
     | '/admin/venda-manual'
     | '/api/public/reconcile-orders'
+    | '/api/public/cashback/expire'
     | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
     | '/lovable/email/queue/process'
@@ -277,6 +287,7 @@ export interface FileRouteTypes {
     | '/admin/reembolsos'
     | '/admin/venda-manual'
     | '/api/public/reconcile-orders'
+    | '/api/public/cashback/expire'
     | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
     | '/lovable/email/queue/process'
@@ -302,6 +313,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/reembolsos'
     | '/_authenticated/admin/venda-manual'
     | '/api/public/reconcile-orders'
+    | '/api/public/cashback/expire'
     | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
     | '/lovable/email/queue/process'
@@ -320,6 +332,7 @@ export interface RootRouteChildren {
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
   ApiPublicReconcileOrdersRoute: typeof ApiPublicReconcileOrdersRoute
+  ApiPublicCashbackExpireRoute: typeof ApiPublicCashbackExpireRoute
   ApiPublicMaisentregasPollRoute: typeof ApiPublicMaisentregasPollRoute
   ApiPublicMpWebhookRoute: typeof ApiPublicMpWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -488,6 +501,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMaisentregasPollRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cashback/expire': {
+      id: '/api/public/cashback/expire'
+      path: '/api/public/cashback/expire'
+      fullPath: '/api/public/cashback/expire'
+      preLoaderRoute: typeof ApiPublicCashbackExpireRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -538,6 +558,7 @@ const rootRouteChildren: RootRouteChildren = {
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
   ApiPublicReconcileOrdersRoute: ApiPublicReconcileOrdersRoute,
+  ApiPublicCashbackExpireRoute: ApiPublicCashbackExpireRoute,
   ApiPublicMaisentregasPollRoute: ApiPublicMaisentregasPollRoute,
   ApiPublicMpWebhookRoute: ApiPublicMpWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
