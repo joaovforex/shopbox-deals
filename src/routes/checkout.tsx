@@ -524,7 +524,7 @@ function CheckoutPage() {
                   <span className="display text-2xl text-price">{brl(grandTotal)}</span>
                 </div>
                 <div className="text-[11px] text-[#25D366] font-bold text-center -mt-1">
-                  💰 Você ganhará {brl((total - cashbackApply) * 0.1)} em cashback nesta compra
+                  💰 Você ganhará {brl((total - cashbackApply) * 0.05)} em cashback nesta compra
                 </div>
                 <button
                   type="submit"
