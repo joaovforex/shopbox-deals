@@ -136,7 +136,23 @@ function MyOrdersPage() {
       </section>
 
 
-      <section className="container mx-auto px-4 py-8 flex-1">
+      <section className="container mx-auto px-4 py-8 flex-1 space-y-4">
+        {cashback.balance > 0 && (
+          <div className="bg-[#25D366]/10 border-l-4 border-[#25D366] rounded-md p-4 flex items-start gap-3">
+            <Wallet className="h-5 w-5 text-[#25D366] mt-0.5 shrink-0" />
+            <div className="text-sm flex-1">
+              <div className="font-bold text-[#25D366]">Você tem {brl(cashback.balance)} em cashback</div>
+              {cashback.nextExpiry && cashback.nextExpiry.amount > 0 && (
+                <div className="text-xs text-muted-foreground">
+                  {brl(cashback.nextExpiry.amount)} expira em {Math.max(0, Math.ceil((new Date(cashback.nextExpiry.expiresAt).getTime() - Date.now()) / 86400000))} dia(s). Use na sua próxima compra como desconto.
+                </div>
+              )}
+            </div>
+            <Link to="/loja" className="text-xs uppercase tracking-wider font-bold bg-[#25D366] text-white px-3 py-2 rounded-md whitespace-nowrap">
+              Usar agora
+            </Link>
+          </div>
+        )}
         {isLoading ? (
           <div className="text-muted-foreground">Carregando...</div>
         ) : !orders || orders.length === 0 ? (
