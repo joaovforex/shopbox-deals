@@ -253,11 +253,11 @@ export const createMpPreference = createServerFn({ method: "POST" })
     } : null;
     const payerAddress = shipAddr ?? profAddr ?? { ...STORE_PAYER_ADDRESS };
 
-    // shipments: mesmo no pickup mandamos pickup mode pra o MP saber que é retirada
+    // shipments: NÃO enviar `cost` aqui — o frete já está como item em mpItems.
+    // Se mandarmos `cost` também, o MP soma duas vezes (bug do pedido Edmilson).
     const shipments = data.delivery_method === "delivery" && shipAddr
       ? {
           mode: "not_specified",
-          cost: shippingFee,
           receiver_address: shipAddr,
         }
       : { mode: "not_specified", local_pickup: true };
