@@ -27,6 +27,8 @@ type CreatePreferenceInput = {
   items: CartItemInput[];
   /** Salva os dados do cliente/endereço no perfil para reuso futuro. */
   save_profile?: boolean;
+  /** Cashback a aplicar como desconto (em reais). */
+  use_cashback?: number;
 };
 
 // Endereço da loja — usado como payer.address de fallback quando o cliente
