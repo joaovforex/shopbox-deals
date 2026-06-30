@@ -13,9 +13,8 @@ export const getMyCashback = createServerFn({ method: "GET" })
     const { data: nextRows } = await context.supabase.rpc("cashback_next_expiry" as never, {
       p_user_id: context.userId,
     } as never);
-    const next = Array.isArray(nextRows) && nextRows.length > 0
-      ? (nextRows[0] as { amount: number; expires_at: string })
-      : null;
+    const arr = (nextRows as unknown as Array<{ amount: number; expires_at: string }> | null) ?? [];
+    const next = arr.length > 0 ? arr[0] : null;
     return {
       balance: Number(bal ?? 0),
       nextExpiry: next ? { amount: Number(next.amount), expiresAt: next.expires_at } : null,
