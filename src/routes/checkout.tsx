@@ -470,13 +470,44 @@ function CheckoutPage() {
           </ul>
           {(() => {
             const shippingFee = delivery === "delivery" ? (total < 80 ? 10 : 0) : 0;
-            const grandTotal = total + shippingFee;
+            const cashbackApply = useCashback ? Math.min(cashbackBalance, total) : 0;
+            const grandTotal = Math.max(0, total - cashbackApply) + shippingFee;
+            const expiresInDays = cashbackExpiry
+              ? Math.max(0, Math.ceil((new Date(cashbackExpiry.expiresAt).getTime() - Date.now()) / 86400000))
+              : 0;
             return (
               <>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="font-semibold">{brl(total)}</span>
                 </div>
+                {cashbackBalance > 0 && (
+                  <div className="bg-[#25D366]/10 border border-[#25D366]/40 rounded-md p-3 space-y-1.5">
+                    <label className="flex items-start gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={useCashback}
+                        onChange={(e) => setUseCashback(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 accent-[#25D366]"
+                      />
+                      <span className="text-xs">
+                        <span className="font-bold text-[#25D366]">Usar {brl(Math.min(cashbackBalance, total))} de cashback</span>
+                        <span className="block text-muted-foreground">Saldo disponível: {brl(cashbackBalance)}</span>
+                        {cashbackExpiry && (
+                          <span className="block text-[10px] text-muted-foreground">
+                            {brl(cashbackExpiry.amount)} expira em {expiresInDays} dia{expiresInDays === 1 ? "" : "s"}
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  </div>
+                )}
+                {cashbackApply > 0 && (
+                  <div className="flex justify-between text-sm text-[#25D366]">
+                    <span>Desconto cashback</span>
+                    <span className="font-semibold">- {brl(cashbackApply)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{delivery === "pickup" ? "Retirada" : "Entrega"}</span>
                   <span className="font-semibold">{shippingFee > 0 ? brl(shippingFee) : "Grátis"}</span>
@@ -491,6 +522,9 @@ function CheckoutPage() {
                 <div className="border-t border-border pt-3 flex justify-between items-baseline">
                   <span className="font-bold">Total</span>
                   <span className="display text-2xl text-price">{brl(grandTotal)}</span>
+                </div>
+                <div className="text-[11px] text-[#25D366] font-bold text-center -mt-1">
+                  💰 Você ganhará {brl((total - cashbackApply) * 0.1)} em cashback nesta compra
                 </div>
                 <button
                   type="submit"
