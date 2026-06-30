@@ -10,6 +10,7 @@ import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
 import { createMpPreference } from "@/lib/mercadopago.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
+import { calculateCashback } from "@/lib/cashback-config";
 
 
 export const Route = createFileRoute("/checkout")({

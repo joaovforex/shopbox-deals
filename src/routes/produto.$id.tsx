@@ -7,6 +7,7 @@ import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { ProductCarousel } from "@/components/ProductCarousel";
 import { ProductForm } from "@/components/ProductForm";
 import { brl, discountPct } from "@/lib/format";
+import { calculateCashback } from "@/lib/cashback-config";
 import { fetchProduct, getRoleSummary, productImages, type Product } from "@/lib/products";
 import { getRequestOrigin } from "@/lib/origin.functions";
 import { useCart } from "@/lib/cart";
