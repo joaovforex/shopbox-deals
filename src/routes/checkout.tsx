@@ -287,6 +287,7 @@ function CheckoutPage() {
           shipping,
           items: items.map((i) => ({ product_id: i.id, quantity: i.quantity, color: i.variant_color ?? null })),
           save_profile: saveProfile,
+          use_cashback: useCashback ? Math.min(cashbackBalance, total) : 0,
         },
       });
       setRedirecting(true);
