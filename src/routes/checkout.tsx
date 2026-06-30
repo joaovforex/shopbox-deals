@@ -10,6 +10,7 @@ import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
 import { createMpPreference } from "@/lib/mercadopago.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
+import { calculateCashback } from "@/lib/cashback-config";
 
 
 export const Route = createFileRoute("/checkout")({
@@ -524,7 +525,7 @@ function CheckoutPage() {
                   <span className="display text-2xl text-price">{brl(grandTotal)}</span>
                 </div>
                 <div className="text-[11px] text-[#25D366] font-bold text-center -mt-1">
-                  💰 Você ganhará {brl((total - cashbackApply) * 0.05)} em cashback nesta compra
+                  💰 Você ganhará {brl(calculateCashback(total - cashbackApply))} em cashback nesta compra
                 </div>
                 <button
                   type="submit"

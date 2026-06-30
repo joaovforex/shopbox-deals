@@ -7,6 +7,7 @@ import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { ProductCarousel } from "@/components/ProductCarousel";
 import { ProductForm } from "@/components/ProductForm";
 import { brl, discountPct } from "@/lib/format";
+import { calculateCashback } from "@/lib/cashback-config";
 import { fetchProduct, getRoleSummary, productImages, type Product } from "@/lib/products";
 import { getRequestOrigin } from "@/lib/origin.functions";
 import { useCart } from "@/lib/cart";
@@ -312,7 +313,7 @@ function ProductPage() {
                 </div>
               )}
               <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-[#25D366]/15 text-[#25D366] px-2.5 py-1 rounded">
-                💰 Ganhe {brl(product.price * 0.05)} em cashback
+                💰 Ganhe {brl(calculateCashback(product.price))} em cashback
               </div>
             </div>
 
