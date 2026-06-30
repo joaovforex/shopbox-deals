@@ -70,6 +70,50 @@ export type Database = {
           },
         ]
       }
+      cashback_entries: {
+        Row: {
+          amount: number
+          consumed: number
+          created_at: string
+          expired_at: string | null
+          expires_at: string | null
+          id: string
+          kind: string
+          order_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          consumed?: number
+          created_at?: string
+          expired_at?: string | null
+          expires_at?: string | null
+          id?: string
+          kind: string
+          order_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          consumed?: number
+          created_at?: string
+          expired_at?: string | null
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          order_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cashback_entries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -211,6 +255,9 @@ export type Database = {
       orders: {
         Row: {
           cancellation_reason: string | null
+          cashback_earned: number
+          cashback_granted_at: string | null
+          cashback_used: number
           created_at: string
           customer_cpf: string | null
           customer_email: string | null
@@ -269,6 +316,9 @@ export type Database = {
         }
         Insert: {
           cancellation_reason?: string | null
+          cashback_earned?: number
+          cashback_granted_at?: string | null
+          cashback_used?: number
           created_at?: string
           customer_cpf?: string | null
           customer_email?: string | null
@@ -327,6 +377,9 @@ export type Database = {
         }
         Update: {
           cancellation_reason?: string | null
+          cashback_earned?: number
+          cashback_granted_at?: string | null
+          cashback_used?: number
           created_at?: string
           customer_cpf?: string | null
           customer_email?: string | null
@@ -638,12 +691,24 @@ export type Database = {
           id: string
         }[]
       }
+      apply_cashback_to_order: {
+        Args: { p_amount: number; p_order_id: string }
+        Returns: number
+      }
       assign_team_role: {
         Args: {
           p_role: Database["public"]["Enums"]["app_role"]
           p_user_id: string
         }
         Returns: string
+      }
+      cashback_balance: { Args: { p_user_id: string }; Returns: number }
+      cashback_next_expiry: {
+        Args: { p_user_id: string }
+        Returns: {
+          amount: number
+          expires_at: string
+        }[]
       }
       claim_first_admin_for_user: {
         Args: { p_user_id: string }
@@ -686,6 +751,7 @@ export type Database = {
         Returns: number
       }
       expire_cart_reservations: { Args: never; Returns: number }
+      expire_cashback: { Args: never; Returns: number }
       expire_stale_pending_orders: {
         Args: { p_minutes?: number }
         Returns: number
@@ -695,6 +761,7 @@ export type Database = {
         Returns: number
       }
       generate_product_sku: { Args: never; Returns: string }
+      grant_order_cashback: { Args: { p_order_id: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -795,6 +862,10 @@ export type Database = {
         }[]
       }
       record_visit: { Args: { p_session_id: string }; Returns: number }
+      refund_cashback_for_order: {
+        Args: { p_order_id: string }
+        Returns: number
+      }
       release_cart_reservation: {
         Args: { p_product_id: string; p_variant_color: string }
         Returns: boolean
