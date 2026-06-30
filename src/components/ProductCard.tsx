@@ -4,6 +4,7 @@ import { brl, discountPct } from "@/lib/format";
 import { productImages, useHasTeamRole, type Product, type ProductCard as ProductCardData } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
+import { optimizedImage, optimizedSrcSet } from "@/lib/image-url";
 
 export function ProductCard({ product, priority = false }: { product: Product | ProductCardData; priority?: boolean }) {
   const off = discountPct(product.original_price, product.price);
@@ -58,11 +59,15 @@ export function ProductCard({ product, priority = false }: { product: Product | 
       <div className="aspect-square bg-muted overflow-hidden relative">
         {cover ? (
           <img
-            src={cover}
+            src={optimizedImage(cover, { width: 480, quality: 65 })}
+            srcSet={optimizedSrcSet(cover, 480, 65)}
+            sizes="(min-width: 768px) 33vw, 50vw"
             alt={product.name}
             loading={priority ? "eager" : "lazy"}
             fetchPriority={priority ? "high" : "auto"}
             decoding="async"
+            width={480}
+            height={480}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           />
         ) : (
