@@ -14,10 +14,10 @@ export function AnnouncementBanner() {
           className="relative flex items-center justify-center gap-2 sm:gap-3 text-center text-xs sm:text-sm font-bold uppercase tracking-wide hover:opacity-90 transition-opacity"
         >
           <span className="hidden sm:inline">
-            Agora você ganha 10% de cashback em todas as compras! Use em produtos e acumule vantagens.
+            Agora você ganha 5% de cashback em todas as compras! Use em produtos e acumule vantagens.
           </span>
           <span className="sm:hidden">
-            Ganhe 10% de cashback em todas as compras!
+            Ganhe 5% de cashback em todas as compras!
           </span>
         </Link>
       </div>
