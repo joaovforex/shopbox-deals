@@ -1,12 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Package, ArrowRight, Clock, CheckCircle2, Store, XCircle, Truck, Hash, CreditCard } from "lucide-react";
+import { Package, ArrowRight, Clock, CheckCircle2, Store, XCircle, Truck, Hash, CreditCard, Wallet } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
 import { STORE_ADDRESS } from "@/lib/whatsapp";
 import { resumePendingPayment } from "@/lib/mercadopago.functions";
+import { getMyCashback } from "@/lib/cashback.functions";
 import { toast } from "sonner";
 
 
