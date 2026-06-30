@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
+import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { ProductCard } from "@/components/ProductCard";
 import { MegaOffersCarousel } from "@/components/MegaOffersCarousel";
 import { pageProductsQuery, productImages, PRODUCTS_PAGE_SIZE } from "@/lib/products";
@@ -131,6 +132,7 @@ function Loja() {
         <link key={src} rel="preload" as="image" href={src} />
       ))}
       <Header />
+      <AnnouncementBanner />
 
       <section className="container mx-auto pl-6 pr-3 sm:pl-10 sm:pr-4 py-4 sm:py-6">
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
