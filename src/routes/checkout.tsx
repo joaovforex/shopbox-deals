@@ -9,6 +9,7 @@ import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
 import { createMpPreference } from "@/lib/mercadopago.functions";
+import { getMyCashback } from "@/lib/cashback.functions";
 
 
 export const Route = createFileRoute("/checkout")({
