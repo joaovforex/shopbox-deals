@@ -173,12 +173,30 @@ export const createMpPreference = createServerFn({ method: "POST" })
     );
     const shippingFee =
       data.delivery_method === "delivery" ? (subtotal < 80 ? 10 : 0) : 0;
-    if (shippingFee > 0 || data.delivery_method === "delivery") {
-      await supabaseAdmin
-        .from("orders")
-        .update({ delivery_fee: shippingFee, total: subtotal + shippingFee })
-        .eq("id", orderId as string);
+
+    // 2.1) Cashback (opcional) — aplicado via RPC para garantir consistência de saldo
+    let cashbackUsed = 0;
+    const requestedCashback = Math.max(0, Math.min(Number(data.use_cashback ?? 0), subtotal));
+    if (requestedCashback > 0) {
+      const { data: applied, error: cbErr } = await context.supabase.rpc(
+        "apply_cashback_to_order" as never,
+        { p_order_id: orderId as string, p_amount: requestedCashback } as never,
+      );
+      if (cbErr) throw new Error(cbErr.message);
+      cashbackUsed = Math.max(0, Number(applied ?? 0));
     }
+
+    const productsTotal = Math.max(0, subtotal - cashbackUsed);
+    const grandTotal = productsTotal + shippingFee;
+
+    await supabaseAdmin
+      .from("orders")
+      .update({
+        delivery_fee: shippingFee,
+        total: grandTotal,
+        cashback_used: cashbackUsed,
+      } as never)
+      .eq("id", orderId as string);
 
     const origin = originFromRequest();
     const nameParts = data.customer_name.trim().split(/\s+/);
@@ -187,13 +205,25 @@ export const createMpPreference = createServerFn({ method: "POST" })
     const phoneDigits = data.customer_phone.replace(/\D/g, "");
     const cpfDigits = data.customer_cpf.replace(/\D/g, "");
 
-    const mpItems = orderItems.map((it) => ({
-      id: orderId as string,
-      title: String(it.product_name).slice(0, 250),
-      quantity: it.quantity,
-      unit_price: Number(it.unit_price),
-      currency_id: "BRL",
-    }));
+    // Quando há cashback aplicado, consolidamos os itens em uma única linha
+    // com o preço final (subtotal - cashback) para garantir que o total cobrado
+    // no Mercado Pago bate exatamente com o que o cliente vê.
+    type MpItem = { id: string; title: string; quantity: number; unit_price: number; currency_id: string };
+    const mpItems: MpItem[] = cashbackUsed > 0
+      ? [{
+          id: orderId as string,
+          title: `Pedido shopbox (${orderItems.length} ${orderItems.length === 1 ? "item" : "itens"}) - desconto cashback R$ ${cashbackUsed.toFixed(2)}`.slice(0, 250),
+          quantity: 1,
+          unit_price: Number(productsTotal.toFixed(2)),
+          currency_id: "BRL",
+        }]
+      : orderItems.map((it) => ({
+          id: orderId as string,
+          title: String(it.product_name).slice(0, 250),
+          quantity: it.quantity,
+          unit_price: Number(it.unit_price),
+          currency_id: "BRL",
+        }));
     if (shippingFee > 0) {
       mpItems.push({
         id: orderId as string,
