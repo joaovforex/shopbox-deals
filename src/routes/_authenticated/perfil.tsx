@@ -5,8 +5,10 @@ import { toast } from "sonner";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { updateMyProfile } from "@/lib/profile.functions";
+import { getMyCashback } from "@/lib/cashback.functions";
 import { isValidCpf } from "@/lib/cpf";
-import { User, MapPin, Save, ArrowLeft } from "lucide-react";
+import { brl } from "@/lib/format";
+import { User, MapPin, Save, ArrowLeft, Wallet } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/perfil")({
   head: () => ({ meta: [{ title: "Meu perfil · shopbox" }] }),
