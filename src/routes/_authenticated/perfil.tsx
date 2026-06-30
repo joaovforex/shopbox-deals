@@ -184,7 +184,7 @@ function ProfilePage() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground mt-3">
-                Você ganha <strong>10% de cashback</strong> em todas as compras. O valor fica disponível por 30 dias e pode ser usado como desconto em qualquer pedido futuro.
+                Você ganha <strong>5% de cashback</strong> em todas as compras. O valor fica disponível por 30 dias e pode ser usado como desconto em qualquer pedido futuro.
               </p>
             </div>
 
