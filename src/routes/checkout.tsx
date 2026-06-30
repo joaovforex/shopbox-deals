@@ -95,6 +95,20 @@ function CheckoutPage() {
     }
   }, [user]);
 
+  // Carrega saldo de cashback do usuário
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const r = await fetchCashback();
+        setCashbackBalance(Number(r.balance ?? 0));
+        setCashbackExpiry(r.nextExpiry ?? null);
+      } catch {
+        setCashbackBalance(0);
+      }
+    })();
+  }, [user, fetchCashback]);
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
