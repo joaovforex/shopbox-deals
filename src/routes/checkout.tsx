@@ -80,6 +80,11 @@ function CheckoutPage() {
   const [busy, setBusy] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const createPref = useServerFn(createMpPreference);
+  const fetchCashback = useServerFn(getMyCashback);
+
+  const [cashbackBalance, setCashbackBalance] = useState(0);
+  const [cashbackExpiry, setCashbackExpiry] = useState<{ amount: number; expiresAt: string } | null>(null);
+  const [useCashback, setUseCashback] = useState(false);
 
   const user = useAuthUser();
   const navigate = useNavigate();
