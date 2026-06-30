@@ -81,7 +81,13 @@ function ProfilePage() {
       setStateUf(p.address_state ?? "PR");
       setLoading(false);
     })();
-  }, []);
+    (async () => {
+      try {
+        const r = await fetchCashback();
+        setCashback({ balance: Number(r.balance ?? 0), nextExpiry: r.nextExpiry ?? null });
+      } catch { /* noop */ }
+    })();
+  }, [fetchCashback]);
 
   // ViaCEP
   useEffect(() => {
