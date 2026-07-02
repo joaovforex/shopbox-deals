@@ -756,6 +756,15 @@ function OrdersPanel() {
                           <Undo2 className="h-3 w-3" /> Estornar
                         </button>
                       )}
+                      {superAdmin && o.status === "paid" && !o.refund_status && (
+                        <button
+                          onClick={() => setVoucherTarget(o)}
+                          disabled={busy}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 border border-emerald-500/40 px-2 py-1 rounded disabled:opacity-50"
+                        >
+                          <Gift className="h-3 w-3" /> Vale-Troca
+                        </button>
+                      )}
                       {superAdmin && (
                         <button
                           onClick={() => deleteOrder(o.id)}
