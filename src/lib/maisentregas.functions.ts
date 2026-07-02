@@ -159,7 +159,6 @@ export async function createDeliveryForOrder(orderId: string): Promise<{
       payment: ME_PAYMENT,
       billing: ME_BILLING,
       delivery: ME_DELIVERY,
-      order: `Pedido #${orderCode}`,
       document: order.customer_cpf ?? undefined,
       address: [
         buildAddress({
@@ -174,20 +173,27 @@ export async function createDeliveryForOrder(orderId: string): Promise<{
           phone: me.PICKUP_ADDRESS.recipient_phone,
           comment: `Coleta do pedido shopbox #${orderCode}`,
         }),
-        buildAddress({
-          street: order.shipping_street,
-          number: order.shipping_number,
-          complement: order.shipping_complement,
-          district: order.shipping_district,
-          city: order.shipping_city ?? "Curitiba",
-          state: order.shipping_state ?? "PR",
-          zip: order.shipping_zip,
-          name: recipientName,
-          phone: recipientPhone,
-          comment: `Entrega do pedido shopbox #${orderCode}`,
-        }),
+        {
+          ...buildAddress({
+            street: order.shipping_street,
+            number: order.shipping_number,
+            complement: order.shipping_complement,
+            district: order.shipping_district,
+            city: order.shipping_city ?? "Curitiba",
+            state: order.shipping_state ?? "PR",
+            zip: order.shipping_zip,
+            name: recipientName,
+            phone: recipientPhone,
+            comment: `Entrega do pedido shopbox #${orderCode}`,
+          }),
+          // A API exige que o identificador do pedido vá dentro do endereço de
+          // entrega correspondente, não no corpo principal da requisição.
+          order: `Pedido #${orderCode}`,
+          pedido: `Pedido #${orderCode}`,
+        },
       ],
     });
+
 
     const meOrderId = String(confirmRes.id ?? confirmRes.order ?? "");
     if (!meOrderId) {
