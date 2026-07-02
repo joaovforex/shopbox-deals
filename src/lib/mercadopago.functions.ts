@@ -87,6 +87,33 @@ export const createMpPreference = createServerFn({ method: "POST" })
     // Limpa pedidos pendentes antigos devolvendo o estoque
     await supabaseAdmin.rpc("expire_stale_pending_orders" as never, { p_minutes: 5 } as never);
 
+    // Bloqueio anti-duplicidade: se o mesmo cliente já tem um pedido pendente
+    // (ainda não pago nem cancelado) contendo qualquer um dos produtos que ele
+    // está tentando comprar de novo, não deixa criar um segundo checkout.
+    {
+      const productIds = Array.from(new Set(data.items.map((i) => i.product_id)));
+      const { data: pendingOrders } = await supabaseAdmin
+        .from("orders")
+        .select("id, created_at, mp_init_point, order_items!inner(product_id)")
+        .eq("user_id", context.userId)
+        .eq("status", "pending")
+        .in("order_items.product_id", productIds)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const existing = (pendingOrders ?? [])[0] as
+        | { id: string; mp_init_point: string | null }
+        | undefined;
+      if (existing) {
+        const err = new Error(
+          "Você já tem um checkout em andamento para um destes produtos. Finalize ou aguarde 5 minutos antes de tentar novamente.",
+        ) as Error & { existing_order_id?: string; existing_init_point?: string | null };
+        err.existing_order_id = existing.id;
+        err.existing_init_point = existing.mp_init_point ?? null;
+        throw err;
+      }
+    }
+
+
     // Lê data de cadastro do usuário (melhora score antifraude)
     const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(context.userId);
     const userCreatedAt = authUser?.user?.created_at ?? null;
