@@ -201,6 +201,71 @@ export type Database = {
         }
         Relationships: []
       }
+      exchange_vouchers: {
+        Row: {
+          amount: number
+          cashback_entry_id: string | null
+          created_at: string
+          customer_cpf: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          items: Json
+          operator_id: string | null
+          operator_name: string | null
+          order_created_at: string | null
+          order_id: string
+          order_total: number | null
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          cashback_entry_id?: string | null
+          created_at?: string
+          customer_cpf?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          items?: Json
+          operator_id?: string | null
+          operator_name?: string | null
+          order_created_at?: string | null
+          order_id: string
+          order_total?: number | null
+          reason: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          cashback_entry_id?: string | null
+          created_at?: string
+          customer_cpf?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          items?: Json
+          operator_id?: string | null
+          operator_name?: string | null
+          order_created_at?: string | null
+          order_id?: string
+          order_total?: number | null
+          reason?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchange_vouchers_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -717,6 +782,17 @@ export type Database = {
       claim_first_admin_if_none: { Args: never; Returns: boolean }
       confirm_order_paid: {
         Args: { p_mp_payment_id?: string; p_order_id: string }
+        Returns: string
+      }
+      create_exchange_voucher: {
+        Args: {
+          p_amount: number
+          p_items: Json
+          p_operator_id: string
+          p_operator_name: string
+          p_order_id: string
+          p_reason: string
+        }
         Returns: string
       }
       create_manual_order: {
