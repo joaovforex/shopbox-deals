@@ -51,6 +51,25 @@ function VoucherPage() {
     };
   }, [data]);
 
+  const reprint = async (r: ExchangeVoucherRow) => {
+    const { printVoucherReceipt } = await import("@/lib/voucherReceipt");
+    printVoucherReceipt({
+      voucherId: r.id,
+      orderId: r.order_id,
+      customerName: r.customer_name,
+      customerPhone: r.customer_phone,
+      customerEmail: r.customer_email,
+      orderTotal: r.order_total ?? r.amount,
+      amount: r.amount,
+      reason: r.reason,
+      operatorName: r.operator_name ?? "—",
+      createdAt: r.created_at,
+      items: r.items ?? [],
+    });
+  };
+
+
+
   return (
     <Shell>
       <section className="bg-card border-b-4 border-emerald-500">
