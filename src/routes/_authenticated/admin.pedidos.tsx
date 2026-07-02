@@ -2,15 +2,17 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, TrendingUp, Package, DollarSign, ShoppingBag, Sparkles, Truck, Store, Trash2, AlertTriangle, Search, Filter, X, Undo2, Share2 } from "lucide-react";
+import { ArrowLeft, TrendingUp, Package, DollarSign, ShoppingBag, Sparkles, Truck, Store, Trash2, AlertTriangle, Search, Filter, X, Undo2, Share2, Gift } from "lucide-react";
 import { toast } from "sonner";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
+import { ExchangeVoucherModal } from "@/components/ExchangeVoucherModal";
 import { supabase } from "@/integrations/supabase/client";
 import { isAdmin, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import { refundOrder } from "@/lib/refunds.functions";
+import { createExchangeVoucher } from "@/lib/exchange-vouchers.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/pedidos")({
   head: () => ({ meta: [{ title: "Pedidos · Admin" }] }),
@@ -70,7 +72,9 @@ function OrdersPanel() {
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
+  const [voucherTarget, setVoucherTarget] = useState<OrderRow | null>(null);
   const refundFn = useServerFn(refundOrder);
+  const voucherFn = useServerFn(createExchangeVoucher);
   const qc = useQueryClient();
 
   useEffect(() => {
@@ -752,6 +756,15 @@ function OrdersPanel() {
                           <Undo2 className="h-3 w-3" /> Estornar
                         </button>
                       )}
+                      {superAdmin && o.status === "paid" && !o.refund_status && (
+                        <button
+                          onClick={() => setVoucherTarget(o)}
+                          disabled={busy}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 border border-emerald-500/40 px-2 py-1 rounded disabled:opacity-50"
+                        >
+                          <Gift className="h-3 w-3" /> Vale-Troca
+                        </button>
+                      )}
                       {superAdmin && (
                         <button
                           onClick={() => deleteOrder(o.id)}
@@ -841,6 +854,27 @@ function OrdersPanel() {
               qc.invalidateQueries({ queryKey: ["admin-orders"] });
             } catch (err: any) {
               toast.error(err?.message ?? "Falha no estorno");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      )}
+      {voucherTarget && (
+        <ExchangeVoucherModal
+          orderId={voucherTarget.id}
+          busy={busy}
+          onClose={() => setVoucherTarget(null)}
+          onConfirm={async (payload) => {
+            setBusy(true);
+            try {
+              const res = await voucherFn({ data: { orderId: voucherTarget.id, ...payload } });
+              toast.success(`Vale-troca de ${brl(res.amount)} emitido · cliente já pode usar como cashback`);
+              setVoucherTarget(null);
+              qc.invalidateQueries({ queryKey: ["admin-orders"] });
+              qc.invalidateQueries({ queryKey: ["admin-exchange-vouchers"] });
+            } catch (err: any) {
+              toast.error(err?.message ?? "Falha ao emitir vale-troca");
             } finally {
               setBusy(false);
             }

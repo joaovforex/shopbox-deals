@@ -25,6 +25,7 @@ import { Route as AuthenticatedMeusPedidosRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ApiPublicReconcileOrdersRouteImport } from './routes/api/public/reconcile-orders'
 import { Route as AuthenticatedAdminVendaManualRouteImport } from './routes/_authenticated/admin.venda-manual'
+import { Route as AuthenticatedAdminValeTrocaRouteImport } from './routes/_authenticated/admin.vale-troca'
 import { Route as AuthenticatedAdminReembolsosRouteImport } from './routes/_authenticated/admin.reembolsos'
 import { Route as AuthenticatedAdminPedidosRouteImport } from './routes/_authenticated/admin.pedidos'
 import { Route as AuthenticatedAdminExpedicaoRouteImport } from './routes/_authenticated/admin.expedicao'
@@ -116,6 +117,12 @@ const AuthenticatedAdminVendaManualRoute =
     path: '/venda-manual',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminValeTrocaRoute =
+  AuthenticatedAdminValeTrocaRouteImport.update({
+    id: '/vale-troca',
+    path: '/vale-troca',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminReembolsosRoute =
   AuthenticatedAdminReembolsosRouteImport.update({
     id: '/reembolsos',
@@ -181,6 +188,7 @@ export interface FileRoutesByFullPath {
   '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
+  '/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
@@ -206,6 +214,7 @@ export interface FileRoutesByTo {
   '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
+  '/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
@@ -233,6 +242,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/_authenticated/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/_authenticated/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
+  '/_authenticated/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/_authenticated/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
@@ -260,6 +270,7 @@ export interface FileRouteTypes {
     | '/admin/expedicao'
     | '/admin/pedidos'
     | '/admin/reembolsos'
+    | '/admin/vale-troca'
     | '/admin/venda-manual'
     | '/api/public/reconcile-orders'
     | '/api/public/cashback/expire'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/admin/expedicao'
     | '/admin/pedidos'
     | '/admin/reembolsos'
+    | '/admin/vale-troca'
     | '/admin/venda-manual'
     | '/api/public/reconcile-orders'
     | '/api/public/cashback/expire'
@@ -311,6 +323,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/expedicao'
     | '/_authenticated/admin/pedidos'
     | '/_authenticated/admin/reembolsos'
+    | '/_authenticated/admin/vale-troca'
     | '/_authenticated/admin/venda-manual'
     | '/api/public/reconcile-orders'
     | '/api/public/cashback/expire'
@@ -452,6 +465,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminVendaManualRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/vale-troca': {
+      id: '/_authenticated/admin/vale-troca'
+      path: '/vale-troca'
+      fullPath: '/admin/vale-troca'
+      preLoaderRoute: typeof AuthenticatedAdminValeTrocaRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/reembolsos': {
       id: '/_authenticated/admin/reembolsos'
       path: '/reembolsos'
@@ -516,6 +536,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminExpedicaoRoute: typeof AuthenticatedAdminExpedicaoRoute
   AuthenticatedAdminPedidosRoute: typeof AuthenticatedAdminPedidosRoute
   AuthenticatedAdminReembolsosRoute: typeof AuthenticatedAdminReembolsosRoute
+  AuthenticatedAdminValeTrocaRoute: typeof AuthenticatedAdminValeTrocaRoute
   AuthenticatedAdminVendaManualRoute: typeof AuthenticatedAdminVendaManualRoute
 }
 
@@ -524,6 +545,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminExpedicaoRoute: AuthenticatedAdminExpedicaoRoute,
   AuthenticatedAdminPedidosRoute: AuthenticatedAdminPedidosRoute,
   AuthenticatedAdminReembolsosRoute: AuthenticatedAdminReembolsosRoute,
+  AuthenticatedAdminValeTrocaRoute: AuthenticatedAdminValeTrocaRoute,
   AuthenticatedAdminVendaManualRoute: AuthenticatedAdminVendaManualRoute,
 }
 
