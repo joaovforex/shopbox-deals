@@ -110,15 +110,13 @@ function AuthPage() {
         if (fullName.trim().length < 3) throw new Error("Informe seu nome completo");
         const phoneDigits = phone.replace(/\D/g, "");
         if (phoneDigits.length < 10 || phoneDigits.length > 11) throw new Error("WhatsApp inválido — inclua o DDD");
-        const cpfDigits = cpf.replace(/\D/g, "");
-        if (!isValidCpf(cpfDigits)) throw new Error("CPF inválido");
         if (strength.score < 2) throw new Error("Sua senha está muito fraca. Use letras, números e pelo menos 8 caracteres.");
 
         const { error } = await supabase.auth.signUp({
           email: emailTrim,
           password,
           options: {
-            data: { full_name: fullName.trim(), phone: phoneDigits, cpf: cpfDigits },
+            data: { full_name: fullName.trim(), phone: phoneDigits },
             emailRedirectTo: window.location.origin,
           },
         });
