@@ -3,13 +3,16 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass } from "lucide-react";
+import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass, Gift } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
+import { ExchangeVoucherModal } from "@/components/ExchangeVoucherModal";
 import { supabase } from "@/integrations/supabase/client";
 import { hasAnyRole, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
 import { refundOrder } from "@/lib/refunds.functions";
+import { createExchangeVoucher } from "@/lib/exchange-vouchers.functions";
+import { printVoucherReceipt } from "@/lib/voucherReceipt";
 import { openWhatsApp, orderReminderMessage } from "@/lib/whatsapp";
 import { dispatchDelivery } from "@/lib/maisentregas.functions";
 
@@ -96,7 +99,9 @@ function FulfillmentPage() {
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
   const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
+  const [voucherTarget, setVoucherTarget] = useState<OrderRow | null>(null);
   const refundFn = useServerFn(refundOrder);
+  const voucherFn = useServerFn(createExchangeVoucher);
   const searchActive = search.trim().length >= 2;
   const qc = useQueryClient();
 
@@ -592,6 +597,16 @@ function FulfillmentPage() {
                         <Undo2 className="h-3.5 w-3.5" /> Estornar
                       </button>
                     )}
+                    {superAdmin && o.status === "paid" && !o.refund_status && (
+                      <button
+                        onClick={() => setVoucherTarget(o)}
+                        disabled={busy}
+                        className="inline-flex items-center gap-1.5 text-xs bg-emerald-600 text-white hover:opacity-90 px-3 py-2 rounded font-bold uppercase tracking-wider disabled:opacity-50"
+                        title="Emitir vale-troca (cashback) para este cliente"
+                      >
+                        <Gift className="h-3.5 w-3.5" /> Vale-Troca
+                      </button>
+                    )}
                   </div>
                 </article>
               );
@@ -618,6 +633,28 @@ function FulfillmentPage() {
               qc.invalidateQueries({ queryKey: ["fulfillment-search"] });
             } catch (err: any) {
               toast.error(err?.message ?? "Falha no estorno");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      )}
+      {voucherTarget && (
+        <ExchangeVoucherModal
+          orderId={voucherTarget.id}
+          busy={busy}
+          onClose={() => setVoucherTarget(null)}
+          onConfirm={async (payload) => {
+            setBusy(true);
+            try {
+              const res = await voucherFn({ data: { orderId: voucherTarget.id, ...payload } });
+              toast.success(`Vale-troca de ${brl(res.amount)} emitido · cliente já pode usar como cashback`);
+              if (res.receipt) printVoucherReceipt(res.receipt);
+              setVoucherTarget(null);
+              qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
+              qc.invalidateQueries({ queryKey: ["fulfillment-search"] });
+            } catch (err: any) {
+              toast.error(err?.message ?? "Falha ao emitir vale-troca");
             } finally {
               setBusy(false);
             }
