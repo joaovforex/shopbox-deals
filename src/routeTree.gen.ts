@@ -9,8 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermosRouteImport } from './routes/termos'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RedirecionandoRouteImport } from './routes/redirecionando'
+import { Route as PoliticaPrivacidadeRouteImport } from './routes/politica-privacidade'
 import { Route as LojaRouteImport } from './routes/loja'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
@@ -35,6 +37,11 @@ import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp.w
 import { Route as ApiPublicMaisentregasPollRouteImport } from './routes/api/public/maisentregas/poll'
 import { Route as ApiPublicCashbackExpireRouteImport } from './routes/api/public/cashback/expire'
 
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -43,6 +50,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const RedirecionandoRoute = RedirecionandoRouteImport.update({
   id: '/redirecionando',
   path: '/redirecionando',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliticaPrivacidadeRoute = PoliticaPrivacidadeRouteImport.update({
+  id: '/politica-privacidade',
+  path: '/politica-privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LojaRoute = LojaRouteImport.update({
@@ -176,8 +188,10 @@ export interface FileRoutesByFullPath {
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/loja': typeof LojaRoute
+  '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
@@ -202,8 +216,10 @@ export interface FileRoutesByTo {
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/loja': typeof LojaRoute
+  '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
@@ -230,8 +246,10 @@ export interface FileRoutesById {
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/loja': typeof LojaRoute
+  '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/termos': typeof TermosRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
@@ -258,8 +276,10 @@ export interface FileRouteTypes {
     | '/carrinho'
     | '/checkout'
     | '/loja'
+    | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
+    | '/termos'
     | '/admin'
     | '/meus-pedidos'
     | '/perfil'
@@ -284,8 +304,10 @@ export interface FileRouteTypes {
     | '/carrinho'
     | '/checkout'
     | '/loja'
+    | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
+    | '/termos'
     | '/admin'
     | '/meus-pedidos'
     | '/perfil'
@@ -311,8 +333,10 @@ export interface FileRouteTypes {
     | '/carrinho'
     | '/checkout'
     | '/loja'
+    | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
+    | '/termos'
     | '/_authenticated/admin'
     | '/_authenticated/meus-pedidos'
     | '/_authenticated/perfil'
@@ -339,8 +363,10 @@ export interface RootRouteChildren {
   CarrinhoRoute: typeof CarrinhoRoute
   CheckoutRoute: typeof CheckoutRoute
   LojaRoute: typeof LojaRoute
+  PoliticaPrivacidadeRoute: typeof PoliticaPrivacidadeRoute
   RedirecionandoRoute: typeof RedirecionandoRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  TermosRoute: typeof TermosRoute
   EtiquetaIdRoute: typeof EtiquetaIdRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
@@ -353,6 +379,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -365,6 +398,13 @@ declare module '@tanstack/react-router' {
       path: '/redirecionando'
       fullPath: '/redirecionando'
       preLoaderRoute: typeof RedirecionandoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politica-privacidade': {
+      id: '/politica-privacidade'
+      path: '/politica-privacidade'
+      fullPath: '/politica-privacidade'
+      preLoaderRoute: typeof PoliticaPrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/loja': {
@@ -574,8 +614,10 @@ const rootRouteChildren: RootRouteChildren = {
   CarrinhoRoute: CarrinhoRoute,
   CheckoutRoute: CheckoutRoute,
   LojaRoute: LojaRoute,
+  PoliticaPrivacidadeRoute: PoliticaPrivacidadeRoute,
   RedirecionandoRoute: RedirecionandoRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  TermosRoute: TermosRoute,
   EtiquetaIdRoute: EtiquetaIdRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
@@ -588,13 +630,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

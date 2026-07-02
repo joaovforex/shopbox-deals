@@ -333,7 +333,7 @@ export function MobileBottomNav() {
 export function Footer() {
   return (
     <footer className="mt-16 sm:mt-20 border-t-4 border-primary bg-card pb-20 md:pb-0">
-      <div className="container mx-auto px-4 py-10 grid sm:grid-cols-3 gap-8">
+      <div className="container mx-auto px-4 py-10 grid sm:grid-cols-4 gap-8">
         <div>
           <img src={logo} alt="shopbox" className="h-16 w-auto mb-3 drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)]" />
           <p className="text-sm text-muted-foreground">
@@ -350,9 +350,24 @@ export function Footer() {
           <h4 className="font-bold uppercase tracking-wider mb-3 text-primary">Formas de pagamento</h4>
           <p className="text-sm text-muted-foreground">Pix · Cartão · Parcelado</p>
         </div>
+        <div>
+          <h4 className="font-bold uppercase tracking-wider mb-3 text-primary">Institucional</h4>
+          <ul className="text-sm text-muted-foreground space-y-1.5">
+            <li>
+              <Link to="/politica-privacidade" className="hover:text-primary transition-colors">
+                Política de Privacidade
+              </Link>
+            </li>
+            <li>
+              <Link to="/termos" className="hover:text-primary transition-colors">
+                Termos de Uso
+              </Link>
+            </li>
+          </ul>
+        </div>
       </div>
       <div className="border-t border-border py-4 px-4 flex flex-col sm:flex-row items-center justify-center gap-2 text-center text-xs text-muted-foreground">
-        <span>© {new Date().getFullYear()} shopbox · Todos os direitos reservados</span>
+        <span>© {new Date().getFullYear()} shopbox · CNPJ 63.010.601/0002-86 · Todos os direitos reservados</span>
       </div>
     </footer>
   );

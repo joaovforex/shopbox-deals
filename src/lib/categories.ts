@@ -16,6 +16,7 @@ export const PRODUCT_CATEGORIES = [
   "Eletrônicos",
   "Ferramentas",
   "Instrumentos Musicais",
+  "Mochilas",
   "Móveis",
   "Moda e Acessórios",
   "Notebooks",
