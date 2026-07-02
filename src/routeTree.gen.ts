@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RedirecionandoRouteImport } from './routes/redirecionando'
+import { Route as PoliticaPrivacidadeRouteImport } from './routes/politica-privacidade'
 import { Route as LojaRouteImport } from './routes/loja'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
@@ -43,6 +44,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const RedirecionandoRoute = RedirecionandoRouteImport.update({
   id: '/redirecionando',
   path: '/redirecionando',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoliticaPrivacidadeRoute = PoliticaPrivacidadeRouteImport.update({
+  id: '/politica-privacidade',
+  path: '/politica-privacidade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LojaRoute = LojaRouteImport.update({
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/loja': typeof LojaRoute
+  '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
@@ -202,6 +209,7 @@ export interface FileRoutesByTo {
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/loja': typeof LojaRoute
+  '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
@@ -230,6 +238,7 @@ export interface FileRoutesById {
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
   '/loja': typeof LojaRoute
+  '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
@@ -258,6 +267,7 @@ export interface FileRouteTypes {
     | '/carrinho'
     | '/checkout'
     | '/loja'
+    | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
     | '/admin'
@@ -284,6 +294,7 @@ export interface FileRouteTypes {
     | '/carrinho'
     | '/checkout'
     | '/loja'
+    | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
     | '/admin'
@@ -311,6 +322,7 @@ export interface FileRouteTypes {
     | '/carrinho'
     | '/checkout'
     | '/loja'
+    | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
     | '/_authenticated/admin'
@@ -339,6 +351,7 @@ export interface RootRouteChildren {
   CarrinhoRoute: typeof CarrinhoRoute
   CheckoutRoute: typeof CheckoutRoute
   LojaRoute: typeof LojaRoute
+  PoliticaPrivacidadeRoute: typeof PoliticaPrivacidadeRoute
   RedirecionandoRoute: typeof RedirecionandoRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   EtiquetaIdRoute: typeof EtiquetaIdRoute
@@ -365,6 +378,13 @@ declare module '@tanstack/react-router' {
       path: '/redirecionando'
       fullPath: '/redirecionando'
       preLoaderRoute: typeof RedirecionandoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/politica-privacidade': {
+      id: '/politica-privacidade'
+      path: '/politica-privacidade'
+      fullPath: '/politica-privacidade'
+      preLoaderRoute: typeof PoliticaPrivacidadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/loja': {
@@ -574,6 +594,7 @@ const rootRouteChildren: RootRouteChildren = {
   CarrinhoRoute: CarrinhoRoute,
   CheckoutRoute: CheckoutRoute,
   LojaRoute: LojaRoute,
+  PoliticaPrivacidadeRoute: PoliticaPrivacidadeRoute,
   RedirecionandoRoute: RedirecionandoRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   EtiquetaIdRoute: EtiquetaIdRoute,
