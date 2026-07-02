@@ -6,7 +6,7 @@ import { Share2, MessageCircle, Minus, Plus, ArrowLeft, Copy, Pencil } from "luc
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { ProductCarousel } from "@/components/ProductCarousel";
 import { ProductForm } from "@/components/ProductForm";
-import { brl, discountPct } from "@/lib/format";
+import { brl, discountPct, postDate } from "@/lib/format";
 import { calculateCashback } from "@/lib/cashback-config";
 import { fetchProduct, getRoleSummary, productImages, type Product } from "@/lib/products";
 import { getRequestOrigin } from "@/lib/origin.functions";
@@ -293,6 +293,12 @@ function ProductPage() {
               <div className="text-xs text-muted-foreground inline-flex items-center gap-1.5 bg-accent/10 border border-accent/30 rounded px-2 py-1 self-start">
                 <span className="font-bold uppercase tracking-wider text-accent">Cadastrado por</span>
                 <span className="font-semibold text-foreground">{(product as any).created_by_name}</span>
+              </div>
+            )}
+            {admin && product.created_at && (
+              <div className="text-xs text-muted-foreground inline-flex items-center gap-1.5 bg-accent/10 border border-accent/30 rounded px-2 py-1 self-start">
+                <span className="font-bold uppercase tracking-wider text-accent">Postado em</span>
+                <span className="font-semibold text-foreground">{postDate(product.created_at)}</span>
               </div>
             )}
 
