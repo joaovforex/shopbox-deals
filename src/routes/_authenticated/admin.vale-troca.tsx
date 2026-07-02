@@ -2,11 +2,11 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Gift, Search, X, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Gift, Search, X, AlertTriangle, Printer } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
-import { listExchangeVouchers } from "@/lib/exchange-vouchers.functions";
+import { listExchangeVouchers, type ExchangeVoucherRow } from "@/lib/exchange-vouchers.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/vale-troca")({
   head: () => ({ meta: [{ title: "Vale-Troca · Admin" }] }),
@@ -50,6 +50,25 @@ function VoucherPage() {
       sum: list.reduce((s, r) => s + Number(r.amount), 0),
     };
   }, [data]);
+
+  const reprint = async (r: ExchangeVoucherRow) => {
+    const { printVoucherReceipt } = await import("@/lib/voucherReceipt");
+    printVoucherReceipt({
+      voucherId: r.id,
+      orderId: r.order_id,
+      customerName: r.customer_name,
+      customerPhone: r.customer_phone,
+      customerEmail: r.customer_email,
+      orderTotal: r.order_total ?? r.amount,
+      amount: r.amount,
+      reason: r.reason,
+      operatorName: r.operator_name ?? "—",
+      createdAt: r.created_at,
+      items: r.items ?? [],
+    });
+  };
+
+
 
   return (
     <Shell>
@@ -150,6 +169,15 @@ function VoucherPage() {
                       <span>🕒 {new Date(r.created_at).toLocaleString("pt-BR")}</span>
                       {r.operator_name && <span>👤 {r.operator_name}</span>}
                     </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => reprint(r)}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-primary text-primary-foreground hover:opacity-90 px-3 py-2 rounded"
+                    >
+                      <Printer className="h-3.5 w-3.5" /> Reimprimir vale
+                    </button>
                   </div>
                 </li>
               ))}
