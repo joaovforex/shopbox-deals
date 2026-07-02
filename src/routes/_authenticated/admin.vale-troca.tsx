@@ -2,11 +2,11 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Gift, Search, X, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Gift, Search, X, AlertTriangle, Printer } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
-import { listExchangeVouchers } from "@/lib/exchange-vouchers.functions";
+import { listExchangeVouchers, type ExchangeVoucherRow } from "@/lib/exchange-vouchers.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/vale-troca")({
   head: () => ({ meta: [{ title: "Vale-Troca · Admin" }] }),
