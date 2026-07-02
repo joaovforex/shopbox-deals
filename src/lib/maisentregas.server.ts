@@ -137,6 +137,9 @@ export type MaisEntregasAddress = {
   name?: string;
   phone?: string;
   comment?: string;
+  order?: string;
+  pedido?: string;
+
   latitude?: number;
   longitude?: number;
 };
