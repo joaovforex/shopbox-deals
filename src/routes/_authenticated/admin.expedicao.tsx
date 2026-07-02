@@ -99,7 +99,9 @@ function FulfillmentPage() {
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
   const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
+  const [voucherTarget, setVoucherTarget] = useState<OrderRow | null>(null);
   const refundFn = useServerFn(refundOrder);
+  const voucherFn = useServerFn(createExchangeVoucher);
   const searchActive = search.trim().length >= 2;
   const qc = useQueryClient();
 
