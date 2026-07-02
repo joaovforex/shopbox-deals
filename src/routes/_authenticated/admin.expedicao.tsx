@@ -3,13 +3,16 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass } from "lucide-react";
+import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass, Gift } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
+import { ExchangeVoucherModal } from "@/components/ExchangeVoucherModal";
 import { supabase } from "@/integrations/supabase/client";
 import { hasAnyRole, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
 import { refundOrder } from "@/lib/refunds.functions";
+import { createExchangeVoucher } from "@/lib/exchange-vouchers.functions";
+import { printVoucherReceipt } from "@/lib/voucherReceipt";
 import { openWhatsApp, orderReminderMessage } from "@/lib/whatsapp";
 import { dispatchDelivery } from "@/lib/maisentregas.functions";
 
