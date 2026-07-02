@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TermosRouteImport } from './routes/termos'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RedirecionandoRouteImport } from './routes/redirecionando'
 import { Route as PoliticaPrivacidadeRouteImport } from './routes/politica-privacidade'
@@ -36,6 +37,11 @@ import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp.w
 import { Route as ApiPublicMaisentregasPollRouteImport } from './routes/api/public/maisentregas/poll'
 import { Route as ApiPublicCashbackExpireRouteImport } from './routes/api/public/cashback/expire'
 
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -185,6 +191,7 @@ export interface FileRoutesByFullPath {
   '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
@@ -212,6 +219,7 @@ export interface FileRoutesByTo {
   '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/termos': typeof TermosRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
@@ -241,6 +249,7 @@ export interface FileRoutesById {
   '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/termos': typeof TermosRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
@@ -270,6 +279,7 @@ export interface FileRouteTypes {
     | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
+    | '/termos'
     | '/admin'
     | '/meus-pedidos'
     | '/perfil'
@@ -297,6 +307,7 @@ export interface FileRouteTypes {
     | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
+    | '/termos'
     | '/admin'
     | '/meus-pedidos'
     | '/perfil'
@@ -325,6 +336,7 @@ export interface FileRouteTypes {
     | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
+    | '/termos'
     | '/_authenticated/admin'
     | '/_authenticated/meus-pedidos'
     | '/_authenticated/perfil'
@@ -354,6 +366,7 @@ export interface RootRouteChildren {
   PoliticaPrivacidadeRoute: typeof PoliticaPrivacidadeRoute
   RedirecionandoRoute: typeof RedirecionandoRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  TermosRoute: typeof TermosRoute
   EtiquetaIdRoute: typeof EtiquetaIdRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
@@ -366,6 +379,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -597,6 +617,7 @@ const rootRouteChildren: RootRouteChildren = {
   PoliticaPrivacidadeRoute: PoliticaPrivacidadeRoute,
   RedirecionandoRoute: RedirecionandoRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  TermosRoute: TermosRoute,
   EtiquetaIdRoute: EtiquetaIdRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
