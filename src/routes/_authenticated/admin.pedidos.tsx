@@ -72,7 +72,9 @@ function OrdersPanel() {
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
+  const [voucherTarget, setVoucherTarget] = useState<OrderRow | null>(null);
   const refundFn = useServerFn(refundOrder);
+  const voucherFn = useServerFn(createExchangeVoucher);
   const qc = useQueryClient();
 
   useEffect(() => {
