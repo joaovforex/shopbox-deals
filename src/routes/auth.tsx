@@ -195,14 +195,6 @@ function AuthPage() {
                   onChange={(e) => setPhone(maskPhone(e.target.value))}
                   className="w-full bg-input rounded-md px-3 py-2.5 border border-border focus:outline-none focus:border-primary"
                 />
-                <input
-                  required
-                  inputMode="numeric"
-                  placeholder="CPF"
-                  value={cpf}
-                  onChange={(e) => setCpf(maskCpf(e.target.value))}
-                  className="w-full bg-input rounded-md px-3 py-2.5 border border-border focus:outline-none focus:border-primary"
-                />
               </>
             )}
             <input
