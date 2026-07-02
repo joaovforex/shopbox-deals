@@ -860,6 +860,27 @@ function OrdersPanel() {
           }}
         />
       )}
+      {voucherTarget && (
+        <ExchangeVoucherModal
+          orderId={voucherTarget.id}
+          busy={busy}
+          onClose={() => setVoucherTarget(null)}
+          onConfirm={async (payload) => {
+            setBusy(true);
+            try {
+              const res = await voucherFn({ data: { orderId: voucherTarget.id, ...payload } });
+              toast.success(`Vale-troca de ${brl(res.amount)} emitido · cliente já pode usar como cashback`);
+              setVoucherTarget(null);
+              qc.invalidateQueries({ queryKey: ["admin-orders"] });
+              qc.invalidateQueries({ queryKey: ["admin-exchange-vouchers"] });
+            } catch (err: any) {
+              toast.error(err?.message ?? "Falha ao emitir vale-troca");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      )}
     </Shell>
   );
 }
