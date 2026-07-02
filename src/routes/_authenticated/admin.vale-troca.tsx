@@ -170,6 +170,15 @@ function VoucherPage() {
                       {r.operator_name && <span>👤 {r.operator_name}</span>}
                     </div>
                   </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => reprint(r)}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-primary text-primary-foreground hover:opacity-90 px-3 py-2 rounded"
+                    >
+                      <Printer className="h-3.5 w-3.5" /> Reimprimir vale
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
