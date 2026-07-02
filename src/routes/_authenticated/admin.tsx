@@ -8,7 +8,7 @@ import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchProducts, getRoleSummary, type Product, type RoleSummary } from "@/lib/products";
 import { claimFirstAdmin } from "@/lib/admin.functions";
-import { brl, discountPct } from "@/lib/format";
+import { brl, discountPct, postDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ProductForm, PRODUCT_FORM_DRAFT_KEY as DRAFT_KEY } from "@/components/ProductForm";
 
@@ -456,6 +456,7 @@ function AdminPage() {
                     </th>
                   )}
                   <th className="p-3">Produto</th>
+                  <th className="p-3">Postagem</th>
                   <th className="p-3">Preço</th>
                   <th className="p-3">Estoque</th>
                   <th className="p-3">Status</th>
@@ -488,6 +489,9 @@ function AdminPage() {
                           {p.category && <div className="text-xs text-muted-foreground">{p.category}</div>}
                         </div>
                       </div>
+                    </td>
+                    <td className="p-3">
+                      <div className="text-xs text-muted-foreground whitespace-nowrap">{postDate(p.created_at)}</div>
                     </td>
                     <td className="p-3">
                       <div className="font-bold text-price">{brl(p.price)}</div>
