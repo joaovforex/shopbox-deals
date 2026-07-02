@@ -8,7 +8,7 @@ import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchProducts, getRoleSummary, type Product, type RoleSummary } from "@/lib/products";
 import { claimFirstAdmin } from "@/lib/admin.functions";
-import { brl, discountPct } from "@/lib/format";
+import { brl, discountPct, postDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ProductForm, PRODUCT_FORM_DRAFT_KEY as DRAFT_KEY } from "@/components/ProductForm";
 
