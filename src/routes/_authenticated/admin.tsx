@@ -491,6 +491,9 @@ function AdminPage() {
                       </div>
                     </td>
                     <td className="p-3">
+                      <div className="text-xs text-muted-foreground whitespace-nowrap">{postDate(p.created_at)}</div>
+                    </td>
+                    <td className="p-3">
                       <div className="font-bold text-price">{brl(p.price)}</div>
                       {p.original_price && p.original_price > p.price && (
                         <div className="text-xs text-muted-foreground line-through">{brl(p.original_price)}</div>
