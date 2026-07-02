@@ -639,6 +639,28 @@ function FulfillmentPage() {
           }}
         />
       )}
+      {voucherTarget && (
+        <ExchangeVoucherModal
+          orderId={voucherTarget.id}
+          busy={busy}
+          onClose={() => setVoucherTarget(null)}
+          onConfirm={async (payload) => {
+            setBusy(true);
+            try {
+              const res = await voucherFn({ data: { orderId: voucherTarget.id, ...payload } });
+              toast.success(`Vale-troca de ${brl(res.amount)} emitido · cliente já pode usar como cashback`);
+              if (res.receipt) printVoucherReceipt(res.receipt);
+              setVoucherTarget(null);
+              qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
+              qc.invalidateQueries({ queryKey: ["fulfillment-search"] });
+            } catch (err: any) {
+              toast.error(err?.message ?? "Falha ao emitir vale-troca");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      )}
     </Shell>
   );
 }
