@@ -139,8 +139,9 @@ export const createMpPreference = createServerFn({ method: "POST" })
       .eq("id", orderId as string)
       .is("user_id", null);
 
-    // Salva perfil do cliente se solicitado
-    if (data.save_profile) {
+    // Sempre grava o CPF (e nome/telefone) no perfil para reutilizar em
+    // próximas compras. Endereço só é salvo se o cliente marcar "salvar perfil".
+    {
       const profPatch: Record<string, unknown> = {
         id: context.userId,
         full_name: data.customer_name.trim(),
@@ -148,7 +149,7 @@ export const createMpPreference = createServerFn({ method: "POST" })
         phone: data.customer_phone.replace(/\D/g, ""),
         cpf: data.customer_cpf.replace(/\D/g, ""),
       };
-      if (data.delivery_method === "delivery" && data.shipping) {
+      if (data.save_profile && data.delivery_method === "delivery" && data.shipping) {
         profPatch.address_zip = data.shipping.zip.replace(/\D/g, "");
         profPatch.address_street = data.shipping.street.trim();
         profPatch.address_number = String(data.shipping.number).trim();
@@ -159,6 +160,7 @@ export const createMpPreference = createServerFn({ method: "POST" })
       }
       await supabaseAdmin.from("profiles").upsert(profPatch as never, { onConflict: "id" } as never);
     }
+
 
     // 2) Itens
     const { data: orderItems, error: itemsErr } = await supabaseAdmin
