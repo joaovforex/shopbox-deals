@@ -870,6 +870,10 @@ function OrdersPanel() {
             try {
               const res = await voucherFn({ data: { orderId: voucherTarget.id, ...payload } });
               toast.success(`Vale-troca de ${brl(res.amount)} emitido · cliente já pode usar como cashback`);
+              if (res.receipt) {
+                const { printVoucherReceipt } = await import("@/lib/voucherReceipt");
+                printVoucherReceipt(res.receipt);
+              }
               setVoucherTarget(null);
               qc.invalidateQueries({ queryKey: ["admin-orders"] });
               qc.invalidateQueries({ queryKey: ["admin-exchange-vouchers"] });
