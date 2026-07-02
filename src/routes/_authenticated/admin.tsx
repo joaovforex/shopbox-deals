@@ -456,6 +456,7 @@ function AdminPage() {
                     </th>
                   )}
                   <th className="p-3">Produto</th>
+                  <th className="p-3">Postagem</th>
                   <th className="p-3">Preço</th>
                   <th className="p-3">Estoque</th>
                   <th className="p-3">Status</th>
