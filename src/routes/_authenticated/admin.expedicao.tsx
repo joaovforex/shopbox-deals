@@ -597,6 +597,16 @@ function FulfillmentPage() {
                         <Undo2 className="h-3.5 w-3.5" /> Estornar
                       </button>
                     )}
+                    {superAdmin && o.status === "paid" && !o.refund_status && (
+                      <button
+                        onClick={() => setVoucherTarget(o)}
+                        disabled={busy}
+                        className="inline-flex items-center gap-1.5 text-xs bg-emerald-600 text-white hover:opacity-90 px-3 py-2 rounded font-bold uppercase tracking-wider disabled:opacity-50"
+                        title="Emitir vale-troca (cashback) para este cliente"
+                      >
+                        <Gift className="h-3.5 w-3.5" /> Vale-Troca
+                      </button>
+                    )}
                   </div>
                 </article>
               );
