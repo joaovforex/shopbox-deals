@@ -77,7 +77,35 @@ function OrdersPanel() {
   const [voucherTarget, setVoucherTarget] = useState<OrderRow | null>(null);
   const refundFn = useServerFn(refundOrder);
   const voucherFn = useServerFn(createExchangeVoucher);
+  const listCustomersFn = useServerFn(listAllCustomers);
+  const [exportingCustomers, setExportingCustomers] = useState(false);
   const qc = useQueryClient();
+
+  async function downloadCustomersCsv() {
+    if (exportingCustomers) return;
+    setExportingCustomers(true);
+    try {
+      const rows = await listCustomersFn();
+      const esc = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
+      const csv = ["nome,email,whatsapp", ...rows.map((r) => `${esc(r.nome)},${esc(r.email)},${esc(r.whatsapp)}`)].join("\n");
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `clientes-shopbox-${stamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`${rows.length} clientes exportados`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao exportar clientes");
+    } finally {
+      setExportingCustomers(false);
+    }
+  }
+
 
   useEffect(() => {
     isAdmin().then(setAdmin);
