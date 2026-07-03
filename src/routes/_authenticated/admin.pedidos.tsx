@@ -13,6 +13,8 @@ import { brl } from "@/lib/format";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import { refundOrder } from "@/lib/refunds.functions";
 import { createExchangeVoucher } from "@/lib/exchange-vouchers.functions";
+import { listAllCustomers } from "@/lib/customers.functions";
+
 
 export const Route = createFileRoute("/_authenticated/admin/pedidos")({
   head: () => ({ meta: [{ title: "Pedidos · Admin" }] }),
