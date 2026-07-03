@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, TrendingUp, Package, DollarSign, ShoppingBag, Sparkles, Truck, Store, Trash2, AlertTriangle, Search, Filter, X, Undo2, Share2, Gift } from "lucide-react";
+import { ArrowLeft, TrendingUp, Package, DollarSign, ShoppingBag, Sparkles, Truck, Store, Trash2, AlertTriangle, Search, Filter, X, Undo2, Share2, Gift, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
@@ -13,6 +13,8 @@ import { brl } from "@/lib/format";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import { refundOrder } from "@/lib/refunds.functions";
 import { createExchangeVoucher } from "@/lib/exchange-vouchers.functions";
+import { listAllCustomers } from "@/lib/customers.functions";
+
 
 export const Route = createFileRoute("/_authenticated/admin/pedidos")({
   head: () => ({ meta: [{ title: "Pedidos · Admin" }] }),
@@ -75,7 +77,35 @@ function OrdersPanel() {
   const [voucherTarget, setVoucherTarget] = useState<OrderRow | null>(null);
   const refundFn = useServerFn(refundOrder);
   const voucherFn = useServerFn(createExchangeVoucher);
+  const listCustomersFn = useServerFn(listAllCustomers);
+  const [exportingCustomers, setExportingCustomers] = useState(false);
   const qc = useQueryClient();
+
+  async function downloadCustomersCsv() {
+    if (exportingCustomers) return;
+    setExportingCustomers(true);
+    try {
+      const rows = await listCustomersFn();
+      const esc = (v: string) => `"${(v ?? "").replace(/"/g, '""')}"`;
+      const csv = ["nome,email,whatsapp", ...rows.map((r) => `${esc(r.nome)},${esc(r.email)},${esc(r.whatsapp)}`)].join("\n");
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `clientes-shopbox-${stamp}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`${rows.length} clientes exportados`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao exportar clientes");
+    } finally {
+      setExportingCustomers(false);
+    }
+  }
+
 
   useEffect(() => {
     isAdmin().then(setAdmin);
@@ -494,13 +524,25 @@ function OrdersPanel() {
                   : `Filtrando por: ${filterCategory}`}
               </p>
             </div>
-            <button
-              onClick={() => shareReport(buildFullReport(), "Relatório Shopbox")}
-              className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-3 py-1.5 rounded hover:opacity-90"
-              title="Exportar relatório completo para WhatsApp"
-            >
-              <Share2 className="h-3.5 w-3.5" /> Relatório completo · WhatsApp
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={downloadCustomersCsv}
+                disabled={exportingCustomers}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-accent text-accent-foreground px-3 py-1.5 rounded hover:opacity-90 disabled:opacity-60"
+                title="Baixar lista atualizada de clientes (nome, email, WhatsApp) em CSV"
+              >
+                <Download className="h-3.5 w-3.5" />
+                {exportingCustomers ? "Gerando..." : "Baixar clientes · CSV"}
+              </button>
+              <button
+                onClick={() => shareReport(buildFullReport(), "Relatório Shopbox")}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-3 py-1.5 rounded hover:opacity-90"
+                title="Exportar relatório completo para WhatsApp"
+              >
+                <Share2 className="h-3.5 w-3.5" /> Relatório completo · WhatsApp
+              </button>
+            </div>
+
           </div>
           {isLoading ? (
             <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
