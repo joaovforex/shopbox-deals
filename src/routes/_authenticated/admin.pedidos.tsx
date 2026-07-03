@@ -524,13 +524,25 @@ function OrdersPanel() {
                   : `Filtrando por: ${filterCategory}`}
               </p>
             </div>
-            <button
-              onClick={() => shareReport(buildFullReport(), "Relatório Shopbox")}
-              className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-3 py-1.5 rounded hover:opacity-90"
-              title="Exportar relatório completo para WhatsApp"
-            >
-              <Share2 className="h-3.5 w-3.5" /> Relatório completo · WhatsApp
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={downloadCustomersCsv}
+                disabled={exportingCustomers}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-accent text-accent-foreground px-3 py-1.5 rounded hover:opacity-90 disabled:opacity-60"
+                title="Baixar lista atualizada de clientes (nome, email, WhatsApp) em CSV"
+              >
+                <Download className="h-3.5 w-3.5" />
+                {exportingCustomers ? "Gerando..." : "Baixar clientes · CSV"}
+              </button>
+              <button
+                onClick={() => shareReport(buildFullReport(), "Relatório Shopbox")}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-3 py-1.5 rounded hover:opacity-90"
+                title="Exportar relatório completo para WhatsApp"
+              >
+                <Share2 className="h-3.5 w-3.5" /> Relatório completo · WhatsApp
+              </button>
+            </div>
+
           </div>
           {isLoading ? (
             <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
