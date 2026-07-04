@@ -114,8 +114,12 @@ function ProfilePage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (fullName.trim() && fullName.trim().length < 2) return toast.error("Nome inválido");
+    const emailTrim = email.trim().toLowerCase();
+    if (!emailTrim) return toast.error("Email é obrigatório");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim)) return toast.error("Email inválido");
     const phoneDigits = phone.replace(/\D/g, "");
-    if (phoneDigits && (phoneDigits.length < 10 || phoneDigits.length > 11)) return toast.error("Telefone inválido");
+    if (!phoneDigits) return toast.error("WhatsApp é obrigatório");
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) return toast.error("WhatsApp inválido — inclua o DDD");
     const cpfDigits = cpf.replace(/\D/g, "");
     if (cpfDigits && !isValidCpf(cpfDigits)) return toast.error("CPF inválido");
     setSaving(true);
@@ -123,7 +127,7 @@ function ProfilePage() {
       await update({
         data: {
           full_name: fullName,
-          email,
+          email: emailTrim,
           phone: phoneDigits,
           cpf: cpfDigits,
           birth_date: birthDate || null,
@@ -191,8 +195,8 @@ function ProfilePage() {
             <Section title="Dados pessoais" icon={<User className="h-4 w-4" />}>
               <Field label="Nome completo" value={fullName} onChange={setFullName} placeholder="Como aparece no documento" />
               <div className="grid sm:grid-cols-2 gap-3">
-                <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="voce@email.com" />
-                <Field label="WhatsApp" value={phone} onChange={(v) => setPhone(maskPhone(v))} placeholder="(41) 99999-9999" inputMode="tel" />
+                <Field required label="Email" type="email" value={email} onChange={setEmail} placeholder="voce@email.com" />
+                <Field required label="WhatsApp" value={phone} onChange={(v) => setPhone(maskPhone(v))} placeholder="(41) 99999-9999" inputMode="tel" />
               </div>
               <div className="grid sm:grid-cols-2 gap-3">
                 <Field label="CPF" value={cpf} onChange={(v) => setCpf(maskCpf(v))} placeholder="000.000.000-00" inputMode="numeric" />
