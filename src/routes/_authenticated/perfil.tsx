@@ -114,8 +114,12 @@ function ProfilePage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (fullName.trim() && fullName.trim().length < 2) return toast.error("Nome inválido");
+    const emailTrim = email.trim().toLowerCase();
+    if (!emailTrim) return toast.error("Email é obrigatório");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim)) return toast.error("Email inválido");
     const phoneDigits = phone.replace(/\D/g, "");
-    if (phoneDigits && (phoneDigits.length < 10 || phoneDigits.length > 11)) return toast.error("Telefone inválido");
+    if (!phoneDigits) return toast.error("WhatsApp é obrigatório");
+    if (phoneDigits.length < 10 || phoneDigits.length > 11) return toast.error("WhatsApp inválido — inclua o DDD");
     const cpfDigits = cpf.replace(/\D/g, "");
     if (cpfDigits && !isValidCpf(cpfDigits)) return toast.error("CPF inválido");
     setSaving(true);
