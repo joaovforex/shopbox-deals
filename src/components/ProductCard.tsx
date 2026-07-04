@@ -68,7 +68,7 @@ export function ProductCard({ product, priority = false }: { product: Product | 
         )}
 
         {off > 0 && (
-          <div className="absolute top-2 left-2 bg-deal text-deal-foreground text-[11px] font-semibold px-2 py-0.5 rounded">
+          <div className="absolute top-2 left-2 bg-deal text-deal-foreground text-sm font-bold px-2.5 py-1 rounded-md shadow-sm">
             -{off}%
           </div>
         )}
