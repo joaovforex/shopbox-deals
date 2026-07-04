@@ -198,16 +198,13 @@ export function Header() {
 
   return (
     <>
-      <div className="deal-stripe text-deal-foreground text-[10px] sm:text-xs font-bold py-1.5 overflow-hidden">
-        <div className="ticker flex gap-8 sm:gap-12 whitespace-nowrap w-max">
-          {Array.from({ length: 2 }).map((_, k) => (
-            <div key={k} className="flex gap-8 sm:gap-12">
-              <span>SUPER OFERTAS DA SEMANA</span>
-              <span>PIX E CARTOES</span>
-              <span>FRETE GRÁTIS PARA CURITIBA E REGIÃO ACIMA DE R$ 80,00</span>
-              <span>RETIRE NA LOJA EM COLOMBO</span>
-            </div>
-          ))}
+      <div className="bg-foreground text-background text-[10px] sm:text-xs py-1.5 px-3">
+        <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-center">
+          <span>Frete grátis em Curitiba e região acima de R$ 80</span>
+          <span className="opacity-40">·</span>
+          <span>Pix e cartões</span>
+          <span className="opacity-40">·</span>
+          <span>Retire na loja em Colombo</span>
         </div>
       </div>
 
