@@ -9,6 +9,7 @@ import { getRoleSummary, readCachedTeamRoleSync, clearRolesCache, usedCategories
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import logo from "@/assets/shopbox-logo.png";
 import { OnlineCounter } from "@/components/OnlineCounter";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 function useCategories() {
   const { data } = useQuery(usedCategoriesQuery());
@@ -256,6 +257,7 @@ export function Header() {
                 </span>
               )}
             </Link>
+            <ThemeToggle />
             {user ? (
               <button
                 onClick={signOut}
