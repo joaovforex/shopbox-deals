@@ -191,8 +191,8 @@ function ProfilePage() {
             <Section title="Dados pessoais" icon={<User className="h-4 w-4" />}>
               <Field label="Nome completo" value={fullName} onChange={setFullName} placeholder="Como aparece no documento" />
               <div className="grid sm:grid-cols-2 gap-3">
-                <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="voce@email.com" />
-                <Field label="WhatsApp" value={phone} onChange={(v) => setPhone(maskPhone(v))} placeholder="(41) 99999-9999" inputMode="tel" />
+                <Field required label="Email" type="email" value={email} onChange={setEmail} placeholder="voce@email.com" />
+                <Field required label="WhatsApp" value={phone} onChange={(v) => setPhone(maskPhone(v))} placeholder="(41) 99999-9999" inputMode="tel" />
               </div>
               <div className="grid sm:grid-cols-2 gap-3">
                 <Field label="CPF" value={cpf} onChange={(v) => setCpf(maskCpf(v))} placeholder="000.000.000-00" inputMode="numeric" />
