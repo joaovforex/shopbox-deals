@@ -127,7 +127,7 @@ function ProfilePage() {
       await update({
         data: {
           full_name: fullName,
-          email,
+          email: emailTrim,
           phone: phoneDigits,
           cpf: cpfDigits,
           birth_date: birthDate || null,
