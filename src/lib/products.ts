@@ -75,6 +75,53 @@ export const PRODUCTS_PAGE_SIZE = 50;
 type PagedRow = ProductCard & { total_count: number };
 type PagedResult = { items: ProductCard[]; total: number; nextOffset: number | null };
 
+const CATALOG_PRODUCT_COLUMNS = "id,name,price,original_price,category,image_url,images,stock,sku,created_at,color_variants";
+
+function isCatalogFetchTransient(error: unknown): boolean {
+  const maybe = error as { code?: string; message?: string } | null;
+  const message = maybe?.message ?? String(error ?? "");
+  return (
+    maybe?.code === "PGRST002" ||
+    message.includes("schema cache") ||
+    message.includes("Failed to fetch") ||
+    message.includes("fetch failed")
+  );
+}
+
+function cleanSearchTerm(value: string): string {
+  return value.trim().replace(/[,%()]/g, " ").replace(/\s+/g, " ");
+}
+
+async function fetchProductsPagedDirect(args: {
+  search?: string;
+  category?: string;
+  stock?: "in_stock" | "out_of_stock";
+  maxPrice?: number;
+  offset: number;
+  limit: number;
+}): Promise<PagedResult> {
+  let query = supabase
+    .from("products")
+    .select(CATALOG_PRODUCT_COLUMNS, { count: "exact" })
+    .eq("active", true)
+    .order("created_at", { ascending: false });
+
+  const term = args.search?.trim() ? cleanSearchTerm(args.search) : "";
+  if (term) query = query.ilike("name", `%${term}%`);
+  if (args.category) query = query.eq("category", args.category);
+  if (typeof args.maxPrice === "number") query = query.lte("price", args.maxPrice);
+  if (args.stock === "in_stock") query = query.gt("stock", 0);
+  if (args.stock === "out_of_stock") query = query.eq("stock", 0);
+
+  const { data, count, error } = await query.range(args.offset, args.offset + args.limit - 1);
+  if (error) throw error;
+
+  const items = (data ?? []) as ProductCard[];
+  const total = count ?? items.length;
+  const nextOffset = args.offset + items.length < total ? args.offset + items.length : null;
+  return { items, total, nextOffset };
+}
+
 export async function fetchProductsPaged(args: {
   search?: string;
   category?: string;
@@ -83,20 +130,32 @@ export async function fetchProductsPaged(args: {
   offset: number;
   limit: number;
 }): Promise<PagedResult> {
-  const { data, error } = await supabase.rpc("list_products_paged", {
-    p_search: args.search?.trim() ? args.search.trim() : undefined,
-    p_category: args.category ? args.category : undefined,
-    p_limit: args.limit,
-    p_offset: args.offset,
-    ...(args.stock ? { p_stock_status: args.stock } : {}),
-    ...(typeof args.maxPrice === "number" ? { p_max_price: args.maxPrice } : {}),
-  });
-  if (error) throw error;
-  const rows = (data ?? []) as PagedRow[];
-  const total = Number(rows[0]?.total_count ?? 0);
-  const items: ProductCard[] = rows.map(({ total_count: _t, ...rest }) => rest);
-  const nextOffset = args.offset + items.length < total ? args.offset + items.length : null;
-  return { items, total, nextOffset };
+  try {
+    const { data, error } = await supabase.rpc("list_products_paged", {
+      p_search: args.search?.trim() ? args.search.trim() : undefined,
+      p_category: args.category ? args.category : undefined,
+      p_limit: args.limit,
+      p_offset: args.offset,
+      ...(args.stock ? { p_stock_status: args.stock } : {}),
+      ...(typeof args.maxPrice === "number" ? { p_max_price: args.maxPrice } : {}),
+    });
+    if (error) throw error;
+    const rows = (data ?? []) as PagedRow[];
+    const total = Number(rows[0]?.total_count ?? 0);
+    const items: ProductCard[] = rows.map(({ total_count: _t, ...rest }) => rest);
+    const nextOffset = args.offset + items.length < total ? args.offset + items.length : null;
+    return { items, total, nextOffset };
+  } catch (error) {
+    if (!isCatalogFetchTransient(error)) throw error;
+    console.error("Catalog RPC failed; using direct product query fallback.", error);
+
+    try {
+      return await fetchProductsPagedDirect(args);
+    } catch (fallbackError) {
+      console.error("Catalog fallback query failed; rendering an empty catalog instead of a 500.", fallbackError);
+      return { items: [], total: 0, nextOffset: null };
+    }
+  }
 }
 
 export const pagedProductsQuery = (args: { search?: string; category?: string; stock?: "in_stock" | "out_of_stock"; maxPrice?: number }) =>
