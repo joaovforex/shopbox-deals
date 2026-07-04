@@ -256,6 +256,7 @@ export function Header() {
                 </span>
               )}
             </Link>
+            <ThemeToggle />
             {user ? (
               <button
                 onClick={signOut}
