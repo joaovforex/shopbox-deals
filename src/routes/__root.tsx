@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import appCss from "../styles.css?url";
 import { CartProvider } from "@/lib/cart";
