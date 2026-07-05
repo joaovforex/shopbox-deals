@@ -106,6 +106,7 @@ function ProductPage() {
   });
   const { add } = useCart();
   const navigate = useNavigate();
+  const router = useRouter();
   const qc = useQueryClient();
   const [qty, setQty] = useState(1);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
