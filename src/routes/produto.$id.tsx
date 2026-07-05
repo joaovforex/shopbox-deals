@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate, useRouter } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -106,6 +106,7 @@ function ProductPage() {
   });
   const { add } = useCart();
   const navigate = useNavigate();
+  const router = useRouter();
   const qc = useQueryClient();
   const [qty, setQty] = useState(1);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
@@ -261,9 +262,19 @@ function ProductPage() {
       <Header />
 
       <div className="container mx-auto px-4 py-6">
-        <Link to="/loja" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-4">
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== "undefined" && window.history.length > 1) {
+              router.history.back();
+            } else {
+              navigate({ to: "/loja" });
+            }
+          }}
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-4"
+        >
           <ArrowLeft className="h-4 w-4" /> Voltar para a loja
-        </Link>
+        </button>
 
         <div className="grid md:grid-cols-2 gap-8">
           <div className="relative">
