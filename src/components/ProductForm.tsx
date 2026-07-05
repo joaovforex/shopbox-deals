@@ -216,16 +216,33 @@ export function ProductForm({
         color_variants: cleanVariants.length > 0 ? cleanVariants : [],
       };
       if (product) {
-        const { error } = await supabase.from("products").update(basePayload).eq("id", product.id);
+        const { data, error } = await supabase
+          .from("products")
+          .update(basePayload)
+          .eq("id", product.id)
+          .select("id");
         if (error) throw error;
+        if (!data || data.length === 0) {
+          throw new Error(
+            "Sem permissão para editar este produto. Confirme que sua conta possui o cargo de admin, gerente ou catálogo.",
+          );
+        }
         toast.success("Produto atualizado");
       } else {
-        const { error } = await supabase.from("products").insert({
-          ...basePayload,
-          created_by: user?.id ?? null,
-          created_by_name: creatorName,
-        });
+        const { data, error } = await supabase
+          .from("products")
+          .insert({
+            ...basePayload,
+            created_by: user?.id ?? null,
+            created_by_name: creatorName,
+          })
+          .select("id");
         if (error) throw error;
+        if (!data || data.length === 0) {
+          throw new Error(
+            "Sem permissão para cadastrar produtos. Confirme que sua conta possui o cargo de admin, gerente ou catálogo.",
+          );
+        }
         toast.success("Produto cadastrado");
       }
       clearDraft();
