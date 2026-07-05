@@ -106,13 +106,37 @@
 
 @layer base {
   * { border-color: var(--color-border); }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+  img, svg, video, canvas, iframe { max-width: 100%; height: auto; }
+  button, [role="button"], a, input, select, textarea { touch-action: manipulation; }
+  input, select, textarea { font-size: 16px; } /* prevent iOS zoom on focus */
+  @media (min-width: 640px) {
+    input, select, textarea { font-size: inherit; }
   }
   h1, h2, h3, .display { font-family: var(--font-display); letter-spacing: -0.02em; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
+
 
 @layer components {
   .deal-stripe {
