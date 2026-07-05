@@ -262,9 +262,19 @@ function ProductPage() {
       <Header />
 
       <div className="container mx-auto px-4 py-6">
-        <Link to="/loja" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-4">
+        <button
+          type="button"
+          onClick={() => {
+            if (typeof window !== "undefined" && window.history.length > 1) {
+              router.history.back();
+            } else {
+              navigate({ to: "/loja" });
+            }
+          }}
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-4"
+        >
           <ArrowLeft className="h-4 w-4" /> Voltar para a loja
-        </Link>
+        </button>
 
         <div className="grid md:grid-cols-2 gap-8">
           <div className="relative">
