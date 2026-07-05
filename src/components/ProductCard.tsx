@@ -99,7 +99,7 @@ export function ProductCard({ product, priority = false }: { product: Product | 
               {brl(product.original_price)}
             </span>
           )}
-          <div className="text-lg font-semibold text-foreground leading-tight">
+          <div className="text-lg font-semibold text-price leading-tight">
             {brl(product.price)}
           </div>
         </div>
