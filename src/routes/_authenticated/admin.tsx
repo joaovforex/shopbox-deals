@@ -154,16 +154,23 @@ function AdminPage() {
 
   const del = async (p: Product) => {
     if (!confirm(`Apagar "${p.name}"?`)) return;
-    const { error } = await supabase.from("products").delete().eq("id", p.id);
+    // .select() força o retorno das linhas afetadas; se vier vazio, foi RLS bloqueando silenciosamente.
+    const { data, error } = await supabase.from("products").delete().eq("id", p.id).select("id");
     if (error) return toast.error(error.message);
+    if (!data || data.length === 0) {
+      return toast.error("Sem permissão para apagar este produto. Confirme que sua conta possui o cargo de admin, gerente ou catálogo.");
+    }
     toast.success("Produto removido");
     refetch();
     qc.invalidateQueries({ queryKey: ["products"] });
   };
 
   const toggleActive = async (p: Product) => {
-    const { error } = await supabase.from("products").update({ active: !p.active }).eq("id", p.id);
+    const { data, error } = await supabase.from("products").update({ active: !p.active }).eq("id", p.id).select("id");
     if (error) return toast.error(error.message);
+    if (!data || data.length === 0) {
+      return toast.error("Sem permissão para alterar este produto.");
+    }
     refetch();
     qc.invalidateQueries({ queryKey: ["products"] });
   };
@@ -172,14 +179,19 @@ function AdminPage() {
     if (ids.length === 0) return;
     if (!confirm(`Ocultar ${ids.length} ${ids.length === 1 ? "produto" : "produtos"}?`)) return;
     setIsBulkHiding(true);
-    const { error } = await supabase.from("products").update({ active: false }).in("id", ids);
+    const { data, error } = await supabase.from("products").update({ active: false }).in("id", ids).select("id");
     setIsBulkHiding(false);
     if (error) return toast.error(error.message);
+    const changed = data?.length ?? 0;
+    if (changed === 0) {
+      return toast.error("Sem permissão para ocultar estes produtos.");
+    }
     setSelected(new Set());
-    toast.success(`${ids.length} produto(s) ocultado(s)`);
+    toast.success(`${changed} produto(s) ocultado(s)`);
     refetch();
     qc.invalidateQueries({ queryKey: ["products"] });
   };
+
 
   const share = async (p: Product) => {
     const url = `${window.location.origin}/produto/${p.id}`;
