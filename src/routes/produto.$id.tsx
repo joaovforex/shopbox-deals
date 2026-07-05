@@ -302,6 +302,18 @@ function ProductPage() {
               </div>
             )}
 
+            {((!hasVariants && product.stock <= 0) || (hasVariants && allColorsOut)) && (
+              <div className="bg-destructive/10 border-2 border-destructive rounded-xl p-4 flex items-start gap-3">
+                <span className="text-2xl leading-none">❌</span>
+                <div>
+                  <div className="font-black uppercase tracking-wider text-destructive text-lg">Produto esgotado</div>
+                  <p className="text-sm text-foreground/80 mt-1">
+                    Este produto está sem estoque no momento. Continue explorando outras ofertas na{" "}
+                    <Link to="/loja" className="font-bold text-primary hover:underline">loja</Link>.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="bg-card rounded-xl p-5 border border-border">
               {product.original_price && product.original_price > product.price && (
