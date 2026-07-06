@@ -26,6 +26,7 @@ function RefundsPage() {
   const reinstate = useServerFn(reinstateOrderAsPaid);
   const qc = useQueryClient();
   const [reinstatingId, setReinstatingId] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
 
   const handleReinstate = async (o: { id: string; customer_name: string | null }) => {
     const label = o.customer_name ?? o.id.slice(0, 8).toUpperCase();
