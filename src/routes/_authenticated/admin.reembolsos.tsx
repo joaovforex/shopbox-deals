@@ -2,11 +2,11 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Undo2, Printer, Search, X, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Undo2, Printer, Search, X, AlertTriangle, CheckCircle2, ShieldAlert } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
-import { listRefunds, type RefundHistoryRow } from "@/lib/refunds.functions";
+import { listRefunds, getRefundConsistency, type RefundHistoryRow } from "@/lib/refunds.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/reembolsos")({
   head: () => ({ meta: [{ title: "Reembolsos · Admin" }] }),
@@ -21,11 +21,24 @@ export const Route = createFileRoute("/_authenticated/admin/reembolsos")({
 function RefundsPage() {
   const [search, setSearch] = useState("");
   const fetchRefunds = useServerFn(listRefunds);
+  const fetchConsistency = useServerFn(getRefundConsistency);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-refunds"],
     queryFn: () => fetchRefunds({}),
   });
+
+  const { data: consistency } = useQuery({
+    queryKey: ["admin-refunds-consistency"],
+    queryFn: () => fetchConsistency({}),
+    refetchInterval: 60_000,
+  });
+
+  const verificationByOrder = useMemo(() => {
+    const m = new Map<string, NonNullable<typeof consistency>["verifications"][number]>();
+    for (const v of consistency?.verifications ?? []) m.set(v.orderId, v);
+    return m;
+  }, [consistency]);
 
   const rows = useMemo(() => {
     const list = data ?? [];
@@ -94,6 +107,48 @@ function RefundsPage() {
           <Kpi label="Reembolsos" value={String(totals.count)} />
           <Kpi label="Valor total estornado" value={brl(totals.sum)} accent />
         </div>
+
+        {consistency && consistency.inconsistent.length > 0 && (
+          <div className="border-2 border-destructive bg-destructive/10 rounded-lg p-4 space-y-2">
+            <div className="flex items-center gap-2 font-bold text-destructive">
+              <ShieldAlert className="h-5 w-5" />
+              {consistency.inconsistent.length} pedido(s) inconsistente(s)
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Pedidos marcados como <strong>cancelled</strong> com pagamento <strong>approved</strong> no
+              Mercado Pago mas <strong>sem registro em refunds</strong>. Estorne agora ou marque o pagamento
+              como reembolsado manualmente.
+            </p>
+            <ul className="text-xs divide-y divide-destructive/20">
+              {consistency.inconsistent.map((o) => (
+                <li key={o.id} className="py-2 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="font-mono text-[11px]">#{o.id.slice(0, 8).toUpperCase()}</div>
+                    <div className="font-bold">{o.customer_name ?? "—"}</div>
+                    <div className="text-muted-foreground">
+                      {brl(o.total)} · MP {o.mp_payment_id ?? "—"} ·{" "}
+                      {new Date(o.created_at).toLocaleString("pt-BR")}
+                    </div>
+                  </div>
+                  <Link
+                    to="/admin/pedidos"
+                    className="text-[11px] font-bold uppercase tracking-wider bg-destructive text-destructive-foreground px-3 py-1.5 rounded hover:opacity-90"
+                  >
+                    Resolver
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {consistency && consistency.inconsistent.length === 0 && (
+          <div className="border border-emerald-500/40 bg-emerald-500/10 rounded-lg p-3 flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
+            <CheckCircle2 className="h-4 w-4" />
+            Nenhuma inconsistência detectada. Todos os pedidos cancelados com pagamento aprovado têm reembolso registrado.
+          </div>
+        )}
+
 
         <div className="bg-card border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-secondary">
@@ -189,6 +244,10 @@ function RefundsPage() {
                       </div>
                     </div>
 
+                    <VerificationBadge v={verificationByOrder.get(r.order_id)} />
+
+
+
                     <div className="flex justify-end">
                       <button
                         onClick={() => reprint(r)}
@@ -220,6 +279,42 @@ function Kpi({ label, value, accent }: { label: string; value: string; accent?: 
     </div>
   );
 }
+
+function VerificationBadge({
+  v,
+}: {
+  v: { ok: boolean; issue: string | null; orderExists: boolean; orderStatus: string | null; mpPaymentStatus: string | null } | undefined;
+}) {
+  if (!v) {
+    return (
+      <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+        <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/50" /> Verificando...
+      </div>
+    );
+  }
+  if (v.ok) {
+    return (
+      <div className="text-[11px] text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded px-2 py-1">
+        <CheckCircle2 className="h-3.5 w-3.5" />
+        Verificado:{" "}
+        {v.orderExists
+          ? `pedido em ${v.orderStatus ?? "—"} · registro em refunds OK`
+          : "pedido removido · registro em refunds OK"}
+      </div>
+    );
+  }
+  return (
+    <div className="text-[11px] text-destructive flex items-start gap-1.5 bg-destructive/10 border border-destructive/40 rounded px-2 py-1">
+      <ShieldAlert className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+      <span>
+        <strong>Inconsistência:</strong> {v.issue} (status={v.orderStatus ?? "—"}, mp=
+        {v.mpPaymentStatus ?? "—"})
+      </span>
+    </div>
+  );
+}
+
+
 
 function formatCpf(c: string) {
   const d = c.replace(/\D/g, "").padStart(11, "0").slice(0, 11);
