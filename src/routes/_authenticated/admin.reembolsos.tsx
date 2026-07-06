@@ -26,6 +26,7 @@ function RefundsPage() {
   const reinstate = useServerFn(reinstateOrderAsPaid);
   const qc = useQueryClient();
   const [reinstatingId, setReinstatingId] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
 
   const handleReinstate = async (o: { id: string; customer_name: string | null }) => {
     const label = o.customer_name ?? o.id.slice(0, 8).toUpperCase();
@@ -147,30 +148,53 @@ function RefundsPage() {
             </p>
             <ul className="text-xs divide-y divide-destructive/20">
               {consistency.inconsistent.map((o) => (
-                <li key={o.id} className="py-2 flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <div className="font-mono text-[11px]">#{o.id.slice(0, 8).toUpperCase()}</div>
-                    <div className="font-bold">{o.customer_name ?? "—"}</div>
-                    <div className="text-muted-foreground">
-                      {brl(o.total)} · MP {o.mp_payment_id ?? "—"} ·{" "}
-                      {new Date(o.created_at).toLocaleString("pt-BR")}
+                <li key={o.id} className="py-2 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div className="font-mono text-[11px]">#{o.id.slice(0, 8).toUpperCase()}</div>
+                      <div className="font-bold">{o.customer_name ?? "—"}</div>
+                      <div className="text-muted-foreground">
+                        {brl(o.total)} · MP {o.mp_payment_id ?? "—"} ·{" "}
+                        {new Date(o.created_at).toLocaleString("pt-BR")}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
                     <button
-                      onClick={() => handleReinstate(o)}
-                      disabled={reinstatingId === o.id}
-                      className="text-[11px] font-bold uppercase tracking-wider bg-emerald-600 text-white px-3 py-1.5 rounded hover:opacity-90 disabled:opacity-50"
-                    >
-                      {reinstatingId === o.id ? "Confirmando..." : "✓ Confirmar pagto · Expedição"}
-                    </button>
-                    <Link
-                      to="/admin/pedidos"
+                      onClick={() => setResolvingId((cur) => (cur === o.id ? null : o.id))}
                       className="text-[11px] font-bold uppercase tracking-wider bg-destructive text-destructive-foreground px-3 py-1.5 rounded hover:opacity-90"
                     >
-                      Estornar
-                    </Link>
+                      {resolvingId === o.id ? "Fechar" : "Resolver"}
+                    </button>
                   </div>
+                  {resolvingId === o.id && (
+                    <div className="bg-background border border-border rounded p-3 space-y-2">
+                      <p className="text-[11px] text-muted-foreground">
+                        Como este pedido deve ser resolvido?
+                      </p>
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <button
+                          onClick={() => handleReinstate(o)}
+                          disabled={reinstatingId === o.id}
+                          className="text-left text-[11px] bg-emerald-600 text-white px-3 py-2 rounded hover:opacity-90 disabled:opacity-50"
+                        >
+                          <div className="font-bold uppercase tracking-wider">
+                            {reinstatingId === o.id ? "Confirmando..." : "✓ Passar para expedição"}
+                          </div>
+                          <div className="opacity-90 mt-0.5 normal-case font-normal">
+                            Cliente foi debitado. Volta o pedido para pago e envia à expedição.
+                          </div>
+                        </button>
+                        <Link
+                          to="/admin/pedidos"
+                          className="text-left text-[11px] bg-amber-600 text-white px-3 py-2 rounded hover:opacity-90 block"
+                        >
+                          <div className="font-bold uppercase tracking-wider">↩ Emitir reembolso</div>
+                          <div className="opacity-90 mt-0.5 normal-case font-normal">
+                            Estorna o valor no Mercado Pago e devolve para o cliente.
+                          </div>
+                        </Link>
+                      </div>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
