@@ -168,15 +168,27 @@ function RefundsPage() {
                     </button>
                   </div>
                   {resolvingId === o.id && (
-                    <div className="bg-background border border-border rounded p-3 space-y-2">
+                    <div className="bg-background border border-border rounded p-3 space-y-3">
                       <p className="text-[11px] text-muted-foreground">
                         Como este pedido deve ser resolvido?
                       </p>
+                      <div className="space-y-2">
+                        <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                          Para passar para expedição, digite: CONFIRMAR PAGAMENTO
+                        </label>
+                        <input
+                          type="text"
+                          value={confirmText}
+                          onChange={(e) => setConfirmText(e.target.value)}
+                          placeholder="CONFIRMAR PAGAMENTO"
+                          className="w-full px-3 py-2 rounded border border-border bg-background text-sm font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
                       <div className="grid gap-2 sm:grid-cols-2">
                         <button
                           onClick={() => handleReinstate(o)}
-                          disabled={reinstatingId === o.id}
-                          className="text-left text-[11px] bg-emerald-600 text-white px-3 py-2 rounded hover:opacity-90 disabled:opacity-50"
+                          disabled={reinstatingId === o.id || confirmText.trim() !== "CONFIRMAR PAGAMENTO"}
+                          className="text-left text-[11px] bg-emerald-600 text-white px-3 py-2 rounded hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           <div className="font-bold uppercase tracking-wider">
                             {reinstatingId === o.id ? "Confirmando..." : "✓ Passar para expedição"}
@@ -195,6 +207,17 @@ function RefundsPage() {
                           </div>
                         </Link>
                       </div>
+                      {feedback && feedback.orderId === o.id && (
+                        <div
+                          className={`text-[11px] rounded px-2 py-1.5 ${
+                            feedback.kind === "ok"
+                              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
+                              : "bg-destructive/15 text-destructive border border-destructive/30"
+                          }`}
+                        >
+                          {feedback.msg}
+                        </div>
+                      )}
                     </div>
                   )}
                 </li>
