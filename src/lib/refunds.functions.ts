@@ -299,3 +299,119 @@ export const listRefunds = createServerFn({ method: "GET" })
       created_at: r.created_at,
     }));
   });
+
+// ============================================================
+// Verificação pós-estorno
+// Para cada refund, confirma:
+//  - o pedido foi removido (fluxo padrão) OU não está mais em "cancelled"
+//  - existe o registro em refunds (por definição, sim)
+// Também retorna pedidos INCONSISTENTES: status='cancelled' + mp_payment_status='approved' + sem refund.
+// ============================================================
+
+export type RefundVerification = {
+  orderId: string;
+  refundId: string;
+  orderExists: boolean;
+  orderStatus: string | null;
+  mpPaymentStatus: string | null;
+  ok: boolean;
+  issue: string | null;
+};
+
+export type InconsistentOrder = {
+  id: string;
+  customer_name: string | null;
+  total: number;
+  status: string;
+  mp_payment_status: string | null;
+  mp_payment_id: string | null;
+  created_at: string;
+};
+
+export const getRefundConsistency = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<{
+    verifications: RefundVerification[];
+    inconsistent: InconsistentOrder[];
+  }> => {
+    const { supabase, userId } = context;
+    const { data: isSuper } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isSuper) throw new Error("Apenas SUPERADMIN pode ver verificações");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Últimos 200 reembolsos
+    const { data: refunds, error: rErr } = await supabaseAdmin
+      .from("refunds")
+      .select("id,order_id,created_at")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (rErr) throw new Error("Falha ao buscar reembolsos: " + rErr.message);
+
+    const orderIds = Array.from(new Set((refunds ?? []).map((r: any) => r.order_id)));
+    let ordersMap = new Map<string, { status: string | null; mp_payment_status: string | null }>();
+    if (orderIds.length > 0) {
+      const { data: os } = await supabaseAdmin
+        .from("orders")
+        .select("id,status,mp_payment_status")
+        .in("id", orderIds);
+      for (const o of os ?? []) {
+        ordersMap.set(o.id, { status: o.status, mp_payment_status: o.mp_payment_status });
+      }
+    }
+
+    const verifications: RefundVerification[] = (refunds ?? []).map((r: any) => {
+      const o = ordersMap.get(r.order_id);
+      const orderExists = !!o;
+      const orderStatus = o?.status ?? null;
+      const mpPaymentStatus = o?.mp_payment_status ?? null;
+      let ok = true;
+      let issue: string | null = null;
+      if (orderExists && orderStatus === "cancelled" && mpPaymentStatus === "approved") {
+        ok = false;
+        issue = "Pedido continua como 'cancelled' mesmo com pagamento aprovado.";
+      } else if (orderExists && orderStatus === "paid" && mpPaymentStatus === "approved") {
+        ok = false;
+        issue = "Pedido continua como 'paid' após estorno — investigue.";
+      }
+      return {
+        orderId: r.order_id,
+        refundId: r.id,
+        orderExists,
+        orderStatus,
+        mpPaymentStatus,
+        ok,
+        issue,
+      };
+    });
+
+    // Pedidos inconsistentes: cancelled + approved + sem refund
+    const { data: cancelled } = await supabaseAdmin
+      .from("orders")
+      .select("id,customer_name,total,status,mp_payment_status,mp_payment_id,created_at")
+      .eq("status", "cancelled")
+      .eq("mp_payment_status", "approved")
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    const inconsistent: InconsistentOrder[] = [];
+    for (const o of cancelled ?? []) {
+      const { count } = await supabaseAdmin
+        .from("refunds")
+        .select("id", { count: "exact", head: true })
+        .eq("order_id", o.id);
+      if (!count || count === 0) {
+        inconsistent.push({
+          id: o.id,
+          customer_name: o.customer_name,
+          total: Number(o.total),
+          status: o.status,
+          mp_payment_status: o.mp_payment_status,
+          mp_payment_id: o.mp_payment_id,
+          created_at: o.created_at,
+        });
+      }
+    }
+
+    return { verifications, inconsistent };
+  });
