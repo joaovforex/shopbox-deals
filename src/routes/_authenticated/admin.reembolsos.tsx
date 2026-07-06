@@ -27,28 +27,30 @@ function RefundsPage() {
   const qc = useQueryClient();
   const [reinstatingId, setReinstatingId] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [confirmText, setConfirmText] = useState("");
+  const [feedback, setFeedback] = useState<{ orderId: string; kind: "ok" | "err"; msg: string } | null>(null);
 
   const handleReinstate = async (o: { id: string; customer_name: string | null }) => {
+    if (confirmText.trim() !== "CONFIRMAR PAGAMENTO") {
+      setFeedback({ orderId: o.id, kind: "err", msg: 'Digite exatamente CONFIRMAR PAGAMENTO no campo acima.' });
+      return;
+    }
     const label = o.customer_name ?? o.id.slice(0, 8).toUpperCase();
-    const txt = window.prompt(
-      `Confirmar que o pedido de ${label} foi realmente debitado do cliente e deve ir para EXPEDIÇÃO?\n\n` +
-        `Isso vai:\n` +
-        `• Voltar o pedido para status "paid" / fulfillment "pending"\n` +
-        `• NÃO mexer no estoque — confira manualmente antes de enviar\n\n` +
-        `Digite exatamente: CONFIRMAR PAGAMENTO`,
-    );
-    if (txt == null) return;
     setReinstatingId(o.id);
+    setFeedback(null);
     try {
-      await reinstate({ data: { orderId: o.id, confirmText: txt } });
+      await reinstate({ data: { orderId: o.id, confirmText: confirmText.trim() } });
       await qc.invalidateQueries({ queryKey: ["admin-refunds-consistency"] });
-      window.alert(`Pedido ${label} reintegrado. Já aparece em /admin/expedicao.`);
+      setFeedback({ orderId: o.id, kind: "ok", msg: `Pedido de ${label} reintegrado. Já aparece em /admin/expedicao.` });
+      setResolvingId(null);
+      setConfirmText("");
     } catch (e) {
-      window.alert("Falha: " + (e as Error).message);
+      setFeedback({ orderId: o.id, kind: "err", msg: (e as Error).message });
     } finally {
       setReinstatingId(null);
     }
   };
+
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-refunds"],
