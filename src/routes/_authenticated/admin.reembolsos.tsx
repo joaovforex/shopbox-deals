@@ -142,8 +142,8 @@ function RefundsPage() {
             </div>
             <p className="text-xs text-muted-foreground">
               Pedidos marcados como <strong>cancelled</strong> com pagamento <strong>approved</strong> no
-              Mercado Pago mas <strong>sem registro em refunds</strong>. Estorne agora ou marque o pagamento
-              como reembolsado manualmente.
+              Mercado Pago mas <strong>sem registro em refunds</strong>. Se o cliente foi de fato debitado,
+              use <strong>"Confirmar pagamento e enviar p/ expedição"</strong>. Se não, emita o estorno.
             </p>
             <ul className="text-xs divide-y divide-destructive/20">
               {consistency.inconsistent.map((o) => (
@@ -156,12 +156,21 @@ function RefundsPage() {
                       {new Date(o.created_at).toLocaleString("pt-BR")}
                     </div>
                   </div>
-                  <Link
-                    to="/admin/pedidos"
-                    className="text-[11px] font-bold uppercase tracking-wider bg-destructive text-destructive-foreground px-3 py-1.5 rounded hover:opacity-90"
-                  >
-                    Resolver
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      onClick={() => handleReinstate(o)}
+                      disabled={reinstatingId === o.id}
+                      className="text-[11px] font-bold uppercase tracking-wider bg-emerald-600 text-white px-3 py-1.5 rounded hover:opacity-90 disabled:opacity-50"
+                    >
+                      {reinstatingId === o.id ? "Confirmando..." : "✓ Confirmar pagto · Expedição"}
+                    </button>
+                    <Link
+                      to="/admin/pedidos"
+                      className="text-[11px] font-bold uppercase tracking-wider bg-destructive text-destructive-foreground px-3 py-1.5 rounded hover:opacity-90"
+                    >
+                      Estornar
+                    </Link>
+                  </div>
                 </li>
               ))}
             </ul>
