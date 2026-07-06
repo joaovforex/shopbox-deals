@@ -412,6 +412,7 @@ export type Database = {
           customer_email: string | null
           customer_name: string
           customer_phone: string | null
+          delivered_at: string | null
           delivery_fee: number
           delivery_method: string
           destinatario_cpf_cnpj: string | null
@@ -487,6 +488,7 @@ export type Database = {
           customer_email?: string | null
           customer_name: string
           customer_phone?: string | null
+          delivered_at?: string | null
           delivery_fee?: number
           delivery_method?: string
           destinatario_cpf_cnpj?: string | null
@@ -562,6 +564,7 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string | null
+          delivered_at?: string | null
           delivery_fee?: number
           delivery_method?: string
           destinatario_cpf_cnpj?: string | null
