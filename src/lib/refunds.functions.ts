@@ -415,3 +415,72 @@ export const getRefundConsistency = createServerFn({ method: "GET" })
 
     return { verifications, inconsistent };
   });
+
+// ============================================================
+// Reintegrar pedido cancelado como pago (quando o cliente foi
+// de fato debitado e o pedido precisa ir para expedição em vez
+// de reembolso). Não mexe em estoque — o operador deve conferir
+// manualmente. Registra no console para auditoria.
+// ============================================================
+export const reinstateOrderAsPaid = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { orderId: string; confirmText: string }) => {
+    if (!data?.orderId || typeof data.orderId !== "string" || data.orderId.length < 10) {
+      throw new Error("Pedido inválido");
+    }
+    if (data.confirmText !== "CONFIRMAR PAGAMENTO") {
+      throw new Error('Digite "CONFIRMAR PAGAMENTO" para prosseguir');
+    }
+    return { orderId: data.orderId };
+  })
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: isSuper } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isSuper) throw new Error("Apenas SUPERADMIN pode reintegrar pedidos");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: order, error: oerr } = await supabaseAdmin
+      .from("orders")
+      .select("id,status,mp_payment_status,mp_payment_id,customer_name,total")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (oerr) throw new Error("Falha ao buscar pedido");
+    if (!order) throw new Error("Pedido não encontrado");
+    if (order.status !== "cancelled") {
+      throw new Error(`Pedido não está cancelado (status atual: ${order.status})`);
+    }
+    if (order.mp_payment_status !== "approved") {
+      throw new Error("Pedido não tem pagamento aprovado no Mercado Pago");
+    }
+
+    const { count: refundCount } = await supabaseAdmin
+      .from("refunds")
+      .select("id", { count: "exact", head: true })
+      .eq("order_id", order.id);
+    if (refundCount && refundCount > 0) {
+      throw new Error("Este pedido já tem reembolso registrado — não pode ser reintegrado como pago");
+    }
+
+    const { data: prof } = await supabaseAdmin.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+    const operatorName = prof?.full_name || "—";
+
+    const { error: upErr } = await supabaseAdmin
+      .from("orders")
+      .update({
+        status: "paid",
+        fulfillment_status: "pending",
+        stock_restored_at: null,
+      })
+      .eq("id", order.id);
+    if (upErr) throw new Error("Falha ao reintegrar pedido: " + upErr.message);
+
+    console.log("[reinstate] order moved back to paid", {
+      orderId: order.id,
+      customer: order.customer_name,
+      total: order.total,
+      mpPaymentId: order.mp_payment_id,
+      operator: operatorName,
+    });
+
+    return { ok: true, orderId: order.id };
+  });

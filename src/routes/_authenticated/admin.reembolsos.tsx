@@ -6,7 +6,8 @@ import { ArrowLeft, Undo2, Printer, Search, X, AlertTriangle, CheckCircle2, Shie
 import { Header, Footer } from "@/components/Header";
 import { isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
-import { listRefunds, getRefundConsistency, type RefundHistoryRow } from "@/lib/refunds.functions";
+import { listRefunds, getRefundConsistency, reinstateOrderAsPaid, type RefundHistoryRow } from "@/lib/refunds.functions";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/admin/reembolsos")({
   head: () => ({ meta: [{ title: "Reembolsos · Admin" }] }),
@@ -22,6 +23,31 @@ function RefundsPage() {
   const [search, setSearch] = useState("");
   const fetchRefunds = useServerFn(listRefunds);
   const fetchConsistency = useServerFn(getRefundConsistency);
+  const reinstate = useServerFn(reinstateOrderAsPaid);
+  const qc = useQueryClient();
+  const [reinstatingId, setReinstatingId] = useState<string | null>(null);
+
+  const handleReinstate = async (o: { id: string; customer_name: string | null }) => {
+    const label = o.customer_name ?? o.id.slice(0, 8).toUpperCase();
+    const txt = window.prompt(
+      `Confirmar que o pedido de ${label} foi realmente debitado do cliente e deve ir para EXPEDIÇÃO?\n\n` +
+        `Isso vai:\n` +
+        `• Voltar o pedido para status "paid" / fulfillment "pending"\n` +
+        `• NÃO mexer no estoque — confira manualmente antes de enviar\n\n` +
+        `Digite exatamente: CONFIRMAR PAGAMENTO`,
+    );
+    if (txt == null) return;
+    setReinstatingId(o.id);
+    try {
+      await reinstate({ data: { orderId: o.id, confirmText: txt } });
+      await qc.invalidateQueries({ queryKey: ["admin-refunds-consistency"] });
+      window.alert(`Pedido ${label} reintegrado. Já aparece em /admin/expedicao.`);
+    } catch (e) {
+      window.alert("Falha: " + (e as Error).message);
+    } finally {
+      setReinstatingId(null);
+    }
+  };
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-refunds"],
@@ -116,8 +142,8 @@ function RefundsPage() {
             </div>
             <p className="text-xs text-muted-foreground">
               Pedidos marcados como <strong>cancelled</strong> com pagamento <strong>approved</strong> no
-              Mercado Pago mas <strong>sem registro em refunds</strong>. Estorne agora ou marque o pagamento
-              como reembolsado manualmente.
+              Mercado Pago mas <strong>sem registro em refunds</strong>. Se o cliente foi de fato debitado,
+              use <strong>"Confirmar pagamento e enviar p/ expedição"</strong>. Se não, emita o estorno.
             </p>
             <ul className="text-xs divide-y divide-destructive/20">
               {consistency.inconsistent.map((o) => (
@@ -130,12 +156,21 @@ function RefundsPage() {
                       {new Date(o.created_at).toLocaleString("pt-BR")}
                     </div>
                   </div>
-                  <Link
-                    to="/admin/pedidos"
-                    className="text-[11px] font-bold uppercase tracking-wider bg-destructive text-destructive-foreground px-3 py-1.5 rounded hover:opacity-90"
-                  >
-                    Resolver
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      onClick={() => handleReinstate(o)}
+                      disabled={reinstatingId === o.id}
+                      className="text-[11px] font-bold uppercase tracking-wider bg-emerald-600 text-white px-3 py-1.5 rounded hover:opacity-90 disabled:opacity-50"
+                    >
+                      {reinstatingId === o.id ? "Confirmando..." : "✓ Confirmar pagto · Expedição"}
+                    </button>
+                    <Link
+                      to="/admin/pedidos"
+                      className="text-[11px] font-bold uppercase tracking-wider bg-destructive text-destructive-foreground px-3 py-1.5 rounded hover:opacity-90"
+                    >
+                      Estornar
+                    </Link>
+                  </div>
                 </li>
               ))}
             </ul>
