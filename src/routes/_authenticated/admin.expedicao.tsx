@@ -46,6 +46,7 @@ type OrderRow = {
   label_printed_by_name?: string | null;
   maisentregas_order_id?: string | null;
   maisentregas_status?: string | null;
+  delivered_at?: string | null;
 };
 
 type ItemRow = {
