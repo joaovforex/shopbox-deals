@@ -464,6 +464,12 @@ function FulfillmentPage() {
                       <div className="text-xs text-muted-foreground">
                         {new Date(o.created_at).toLocaleString("pt-BR")}
                       </div>
+                      {o.fulfillment_status === "completed" && (o as OrderRow & { delivered_at?: string | null }).delivered_at && (
+                        <div className="text-xs font-semibold text-[#25D366] inline-flex items-center gap-1 mt-0.5">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Entregue em {new Date((o as OrderRow & { delivered_at?: string | null }).delivered_at as string).toLocaleString("pt-BR")}
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       {delayed && (
