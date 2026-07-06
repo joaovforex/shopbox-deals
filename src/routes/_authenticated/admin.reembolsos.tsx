@@ -21,11 +21,24 @@ export const Route = createFileRoute("/_authenticated/admin/reembolsos")({
 function RefundsPage() {
   const [search, setSearch] = useState("");
   const fetchRefunds = useServerFn(listRefunds);
+  const fetchConsistency = useServerFn(getRefundConsistency);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-refunds"],
     queryFn: () => fetchRefunds({}),
   });
+
+  const { data: consistency } = useQuery({
+    queryKey: ["admin-refunds-consistency"],
+    queryFn: () => fetchConsistency({}),
+    refetchInterval: 60_000,
+  });
+
+  const verificationByOrder = useMemo(() => {
+    const m = new Map<string, NonNullable<typeof consistency>["verifications"][number]>();
+    for (const v of consistency?.verifications ?? []) m.set(v.orderId, v);
+    return m;
+  }, [consistency]);
 
   const rows = useMemo(() => {
     const list = data ?? [];
