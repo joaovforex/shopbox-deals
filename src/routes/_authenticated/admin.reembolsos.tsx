@@ -280,6 +280,42 @@ function Kpi({ label, value, accent }: { label: string; value: string; accent?: 
   );
 }
 
+function VerificationBadge({
+  v,
+}: {
+  v: { ok: boolean; issue: string | null; orderExists: boolean; orderStatus: string | null; mpPaymentStatus: string | null } | undefined;
+}) {
+  if (!v) {
+    return (
+      <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+        <span className="inline-block h-2 w-2 rounded-full bg-muted-foreground/50" /> Verificando...
+      </div>
+    );
+  }
+  if (v.ok) {
+    return (
+      <div className="text-[11px] text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded px-2 py-1">
+        <CheckCircle2 className="h-3.5 w-3.5" />
+        Verificado:{" "}
+        {v.orderExists
+          ? `pedido em ${v.orderStatus ?? "—"} · registro em refunds OK`
+          : "pedido removido · registro em refunds OK"}
+      </div>
+    );
+  }
+  return (
+    <div className="text-[11px] text-destructive flex items-start gap-1.5 bg-destructive/10 border border-destructive/40 rounded px-2 py-1">
+      <ShieldAlert className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+      <span>
+        <strong>Inconsistência:</strong> {v.issue} (status={v.orderStatus ?? "—"}, mp=
+        {v.mpPaymentStatus ?? "—"})
+      </span>
+    </div>
+  );
+}
+
+
+
 function formatCpf(c: string) {
   const d = c.replace(/\D/g, "").padStart(11, "0").slice(0, 11);
   return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
