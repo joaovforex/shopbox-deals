@@ -266,6 +266,90 @@ export type Database = {
           },
         ]
       }
+      fiscal_config: {
+        Row: {
+          ambiente: string
+          ativo: boolean
+          cfop_padrao_dentro_uf: string
+          cfop_padrao_fora_uf: string
+          cnpj: string | null
+          created_at: string
+          csc_id: string | null
+          csc_token: string | null
+          endereco_bairro: string | null
+          endereco_cep: string | null
+          endereco_codigo_municipio: string | null
+          endereco_complemento: string | null
+          endereco_logradouro: string | null
+          endereco_municipio: string | null
+          endereco_numero: string | null
+          endereco_uf: string | null
+          id: string
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
+          nome_fantasia: string | null
+          razao_social: string | null
+          regime_tributario: string | null
+          serie_nfce: number
+          serie_nfe: number
+          updated_at: string
+        }
+        Insert: {
+          ambiente?: string
+          ativo?: boolean
+          cfop_padrao_dentro_uf?: string
+          cfop_padrao_fora_uf?: string
+          cnpj?: string | null
+          created_at?: string
+          csc_id?: string | null
+          csc_token?: string | null
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_codigo_municipio?: string | null
+          endereco_complemento?: string | null
+          endereco_logradouro?: string | null
+          endereco_municipio?: string | null
+          endereco_numero?: string | null
+          endereco_uf?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          nome_fantasia?: string | null
+          razao_social?: string | null
+          regime_tributario?: string | null
+          serie_nfce?: number
+          serie_nfe?: number
+          updated_at?: string
+        }
+        Update: {
+          ambiente?: string
+          ativo?: boolean
+          cfop_padrao_dentro_uf?: string
+          cfop_padrao_fora_uf?: string
+          cnpj?: string | null
+          created_at?: string
+          csc_id?: string | null
+          csc_token?: string | null
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_codigo_municipio?: string | null
+          endereco_complemento?: string | null
+          endereco_logradouro?: string | null
+          endereco_municipio?: string | null
+          endereco_numero?: string | null
+          endereco_uf?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          nome_fantasia?: string | null
+          razao_social?: string | null
+          regime_tributario?: string | null
+          serie_nfce?: number
+          serie_nfe?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -330,6 +414,8 @@ export type Database = {
           customer_phone: string | null
           delivery_fee: number
           delivery_method: string
+          destinatario_cpf_cnpj: string | null
+          destinatario_nome: string | null
           fulfillment_status: string
           id: string
           label_generated_at: string | null
@@ -356,6 +442,18 @@ export type Database = {
           mp_preference_id: string | null
           mp_refund_id: string | null
           mp_status_detail: string | null
+          nfe_authorized_at: string | null
+          nfe_chave: string | null
+          nfe_danfe_url: string | null
+          nfe_last_check_at: string | null
+          nfe_modelo: string | null
+          nfe_numero: string | null
+          nfe_protocolo: string | null
+          nfe_ref: string | null
+          nfe_rejection_message: string | null
+          nfe_serie: string | null
+          nfe_status: string | null
+          nfe_xml_url: string | null
           payment_method: string
           refund_reason: string | null
           refund_status: string | null
@@ -391,6 +489,8 @@ export type Database = {
           customer_phone?: string | null
           delivery_fee?: number
           delivery_method?: string
+          destinatario_cpf_cnpj?: string | null
+          destinatario_nome?: string | null
           fulfillment_status?: string
           id?: string
           label_generated_at?: string | null
@@ -417,6 +517,18 @@ export type Database = {
           mp_preference_id?: string | null
           mp_refund_id?: string | null
           mp_status_detail?: string | null
+          nfe_authorized_at?: string | null
+          nfe_chave?: string | null
+          nfe_danfe_url?: string | null
+          nfe_last_check_at?: string | null
+          nfe_modelo?: string | null
+          nfe_numero?: string | null
+          nfe_protocolo?: string | null
+          nfe_ref?: string | null
+          nfe_rejection_message?: string | null
+          nfe_serie?: string | null
+          nfe_status?: string | null
+          nfe_xml_url?: string | null
           payment_method?: string
           refund_reason?: string | null
           refund_status?: string | null
@@ -452,6 +564,8 @@ export type Database = {
           customer_phone?: string | null
           delivery_fee?: number
           delivery_method?: string
+          destinatario_cpf_cnpj?: string | null
+          destinatario_nome?: string | null
           fulfillment_status?: string
           id?: string
           label_generated_at?: string | null
@@ -478,6 +592,18 @@ export type Database = {
           mp_preference_id?: string | null
           mp_refund_id?: string | null
           mp_status_detail?: string | null
+          nfe_authorized_at?: string | null
+          nfe_chave?: string | null
+          nfe_danfe_url?: string | null
+          nfe_last_check_at?: string | null
+          nfe_modelo?: string | null
+          nfe_numero?: string | null
+          nfe_protocolo?: string | null
+          nfe_ref?: string | null
+          nfe_rejection_message?: string | null
+          nfe_serie?: string | null
+          nfe_status?: string | null
+          nfe_xml_url?: string | null
           payment_method?: string
           refund_reason?: string | null
           refund_status?: string | null
@@ -507,55 +633,76 @@ export type Database = {
         Row: {
           active: boolean
           category: string | null
+          cest: string | null
+          cfop: string | null
           color_variants: Json
           created_at: string
           created_by: string | null
           created_by_name: string | null
+          cst_csosn: string | null
           description: string | null
           id: string
           image_url: string | null
           images: string[]
           name: string
+          ncm: string | null
+          origem: number | null
           original_price: number | null
+          peso_liquido: number | null
           price: number
           sku: string
           stock: number
+          unidade_comercial: string
           updated_at: string
         }
         Insert: {
           active?: boolean
           category?: string | null
+          cest?: string | null
+          cfop?: string | null
           color_variants?: Json
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
+          cst_csosn?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
           images?: string[]
           name: string
+          ncm?: string | null
+          origem?: number | null
           original_price?: number | null
+          peso_liquido?: number | null
           price: number
           sku?: string
           stock?: number
+          unidade_comercial?: string
           updated_at?: string
         }
         Update: {
           active?: boolean
           category?: string | null
+          cest?: string | null
+          cfop?: string | null
           color_variants?: Json
           created_at?: string
           created_by?: string | null
           created_by_name?: string | null
+          cst_csosn?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
           images?: string[]
           name?: string
+          ncm?: string | null
+          origem?: number | null
           original_price?: number | null
+          peso_liquido?: number | null
           price?: number
           sku?: string
           stock?: number
+          unidade_comercial?: string
           updated_at?: string
         }
         Relationships: []
