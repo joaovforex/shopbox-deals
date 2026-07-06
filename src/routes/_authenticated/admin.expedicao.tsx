@@ -745,6 +745,14 @@ function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliv
       >
         Confirmar entrega
       </button>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.focus()}
+        className="text-xs font-bold uppercase tracking-wider bg-secondary hover:bg-muted px-3 py-2 rounded"
+        title="Voltar o foco para o leitor USB"
+      >
+        Focar leitor
+      </button>
       {last && (
         <div
           className={`text-xs px-2 py-1 rounded font-bold uppercase tracking-wider ${
@@ -755,7 +763,7 @@ function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliv
         </div>
       )}
       <div className="basis-full text-[11px] text-muted-foreground">
-        Mantenha esta tela aberta. O leitor USB digita o código e confirma automaticamente.
+        Para bipar, clique no campo acima (ou em "Focar leitor"). Você pode copiar SKUs e códigos livremente sem perder a seleção.
       </div>
     </form>
   );
