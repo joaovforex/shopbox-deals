@@ -244,6 +244,10 @@ function RefundsPage() {
                       </div>
                     </div>
 
+                    <VerificationBadge v={verificationByOrder.get(r.order_id)} />
+
+
+
                     <div className="flex justify-end">
                       <button
                         onClick={() => reprint(r)}
