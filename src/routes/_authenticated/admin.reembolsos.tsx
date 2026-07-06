@@ -2,11 +2,11 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Undo2, Printer, Search, X, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Undo2, Printer, Search, X, AlertTriangle, CheckCircle2, ShieldAlert } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
-import { listRefunds, type RefundHistoryRow } from "@/lib/refunds.functions";
+import { listRefunds, getRefundConsistency, type RefundHistoryRow } from "@/lib/refunds.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/reembolsos")({
   head: () => ({ meta: [{ title: "Reembolsos · Admin" }] }),
