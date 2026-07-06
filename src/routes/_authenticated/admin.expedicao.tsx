@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass, Gift } from "lucide-react";
+import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass, Gift, Copy, Check } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
 import { ExchangeVoucherModal } from "@/components/ExchangeVoucherModal";
@@ -503,14 +503,23 @@ function FulfillmentPage() {
                   <ul className="text-sm space-y-1">
                     {items.map((it, i) => (
                       <li key={i} className="flex justify-between gap-2">
-                        <span className="flex items-center gap-2">
-                          <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                          {it.quantity}x {it.product_name}
-                          {it.sku && (
-                            <span className="ml-1 inline-flex items-center rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-accent">
-                              {it.sku}
-                            </span>
+                        <span className="flex items-center gap-2 min-w-0">
+                          <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="whitespace-nowrap">{it.quantity}x</span>
+                          {it.product_id ? (
+                            <a
+                              href={`/produto/${it.product_id}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="truncate underline decoration-dotted hover:text-primary"
+                              title="Abrir produto em nova aba (mostra mesmo se esgotado)"
+                            >
+                              {it.product_name}
+                            </a>
+                          ) : (
+                            <span className="truncate">{it.product_name}</span>
                           )}
+                          {it.sku && <SkuChip sku={it.sku} />}
                         </span>
                         <span className="font-semibold whitespace-nowrap">{brl(it.unit_price * it.quantity)}</span>
                       </li>
@@ -681,17 +690,12 @@ function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliv
   const inputRef = useRef<HTMLInputElement>(null);
   const [last, setLast] = useState<{ id: string; name: string; ok: boolean } | null>(null);
 
-  // Mantém o foco no campo para o leitor USB sempre digitar aqui
+  // Foca apenas na primeira montagem. NÃO refocar em cada clique — isso
+  // impedia o usuário de selecionar/copiar SKUs, códigos e textos da tela.
+  // Para voltar a mirar o leitor USB, o operador clica no próprio input
+  // (ou usa o botão "Focar leitor" abaixo).
   useEffect(() => {
-    const focus = () => {
-      // Só refoca se o usuário não estiver digitando em outro input/textarea
-      const el = document.activeElement as HTMLElement | null;
-      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
-      inputRef.current?.focus();
-    };
-    focus();
-    window.addEventListener("click", focus);
-    return () => window.removeEventListener("click", focus);
+    inputRef.current?.focus();
   }, []);
 
   const submit = (e: React.FormEvent) => {
@@ -750,6 +754,14 @@ function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliv
       >
         Confirmar entrega
       </button>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.focus()}
+        className="text-xs font-bold uppercase tracking-wider bg-secondary hover:bg-muted px-3 py-2 rounded"
+        title="Voltar o foco para o leitor USB"
+      >
+        Focar leitor
+      </button>
       {last && (
         <div
           className={`text-xs px-2 py-1 rounded font-bold uppercase tracking-wider ${
@@ -760,7 +772,7 @@ function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliv
         </div>
       )}
       <div className="basis-full text-[11px] text-muted-foreground">
-        Mantenha esta tela aberta. O leitor USB digita o código e confirma automaticamente.
+        Para bipar, clique no campo acima (ou em "Focar leitor"). Você pode copiar SKUs e códigos livremente sem perder a seleção.
       </div>
     </form>
   );
@@ -874,12 +886,21 @@ function NotificationsPanel({ rows, itemsByOrder }: { rows: NotifRow[]; itemsByO
                     <li key={i} className="flex justify-between gap-2">
                       <span className="flex items-center gap-1.5 min-w-0">
                         <Package className="h-3 w-3 text-muted-foreground shrink-0" />
-                        <span className="truncate">{it.quantity}x {it.product_name}</span>
-                        {it.sku && (
-                          <span className="inline-flex items-center rounded bg-accent/20 px-1 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider text-accent shrink-0">
-                            {it.sku}
-                          </span>
+                        <span className="whitespace-nowrap">{it.quantity}x</span>
+                        {it.product_id ? (
+                          <a
+                            href={`/produto/${it.product_id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="truncate underline decoration-dotted hover:text-primary"
+                            title="Abrir produto em nova aba"
+                          >
+                            {it.product_name}
+                          </a>
+                        ) : (
+                          <span className="truncate">{it.product_name}</span>
                         )}
+                        {it.sku && <SkuChip sku={it.sku} small />}
                       </span>
                       <span className="font-semibold whitespace-nowrap">{brl(it.unit_price * it.quantity)}</span>
                     </li>
@@ -904,3 +925,33 @@ function NotificationsPanel({ rows, itemsByOrder }: { rows: NotifRow[]; itemsByO
     </div>
   );
 }
+
+function SkuChip({ sku, small = false }: { sku: string; small?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(sku);
+      setCopied(true);
+      toast.success(`SKU ${sku} copiado`);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      title="Clique para copiar o SKU"
+      className={`inline-flex items-center gap-1 rounded bg-accent/20 hover:bg-accent/30 font-mono font-bold uppercase tracking-wider text-accent shrink-0 ${
+        small ? "px-1 py-0.5 text-[9px]" : "px-1.5 py-0.5 text-[10px]"
+      }`}
+    >
+      {sku}
+      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3 opacity-60" />}
+    </button>
+  );
+}
+
