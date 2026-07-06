@@ -1,102 +1,156 @@
-# Integração Mais Entregas (entregas em Curitiba)
+# Emissão automática de nota fiscal (Focus NFe)
 
-Adicionar opção de **entrega em domicílio** no checkout, em paralelo à retirada na loja que já existe. Frete grátis por enquanto (a loja absorve o custo).
+Integração com a **Focus NFe** para emitir **NFC-e** automaticamente em toda venda aprovada, com opção de **NF-e (modelo 55)** quando o cliente informar CPF/CNPJ do destinatário.
 
 ---
 
-## 1. Banco de dados
+## 1. Banco de dados (migration única)
 
-Novas colunas em `orders`:
-- `delivery_method` (`pickup` | `delivery`) — já existe parcialmente
-- `delivery_cep`, `delivery_street`, `delivery_number`, `delivery_complement`, `delivery_neighborhood`, `delivery_city`, `delivery_state`, `delivery_recipient_name`, `delivery_recipient_phone`
-- `delivery_fee` (numeric, R$ — sempre 0 por enquanto)
-- `maisentregas_order_id` (id retornado pela API)
-- `maisentregas_status` (último status_text)
-- `maisentregas_tracking_url` (link público de rastreio do cliente)
-- `maisentregas_last_check_at` (timestamp do último poll)
+**Nova tabela `fiscal_config`** (singleton, 1 linha por loja):
+- `cnpj`, `inscricao_estadual`, `razao_social`, `nome_fantasia`
+- `regime_tributario` (`simples` | `presumido` | `real`)
+- `endereco_*` (rua, número, bairro, cidade, UF, CEP, cód. município IBGE)
+- `csc_id`, `csc_token` (para NFC-e — guardados criptografados)
+- `ambiente` (`homologacao` | `producao`)
+- `serie_nfce`, `serie_nfe`
 
-Endereço de retirada da loja fica hardcoded em `src/lib/config.server.ts`:
-- CEP 83408-290, Rua Emílio Gleber, 1118, Curitiba/PR
+**Novas colunas em `products`** (obrigatórias fiscalmente):
+- `ncm` (8 dígitos), `cest` (opcional), `cfop` (default 5102/5405 conforme regime)
+- `origem` (0–8), `cst_csosn` (Simples=CSOSN, outros=CST)
+- `unidade_comercial` (default "UN"), `peso_liquido` (opcional)
+
+**Novas colunas em `orders`**:
+- `nfe_modelo` (`nfce` | `nfe`), `nfe_status` (`pending` | `processing` | `authorized` | `rejected` | `cancelled`)
+- `nfe_ref` (nosso identificador enviado à Focus, ex.: `order_<uuid>`)
+- `nfe_numero`, `nfe_serie`, `nfe_chave` (44 dígitos)
+- `nfe_protocolo`, `nfe_authorized_at`
+- `nfe_xml_url`, `nfe_danfe_url`
+- `nfe_rejection_message`, `nfe_last_check_at`
+- `destinatario_cpf_cnpj`, `destinatario_nome` (quando cliente quiser NF-e com dados)
+
+---
 
 ## 2. Secrets
 
-Vou solicitar 2 secrets via formulário seguro:
-- `MAISENTREGAS_EMAIL` — email da conta Mais Entregas do dono
-- `MAISENTREGAS_APIKEY` — apikey gerada no painel deles
+Via `add_secret`:
+- `FOCUSNFE_TOKEN` — token de produção da Focus NFe
+- `FOCUSNFE_TOKEN_HOMOLOG` — token de homologação (para testes)
 
-(O `APP_ID` fica fixo como `"shopbox"` no código.)
+Certificado A1 (.pfx) é **enviado direto no painel da Focus NFe** — não trafega pelo nosso app.
 
-## 3. Server functions e rotas (TanStack)
+---
 
-Helper `src/lib/maisentregas.server.ts`:
-- `auth()` — POST /auth, cache do JWT em memória até expirar
-- `preconfirm(payload)` — cota de frete
-- `confirm(payload)` — cria entrega real
-- `getOrderStatus(id)` — busca status
+## 3. Helpers e server functions
 
-Server functions client-safe (`src/lib/maisentregas.functions.ts`):
-- `quoteDelivery({ cep })` — chamada do checkout para mostrar preço e validar CEP (mesmo que frete seja 0, valida cobertura)
-- `getMyOrderTracking({ orderId })` — usado em `/meus-pedidos` (com `requireSupabaseAuth`)
+**`src/lib/focusnfe.server.ts`** — cliente HTTP da Focus NFe:
+- `emitirNFCe(payload)` — POST `/v2/nfce?ref=...`
+- `emitirNFe(payload)` — POST `/v2/nfe?ref=...`
+- `consultarNota(ref)` — GET `/v2/nfce/{ref}` ou `/v2/nfe/{ref}`
+- `cancelarNota(ref, justificativa)` — DELETE
+- `mapOrderToNotaPayload(order, items, config)` — monta JSON conforme layout da Focus
 
-Rotas públicas:
-- `/api/public/maisentregas/poll` — cron a cada 10 min: pega pedidos com `maisentregas_order_id` cujo status não é final, atualiza status no banco
+**`src/lib/nfe.functions.ts`** (server functions client-safe):
+- `getMyOrderNota({ orderId })` — retorna URLs do XML/DANFE para `/meus-pedidos` e `/pedido/$id`
+- `admin_emitirNotaManual({ orderId })` — reemissão manual pelo admin
+- `admin_cancelarNota({ orderId, justificativa })`
+- `admin_getFiscalConfig()` / `admin_updateFiscalConfig()` — tela de configuração
 
-Trigger automático na confirmação de pagamento:
-- Em `confirm_order_paid` (RPC) ou no webhook do MP, após marcar `paid`, se `delivery_method = 'delivery'` e ainda não tem `maisentregas_order_id`, chama `createDeliveryForOrder(orderId)` em background, que faz o POST /order/confirm na Mais Entregas e salva o id + tracking_url
+---
 
-## 4. Frontend — checkout
+## 4. Trigger automático (pagamento confirmado → emite nota)
 
-Na tela `/checkout`, adiciona um seletor:
-- ( ) Retirar na loja — Grátis
-- ( ) Receber em casa — Grátis (promoção de abertura)
+No **`src/routes/api/public/mp.webhook.ts`**, logo após `confirm_order_paid` retornar sucesso:
 
-Quando "Receber em casa" estiver marcado, mostra campos:
-- CEP (com autocomplete via ViaCEP — já é API pública grátis)
-- Rua, número, complemento, bairro (preenchidos do ViaCEP)
-- Cidade trava em "Curitiba" (se ViaCEP retornar outra cidade, mostra erro: "Por enquanto entregamos apenas em Curitiba")
-- Nome de quem recebe (default: o nome do cliente)
-- Telefone de quem recebe (default: o WhatsApp do cliente)
+```
+if (fiscal_config.ativo) {
+  emitirNotaParaOrder(orderId).catch(logErrorButDontFail);
+}
+```
 
-Antes de "Pagar", chama `quoteDelivery` pra validar cobertura na Mais Entregas. Se falhar, mostra erro e bloqueia.
+- Se `destinatario_cpf_cnpj` presente → **NF-e modelo 55**
+- Senão → **NFC-e** (com CPF do cliente no campo consumidor)
+- Falha na Focus **não bloqueia** o pedido (fica `nfe_status = 'pending'` para retry)
 
-Salva todos os campos de entrega no `createMpPreference` (vou estender essa server fn).
+---
 
-## 5. Frontend — meus pedidos
+## 5. Rota pública de callback
 
-Em `/meus-pedidos`, para cada pedido de delivery pago:
-- Mostra status atual da entrega (`maisentregas_status`)
-- Botão "Acompanhar entrega" → abre `maisentregas_tracking_url` em nova aba
-- Endereço pra onde foi enviado
+**`src/routes/api/public/focusnfe/webhook.ts`** — a Focus NFe chama de volta quando o processamento assíncrono termina (autorizada/rejeitada). Verifica `ref`, atualiza `orders.nfe_status/nfe_chave/nfe_xml_url/nfe_danfe_url`. Como não há assinatura HMAC, valida o payload consultando novamente a Focus com o `ref` recebido.
 
-## 6. Frontend — admin
+---
 
-Em `/admin/expedicao`:
-- Coluna mostrando se é Retirada ou Entrega
-- Para entregas, mostra status atual da Mais Entregas + link de rastreio
-- Em `/admin/pedidos`, mostra os dados completos de endereço
+## 6. Cron de reconciliação
 
-## 7. Integração com fluxo existente
+**`src/routes/api/public/nfe/poll.ts`** (a cada 15 min):
+- Pega pedidos com `nfe_status IN ('pending','processing')` das últimas 48h
+- Consulta status na Focus e atualiza
+- Faz **retry** de emissão quando `pending` há mais de 5 min sem `nfe_ref` gravado
 
-- **Reservas de estoque**: continuam idênticas, não muda nada
-- **Webhook MP** (`mp.webhook.ts`): após `confirm_order_paid` retornar sucesso, se for delivery, dispara `createDeliveryForOrder` (em background, com try/catch — se a Mais Entregas falhar, o pedido continua pago e a gente loga pra retry manual; vou adicionar isso ao cron de reconciliação também)
-- **Reembolsos**: ao reembolsar um pedido com `maisentregas_order_id`, tenta cancelar a entrega na Mais Entregas se ela ainda não saiu
+Agendado via `pg_cron` + `pg_net`.
+
+---
+
+## 7. Frontend
+
+**Checkout** (`/checkout`):
+- Toggle opcional: "Quero nota com meu CPF/CNPJ" → mostra campos de destinatário
+- Se marcado, `nfe_modelo = 'nfe'`, senão `nfce`
+
+**Pedido / Meus Pedidos**:
+- Quando `nfe_status = 'authorized'`: botão **"Baixar Nota Fiscal (PDF)"** e **"XML"**
+- Enquanto `pending`/`processing`: badge "Nota fiscal em processamento"
+- Se `rejected`: mostra o motivo
+
+**Admin (`/admin/pedidos`)**:
+- Coluna com badge do status fiscal
+- Botão "Reemitir nota" (se falhou) e "Cancelar nota" (se autorizada, dentro do prazo legal)
+- Link direto para o XML/DANFE
+
+**Admin — nova tela `/admin/fiscal`**:
+- Formulário completo do `fiscal_config`
+- Toggle ambiente Homologação/Produção (começa em homologação)
+- Instruções para upload do certificado no painel da Focus
+
+**Admin — `ProductForm`**:
+- Nova aba **"Fiscal"** com NCM, CFOP, CEST, origem, CST/CSOSN, unidade
+- Validação de NCM (8 dígitos)
+- Defaults sensatos por regime tributário
+
+---
+
+## 8. Fluxo de reembolso
+
+Ao processar refund em `refunds.functions.ts`:
+- Se `nfe_status = 'authorized'` e dentro do prazo legal de cancelamento (**24h para NFC-e, 24h para NF-e** em geral), chama `cancelarNota()`
+- Fora do prazo, orienta emissão de **nota de devolução** (fase 2 — não incluída agora)
+
+---
 
 ## Detalhes técnicos
 
-- Cache do JWT da Mais Entregas em variável de módulo no Worker, com refresh quando faltar < 5 min pra expirar
-- Toda chamada externa tem timeout de 10s e retry simples (1x) em erros de rede
-- Endereço na Mais Entregas: `address[0]` = loja (pickup), `address[1]` = cliente (delivery), conforme docs
-- `payment.modality = "sender"` (a loja paga o frete), `payment.method = "billed"` (cobrança via fatura mensal da Mais Entregas)
-- Status finais que param o polling: `entregue`, `cancelado`, `devolvido`
-- ViaCEP via `fetch("https://viacep.com.br/ws/{cep}/json/")` — sem secret
+- **Numeração**: Focus NFe cuida da numeração sequencial por série; guardamos o número retornado
+- **Ambiente**: começa em `homologacao`. Admin troca para `producao` só depois de validar
+- **Timeout HTTP**: 15s, retry 1x em erro de rede
+- **CPF na NFC-e**: usa `orders.customer_cpf` (já existe); se ausente, emite "consumidor não identificado" (permitido)
+- **Endereço na NF-e**: usa `shipping_*` do pedido quando `delivery_method = 'delivery'`
+- **Item da nota**: monta a partir de `order_items` + join em `products` para pegar NCM/CFOP/CST
+- **Cálculo de impostos**: Focus calcula automaticamente com base no regime + CST/CSOSN; não precisamos codar cálculo tributário
+- **Idempotência**: `ref = 'order_<uuid>'` — se reprocessar o webhook, a Focus retorna a mesma nota
+
+---
 
 ## Ordem de execução
 
-1. Migration (colunas novas em `orders`)
-2. Pedir os 2 secrets
-3. Helpers da Mais Entregas + server functions
-4. UI do checkout (seletor + endereço + CEP)
-5. Hook no webhook MP pra criar entrega
-6. UI em `/meus-pedidos` e `/admin/expedicao`
-7. Cron de polling de status
-8. Cancelamento de entrega no fluxo de reembolso
+1. Migration (fiscal_config + colunas em products/orders)
+2. Solicitar `FOCUSNFE_TOKEN` + `FOCUSNFE_TOKEN_HOMOLOG`
+3. Helpers Focus NFe + server functions
+4. Tela `/admin/fiscal` para você preencher os dados da loja
+5. Aba "Fiscal" no ProductForm + script para preencher NCM padrão nos 2.021 produtos existentes (você me passa o NCM mais comum ou eu uso `00000000` como placeholder até você revisar)
+6. Hook no webhook MP para emitir automaticamente
+7. Callback + cron de reconciliação
+8. UI cliente (botões de download em pedido/meus-pedidos)
+9. Cancelamento no fluxo de reembolso
+
+**Teste**: começamos em ambiente de homologação, emitindo 1 pedido de teste, validando XML/DANFE, e só depois virando produção.
+
+Aprova pra eu começar pela migration?
