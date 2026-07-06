@@ -108,6 +108,48 @@ function RefundsPage() {
           <Kpi label="Valor total estornado" value={brl(totals.sum)} accent />
         </div>
 
+        {consistency && consistency.inconsistent.length > 0 && (
+          <div className="border-2 border-destructive bg-destructive/10 rounded-lg p-4 space-y-2">
+            <div className="flex items-center gap-2 font-bold text-destructive">
+              <ShieldAlert className="h-5 w-5" />
+              {consistency.inconsistent.length} pedido(s) inconsistente(s)
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Pedidos marcados como <strong>cancelled</strong> com pagamento <strong>approved</strong> no
+              Mercado Pago mas <strong>sem registro em refunds</strong>. Estorne agora ou marque o pagamento
+              como reembolsado manualmente.
+            </p>
+            <ul className="text-xs divide-y divide-destructive/20">
+              {consistency.inconsistent.map((o) => (
+                <li key={o.id} className="py-2 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="font-mono text-[11px]">#{o.id.slice(0, 8).toUpperCase()}</div>
+                    <div className="font-bold">{o.customer_name ?? "—"}</div>
+                    <div className="text-muted-foreground">
+                      {brl(o.total)} · MP {o.mp_payment_id ?? "—"} ·{" "}
+                      {new Date(o.created_at).toLocaleString("pt-BR")}
+                    </div>
+                  </div>
+                  <Link
+                    to="/admin/pedidos"
+                    className="text-[11px] font-bold uppercase tracking-wider bg-destructive text-destructive-foreground px-3 py-1.5 rounded hover:opacity-90"
+                  >
+                    Resolver
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {consistency && consistency.inconsistent.length === 0 && (
+          <div className="border border-emerald-500/40 bg-emerald-500/10 rounded-lg p-3 flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
+            <CheckCircle2 className="h-4 w-4" />
+            Nenhuma inconsistência detectada. Todos os pedidos cancelados com pagamento aprovado têm reembolso registrado.
+          </div>
+        )}
+
+
         <div className="bg-card border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-secondary">
             <div className="relative">
