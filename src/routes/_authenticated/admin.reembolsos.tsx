@@ -6,7 +6,8 @@ import { ArrowLeft, Undo2, Printer, Search, X, AlertTriangle, CheckCircle2, Shie
 import { Header, Footer } from "@/components/Header";
 import { isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
-import { listRefunds, getRefundConsistency, type RefundHistoryRow } from "@/lib/refunds.functions";
+import { listRefunds, getRefundConsistency, reinstateOrderAsPaid, type RefundHistoryRow } from "@/lib/refunds.functions";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/admin/reembolsos")({
   head: () => ({ meta: [{ title: "Reembolsos · Admin" }] }),
