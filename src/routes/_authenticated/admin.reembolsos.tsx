@@ -23,6 +23,31 @@ function RefundsPage() {
   const [search, setSearch] = useState("");
   const fetchRefunds = useServerFn(listRefunds);
   const fetchConsistency = useServerFn(getRefundConsistency);
+  const reinstate = useServerFn(reinstateOrderAsPaid);
+  const qc = useQueryClient();
+  const [reinstatingId, setReinstatingId] = useState<string | null>(null);
+
+  const handleReinstate = async (o: { id: string; customer_name: string | null }) => {
+    const label = o.customer_name ?? o.id.slice(0, 8).toUpperCase();
+    const txt = window.prompt(
+      `Confirmar que o pedido de ${label} foi realmente debitado do cliente e deve ir para EXPEDIÇÃO?\n\n` +
+        `Isso vai:\n` +
+        `• Voltar o pedido para status "paid" / fulfillment "pending"\n` +
+        `• NÃO mexer no estoque — confira manualmente antes de enviar\n\n` +
+        `Digite exatamente: CONFIRMAR PAGAMENTO`,
+    );
+    if (txt == null) return;
+    setReinstatingId(o.id);
+    try {
+      await reinstate({ data: { orderId: o.id, confirmText: txt } });
+      await qc.invalidateQueries({ queryKey: ["admin-refunds-consistency"] });
+      window.alert(`Pedido ${label} reintegrado. Já aparece em /admin/expedicao.`);
+    } catch (e) {
+      window.alert("Falha: " + (e as Error).message);
+    } finally {
+      setReinstatingId(null);
+    }
+  };
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-refunds"],
