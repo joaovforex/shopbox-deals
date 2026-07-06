@@ -681,17 +681,12 @@ function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliv
   const inputRef = useRef<HTMLInputElement>(null);
   const [last, setLast] = useState<{ id: string; name: string; ok: boolean } | null>(null);
 
-  // Mantém o foco no campo para o leitor USB sempre digitar aqui
+  // Foca apenas na primeira montagem. NÃO refocar em cada clique — isso
+  // impedia o usuário de selecionar/copiar SKUs, códigos e textos da tela.
+  // Para voltar a mirar o leitor USB, o operador clica no próprio input
+  // (ou usa o botão "Focar leitor" abaixo).
   useEffect(() => {
-    const focus = () => {
-      // Só refoca se o usuário não estiver digitando em outro input/textarea
-      const el = document.activeElement as HTMLElement | null;
-      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
-      inputRef.current?.focus();
-    };
-    focus();
-    window.addEventListener("click", focus);
-    return () => window.removeEventListener("click", focus);
+    inputRef.current?.focus();
   }, []);
 
   const submit = (e: React.FormEvent) => {
