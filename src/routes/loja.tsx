@@ -28,9 +28,13 @@ export const Route = createFileRoute("/loja")({
     ],
   }),
   loader: ({ context, deps }) =>
-    context.queryClient.ensureQueryData(
-      pageProductsQuery({ search: deps.q, category: deps.cat, maxPrice: deps.max, page: deps.page }),
-    ),
+    // prefetch (não ensure) para que timeouts transitórios do Postgres
+    // não derrubem o SSR — o cliente reexecuta a query com retry.
+    context.queryClient
+      .prefetchQuery(
+        pageProductsQuery({ search: deps.q, category: deps.cat, maxPrice: deps.max, page: deps.page }),
+      )
+      .catch(() => undefined),
   component: Loja,
   pendingMs: 0,
 });
