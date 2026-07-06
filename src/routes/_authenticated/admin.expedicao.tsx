@@ -925,3 +925,33 @@ function NotificationsPanel({ rows, itemsByOrder }: { rows: NotifRow[]; itemsByO
     </div>
   );
 }
+
+function SkuChip({ sku, small = false }: { sku: string; small?: boolean }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await navigator.clipboard.writeText(sku);
+      setCopied(true);
+      toast.success(`SKU ${sku} copiado`);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      title="Clique para copiar o SKU"
+      className={`inline-flex items-center gap-1 rounded bg-accent/20 hover:bg-accent/30 font-mono font-bold uppercase tracking-wider text-accent shrink-0 ${
+        small ? "px-1 py-0.5 text-[9px]" : "px-1.5 py-0.5 text-[10px]"
+      }`}
+    >
+      {sku}
+      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3 opacity-60" />}
+    </button>
+  );
+}
+
