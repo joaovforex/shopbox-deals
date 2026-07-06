@@ -503,14 +503,23 @@ function FulfillmentPage() {
                   <ul className="text-sm space-y-1">
                     {items.map((it, i) => (
                       <li key={i} className="flex justify-between gap-2">
-                        <span className="flex items-center gap-2">
-                          <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                          {it.quantity}x {it.product_name}
-                          {it.sku && (
-                            <span className="ml-1 inline-flex items-center rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-accent">
-                              {it.sku}
-                            </span>
+                        <span className="flex items-center gap-2 min-w-0">
+                          <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="whitespace-nowrap">{it.quantity}x</span>
+                          {it.product_id ? (
+                            <a
+                              href={`/produto/${it.product_id}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="truncate underline decoration-dotted hover:text-primary"
+                              title="Abrir produto em nova aba (mostra mesmo se esgotado)"
+                            >
+                              {it.product_name}
+                            </a>
+                          ) : (
+                            <span className="truncate">{it.product_name}</span>
                           )}
+                          {it.sku && <SkuChip sku={it.sku} />}
                         </span>
                         <span className="font-semibold whitespace-nowrap">{brl(it.unit_price * it.quantity)}</span>
                       </li>
