@@ -56,11 +56,26 @@ export function isVideoUrl(url: string | null | undefined): boolean {
 }
 
 export async function fetchProducts(opts: { onlyActive?: boolean } = {}) {
-  let q = supabase.from("products").select("*").order("created_at", { ascending: false });
-  if (opts.onlyActive) q = q.eq("active", true);
-  const { data, error } = await q;
-  if (error) throw error;
-  return (data ?? []) as Product[];
+  // O Supabase corta silenciosamente em 1000 linhas por request. Como o admin
+  // usa este resultado para calcular contagens (ativos, ocultos, esgotados) e
+  // ações em massa, precisamos paginar até esgotar o catálogo — do contrário
+  // os contadores ficam "travados" no teto e produtos somem das listas.
+  const PAGE = 1000;
+  const all: Product[] = [];
+  for (let from = 0; ; from += PAGE) {
+    let q = supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .range(from, from + PAGE - 1);
+    if (opts.onlyActive) q = q.eq("active", true);
+    const { data, error } = await q;
+    if (error) throw error;
+    const rows = (data ?? []) as Product[];
+    all.push(...rows);
+    if (rows.length < PAGE) break;
+  }
+  return all;
 }
 
 export const activeProductsQuery = () =>
