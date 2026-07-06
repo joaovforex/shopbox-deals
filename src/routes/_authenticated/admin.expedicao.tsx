@@ -886,12 +886,21 @@ function NotificationsPanel({ rows, itemsByOrder }: { rows: NotifRow[]; itemsByO
                     <li key={i} className="flex justify-between gap-2">
                       <span className="flex items-center gap-1.5 min-w-0">
                         <Package className="h-3 w-3 text-muted-foreground shrink-0" />
-                        <span className="truncate">{it.quantity}x {it.product_name}</span>
-                        {it.sku && (
-                          <span className="inline-flex items-center rounded bg-accent/20 px-1 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider text-accent shrink-0">
-                            {it.sku}
-                          </span>
+                        <span className="whitespace-nowrap">{it.quantity}x</span>
+                        {it.product_id ? (
+                          <a
+                            href={`/produto/${it.product_id}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="truncate underline decoration-dotted hover:text-primary"
+                            title="Abrir produto em nova aba"
+                          >
+                            {it.product_name}
+                          </a>
+                        ) : (
+                          <span className="truncate">{it.product_name}</span>
                         )}
+                        {it.sku && <SkuChip sku={it.sku} small />}
                       </span>
                       <span className="font-semibold whitespace-nowrap">{brl(it.unit_price * it.quantity)}</span>
                     </li>
