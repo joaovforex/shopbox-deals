@@ -70,7 +70,8 @@ export const admin_cancelarNota = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { cancelarNotaParaOrder } = await import("@/lib/focusnfe.server");
-    return cancelarNotaParaOrder(data.orderId, data.justificativa);
+    const r = await cancelarNotaParaOrder(data.orderId, data.justificativa);
+    return { ok: r.ok, message: r.message ?? null };
   });
 
 // ---------- Admin: consultar/atualizar status na Focus (polling manual) ----------
