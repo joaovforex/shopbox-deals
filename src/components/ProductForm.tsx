@@ -184,6 +184,16 @@ export function ProductForm({
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
+    const ncmDigits = ncm.replace(/\D/g, "");
+    if (ncmDigits.length !== 8) {
+      toast.error("NCM obrigatório: informe os 8 dígitos (ex.: 85167100). Consulte em portalunico.siscomex.gov.br/classif/");
+      return;
+    }
+    const cestDigits = cest.replace(/\D/g, "");
+    if (cestDigits && cestDigits.length !== 7) {
+      toast.error("CEST deve ter 7 dígitos (ou deixe em branco)");
+      return;
+    }
     setBusy(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
