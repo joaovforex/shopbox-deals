@@ -12,6 +12,7 @@ import {
   admin_emitirNotaManual,
   admin_consultarNota,
   admin_listRecentPaidOrders,
+  admin_validarFocus,
   type FiscalConfigInput,
 } from "@/lib/nfe.functions";
 
