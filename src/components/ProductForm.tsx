@@ -527,7 +527,7 @@ export function ProductForm({
           <div>
             <div className="text-sm font-bold uppercase tracking-wider">Dados fiscais</div>
             <div className="text-[11px] text-muted-foreground">
-              Obrigatórios para emissão automática de NFC-e/NF-e. Consulte o NCM em{" "}
+              Recomendados para emissão de NFC-e/NF-e (a nota falhará sem NCM). Consulte em{" "}
               <a
                 href="https://portalunico.siscomex.gov.br/classif/#/sumario?perfil=publico"
                 target="_blank"
