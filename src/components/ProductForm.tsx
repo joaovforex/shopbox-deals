@@ -472,6 +472,69 @@ export function ProductForm({
           )}
         </div>
 
+        <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
+          <div>
+            <div className="text-sm font-bold uppercase tracking-wider">Dados fiscais</div>
+            <div className="text-[11px] text-muted-foreground">
+              Obrigatórios para emissão automática de NFC-e/NF-e. Consulte o NCM em{" "}
+              <a
+                href="https://portalunico.siscomex.gov.br/classif/#/sumario?perfil=publico"
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary underline"
+              >
+                Siscomex
+              </a>
+              .
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <Input
+              label="NCM (8 dígitos) *"
+              value={ncm}
+              onChange={(v) => setNcm(v.replace(/\D/g, "").slice(0, 8))}
+              placeholder="Ex: 85167100"
+              inputMode="numeric"
+              required
+            />
+            <Input
+              label="CEST (opcional)"
+              value={cest}
+              onChange={(v) => setCest(v.replace(/\D/g, "").slice(0, 7))}
+              placeholder="Ex: 2106400"
+              inputMode="numeric"
+            />
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <Input
+              label="Unidade comercial"
+              value={unidadeComercial}
+              onChange={(v) => setUnidadeComercial(v.toUpperCase().slice(0, 6))}
+              placeholder="UN"
+            />
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Origem</label>
+              <select
+                value={origem}
+                onChange={(e) => setOrigem(e.target.value)}
+                className="w-full bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary mt-1 h-10"
+              >
+                <option value="0">0 — Nacional</option>
+                <option value="1">1 — Estrangeira (importação direta)</option>
+                <option value="2">2 — Estrangeira (mercado interno)</option>
+                <option value="3">3 — Nacional c/ conteúdo importado &gt;40%</option>
+                <option value="4">4 — Nacional (processos produtivos básicos)</option>
+                <option value="5">5 — Nacional c/ conteúdo importado ≤40%</option>
+                <option value="6">6 — Estrangeira (importação, sem similar)</option>
+                <option value="7">7 — Estrangeira (mercado interno, sem similar)</option>
+                <option value="8">8 — Nacional c/ conteúdo importado &gt;70%</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+
+
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="accent-primary h-4 w-4" />
           <span className="text-sm">Produto ativo (visível na loja)</span>
