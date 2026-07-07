@@ -62,6 +62,11 @@ export function ProductForm({
   const [colorVariants, setColorVariants] = useState<ColorVariant[]>(
     draft?.colorVariants ?? (product?.color_variants ?? []),
   );
+  const p = product as (Product & { ncm?: string | null; cest?: string | null; unidade_comercial?: string | null; origem?: number | null }) | null;
+  const [ncm, setNcm] = useState<string>(draft?.ncm ?? (p?.ncm ?? ""));
+  const [cest, setCest] = useState<string>(draft?.cest ?? (p?.cest ?? ""));
+  const [unidadeComercial, setUnidadeComercial] = useState<string>(draft?.unidadeComercial ?? (p?.unidade_comercial ?? "UN"));
+  const [origem, setOrigem] = useState<string>(draft?.origem ?? (p?.origem != null ? String(p.origem) : "0"));
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
