@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Crown, BarChart3, Truck, Users, Package, ShieldAlert, Undo2, ShoppingBag, CheckSquare, Square, XSquare, Gift } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchProducts, getRoleSummary, type Product, type RoleSummary } from "@/lib/products";
+import { adminProductsInfiniteQuery, ADMIN_PRODUCTS_PAGE_SIZE, getRoleSummary, type Product, type RoleSummary } from "@/lib/products";
 import { claimFirstAdmin } from "@/lib/admin.functions";
 import { brl, discountPct, postDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
