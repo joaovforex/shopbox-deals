@@ -1,12 +1,12 @@
 import { createFileRoute, Outlet, useRouterState, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Crown, BarChart3, Truck, Users, Package, ShieldAlert, Undo2, ShoppingBag, CheckSquare, Square, XSquare, Gift } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchProducts, getRoleSummary, type Product, type RoleSummary } from "@/lib/products";
+import { adminProductsInfiniteQuery, ADMIN_PRODUCTS_PAGE_SIZE, getRoleSummary, type Product, type RoleSummary } from "@/lib/products";
 import { claimFirstAdmin } from "@/lib/admin.functions";
 import { brl, discountPct, postDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -39,11 +39,20 @@ function AdminPage() {
 
   const canManageProducts = !!roles && (roles.isCatalog || roles.isManager);
 
-  const { data: products = [], refetch } = useQuery({
-    queryKey: ["admin", "products"],
-    queryFn: () => fetchProducts(),
+  const {
+    data: pagedData,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isFetching: isFetchingProducts,
+  } = useInfiniteQuery({
+    ...adminProductsInfiniteQuery(),
     enabled: canManageProducts && !isChildRoute,
   });
+  const products: Product[] = (pagedData?.pages ?? []).flatMap((p) => p.items);
+  const totalProducts = pagedData?.pages?.[0]?.total ?? products.length;
+  const loadedCount = products.length;
 
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -250,7 +259,7 @@ function AdminPage() {
               )}
             </div>
             <h1 className="display text-4xl">Produtos</h1>
-            <p className="text-sm text-muted-foreground">{products.filter((p) => p.stock > 0).length} cadastrados</p>
+            <p className="text-sm text-muted-foreground">{totalProducts} cadastrados no total</p>
             {!roles.isSuperAdmin && !roles.isManager && (
               <p className="text-xs text-muted-foreground mt-1 inline-flex items-center gap-1">
                 <ShieldAlert className="h-3 w-3" /> Você só pode gerenciar produtos. Pedidos, expedição e métricas são restritos ao Super Admin.
@@ -598,6 +607,25 @@ function AdminPage() {
           </>
           );
         })()}
+
+        <div className="mt-6 flex flex-col items-center gap-2">
+          <p className="text-xs text-muted-foreground">
+            Exibindo {loadedCount} de {totalProducts} produtos
+          </p>
+          {hasNextPage && (
+            <button
+              type="button"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-6 py-3 rounded-md shadow-deal hover:scale-[1.02] text-sm disabled:opacity-60 disabled:cursor-wait"
+            >
+              {isFetchingNextPage ? "Carregando..." : `Carregar mais ${Math.min(ADMIN_PRODUCTS_PAGE_SIZE, totalProducts - loadedCount)}`}
+            </button>
+          )}
+          {!hasNextPage && loadedCount > 0 && isFetchingProducts === false && (
+            <p className="text-[11px] text-muted-foreground">Todos os produtos foram carregados.</p>
+          )}
+        </div>
       </section>
 
 
