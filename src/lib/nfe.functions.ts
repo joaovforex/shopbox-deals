@@ -121,7 +121,17 @@ export const admin_validarFocus = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     await assertAdmin(context);
     const { validarFocusTokenCnpj } = await import("@/lib/focusnfe.server");
-    return await validarFocusTokenCnpj();
+    const r = await validarFocusTokenCnpj();
+    return {
+      ok: r.ok,
+      ambiente: r.ambiente,
+      cnpj: r.cnpj,
+      tokenValid: r.tokenValid,
+      cnpjEnabled: r.cnpjEnabled,
+      habilitadoNFe: r.habilitadoNFe ?? null,
+      habilitadoNFCe: r.habilitadoNFCe ?? null,
+      message: r.message,
+    };
   });
 
 // ---------- Admin: listar pedidos recentes elegíveis para emissão ----------
