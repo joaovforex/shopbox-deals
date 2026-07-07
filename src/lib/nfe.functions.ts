@@ -115,6 +115,23 @@ export const admin_getFiscalConfig = createServerFn({ method: "GET" })
     return data;
   });
 
+// ---------- Admin: listar pedidos recentes elegíveis para emissão ----------
+export const admin_listRecentPaidOrders = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data, error } = await supabaseAdmin
+      .from("orders")
+      .select("id, created_at, total, status, nfe_status")
+      .in("status", ["paid", "confirmed", "completed", "fulfilled", "delivered"])
+      .order("created_at", { ascending: false })
+      .limit(10);
+    if (error) throw new Error(`Falha ao listar pedidos: ${error.message}`);
+    return (data ?? []) as Array<{ id: string; created_at: string; total: number | null; status: string | null; nfe_status: string | null }>;
+  });
+
+
 // ---------- Admin: atualizar configuração fiscal ----------
 export type FiscalConfigInput = {
   ativo?: boolean;
