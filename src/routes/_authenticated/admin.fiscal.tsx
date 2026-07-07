@@ -265,6 +265,19 @@ function FiscalPage() {
               <option value="nfce">NFC-e (consumidor)</option>
               <option value="nfe">NF-e (com CPF/CNPJ)</option>
             </select>
+          {!form.ativo && (
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-yellow-500/10 border border-yellow-500/40 text-yellow-200 rounded p-3 text-sm">
+              <span>⚠ Emissão está <strong>desativada</strong>. Ative antes de emitir a nota.</span>
+              <button
+                type="button"
+                onClick={activateAndSave}
+                disabled={saving}
+                className="inline-flex items-center gap-2 bg-yellow-500 text-black font-bold px-3 py-2 rounded disabled:opacity-60"
+              >
+                <Save className="h-4 w-4" /> Ativar configuração
+              </button>
+            </div>
+          )}
             <button
               type="button"
               onClick={runEmit}
