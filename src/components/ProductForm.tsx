@@ -18,6 +18,10 @@ type Draft = {
   images: string[];
   active: boolean;
   colorVariants: ColorVariant[];
+  ncm?: string;
+  cest?: string;
+  unidadeComercial?: string;
+  origem?: string;
 };
 
 function loadDraft(productId: string | null): Draft | null {
@@ -58,6 +62,11 @@ export function ProductForm({
   const [colorVariants, setColorVariants] = useState<ColorVariant[]>(
     draft?.colorVariants ?? (product?.color_variants ?? []),
   );
+  const p = product as (Product & { ncm?: string | null; cest?: string | null; unidade_comercial?: string | null; origem?: number | null }) | null;
+  const [ncm, setNcm] = useState<string>(draft?.ncm ?? (p?.ncm ?? ""));
+  const [cest, setCest] = useState<string>(draft?.cest ?? (p?.cest ?? ""));
+  const [unidadeComercial, setUnidadeComercial] = useState<string>(draft?.unidadeComercial ?? (p?.unidade_comercial ?? "UN"));
+  const [origem, setOrigem] = useState<string>(draft?.origem ?? (p?.origem != null ? String(p.origem) : "0"));
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -73,9 +82,10 @@ export function ProductForm({
     const d: Draft = {
       productId: product?.id ?? null,
       name, description, price, originalPrice, category, stock, images, active, colorVariants,
+      ncm, cest, unidadeComercial, origem,
     };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch {}
-  }, [product?.id, name, description, price, originalPrice, category, stock, images, active, colorVariants]);
+  }, [product?.id, name, description, price, originalPrice, category, stock, images, active, colorVariants, ncm, cest, unidadeComercial, origem]);
 
   const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} };
 
@@ -174,6 +184,16 @@ export function ProductForm({
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
+    const ncmDigits = ncm.replace(/\D/g, "");
+    if (ncmDigits.length !== 8) {
+      toast.error("NCM obrigatório: informe os 8 dígitos (ex.: 85167100). Consulte em portalunico.siscomex.gov.br/classif/");
+      return;
+    }
+    const cestDigits = cest.replace(/\D/g, "");
+    if (cestDigits && cestDigits.length !== 7) {
+      toast.error("CEST deve ter 7 dígitos (ou deixe em branco)");
+      return;
+    }
     setBusy(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -214,6 +234,10 @@ export function ProductForm({
         images,
         active,
         color_variants: cleanVariants.length > 0 ? cleanVariants : [],
+        ncm: ncmDigits,
+        cest: cestDigits || null,
+        unidade_comercial: (unidadeComercial.trim() || "UN").toUpperCase().slice(0, 6),
+        origem: Number.isFinite(Number(origem)) ? Number(origem) : 0,
       };
       if (product) {
         const { data, error } = await supabase
@@ -447,6 +471,69 @@ export function ProductForm({
             </div>
           )}
         </div>
+
+        <div className="rounded-lg border border-border bg-secondary/30 p-3 space-y-3">
+          <div>
+            <div className="text-sm font-bold uppercase tracking-wider">Dados fiscais</div>
+            <div className="text-[11px] text-muted-foreground">
+              Obrigatórios para emissão automática de NFC-e/NF-e. Consulte o NCM em{" "}
+              <a
+                href="https://portalunico.siscomex.gov.br/classif/#/sumario?perfil=publico"
+                target="_blank"
+                rel="noreferrer"
+                className="text-primary underline"
+              >
+                Siscomex
+              </a>
+              .
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <Input
+              label="NCM (8 dígitos) *"
+              value={ncm}
+              onChange={(v) => setNcm(v.replace(/\D/g, "").slice(0, 8))}
+              placeholder="Ex: 85167100"
+              inputMode="numeric"
+              required
+            />
+            <Input
+              label="CEST (opcional)"
+              value={cest}
+              onChange={(v) => setCest(v.replace(/\D/g, "").slice(0, 7))}
+              placeholder="Ex: 2106400"
+              inputMode="numeric"
+            />
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <Input
+              label="Unidade comercial"
+              value={unidadeComercial}
+              onChange={(v) => setUnidadeComercial(v.toUpperCase().slice(0, 6))}
+              placeholder="UN"
+            />
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Origem</label>
+              <select
+                value={origem}
+                onChange={(e) => setOrigem(e.target.value)}
+                className="w-full bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary mt-1 h-10"
+              >
+                <option value="0">0 — Nacional</option>
+                <option value="1">1 — Estrangeira (importação direta)</option>
+                <option value="2">2 — Estrangeira (mercado interno)</option>
+                <option value="3">3 — Nacional c/ conteúdo importado &gt;40%</option>
+                <option value="4">4 — Nacional (processos produtivos básicos)</option>
+                <option value="5">5 — Nacional c/ conteúdo importado ≤40%</option>
+                <option value="6">6 — Estrangeira (importação, sem similar)</option>
+                <option value="7">7 — Estrangeira (mercado interno, sem similar)</option>
+                <option value="8">8 — Nacional c/ conteúdo importado &gt;70%</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+
 
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="accent-primary h-4 w-4" />
