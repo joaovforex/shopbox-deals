@@ -175,9 +175,9 @@ function FiscalPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="CNPJ" value={form.cnpj} onChange={(v) => setForm({ ...form, cnpj: v })} placeholder="Somente números" />
+            <Field label="CNPJ" value={form.cnpj ?? ""} onChange={(v) => setForm({ ...form, cnpj: v })} placeholder="Somente números" />
             <Field label="Inscrição Estadual" value={form.inscricao_estadual ?? ""} onChange={(v) => setForm({ ...form, inscricao_estadual: v })} />
-            <Field label="Razão Social" value={form.razao_social} onChange={(v) => setForm({ ...form, razao_social: v })} />
+            <Field label="Razão Social" value={form.razao_social ?? ""} onChange={(v) => setForm({ ...form, razao_social: v })} />
             <Field label="Nome Fantasia" value={form.nome_fantasia ?? ""} onChange={(v) => setForm({ ...form, nome_fantasia: v })} />
             <Field label="Inscrição Municipal" value={form.inscricao_municipal ?? ""} onChange={(v) => setForm({ ...form, inscricao_municipal: v })} />
           </div>
@@ -185,14 +185,14 @@ function FiscalPage() {
           <div className="border-t border-border pt-4">
             <h2 className="font-black uppercase tracking-wider text-sm mb-3">Endereço</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Field label="Logradouro" value={form.endereco_logradouro} onChange={(v) => setForm({ ...form, endereco_logradouro: v })} />
-              <Field label="Número" value={form.endereco_numero} onChange={(v) => setForm({ ...form, endereco_numero: v })} />
+              <Field label="Logradouro" value={form.endereco_logradouro ?? ""} onChange={(v) => setForm({ ...form, endereco_logradouro: v })} />
+              <Field label="Número" value={form.endereco_numero ?? ""} onChange={(v) => setForm({ ...form, endereco_numero: v })} />
               <Field label="Complemento" value={form.endereco_complemento ?? ""} onChange={(v) => setForm({ ...form, endereco_complemento: v })} />
-              <Field label="Bairro" value={form.endereco_bairro} onChange={(v) => setForm({ ...form, endereco_bairro: v })} />
-              <Field label="Município" value={form.endereco_municipio} onChange={(v) => setForm({ ...form, endereco_municipio: v })} />
-              <Field label="UF" value={form.endereco_uf} onChange={(v) => setForm({ ...form, endereco_uf: v.toUpperCase() })} maxLength={2} />
-              <Field label="CEP" value={form.endereco_cep} onChange={(v) => setForm({ ...form, endereco_cep: v })} placeholder="Somente números" />
-              <Field label="Código IBGE Município (7 dígitos)" value={form.endereco_codigo_municipio} onChange={(v) => setForm({ ...form, endereco_codigo_municipio: v })} />
+              <Field label="Bairro" value={form.endereco_bairro ?? ""} onChange={(v) => setForm({ ...form, endereco_bairro: v })} />
+              <Field label="Município" value={form.endereco_municipio ?? ""} onChange={(v) => setForm({ ...form, endereco_municipio: v })} />
+              <Field label="UF" value={form.endereco_uf ?? ""} onChange={(v) => setForm({ ...form, endereco_uf: v.toUpperCase() })} maxLength={2} />
+              <Field label="CEP" value={form.endereco_cep ?? ""} onChange={(v) => setForm({ ...form, endereco_cep: v })} placeholder="Somente números" />
+              <Field label="Código IBGE Município (7 dígitos)" value={form.endereco_codigo_municipio ?? ""} onChange={(v) => setForm({ ...form, endereco_codigo_municipio: v })} />
             </div>
           </div>
 
