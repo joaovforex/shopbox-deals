@@ -115,6 +115,25 @@ export const admin_getFiscalConfig = createServerFn({ method: "GET" })
     return data;
   });
 
+// ---------- Admin: validar token + CNPJ na Focus NFe ----------
+export const admin_validarFocus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { validarFocusTokenCnpj } = await import("@/lib/focusnfe.server");
+    const r = await validarFocusTokenCnpj();
+    return {
+      ok: r.ok,
+      ambiente: r.ambiente,
+      cnpj: r.cnpj,
+      tokenValid: r.tokenValid,
+      cnpjEnabled: r.cnpjEnabled,
+      habilitadoNFe: r.habilitadoNFe ?? null,
+      habilitadoNFCe: r.habilitadoNFCe ?? null,
+      message: r.message,
+    };
+  });
+
 // ---------- Admin: listar pedidos recentes elegíveis para emissão ----------
 export const admin_listRecentPaidOrders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
