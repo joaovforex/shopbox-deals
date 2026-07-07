@@ -88,39 +88,6 @@ export function ProductForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ncm]);
 
-  // Scanner de código de barras (usa ZXing). Reconhece EAN/UPC/Code128/QR — se
-  // o código tiver os 8 dígitos do NCM, preenche direto; senão sugere copiar.
-  useEffect(() => {
-    if (!scanOpen) return;
-    let stopped = false;
-    let controls: { stop: () => void } | null = null;
-    (async () => {
-      setScanError(null);
-      try {
-        const { BrowserMultiFormatReader } = await import("@zxing/browser");
-        const reader = new BrowserMultiFormatReader();
-        const video = scanVideoRef.current;
-        if (!video) return;
-        controls = await reader.decodeFromVideoDevice(undefined, video, (result, _err, ctrl) => {
-          if (stopped || !result) return;
-          const text = result.getText().replace(/\D/g, "");
-          if (text.length >= 8) {
-            const ncmGuess = text.slice(0, 8);
-            setNcm(ncmGuess);
-            toast.success(`NCM detectado: ${ncmGuess}`);
-            ctrl.stop();
-            setScanOpen(false);
-          }
-        });
-      } catch (err: any) {
-        setScanError(err?.message ?? "Não foi possível abrir a câmera para escanear.");
-      }
-    })();
-    return () => {
-      stopped = true;
-      controls?.stop();
-    };
-  }, [scanOpen]);
 
 
   const hasVariants = colorVariants.length > 0;
