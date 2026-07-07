@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Upload, Plus, Trash2 } from "lucide-react";
+import { Upload, Plus, Trash2, ScanBarcode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { isVideoUrl, uploadProductImage, type ColorVariant, type Product } from "@/lib/products";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
+import { suggestFromNcm } from "@/lib/ncm-suggestions";
 
 const DRAFT_KEY = "shopbox:product-form-draft";
 
