@@ -288,7 +288,7 @@ export type EmitResult = {
 export async function emitirNotaParaOrder(orderId: string): Promise<EmitResult> {
   const config = await getFiscalConfig();
   if (!config) throw new Error("fiscal_config não configurado");
-  if (!config.ativo) return { ok: false, status: "disabled", ref: "" };
+  if (!config.ativo) throw new Error("Emissão fiscal desativada. Ative o campo 'ativo' na configuração fiscal antes de emitir.");
 
   const { order, items } = await loadOrderWithItems(orderId);
   if (!items.length) throw new Error("Pedido sem itens");
