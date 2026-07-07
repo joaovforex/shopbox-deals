@@ -607,6 +607,25 @@ function AdminPage() {
           </>
           );
         })()}
+
+        <div className="mt-6 flex flex-col items-center gap-2">
+          <p className="text-xs text-muted-foreground">
+            Exibindo {loadedCount} de {totalProducts} produtos
+          </p>
+          {hasNextPage && (
+            <button
+              type="button"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-6 py-3 rounded-md shadow-deal hover:scale-[1.02] text-sm disabled:opacity-60 disabled:cursor-wait"
+            >
+              {isFetchingNextPage ? "Carregando..." : `Carregar mais ${Math.min(ADMIN_PRODUCTS_PAGE_SIZE, totalProducts - loadedCount)}`}
+            </button>
+          )}
+          {!hasNextPage && loadedCount > 0 && isFetchingProducts === false && (
+            <p className="text-[11px] text-muted-foreground">Todos os produtos foram carregados.</p>
+          )}
+        </div>
       </section>
 
 
