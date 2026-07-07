@@ -650,7 +650,35 @@ export function ProductForm({
           </div>
         </div>
       )}
+
+      {scanOpen && (
+        <div className="fixed inset-0 z-[60] bg-background flex flex-col p-4">
+          <div className="flex items-center justify-between pb-3">
+            <h3 className="display text-xl">Escanear código de barras</h3>
+            <button type="button" onClick={() => setScanOpen(false)} className="text-muted-foreground hover:text-foreground">✕</button>
+          </div>
+          <div className="flex-1 min-h-0 rounded-lg overflow-hidden bg-muted border border-border flex items-center justify-center relative">
+            {scanError ? (
+              <p className="text-sm text-muted-foreground text-center px-6">{scanError}</p>
+            ) : (
+              <>
+                <video ref={scanVideoRef} className="h-full w-full object-contain" playsInline muted autoPlay />
+                <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 h-24 border-2 border-primary rounded-lg pointer-events-none" />
+              </>
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground text-center pt-2">
+            Aponte para o código de barras. Se ele contiver o NCM (8 dígitos iniciais), será preenchido automaticamente.
+          </p>
+          <div className="pt-3 flex gap-2 justify-center">
+            <button type="button" onClick={() => setScanOpen(false)} className="px-4 py-3 rounded-md bg-secondary text-sm font-bold">
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }
 
