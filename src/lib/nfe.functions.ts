@@ -96,7 +96,10 @@ export const admin_consultarNota = createServerFn({ method: "POST" })
     if (body && typeof body === "object") {
       await applyFocusResult(data.orderId, body);
     }
-    return body;
+    return {
+      status: (body?.status as string | undefined) ?? null,
+      mensagem: (body?.mensagem_sefaz as string | undefined) ?? (body?.mensagem as string | undefined) ?? null,
+    };
   });
 
 // ---------- Admin: ler configuração fiscal ----------
