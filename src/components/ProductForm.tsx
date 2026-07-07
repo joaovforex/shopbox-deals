@@ -18,6 +18,10 @@ type Draft = {
   images: string[];
   active: boolean;
   colorVariants: ColorVariant[];
+  ncm?: string;
+  cest?: string;
+  unidadeComercial?: string;
+  origem?: string;
 };
 
 function loadDraft(productId: string | null): Draft | null {
