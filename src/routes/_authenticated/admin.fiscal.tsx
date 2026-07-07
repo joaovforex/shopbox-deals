@@ -91,6 +91,12 @@ function FiscalPage() {
     if (!testOrderId.trim()) return toast.error("Informe o ID do pedido");
     setTestBusy(true); setTestResult(null);
     try {
+      if (!form.ativo) {
+        const updated = { ...form, ativo: true };
+        await saveConfig({ data: updated });
+        setForm(updated);
+        toast.success("Configuração fiscal ativada");
+      }
       const r = await emitir({ data: { orderId: testOrderId.trim(), modelo: testModelo } });
       setTestResult(r as unknown as Record<string, unknown>);
       if (r.ok) toast.success(`NFe enviada — status: ${r.status}`);
@@ -99,6 +105,20 @@ function FiscalPage() {
       toast.error(err instanceof Error ? err.message : "Erro ao emitir");
     } finally { setTestBusy(false); }
   };
+
+  const activateAndSave = async () => {
+    setSaving(true);
+    try {
+      const updated = { ...form, ativo: true };
+      await saveConfig({ data: updated });
+      setForm(updated);
+      toast.success("Configuração fiscal ativada");
+      refetch();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao ativar");
+    } finally { setSaving(false); }
+  };
+
 
   const runConsult = async () => {
     if (!testOrderId.trim()) return toast.error("Informe o ID do pedido");
