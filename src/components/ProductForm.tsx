@@ -540,14 +540,32 @@ export function ProductForm({
             </div>
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
-            <Input
-              label="NCM (8 dígitos) *"
-              value={ncm}
-              onChange={(v) => setNcm(v.replace(/\D/g, "").slice(0, 8))}
-              placeholder="Ex: 85167100"
-              inputMode="numeric"
-              required
-            />
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                NCM (8 dígitos) *
+              </label>
+              <div className="flex gap-2 mt-1">
+                <input
+                  value={ncm}
+                  onChange={(e) => setNcm(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                  placeholder="Ex: 85167100"
+                  inputMode="numeric"
+                  required
+                  className="flex-1 bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => setScanOpen(true)}
+                  className="inline-flex items-center gap-1 px-3 rounded-md bg-secondary hover:bg-muted text-xs font-bold"
+                  title="Escanear código de barras"
+                >
+                  <ScanBarcode className="h-4 w-4" /> Scan
+                </button>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Aponte o código de barras do produto (EAN/UPC) — se contiver o NCM, preenchemos automático.
+              </p>
+            </div>
             <Input
               label="CEST (opcional)"
               value={cest}
