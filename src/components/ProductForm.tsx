@@ -234,6 +234,10 @@ export function ProductForm({
         images,
         active,
         color_variants: cleanVariants.length > 0 ? cleanVariants : [],
+        ncm: ncmDigits,
+        cest: cestDigits || null,
+        unidade_comercial: (unidadeComercial.trim() || "UN").toUpperCase().slice(0, 6),
+        origem: Number.isFinite(Number(origem)) ? Number(origem) : 0,
       };
       if (product) {
         const { data, error } = await supabase
