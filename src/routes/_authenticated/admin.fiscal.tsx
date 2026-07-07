@@ -57,6 +57,20 @@ function FiscalPage() {
   const emitir = useServerFn(admin_emitirNotaManual);
   const consultar = useServerFn(admin_consultarNota);
   const listOrders = useServerFn(admin_listRecentPaidOrders);
+  const validar = useServerFn(admin_validarFocus);
+  const [validation, setValidation] = useState<Awaited<ReturnType<typeof validar>> | null>(null);
+  const [validating, setValidating] = useState(false);
+  const runValidate = async () => {
+    setValidating(true);
+    try {
+      const r = await validar({});
+      setValidation(r);
+      if (r.ok) toast.success(r.message);
+      else toast.error(r.message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao validar");
+    } finally { setValidating(false); }
+  };
   const [recentOrders, setRecentOrders] = useState<Array<{ id: string; created_at: string; total: number | null }>>([]);
   const loadRecent = async () => {
     try {
