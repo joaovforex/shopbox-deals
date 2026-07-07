@@ -75,6 +75,56 @@ export function ProductForm({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fallbackCameraInputRef = useRef<HTMLInputElement | null>(null);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const scanVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Auto-preencher CEST/unidade a partir do NCM (só quando os campos estão vazios/padrão)
+  useEffect(() => {
+    const s = suggestFromNcm(ncm);
+    if (!s) return;
+    if (s.cest && !cest) setCest(s.cest);
+    if (s.unidade && (!unidadeComercial || unidadeComercial === "UN")) {
+      setUnidadeComercial(s.unidade);
+    }
+    // origem permanece 0 (nacional) por padrão — usuário ajusta se importado.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ncm]);
+
+  // Scanner de código de barras (usa ZXing). Reconhece EAN/UPC/Code128/QR — se
+  // o código tiver os 8 dígitos do NCM, preenche direto; senão sugere copiar.
+  useEffect(() => {
+    if (!scanOpen) return;
+    let stopped = false;
+    let controls: { stop: () => void } | null = null;
+    (async () => {
+      setScanError(null);
+      try {
+        const { BrowserMultiFormatReader } = await import("@zxing/browser");
+        const reader = new BrowserMultiFormatReader();
+        const video = scanVideoRef.current;
+        if (!video) return;
+        controls = await reader.decodeFromVideoDevice(undefined, video, (result, _err, ctrl) => {
+          if (stopped || !result) return;
+          const text = result.getText().replace(/\D/g, "");
+          if (text.length >= 8) {
+            const ncmGuess = text.slice(0, 8);
+            setNcm(ncmGuess);
+            toast.success(`NCM detectado: ${ncmGuess}`);
+            ctrl.stop();
+            setScanOpen(false);
+          }
+        });
+      } catch (err: any) {
+        setScanError(err?.message ?? "Não foi possível abrir a câmera para escanear.");
+      }
+    })();
+    return () => {
+      stopped = true;
+      controls?.stop();
+    };
+  }, [scanOpen]);
+
 
   const hasVariants = colorVariants.length > 0;
   const variantStockTotal = colorVariants.reduce((s, v) => s + (Number.isFinite(v.stock) ? Math.max(0, v.stock) : 0), 0);
