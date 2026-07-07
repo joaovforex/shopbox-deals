@@ -54,7 +54,8 @@ export const admin_emitirNotaManual = createServerFn({ method: "POST" })
         .eq("id", data.orderId);
     }
     const { emitirNotaParaOrder } = await import("@/lib/focusnfe.server");
-    return emitirNotaParaOrder(data.orderId);
+    const r = await emitirNotaParaOrder(data.orderId);
+    return { ok: r.ok, status: r.status, ref: r.ref, message: r.message ?? null };
   });
 
 // ---------- Admin: cancelar nota autorizada ----------
