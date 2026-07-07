@@ -427,3 +427,107 @@ export async function cancelarNotaParaOrder(
     body,
   };
 }
+
+// ============================================================
+// Validação do token + CNPJ na Focus NFe
+// ============================================================
+export type FocusValidation = {
+  ok: boolean;
+  ambiente: FocusAmbiente;
+  cnpj: string;
+  tokenValid: boolean;
+  cnpjEnabled: boolean;
+  habilitadoNFe?: boolean;
+  habilitadoNFCe?: boolean;
+  message: string;
+  empresa?: Record<string, unknown> | null;
+};
+
+export async function validarFocusTokenCnpj(): Promise<FocusValidation> {
+  const config = await getFiscalConfig();
+  if (!config) {
+    return {
+      ok: false, ambiente: "homologacao", cnpj: "", tokenValid: false, cnpjEnabled: false,
+      message: "fiscal_config não configurado",
+    };
+  }
+  const cnpj = digits(config.cnpj);
+  const ambiente = config.ambiente;
+
+  // Verifica token presente
+  try { getToken(ambiente); } catch (e) {
+    return {
+      ok: false, ambiente, cnpj, tokenValid: false, cnpjEnabled: false,
+      message: e instanceof Error ? e.message : "Token ausente",
+    };
+  }
+
+  // 1) Tenta consultar a empresa específica (endpoint /v2/empresas/{cnpj})
+  const single = await focusFetch(ambiente, `/v2/empresas/${cnpj}`, { method: "GET" });
+  if (single.status === 401 || single.status === 403) {
+    return {
+      ok: false, ambiente, cnpj, tokenValid: false, cnpjEnabled: false,
+      message: `Token de ${ambiente} inválido ou sem permissão (HTTP ${single.status}).`,
+    };
+  }
+  if (single.status >= 200 && single.status < 300 && single.body && typeof single.body === "object") {
+    const emp = single.body as Record<string, unknown>;
+    const hNFe = Boolean(emp.habilita_nfe);
+    const hNFCe = Boolean(emp.habilita_nfce);
+    const enabled = hNFe || hNFCe;
+    return {
+      ok: enabled,
+      ambiente, cnpj,
+      tokenValid: true,
+      cnpjEnabled: enabled,
+      habilitadoNFe: hNFe,
+      habilitadoNFCe: hNFCe,
+      message: enabled
+        ? `CNPJ autorizado (NFe=${hNFe ? "sim" : "não"}, NFCe=${hNFCe ? "sim" : "não"}).`
+        : "CNPJ encontrado na Focus mas SEM habilitação para NFe/NFCe. Habilite no painel Focus.",
+      empresa: emp,
+    };
+  }
+
+  // 2) Fallback: lista empresas
+  const list = await focusFetch(ambiente, `/v2/empresas`, { method: "GET" });
+  if (list.status === 401 || list.status === 403) {
+    return {
+      ok: false, ambiente, cnpj, tokenValid: false, cnpjEnabled: false,
+      message: `Token de ${ambiente} inválido (HTTP ${list.status}).`,
+    };
+  }
+  if (list.status >= 200 && list.status < 300 && Array.isArray(list.body)) {
+    const found = (list.body as Array<Record<string, unknown>>).find(
+      (e) => digits(String(e.cnpj ?? "")) === cnpj,
+    );
+    if (!found) {
+      return {
+        ok: false, ambiente, cnpj, tokenValid: true, cnpjEnabled: false,
+        message: `Token válido, porém o CNPJ ${cnpj} NÃO está cadastrado na conta Focus do ambiente ${ambiente}.`,
+      };
+    }
+    const hNFe = Boolean(found.habilita_nfe);
+    const hNFCe = Boolean(found.habilita_nfce);
+    const enabled = hNFe || hNFCe;
+    return {
+      ok: enabled, ambiente, cnpj,
+      tokenValid: true, cnpjEnabled: enabled,
+      habilitadoNFe: hNFe, habilitadoNFCe: hNFCe,
+      message: enabled
+        ? `CNPJ autorizado (NFe=${hNFe ? "sim" : "não"}, NFCe=${hNFCe ? "sim" : "não"}).`
+        : "CNPJ cadastrado mas SEM habilitação para emissão. Habilite no painel Focus.",
+      empresa: found,
+    };
+  }
+
+  const body = single.body as Record<string, unknown> | null;
+  const msg =
+    (body?.mensagem as string | undefined) ||
+    (body?.erro as string | undefined) ||
+    `Falha ao validar (HTTP ${single.status}).`;
+  return {
+    ok: false, ambiente, cnpj, tokenValid: false, cnpjEnabled: false,
+    message: msg,
+  };
+}
