@@ -85,6 +85,35 @@ export const activeProductsQuery = () =>
     staleTime: 60_000,
   });
 
+export const ADMIN_PRODUCTS_PAGE_SIZE = 100;
+
+export async function fetchAdminProductsPaged(args: { offset: number; limit: number }): Promise<{
+  items: Product[];
+  total: number;
+  nextOffset: number | null;
+}> {
+  const { data, count, error } = await supabase
+    .from("products")
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(args.offset, args.offset + args.limit - 1);
+  if (error) throw error;
+  const items = (data ?? []) as Product[];
+  const total = count ?? items.length;
+  const nextOffset = args.offset + items.length < total ? args.offset + items.length : null;
+  return { items, total, nextOffset };
+}
+
+export const adminProductsInfiniteQuery = () =>
+  infiniteQueryOptions({
+    queryKey: ["admin", "products", "paged"],
+    queryFn: ({ pageParam }) =>
+      fetchAdminProductsPaged({ offset: pageParam as number, limit: ADMIN_PRODUCTS_PAGE_SIZE }),
+    initialPageParam: 0,
+    getNextPageParam: (last) => last.nextOffset,
+    staleTime: 60_000,
+  });
+
 export const PRODUCTS_PAGE_SIZE = 50;
 
 type PagedRow = ProductCard & { total_count: number };
