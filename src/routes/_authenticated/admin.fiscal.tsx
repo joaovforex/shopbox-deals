@@ -275,6 +275,29 @@ function FiscalPage() {
               </button>
             </div>
           )}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={loadRecent}
+              className="inline-flex items-center gap-2 bg-card border border-border font-bold px-3 py-2 rounded text-sm"
+            >
+              <RefreshCw className="h-4 w-4" /> Buscar últimos pedidos pagos
+            </button>
+            {recentOrders.length > 0 && (
+              <select
+                value=""
+                onChange={(e) => { if (e.target.value) setTestOrderId(e.target.value); }}
+                className="bg-background border border-border rounded px-2 py-2 text-sm font-mono"
+              >
+                <option value="">Selecione um pedido…</option>
+                {recentOrders.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.id.slice(0, 8)}… · {new Date(o.created_at).toLocaleDateString("pt-BR")} · R$ {(o.total ?? 0).toFixed(2)}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-3">
             <input
               value={testOrderId}
