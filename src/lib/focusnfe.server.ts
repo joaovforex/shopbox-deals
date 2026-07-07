@@ -302,6 +302,25 @@ export async function emitirNotaParaOrder(orderId: string): Promise<EmitResult> 
   const modelo: "nfce" | "nfe" =
     (order.nfe_modelo as "nfce" | "nfe" | null) ??
     (order.destinatario_cpf_cnpj ? "nfe" : "nfce");
+
+  // Pré-validação de campos obrigatórios para o schema SEFAZ
+  const missingNCM = items
+    .filter((it) => !it.fiscal?.ncm || digits(it.fiscal.ncm).length !== 8)
+    .map((it) => it.product_name);
+  if (missingNCM.length) {
+    throw new Error(
+      `Produtos sem NCM (8 dígitos) — obrigatório para SEFAZ: ${missingNCM.join(", ")}. Cadastre o NCM na aba fiscal do produto.`,
+    );
+  }
+  if (modelo === "nfce" && (!config.csc_id || !config.csc_token)) {
+    throw new Error(
+      "CSC (ID e Token) obrigatório para emitir NFC-e. Preencha CSC ID e CSC Token na Configuração Fiscal.",
+    );
+  }
+  if (!config.inscricao_estadual) {
+    throw new Error("Inscrição Estadual obrigatória para emitir nota fiscal.");
+  }
+
   const ref = `order_${orderId}`;
   const payload = mapOrderToNotaPayload({ order, items, config, modelo });
   const path = modelo === "nfce" ? `/v2/nfce?ref=${ref}` : `/v2/nfe?ref=${ref}`;
@@ -333,10 +352,21 @@ export async function emitirNotaParaOrder(orderId: string): Promise<EmitResult> 
     return { ok: true, status: "authorized", ref, body };
   }
 
-  const mensagem =
+  // Extrai detalhes de erros (Focus retorna `erros: [{codigo, mensagem}]`)
+  const erros = Array.isArray(body?.erros) ? (body?.erros as Array<Record<string, unknown>>) : [];
+  const detalhesErros = erros
+    .map((e) => {
+      const c = e.codigo ?? e.campo ?? "";
+      const m = e.mensagem ?? e.erro ?? "";
+      return c ? `[${c}] ${m}` : String(m);
+    })
+    .filter(Boolean)
+    .join(" | ");
+  const mensagemBase =
     (body?.mensagem as string | undefined) ||
     (body?.mensagem_sefaz as string | undefined) ||
     `HTTP ${res.status}`;
+  const mensagem = detalhesErros ? `${mensagemBase} — ${detalhesErros}` : mensagemBase;
   await supabaseAdmin
     .from("orders")
     .update({
