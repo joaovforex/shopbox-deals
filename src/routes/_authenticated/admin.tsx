@@ -39,11 +39,20 @@ function AdminPage() {
 
   const canManageProducts = !!roles && (roles.isCatalog || roles.isManager);
 
-  const { data: products = [], refetch } = useQuery({
-    queryKey: ["admin", "products"],
-    queryFn: () => fetchProducts(),
+  const {
+    data: pagedData,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isFetching: isFetchingProducts,
+  } = useInfiniteQuery({
+    ...adminProductsInfiniteQuery(),
     enabled: canManageProducts && !isChildRoute,
   });
+  const products: Product[] = (pagedData?.pages ?? []).flatMap((p) => p.items);
+  const totalProducts = pagedData?.pages?.[0]?.total ?? products.length;
+  const loadedCount = products.length;
 
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
