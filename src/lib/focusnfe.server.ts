@@ -290,6 +290,12 @@ export async function emitirNotaParaOrder(orderId: string): Promise<EmitResult> 
   if (!config) throw new Error("fiscal_config não configurado");
   if (!config.ativo) throw new Error("Emissão fiscal desativada. Ative o campo 'ativo' na configuração fiscal antes de emitir.");
 
+  // Pré-valida token + CNPJ na Focus antes de tentar emitir
+  const check = await validarFocusTokenCnpj();
+  if (!check.ok) {
+    throw new Error(`Validação Focus falhou: ${check.message}`);
+  }
+
   const { order, items } = await loadOrderWithItems(orderId);
   if (!items.length) throw new Error("Pedido sem itens");
 
