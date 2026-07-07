@@ -269,6 +269,35 @@ function FiscalPage() {
           </div>
         </form>
 
+        {/* Validação Focus NFe */}
+        <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-3">
+          <h2 className="font-black uppercase tracking-wider text-sm flex items-center gap-2">
+            <RefreshCw className="h-4 w-4" /> Validação Focus NFe (token + CNPJ)
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Testa se o token do ambiente selecionado tem permissão e se o CNPJ está cadastrado e habilitado para emissão na Focus. A emissão é bloqueada caso a validação falhe.
+          </p>
+          <button
+            type="button"
+            onClick={runValidate}
+            disabled={validating}
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-bold px-4 py-2 rounded disabled:opacity-60"
+          >
+            <RefreshCw className={`h-4 w-4 ${validating ? "animate-spin" : ""}`} /> Validar agora
+          </button>
+          {validation && (
+            <div className={`rounded p-3 text-sm border ${validation.ok ? "bg-green-500/10 border-green-500/40 text-green-200" : "bg-red-500/10 border-red-500/40 text-red-200"}`}>
+              <div><strong>Ambiente:</strong> {validation.ambiente}</div>
+              <div><strong>CNPJ:</strong> {validation.cnpj}</div>
+              <div><strong>Token válido:</strong> {validation.tokenValid ? "sim" : "não"}</div>
+              <div><strong>CNPJ habilitado:</strong> {validation.cnpjEnabled ? "sim" : "não"} (NFe={String(validation.habilitadoNFe)}, NFCe={String(validation.habilitadoNFCe)})</div>
+              <div className="mt-1">{validation.message}</div>
+            </div>
+          )}
+        </div>
+
+
+
         {/* Emissão de teste */}
         <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
           <h2 className="font-black uppercase tracking-wider text-sm flex items-center gap-2">
