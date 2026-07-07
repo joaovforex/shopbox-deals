@@ -236,8 +236,8 @@ export function ProductForm({
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const ncmDigits = ncm.replace(/\D/g, "");
-    if (ncmDigits.length !== 8) {
-      toast.error("NCM obrigatório: informe os 8 dígitos (ex.: 85167100). Consulte em portalunico.siscomex.gov.br/classif/");
+    if (ncmDigits && ncmDigits.length !== 8) {
+      toast.error("NCM deve ter 8 dígitos (ex.: 85167100) ou ficar em branco.");
       return;
     }
     const cestDigits = cest.replace(/\D/g, "");
@@ -285,7 +285,7 @@ export function ProductForm({
         images,
         active,
         color_variants: cleanVariants.length > 0 ? cleanVariants : [],
-        ncm: ncmDigits,
+        ncm: ncmDigits || null,
         cest: cestDigits || null,
         unidade_comercial: (unidadeComercial.trim() || "UN").toUpperCase().slice(0, 6),
         origem: Number.isFinite(Number(origem)) ? Number(origem) : 0,
@@ -527,7 +527,7 @@ export function ProductForm({
           <div>
             <div className="text-sm font-bold uppercase tracking-wider">Dados fiscais</div>
             <div className="text-[11px] text-muted-foreground">
-              Obrigatórios para emissão automática de NFC-e/NF-e. Consulte o NCM em{" "}
+              Recomendados para emissão de NFC-e/NF-e (a nota falhará sem NCM). Consulte em{" "}
               <a
                 href="https://portalunico.siscomex.gov.br/classif/#/sumario?perfil=publico"
                 target="_blank"
@@ -542,15 +542,14 @@ export function ProductForm({
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                NCM (8 dígitos) *
+                NCM (8 dígitos)
               </label>
               <div className="flex gap-2 mt-1">
                 <input
                   value={ncm}
                   onChange={(e) => setNcm(e.target.value.replace(/\D/g, "").slice(0, 8))}
-                  placeholder="Ex: 85167100"
+                  placeholder="Ex: 85167100 (opcional)"
                   inputMode="numeric"
-                  required
                   className="flex-1 bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary"
                 />
                 <button
