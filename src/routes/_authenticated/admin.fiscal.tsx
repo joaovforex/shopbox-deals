@@ -250,6 +250,19 @@ function FiscalPage() {
           <p className="text-xs text-muted-foreground">
             Ideal em ambiente de <strong>Homologação</strong>. Cole o ID de um pedido <strong>pago</strong> e escolha o modelo. A NFe é enviada à Focus com <code>ref = order_&lt;id&gt;</code>; usar o mesmo pedido de novo retorna a mesma nota (idempotente).
           </p>
+          {!form.ativo && (
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-yellow-500/10 border border-yellow-500/40 text-yellow-200 rounded p-3 text-sm">
+              <span>⚠ Emissão está <strong>desativada</strong>. Ative antes de emitir a nota.</span>
+              <button
+                type="button"
+                onClick={activateAndSave}
+                disabled={saving}
+                className="inline-flex items-center gap-2 bg-yellow-500 text-black font-bold px-3 py-2 rounded disabled:opacity-60"
+              >
+                <Save className="h-4 w-4" /> Ativar configuração
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] gap-3">
             <input
               value={testOrderId}
@@ -265,19 +278,6 @@ function FiscalPage() {
               <option value="nfce">NFC-e (consumidor)</option>
               <option value="nfe">NF-e (com CPF/CNPJ)</option>
             </select>
-          {!form.ativo && (
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-yellow-500/10 border border-yellow-500/40 text-yellow-200 rounded p-3 text-sm">
-              <span>⚠ Emissão está <strong>desativada</strong>. Ative antes de emitir a nota.</span>
-              <button
-                type="button"
-                onClick={activateAndSave}
-                disabled={saving}
-                className="inline-flex items-center gap-2 bg-yellow-500 text-black font-bold px-3 py-2 rounded disabled:opacity-60"
-              >
-                <Save className="h-4 w-4" /> Ativar configuração
-              </button>
-            </div>
-          )}
             <button
               type="button"
               onClick={runEmit}
