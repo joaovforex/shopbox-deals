@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Upload, Plus, Trash2 } from "lucide-react";
+import { Upload, Plus, Trash2, ScanBarcode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { isVideoUrl, uploadProductImage, type ColorVariant, type Product } from "@/lib/products";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
+import { suggestFromNcm } from "@/lib/ncm-suggestions";
 
 const DRAFT_KEY = "shopbox:product-form-draft";
 
@@ -74,6 +75,56 @@ export function ProductForm({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fallbackCameraInputRef = useRef<HTMLInputElement | null>(null);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const scanVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Auto-preencher CEST/unidade a partir do NCM (só quando os campos estão vazios/padrão)
+  useEffect(() => {
+    const s = suggestFromNcm(ncm);
+    if (!s) return;
+    if (s.cest && !cest) setCest(s.cest);
+    if (s.unidade && (!unidadeComercial || unidadeComercial === "UN")) {
+      setUnidadeComercial(s.unidade);
+    }
+    // origem permanece 0 (nacional) por padrão — usuário ajusta se importado.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ncm]);
+
+  // Scanner de código de barras (usa ZXing). Reconhece EAN/UPC/Code128/QR — se
+  // o código tiver os 8 dígitos do NCM, preenche direto; senão sugere copiar.
+  useEffect(() => {
+    if (!scanOpen) return;
+    let stopped = false;
+    let controls: { stop: () => void } | null = null;
+    (async () => {
+      setScanError(null);
+      try {
+        const { BrowserMultiFormatReader } = await import("@zxing/browser");
+        const reader = new BrowserMultiFormatReader();
+        const video = scanVideoRef.current;
+        if (!video) return;
+        controls = await reader.decodeFromVideoDevice(undefined, video, (result, _err, ctrl) => {
+          if (stopped || !result) return;
+          const text = result.getText().replace(/\D/g, "");
+          if (text.length >= 8) {
+            const ncmGuess = text.slice(0, 8);
+            setNcm(ncmGuess);
+            toast.success(`NCM detectado: ${ncmGuess}`);
+            ctrl.stop();
+            setScanOpen(false);
+          }
+        });
+      } catch (err: any) {
+        setScanError(err?.message ?? "Não foi possível abrir a câmera para escanear.");
+      }
+    })();
+    return () => {
+      stopped = true;
+      controls?.stop();
+    };
+  }, [scanOpen]);
+
 
   const hasVariants = colorVariants.length > 0;
   const variantStockTotal = colorVariants.reduce((s, v) => s + (Number.isFinite(v.stock) ? Math.max(0, v.stock) : 0), 0);
@@ -489,14 +540,32 @@ export function ProductForm({
             </div>
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
-            <Input
-              label="NCM (8 dígitos) *"
-              value={ncm}
-              onChange={(v) => setNcm(v.replace(/\D/g, "").slice(0, 8))}
-              placeholder="Ex: 85167100"
-              inputMode="numeric"
-              required
-            />
+            <div>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                NCM (8 dígitos) *
+              </label>
+              <div className="flex gap-2 mt-1">
+                <input
+                  value={ncm}
+                  onChange={(e) => setNcm(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                  placeholder="Ex: 85167100"
+                  inputMode="numeric"
+                  required
+                  className="flex-1 bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => setScanOpen(true)}
+                  className="inline-flex items-center gap-1 px-3 rounded-md bg-secondary hover:bg-muted text-xs font-bold"
+                  title="Escanear código de barras"
+                >
+                  <ScanBarcode className="h-4 w-4" /> Scan
+                </button>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Aponte o código de barras do produto (EAN/UPC) — se contiver o NCM, preenchemos automático.
+              </p>
+            </div>
             <Input
               label="CEST (opcional)"
               value={cest}
@@ -581,7 +650,35 @@ export function ProductForm({
           </div>
         </div>
       )}
+
+      {scanOpen && (
+        <div className="fixed inset-0 z-[60] bg-background flex flex-col p-4">
+          <div className="flex items-center justify-between pb-3">
+            <h3 className="display text-xl">Escanear código de barras</h3>
+            <button type="button" onClick={() => setScanOpen(false)} className="text-muted-foreground hover:text-foreground">✕</button>
+          </div>
+          <div className="flex-1 min-h-0 rounded-lg overflow-hidden bg-muted border border-border flex items-center justify-center relative">
+            {scanError ? (
+              <p className="text-sm text-muted-foreground text-center px-6">{scanError}</p>
+            ) : (
+              <>
+                <video ref={scanVideoRef} className="h-full w-full object-contain" playsInline muted autoPlay />
+                <div className="absolute inset-x-8 top-1/2 -translate-y-1/2 h-24 border-2 border-primary rounded-lg pointer-events-none" />
+              </>
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground text-center pt-2">
+            Aponte para o código de barras. Se ele contiver o NCM (8 dígitos iniciais), será preenchido automaticamente.
+          </p>
+          <div className="pt-3 flex gap-2 justify-center">
+            <button type="button" onClick={() => setScanOpen(false)} className="px-4 py-3 rounded-md bg-secondary text-sm font-bold">
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }
 
