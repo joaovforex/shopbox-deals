@@ -75,9 +75,6 @@ export function ProductForm({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fallbackCameraInputRef = useRef<HTMLInputElement | null>(null);
-  const [scanOpen, setScanOpen] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
-  const scanVideoRef = useRef<HTMLVideoElement | null>(null);
 
   // Auto-preencher CEST/unidade a partir do NCM (só quando os campos estão vazios/padrão)
   useEffect(() => {
