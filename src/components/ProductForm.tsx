@@ -82,9 +82,10 @@ export function ProductForm({
     const d: Draft = {
       productId: product?.id ?? null,
       name, description, price, originalPrice, category, stock, images, active, colorVariants,
+      ncm, cest, unidadeComercial, origem,
     };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch {}
-  }, [product?.id, name, description, price, originalPrice, category, stock, images, active, colorVariants]);
+  }, [product?.id, name, description, price, originalPrice, category, stock, images, active, colorVariants, ncm, cest, unidadeComercial, origem]);
 
   const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} };
 
