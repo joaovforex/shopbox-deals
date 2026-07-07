@@ -55,6 +55,17 @@ function FiscalPage() {
   const saveConfig = useServerFn(admin_updateFiscalConfig);
   const emitir = useServerFn(admin_emitirNotaManual);
   const consultar = useServerFn(admin_consultarNota);
+  const listOrders = useServerFn(admin_listRecentPaidOrders);
+  const [recentOrders, setRecentOrders] = useState<Array<{ id: string; created_at: string; total: number | null }>>([]);
+  const loadRecent = async () => {
+    try {
+      const r = await listOrders({});
+      setRecentOrders(r);
+      if (!r.length) toast.info("Nenhum pedido pago encontrado");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao listar pedidos");
+    }
+  };
 
   const { data: loaded, refetch, isLoading } = useQuery({
     queryKey: ["fiscal-config"],
