@@ -236,8 +236,8 @@ export function ProductForm({
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const ncmDigits = ncm.replace(/\D/g, "");
-    if (ncmDigits.length !== 8) {
-      toast.error("NCM obrigatório: informe os 8 dígitos (ex.: 85167100). Consulte em portalunico.siscomex.gov.br/classif/");
+    if (ncmDigits && ncmDigits.length !== 8) {
+      toast.error("NCM deve ter 8 dígitos (ex.: 85167100) ou ficar em branco.");
       return;
     }
     const cestDigits = cest.replace(/\D/g, "");
