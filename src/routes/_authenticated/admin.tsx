@@ -451,7 +451,64 @@ function AdminPage() {
           };
 
           return (
-          <div className="overflow-x-auto bg-card rounded-lg border border-border">
+          <>
+          {/* Lista em cards para mobile — mantém as ações (compartilhar, ocultar, editar, apagar) sempre visíveis */}
+          <div className="md:hidden flex flex-col gap-3">
+            {filtered.map((p) => (
+              <div key={p.id} className="bg-card rounded-lg border border-border p-3">
+                <div className="flex items-start gap-3">
+                  {tab === "esgotados" && (
+                    <button
+                      type="button"
+                      onClick={() => toggleSelect(p.id)}
+                      className="mt-1 shrink-0 inline-flex items-center justify-center"
+                      title={selected.has(p.id) ? "Desmarcar" : "Selecionar"}
+                    >
+                      {selected.has(p.id) ? <CheckSquare className="h-5 w-5 text-primary" /> : <Square className="h-5 w-5 text-muted-foreground" />}
+                    </button>
+                  )}
+                  <div className="h-16 w-16 rounded bg-muted overflow-hidden shrink-0">
+                    {p.image_url && <img src={p.image_url} alt="" className="w-full h-full object-cover" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold truncate">{p.name}</div>
+                    <div className="text-xs font-mono text-muted-foreground">Cód. {p.sku}</div>
+                    <div className="mt-1 flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-price">{brl(p.price)}</span>
+                      {p.original_price && p.original_price > p.price && (
+                        <span className="text-xs text-muted-foreground line-through">{brl(p.original_price)}</span>
+                      )}
+                      <span className="text-xs text-muted-foreground">· Estoque: {p.stock}</span>
+                    </div>
+                    <div className="mt-1">
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${p.active ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"}`}>
+                        {p.active ? "Ativo" : "Oculto"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-4 gap-2">
+                  <button onClick={() => share(p)} className="flex flex-col items-center gap-1 py-2 rounded bg-secondary/60 hover:bg-secondary text-xs" title="Compartilhar no WhatsApp">
+                    <Share2 className="h-4 w-4 text-[#25D366]" />
+                    Compartilhar
+                  </button>
+                  <button onClick={() => toggleActive(p)} className="flex flex-col items-center gap-1 py-2 rounded bg-secondary/60 hover:bg-secondary text-xs">
+                    {p.active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {p.active ? "Ocultar" : "Mostrar"}
+                  </button>
+                  <button onClick={() => { setEditing(p); setShowForm(true); }} className="flex flex-col items-center gap-1 py-2 rounded bg-secondary/60 hover:bg-secondary text-xs">
+                    <Pencil className="h-4 w-4" />
+                    Editar
+                  </button>
+                  <button onClick={() => del(p)} className="flex flex-col items-center gap-1 py-2 rounded bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs">
+                    <Trash2 className="h-4 w-4" />
+                    Apagar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden md:block overflow-x-auto bg-card rounded-lg border border-border">
             <table className="w-full text-sm">
               <thead className="bg-secondary text-left text-xs uppercase tracking-wider">
                 <tr>
@@ -538,6 +595,7 @@ function AdminPage() {
               </tbody>
             </table>
           </div>
+          </>
           );
         })()}
       </section>
