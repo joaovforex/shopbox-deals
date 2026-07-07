@@ -542,15 +542,14 @@ export function ProductForm({
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                NCM (8 dígitos) *
+                NCM (8 dígitos)
               </label>
               <div className="flex gap-2 mt-1">
                 <input
                   value={ncm}
                   onChange={(e) => setNcm(e.target.value.replace(/\D/g, "").slice(0, 8))}
-                  placeholder="Ex: 85167100"
+                  placeholder="Ex: 85167100 (opcional)"
                   inputMode="numeric"
-                  required
                   className="flex-1 bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary"
                 />
                 <button
