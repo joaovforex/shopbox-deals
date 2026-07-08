@@ -350,11 +350,24 @@ function FulfillmentPage() {
           <Link to="/admin" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-2">
             <ArrowLeft className="h-4 w-4" /> Voltar ao admin
           </Link>
-          <div className="text-xs uppercase tracking-widest text-accent font-bold">Departamento</div>
-          <h1 className="display text-3xl md:text-4xl">Expedição</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Separe os pedidos por <strong>Retirada na loja</strong> e <strong>Entrega motoboy</strong>. Escaneie a etiqueta para confirmar a entrega.
-          </p>
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <div className="text-xs uppercase tracking-widest text-accent font-bold">Departamento</div>
+              <h1 className="display text-3xl md:text-4xl">Expedição</h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Separe os pedidos por <strong>Retirada na loja</strong> e <strong>Entrega motoboy</strong>. Escaneie a etiqueta para confirmar a entrega.
+              </p>
+            </div>
+            <a
+              href="/etiqueta/fragil"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-[#E11D1D] text-white font-black uppercase tracking-widest text-xs px-4 py-2.5 rounded shadow hover:opacity-90"
+              title="Imprimir etiqueta FRÁGIL para encomendas com vidro"
+            >
+              <AlertTriangle className="h-4 w-4" strokeWidth={3} /> Etiqueta Frágil
+            </a>
+          </div>
         </div>
       </section>
 
