@@ -88,6 +88,25 @@ function isDelayed(o: OrderRow) {
   return false;
 }
 
+function filterFulfillmentOrders(orders: OrderRow[], tab: "separation" | "pickup" | "delivery" | "done" | "notifications", labelFilter: "all" | "none" | "generated" | "printed") {
+  let list = orders.filter((o) => {
+    if (tab === "done") return o.fulfillment_status === "completed";
+    if (tab === "separation") return o.fulfillment_status === "pending" || o.fulfillment_status === "preparing";
+    if (tab === "pickup") return o.delivery_method === "pickup" && o.fulfillment_status !== "completed";
+    if (tab === "delivery") return o.delivery_method === "delivery" && o.fulfillment_status !== "completed";
+    return false;
+  });
+  if (labelFilter !== "all") {
+    list = list.filter((o) => {
+      if (labelFilter === "none") return !o.label_status;
+      if (labelFilter === "generated") return o.label_status === "generated";
+      if (labelFilter === "printed") return o.label_status === "printed";
+      return true;
+    });
+  }
+  return list;
+}
+
 function barcodeValue(id: string) {
   return id.replace(/-/g, "").slice(0, 12).toLowerCase();
 }
@@ -146,7 +165,7 @@ function FulfillmentPage() {
   }, []);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["fulfillment-orders"],
+    queryKey: ["fulfillment-orders", tab, labelFilter],
     enabled: allowed === true,
     queryFn: async () => {
       const { data: orders, error } = await supabase
@@ -155,12 +174,13 @@ function FulfillmentPage() {
         .eq("status", "paid")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      const ids = (orders ?? []).map((o) => o.id);
+      const orderList = (orders ?? []) as OrderRow[];
+      const ids = filterFulfillmentOrders(orderList, tab, labelFilter).map((o) => o.id);
       let items: ItemRow[] = [];
       if (ids.length) {
         items = await fetchOrderItems(ids);
       }
-      return { orders: (orders ?? []) as OrderRow[], items };
+      return { orders: orderList, items };
     },
   });
 
@@ -316,14 +336,7 @@ function FulfillmentPage() {
       if (tab === "delivery") return o.delivery_method === "delivery" && o.fulfillment_status !== "completed";
       return false;
     });
-    if (labelFilter !== "all") {
-      list = list.filter((o) => {
-        if (labelFilter === "none") return !o.label_status;
-        if (labelFilter === "generated") return o.label_status === "generated";
-        if (labelFilter === "printed") return o.label_status === "printed";
-        return true;
-      });
-    }
+    list = filterFulfillmentOrders(data?.orders ?? [], tab, labelFilter);
     if (tab === "done") {
       return list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
