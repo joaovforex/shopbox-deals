@@ -88,8 +88,61 @@ function isDelayed(o: OrderRow) {
   return false;
 }
 
+function filterFulfillmentOrders(orders: OrderRow[], tab: "separation" | "pickup" | "delivery" | "done" | "notifications", labelFilter: "all" | "none" | "generated" | "printed") {
+  let list = orders.filter((o) => {
+    if (tab === "done") return o.fulfillment_status === "completed";
+    if (tab === "separation") return o.fulfillment_status === "pending" || o.fulfillment_status === "preparing";
+    if (tab === "pickup") return o.delivery_method === "pickup" && o.fulfillment_status !== "completed";
+    if (tab === "delivery") return o.delivery_method === "delivery" && o.fulfillment_status !== "completed";
+    return false;
+  });
+  if (labelFilter !== "all") {
+    list = list.filter((o) => {
+      if (labelFilter === "none") return !o.label_status;
+      if (labelFilter === "generated") return o.label_status === "generated";
+      if (labelFilter === "printed") return o.label_status === "printed";
+      return true;
+    });
+  }
+  return list;
+}
+
 function barcodeValue(id: string) {
   return id.replace(/-/g, "").slice(0, 12).toLowerCase();
+}
+
+function chunkArray<T>(values: T[], size: number) {
+  const chunks: T[][] = [];
+  for (let i = 0; i < values.length; i += size) {
+    chunks.push(values.slice(i, i + size));
+  }
+  return chunks;
+}
+
+async function attachSkus(rawItems: ItemRow[]) {
+  const productIds = [...new Set(rawItems.map((i) => i.product_id).filter((x): x is string => typeof x === "string"))];
+  const skuMap = new Map<string, string>();
+  for (const productChunk of chunkArray(productIds, 80)) {
+    const { data: prods, error } = await supabase.from("products").select("id, sku").in("id", productChunk);
+    if (error) throw error;
+    for (const p of (prods ?? []) as Array<{ id: string; sku: string }>) {
+      skuMap.set(p.id, p.sku);
+    }
+  }
+  return rawItems.map((i) => ({ ...i, sku: i.product_id ? skuMap.get(i.product_id) ?? null : null }));
+}
+
+async function fetchOrderItems(orderIds: string[]) {
+  const rawItems: ItemRow[] = [];
+  for (const idChunk of chunkArray(orderIds, 60)) {
+    const { data: it, error } = await supabase
+      .from("order_items")
+      .select("order_id, product_name, quantity, unit_price, product_id")
+      .in("order_id", idChunk);
+    if (error) throw error;
+    rawItems.push(...((it ?? []) as ItemRow[]));
+  }
+  return attachSkus(rawItems);
 }
 
 function FulfillmentPage() {
@@ -112,7 +165,7 @@ function FulfillmentPage() {
   }, []);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["fulfillment-orders"],
+    queryKey: ["fulfillment-orders", tab, labelFilter],
     enabled: allowed === true,
     queryFn: async () => {
       const { data: orders, error } = await supabase
@@ -121,22 +174,13 @@ function FulfillmentPage() {
         .eq("status", "paid")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      const ids = (orders ?? []).map((o) => o.id);
+      const orderList = (orders ?? []) as OrderRow[];
+      const ids = filterFulfillmentOrders(orderList, tab, labelFilter).map((o) => o.id);
       let items: ItemRow[] = [];
       if (ids.length) {
-        const { data: it } = await supabase.from("order_items").select("order_id, product_name, quantity, unit_price, product_id").in("order_id", ids);
-        const rawItems = (it ?? []) as ItemRow[];
-        const productIds = [...new Set(rawItems.map((i) => i.product_id).filter((x): x is string => typeof x === "string"))];
-        let skuMap = new Map<string, string>();
-        if (productIds.length) {
-          const { data: prods } = await supabase.from("products").select("id, sku").in("id", productIds);
-          for (const p of (prods ?? []) as Array<{ id: string; sku: string }>) {
-            skuMap.set(p.id, p.sku);
-          }
-        }
-        items = rawItems.map((i) => ({ ...i, sku: i.product_id ? skuMap.get(i.product_id) ?? null : null }));
+        items = await fetchOrderItems(ids);
       }
-      return { orders: (orders ?? []) as OrderRow[], items };
+      return { orders: orderList, items };
     },
   });
 
@@ -161,20 +205,10 @@ function FulfillmentPage() {
       const ids = list.map((o) => o.id);
       const itemsByOrder = new Map<string, ItemRow[]>();
       if (ids.length) {
-        const { data: it } = await supabase
-          .from("order_items")
-          .select("order_id, product_name, quantity, unit_price, product_id")
-          .in("order_id", ids);
-        const rawItems = (it ?? []) as ItemRow[];
-        const productIds = [...new Set(rawItems.map((i) => i.product_id).filter((x): x is string => typeof x === "string"))];
-        const skuMap = new Map<string, string>();
-        if (productIds.length) {
-          const { data: prods } = await supabase.from("products").select("id, sku").in("id", productIds);
-          for (const p of (prods ?? []) as Array<{ id: string; sku: string }>) skuMap.set(p.id, p.sku);
-        }
-        for (const i of rawItems) {
+        const items = await fetchOrderItems(ids);
+        for (const i of items) {
           const arr = itemsByOrder.get(i.order_id) ?? [];
-          arr.push({ ...i, sku: i.product_id ? skuMap.get(i.product_id) ?? null : null });
+          arr.push(i);
           itemsByOrder.set(i.order_id, arr);
         }
       }
@@ -206,20 +240,7 @@ function FulfillmentPage() {
       const ids = (orders ?? []).map((o) => o.id);
       let items: ItemRow[] = [];
       if (ids.length) {
-        const { data: it } = await supabase
-          .from("order_items")
-          .select("order_id, product_name, quantity, unit_price, product_id")
-          .in("order_id", ids);
-        const rawItems = (it ?? []) as ItemRow[];
-        const productIds = [...new Set(rawItems.map((i) => i.product_id).filter((x): x is string => typeof x === "string"))];
-        let skuMap = new Map<string, string>();
-        if (productIds.length) {
-          const { data: prods } = await supabase.from("products").select("id, sku").in("id", productIds);
-          for (const p of (prods ?? []) as Array<{ id: string; sku: string }>) {
-            skuMap.set(p.id, p.sku);
-          }
-        }
-        items = rawItems.map((i) => ({ ...i, sku: i.product_id ? skuMap.get(i.product_id) ?? null : null }));
+        items = await fetchOrderItems(ids);
       }
       return { orders: (orders ?? []) as OrderRow[], items };
     },
@@ -315,14 +336,7 @@ function FulfillmentPage() {
       if (tab === "delivery") return o.delivery_method === "delivery" && o.fulfillment_status !== "completed";
       return false;
     });
-    if (labelFilter !== "all") {
-      list = list.filter((o) => {
-        if (labelFilter === "none") return !o.label_status;
-        if (labelFilter === "generated") return o.label_status === "generated";
-        if (labelFilter === "printed") return o.label_status === "printed";
-        return true;
-      });
-    }
+    list = filterFulfillmentOrders(data?.orders ?? [], tab, labelFilter);
     if (tab === "done") {
       return list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
