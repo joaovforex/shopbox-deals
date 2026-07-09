@@ -3,7 +3,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Crown, BarChart3, Truck, Users, Package, ShieldAlert, Undo2, ShoppingBag, CheckSquare, Square, XSquare, Gift, FileText } from "lucide-react";
+import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Crown, BarChart3, Truck, Users, Package, ShieldAlert, Undo2, ShoppingBag, CheckSquare, Square, XSquare, Gift, FileText, TestTube } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { adminProductsInfiniteQuery, ADMIN_PRODUCTS_PAGE_SIZE, getRoleSummary, type Product, type RoleSummary } from "@/lib/products";
@@ -318,6 +318,13 @@ function AdminPage() {
                 >
                   <ShoppingBag className="h-4 w-4" /> Venda manual
                 </Link>
+                <Link
+                  to="/admin/mp-teste"
+                  className="inline-flex items-center gap-2 bg-card border border-purple-500/50 text-purple-700 dark:text-purple-400 font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-purple-500/10 text-sm"
+                >
+                  <TestTube className="h-4 w-4" /> Teste MP
+                </Link>
+
               </>
             )}
             <button
