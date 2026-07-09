@@ -104,6 +104,20 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
           return new Response("ok", { status: 200 });
         }
 
+        // Pagamento de teste (validação de credenciais / webhook). Não toca em orders.
+        if (orderId.startsWith("TEST-")) {
+          console.info("[mp:webhook] TEST payment received", {
+            ref: orderId,
+            paymentId: payment.id,
+            status: payment.status,
+            statusDetail: payment.status_detail,
+            method: payment.payment_method_id,
+          });
+          return new Response("test ok", { status: 200 });
+        }
+
+
+
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
         // Sempre registra o detalhe da última tentativa de pagamento — mesmo
