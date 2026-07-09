@@ -318,6 +318,13 @@ function AdminPage() {
                 >
                   <ShoppingBag className="h-4 w-4" /> Venda manual
                 </Link>
+                <Link
+                  to="/admin/mp-teste"
+                  className="inline-flex items-center gap-2 bg-card border border-purple-500/50 text-purple-700 dark:text-purple-400 font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-purple-500/10 text-sm"
+                >
+                  <TestTube className="h-4 w-4" /> Teste MP
+                </Link>
+
               </>
             )}
             <button
