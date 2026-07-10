@@ -122,6 +122,22 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+// Ative para colocar a loja em modo manutenção (link inacessível ao público).
+const MAINTENANCE_MODE = true;
+
+function MaintenanceScreen() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6 text-center">
+      <div className="max-w-md space-y-4">
+        <h1 className="text-4xl font-bold text-foreground">Loja temporariamente indisponível</h1>
+        <p className="text-muted-foreground">
+          Estamos em manutenção. Voltaremos em breve. Obrigado pela compreensão.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const [themeMode, setThemeMode] = useState<"light" | "dark">("light");
@@ -134,6 +150,10 @@ function RootComponent() {
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     return () => obs.disconnect();
   }, []);
+
+  if (MAINTENANCE_MODE) {
+    return <MaintenanceScreen />;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
