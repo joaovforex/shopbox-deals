@@ -133,15 +133,20 @@ function OrdersPanel() {
       if (error) throw error;
       const ids = (orders ?? []).map((o) => o.id);
       let items: ItemRow[] = [];
-      if (ids.length) {
-        const { data: it, error: ie } = await supabase.from("order_items").select("*").in("order_id", ids);
+      // Chunk .in() to avoid URL length limits (~8KB) when there are many orders.
+      const CHUNK = 100;
+      for (let i = 0; i < ids.length; i += CHUNK) {
+        const slice = ids.slice(i, i + CHUNK);
+        const { data: it, error: ie } = await supabase.from("order_items").select("*").in("order_id", slice);
         if (ie) throw ie;
-        items = (it ?? []) as ItemRow[];
+        items = items.concat((it ?? []) as ItemRow[]);
       }
       const productIds = Array.from(new Set(items.map((i) => i.product_id).filter(Boolean)));
       let categories = new Map<string, string>();
-      if (productIds.length) {
-        const { data: prods } = await supabase.from("products").select("id, category").in("id", productIds);
+      for (let i = 0; i < productIds.length; i += CHUNK) {
+        const slice = productIds.slice(i, i + CHUNK);
+        const { data: prods, error: pe } = await supabase.from("products").select("id, category").in("id", slice);
+        if (pe) throw pe;
         for (const p of prods ?? []) categories.set(p.id as string, (p.category as string) ?? "Sem categoria");
       }
       return { orders: (orders ?? []) as OrderRow[], items, categories };
