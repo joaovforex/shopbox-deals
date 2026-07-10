@@ -123,7 +123,7 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 // Ative para colocar a loja em modo manutenção (link inacessível ao público).
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 
 function MaintenanceScreen() {
   return (
