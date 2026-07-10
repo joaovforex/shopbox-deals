@@ -210,7 +210,6 @@ function AdminPage() {
     const text = [
       `🔥 *${p.name}*`,
       `Por ${brl(p.price)}${off > 0 ? ` (${off}% OFF!)` : ""}`,
-      `ou em até 7x de ${brl(p.price / 7)} sem juros 💳`,
       p.description ? "" : null,
       p.description ?? null,
       "",
