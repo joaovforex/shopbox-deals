@@ -54,10 +54,10 @@ function startOf(period: Period): Date | null {
   const d = new Date(now);
   if (period === "day") { d.setHours(0, 0, 0, 0); return d; }
   if (period === "week") {
-    // Domingo a domingo: início = domingo da semana atual, 00:00.
-    // Inclui os 7 dias da semana + o próximo domingo (8 dias no total).
-    const dow = d.getDay(); // 0 = domingo
-    d.setDate(d.getDate() - dow);
+    // Janela Dom→Dom: 8 dias completos rolando (hoje + 7 dias anteriores),
+    // sempre iniciando às 00:00 do 8º dia atrás. Garante que a métrica não
+    // encolhe conforme a semana avança — sempre contabiliza 8 dias inteiros.
+    d.setDate(d.getDate() - 7);
     d.setHours(0, 0, 0, 0);
     return d;
   }
