@@ -53,7 +53,14 @@ function startOf(period: Period): Date | null {
   if (period === "all") return null;
   const d = new Date(now);
   if (period === "day") { d.setHours(0, 0, 0, 0); return d; }
-  if (period === "week") { d.setDate(d.getDate() - 7); return d; }
+  if (period === "week") {
+    // Domingo a domingo: início = domingo da semana atual, 00:00.
+    // Inclui os 7 dias da semana + o próximo domingo (8 dias no total).
+    const dow = d.getDay(); // 0 = domingo
+    d.setDate(d.getDate() - dow);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
   if (period === "month") { d.setMonth(d.getMonth() - 1); return d; }
   return null;
 }
