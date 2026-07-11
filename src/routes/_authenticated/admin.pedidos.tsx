@@ -53,7 +53,14 @@ function startOf(period: Period): Date | null {
   if (period === "all") return null;
   const d = new Date(now);
   if (period === "day") { d.setHours(0, 0, 0, 0); return d; }
-  if (period === "week") { d.setDate(d.getDate() - 7); return d; }
+  if (period === "week") {
+    // Domingo a domingo: início = domingo da semana atual, 00:00.
+    // Inclui os 7 dias da semana + o próximo domingo (8 dias no total).
+    const dow = d.getDay(); // 0 = domingo
+    d.setDate(d.getDate() - dow);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
   if (period === "month") { d.setMonth(d.getMonth() - 1); return d; }
   return null;
 }
@@ -243,7 +250,7 @@ function OrdersPanel() {
       return `${f} a ${t}`;
     }
     if (period === "day") return "Hoje";
-    if (period === "week") return "Últimos 7 dias";
+    if (period === "week") return "Semana (dom → dom)";
     if (period === "month") return "Últimos 30 dias";
     return "Todo o período";
   })();
@@ -406,7 +413,7 @@ function OrdersPanel() {
                     onClick={() => { setPeriod(p); setDateFrom(""); setDateTo(""); }}
                     className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded ${period === p && !hasCustomRange ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
                   >
-                    {p === "day" ? "Hoje" : p === "week" ? "7 dias" : p === "month" ? "30 dias" : "Tudo"}
+                    {p === "day" ? "Hoje" : p === "week" ? "Dom/Dom" : p === "month" ? "30 dias" : "Tudo"}
                   </button>
                 ))}
               </div>
@@ -961,7 +968,7 @@ function generateInsight(
   if (ranking.length === 0) {
     return "Ainda não há vendas no período. Compartilhe seus produtos para começar a gerar relatórios inteligentes.";
   }
-  const periodLabel = period === "day" ? "hoje" : period === "week" ? "nos últimos 7 dias" : period === "month" ? "nos últimos 30 dias" : "no histórico completo";
+  const periodLabel = period === "day" ? "hoje" : period === "week" ? "nesta semana (dom a dom)" : period === "month" ? "nos últimos 30 dias" : "no histórico completo";
   const top = ranking[0];
   const totalQty = ranking.reduce((s, r) => s + r.qty, 0);
   const topShare = Math.round((top.qty / totalQty) * 100);
