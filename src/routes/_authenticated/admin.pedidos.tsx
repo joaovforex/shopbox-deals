@@ -968,7 +968,7 @@ function generateInsight(
   if (ranking.length === 0) {
     return "Ainda não há vendas no período. Compartilhe seus produtos para começar a gerar relatórios inteligentes.";
   }
-  const periodLabel = period === "day" ? "hoje" : period === "week" ? "nos últimos 7 dias" : period === "month" ? "nos últimos 30 dias" : "no histórico completo";
+  const periodLabel = period === "day" ? "hoje" : period === "week" ? "nesta semana (dom a dom)" : period === "month" ? "nos últimos 30 dias" : "no histórico completo";
   const top = ranking[0];
   const totalQty = ranking.reduce((s, r) => s + r.qty, 0);
   const topShare = Math.round((top.qty / totalQty) * 100);
