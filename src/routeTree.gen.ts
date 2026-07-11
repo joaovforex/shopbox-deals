@@ -34,6 +34,7 @@ import { Route as AuthenticatedAdminPedidosRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminFiscalRouteImport } from './routes/_authenticated/admin.fiscal'
 import { Route as AuthenticatedAdminExpedicaoRouteImport } from './routes/_authenticated/admin.expedicao'
 import { Route as AuthenticatedAdminEquipeRouteImport } from './routes/_authenticated/admin.equipe'
+import { Route as AuthenticatedAdminConfiguracoesRouteImport } from './routes/_authenticated/admin.configuracoes'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp.webhook'
 import { Route as ApiPublicMaisentregasPollRouteImport } from './routes/api/public/maisentregas/poll'
@@ -172,6 +173,12 @@ const AuthenticatedAdminEquipeRoute =
     path: '/equipe',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminConfiguracoesRoute =
+  AuthenticatedAdminConfiguracoesRouteImport.update({
+    id: '/configuracoes',
+    path: '/configuracoes',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -212,6 +219,7 @@ export interface FileRoutesByFullPath {
   '/etiqueta/fragil': typeof EtiquetaFragilRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
+  '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/admin/equipe': typeof AuthenticatedAdminEquipeRoute
   '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/admin/fiscal': typeof AuthenticatedAdminFiscalRoute
@@ -242,6 +250,7 @@ export interface FileRoutesByTo {
   '/etiqueta/fragil': typeof EtiquetaFragilRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
+  '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/admin/equipe': typeof AuthenticatedAdminEquipeRoute
   '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/admin/fiscal': typeof AuthenticatedAdminFiscalRoute
@@ -274,6 +283,7 @@ export interface FileRoutesById {
   '/etiqueta/fragil': typeof EtiquetaFragilRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
+  '/_authenticated/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/_authenticated/admin/equipe': typeof AuthenticatedAdminEquipeRoute
   '/_authenticated/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/_authenticated/admin/fiscal': typeof AuthenticatedAdminFiscalRoute
@@ -306,6 +316,7 @@ export interface FileRouteTypes {
     | '/etiqueta/fragil'
     | '/pedido/$id'
     | '/produto/$id'
+    | '/admin/configuracoes'
     | '/admin/equipe'
     | '/admin/expedicao'
     | '/admin/fiscal'
@@ -336,6 +347,7 @@ export interface FileRouteTypes {
     | '/etiqueta/fragil'
     | '/pedido/$id'
     | '/produto/$id'
+    | '/admin/configuracoes'
     | '/admin/equipe'
     | '/admin/expedicao'
     | '/admin/fiscal'
@@ -367,6 +379,7 @@ export interface FileRouteTypes {
     | '/etiqueta/fragil'
     | '/pedido/$id'
     | '/produto/$id'
+    | '/_authenticated/admin/configuracoes'
     | '/_authenticated/admin/equipe'
     | '/_authenticated/admin/expedicao'
     | '/_authenticated/admin/fiscal'
@@ -580,6 +593,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminEquipeRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/configuracoes': {
+      id: '/_authenticated/admin/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/admin/configuracoes'
+      preLoaderRoute: typeof AuthenticatedAdminConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -612,6 +632,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminConfiguracoesRoute: typeof AuthenticatedAdminConfiguracoesRoute
   AuthenticatedAdminEquipeRoute: typeof AuthenticatedAdminEquipeRoute
   AuthenticatedAdminExpedicaoRoute: typeof AuthenticatedAdminExpedicaoRoute
   AuthenticatedAdminFiscalRoute: typeof AuthenticatedAdminFiscalRoute
@@ -622,6 +643,7 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminConfiguracoesRoute: AuthenticatedAdminConfiguracoesRoute,
   AuthenticatedAdminEquipeRoute: AuthenticatedAdminEquipeRoute,
   AuthenticatedAdminExpedicaoRoute: AuthenticatedAdminExpedicaoRoute,
   AuthenticatedAdminFiscalRoute: AuthenticatedAdminFiscalRoute,
