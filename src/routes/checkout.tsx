@@ -11,6 +11,7 @@ import { brl } from "@/lib/format";
 import { createMpPreference } from "@/lib/mercadopago.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { calculateCashback } from "@/lib/cashback-config";
+import { useSiteSettings } from "@/lib/site-settings";
 
 
 export const Route = createFileRoute("/checkout")({

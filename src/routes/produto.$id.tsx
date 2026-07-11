@@ -8,6 +8,7 @@ import { ProductCarousel } from "@/components/ProductCarousel";
 import { ProductForm } from "@/components/ProductForm";
 import { brl, discountPct, postDate } from "@/lib/format";
 import { calculateCashback } from "@/lib/cashback-config";
+import { useSiteSettings } from "@/lib/site-settings";
 import { fetchProduct, getRoleSummary, productImages, type Product } from "@/lib/products";
 import { getRequestOrigin } from "@/lib/origin.functions";
 import { useCart } from "@/lib/cart";
