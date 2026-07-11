@@ -88,6 +88,8 @@ export const Route = createFileRoute("/produto/$id")({
 function ProductPage() {
   const { product: loaderProduct } = Route.useLoaderData();
   const { id } = Route.useParams();
+  const { data: settings } = useSiteSettings();
+  const cashbackRate = settings?.cashback_rate ?? 0.05;
   const { data: product, isLoading } = useQuery({
     queryKey: ["product", id],
     initialData: loaderProduct,
@@ -337,7 +339,7 @@ function ProductPage() {
                 {off > 0 && <span className="text-deal font-black">-{off}%</span>}
               </div>
               <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-[#25D366]/15 text-[#25D366] px-2.5 py-1 rounded">
-                💰 Ganhe {brl(calculateCashback(product.price))} em cashback
+                💰 Ganhe {brl(calculateCashback(product.price, cashbackRate))} em cashback
               </div>
             </div>
 

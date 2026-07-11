@@ -83,6 +83,8 @@ function CheckoutPage() {
   const [redirecting, setRedirecting] = useState(false);
   const createPref = useServerFn(createMpPreference);
   const fetchCashback = useServerFn(getMyCashback);
+  const { data: settings } = useSiteSettings();
+  const cashbackRate = settings?.cashback_rate ?? 0.05;
 
   const [cashbackBalance, setCashbackBalance] = useState(0);
   const [cashbackExpiry, setCashbackExpiry] = useState<{ amount: number; expiresAt: string } | null>(null);
