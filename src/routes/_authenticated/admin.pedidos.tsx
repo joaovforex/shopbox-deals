@@ -195,7 +195,11 @@ function OrdersPanel() {
       items = items.filter((i) => (categoriesMap.get(i.product_id) ?? "Sem categoria") === filterCategory);
     }
 
-    const revenue = items.reduce((s, i) => s + Number(i.unit_price) * Number(i.quantity), 0);
+    const productsRevenue = items.reduce((s, i) => s + Number(i.unit_price) * Number(i.quantity), 0);
+    const shippingRevenue = orders
+      .filter((o) => o.status === "paid")
+      .reduce((s, o) => s + Number((o as { delivery_fee?: number }).delivery_fee ?? 0), 0);
+    const revenue = productsRevenue + shippingRevenue;
     const unitsSold = items.reduce((s, i) => s + Number(i.quantity), 0);
 
     const byProduct = new Map<string, { name: string; qty: number; revenue: number }>();
