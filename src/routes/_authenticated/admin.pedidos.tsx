@@ -250,7 +250,7 @@ function OrdersPanel() {
       return `${f} a ${t}`;
     }
     if (period === "day") return "Hoje";
-    if (period === "week") return "Últimos 7 dias";
+    if (period === "week") return "Semana (dom → dom)";
     if (period === "month") return "Últimos 30 dias";
     return "Todo o período";
   })();
