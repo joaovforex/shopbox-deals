@@ -827,6 +827,33 @@ export type Database = {
         }
         Relationships: []
       }
+      site_settings: {
+        Row: {
+          banner_desktop_url: string | null
+          banner_mobile_url: string | null
+          cashback_rate: number
+          id: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          banner_desktop_url?: string | null
+          banner_mobile_url?: string | null
+          cashback_rate?: number
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          banner_desktop_url?: string | null
+          banner_mobile_url?: string | null
+          cashback_rate?: number
+          id?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       site_visits: {
         Row: {
           created_at: string
