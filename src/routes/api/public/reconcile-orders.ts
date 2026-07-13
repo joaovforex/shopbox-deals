@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { safeCompare } from "@/lib/safe-compare.server";
+import { enforceCronIpAllowlist } from "@/lib/ip-allowlist.server";
 
 
 /**
