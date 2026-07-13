@@ -24,6 +24,10 @@ export const Route = createFileRoute("/api/public/cashback/expire")({
           return new Response("unauthorized", { status: 401 });
         }
 
+        const gate = await enforceCronIpAllowlist(request, "cashback-expire");
+        if (!gate.ok) return gate.response;
+
+
         const { data, error } = await supabaseAdmin.rpc("expire_cashback" as never);
         if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
         return new Response(JSON.stringify({ expired: data ?? 0 }), {
