@@ -30,6 +30,10 @@ export const Route = createFileRoute("/api/public/maisentregas/poll")({
           return new Response("unauthorized", { status: 401 });
         }
 
+        const gate = await enforceCronIpAllowlist(request, "maisentregas-poll");
+        if (!gate.ok) return gate.response;
+
+
         const { createDeliveryForOrder, pollOrderStatus } = await import("@/lib/maisentregas.functions");
 
         const summary = { created: 0, polled: 0, errors: 0 };
