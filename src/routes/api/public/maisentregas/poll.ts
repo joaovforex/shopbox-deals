@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { safeCompare } from "@/lib/safe-compare.server";
+
 
 /**
  * Cron de polling de status da Mais Entregas.
