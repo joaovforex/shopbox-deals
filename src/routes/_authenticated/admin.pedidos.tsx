@@ -414,7 +414,7 @@ function OrdersPanel() {
                     onClick={() => { setPeriod(p); setDateFrom(""); setDateTo(""); }}
                     className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded ${period === p && !hasCustomRange ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
                   >
-                    {p === "day" ? "Hoje" : p === "week" ? "Dom/Dom" : p === "month" ? "30 dias" : "Tudo"}
+                    {p === "day" ? "Hoje" : p === "week" ? "8 dias" : p === "month" ? "30 dias" : "Tudo"}
                   </button>
                 ))}
               </div>
