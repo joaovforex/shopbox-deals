@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Header, Footer } from "@/components/Header";
 import logo from "@/assets/shopbox-logo.png";
+import { checkLoginRateLimit, recordLoginAttempt } from "@/lib/login-rate-limit.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Entrar · shopbox" }] }),
@@ -129,7 +130,19 @@ function AuthPage() {
           window.location.href = redirectTo;
         }
       } else {
+        // Rate-limit por IP (e IP+email) antes de bater no Supabase Auth
+        const gate = await checkLoginRateLimit({ data: { email: emailTrim } });
+        if (!gate.allowed) {
+          const mins = Math.ceil(gate.retryAfterSec / 60);
+          throw new Error(
+            gate.reason === "too_many_for_account"
+              ? `Muitas tentativas para esta conta. Tente novamente em ${mins} min.`
+              : `Muitas tentativas deste dispositivo. Tente novamente em ${mins} min.`
+          );
+        }
         const { error } = await supabase.auth.signInWithPassword({ email: emailTrim, password });
+        // Registra tentativa (sucesso ou falha) para alimentar o limiter
+        void recordLoginAttempt({ data: { email: emailTrim, success: !error } }).catch(() => {});
         if (error) throw error;
         toast.success("Bem-vindo!");
         window.location.href = redirectTo;
