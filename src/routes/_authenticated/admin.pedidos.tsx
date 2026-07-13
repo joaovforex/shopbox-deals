@@ -204,10 +204,16 @@ function OrdersPanel() {
     }
 
     const productsRevenue = items.reduce((s, i) => s + Number(i.unit_price) * Number(i.quantity), 0);
-    const shippingRevenue = orders
-      .filter((o) => o.status === "paid")
-      .reduce((s, o) => s + Number((o as { delivery_fee?: number }).delivery_fee ?? 0), 0);
+    // Frete só entra na receita quando NÃO há filtro de categoria: um pedido
+    // pode ter itens de múltiplas categorias, e somar o frete inteiro em uma
+    // única categoria distorceria a comparação entre categorias.
+    const shippingRevenue = filterCategory !== "all"
+      ? 0
+      : orders
+          .filter((o) => o.status === "paid")
+          .reduce((s, o) => s + Number((o as { delivery_fee?: number }).delivery_fee ?? 0), 0);
     const revenue = productsRevenue + shippingRevenue;
+
     const unitsSold = items.reduce((s, i) => s + Number(i.quantity), 0);
 
     const byProduct = new Map<string, { name: string; qty: number; revenue: number }>();
