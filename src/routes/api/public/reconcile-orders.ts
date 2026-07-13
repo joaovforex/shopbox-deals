@@ -36,6 +36,10 @@ export const Route = createFileRoute("/api/public/reconcile-orders")({
           return new Response("unauthorized", { status: 401 });
         }
 
+        const gate = await enforceCronIpAllowlist(request, "reconcile-orders");
+        if (!gate.ok) return gate.response;
+
+
         const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
         if (!accessToken) {
           console.error("[reconcile] missing MP token");
