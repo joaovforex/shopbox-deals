@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { timingSafeEqual } from "node:crypto";
+
 
 /**
  * Cron: expira cashback vencido (>30 dias após emissão).
