@@ -54,6 +54,17 @@ function AdminPage() {
   const totalProducts = pagedData?.pages?.[0]?.total ?? products.length;
   const loadedCount = products.length;
 
+  // Auto-carrega todas as páginas em background para que busca, aba "Esgotados"
+  // e ações em massa ("Ocultar todos os esgotados") operem sobre o catálogo
+  // completo, e não apenas sobre a primeira página de 100 produtos.
+  useEffect(() => {
+    if (!canManageProducts || isChildRoute) return;
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [canManageProducts, isChildRoute, hasNextPage, isFetchingNextPage, fetchNextPage, loadedCount]);
+
+
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
