@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { safeCompare } from "@/lib/safe-compare.server";
+import { enforceCronIpAllowlist } from "@/lib/ip-allowlist.server";
 
 
 
@@ -22,6 +23,10 @@ export const Route = createFileRoute("/api/public/cashback/expire")({
         if (!expected || !safeCompare(provided, expected)) {
           return new Response("unauthorized", { status: 401 });
         }
+
+        const gate = await enforceCronIpAllowlist(request, "cashback-expire");
+        if (!gate.ok) return gate.response;
+
 
         const { data, error } = await supabaseAdmin.rpc("expire_cashback" as never);
         if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });

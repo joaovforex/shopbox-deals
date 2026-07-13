@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { safeCompare } from "@/lib/safe-compare.server";
+import { enforceCronIpAllowlist } from "@/lib/ip-allowlist.server";
 
 
 /**
@@ -28,6 +29,10 @@ export const Route = createFileRoute("/api/public/maisentregas/poll")({
         if (!expected || !safeCompare(provided, expected)) {
           return new Response("unauthorized", { status: 401 });
         }
+
+        const gate = await enforceCronIpAllowlist(request, "maisentregas-poll");
+        if (!gate.ok) return gate.response;
+
 
         const { createDeliveryForOrder, pollOrderStatus } = await import("@/lib/maisentregas.functions");
 

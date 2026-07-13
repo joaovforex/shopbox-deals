@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { safeCompare } from "@/lib/safe-compare.server";
+import { enforceCronIpAllowlist } from "@/lib/ip-allowlist.server";
 
 
 /**
@@ -34,6 +35,10 @@ export const Route = createFileRoute("/api/public/reconcile-orders")({
         if (!expected || !safeCompare(provided, expected)) {
           return new Response("unauthorized", { status: 401 });
         }
+
+        const gate = await enforceCronIpAllowlist(request, "reconcile-orders");
+        if (!gate.ok) return gate.response;
+
 
         const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
         if (!accessToken) {
