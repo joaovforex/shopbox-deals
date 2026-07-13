@@ -419,8 +419,9 @@ export const getRefundConsistency = createServerFn({ method: "GET" })
 // ============================================================
 // Reintegrar pedido cancelado como pago (quando o cliente foi
 // de fato debitado e o pedido precisa ir para expedição em vez
-// de reembolso). Não mexe em estoque — o operador deve conferir
-// manualmente. Registra no console para auditoria.
+// de reembolso). Como o cancelamento anterior já devolveu o
+// estoque via trigger restore_stock_on_cancel, precisamos
+// re-decrementar aqui para não vender duas vezes o mesmo item.
 // ============================================================
 export const reinstateOrderAsPaid = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -441,7 +442,7 @@ export const reinstateOrderAsPaid = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: order, error: oerr } = await supabaseAdmin
       .from("orders")
-      .select("id,status,mp_payment_status,mp_payment_id,customer_name,total")
+      .select("id,status,stock_restored_at,mp_payment_status,mp_payment_id,customer_name,total")
       .eq("id", data.orderId)
       .maybeSingle();
     if (oerr) throw new Error("Falha ao buscar pedido");
@@ -464,6 +465,37 @@ export const reinstateOrderAsPaid = createServerFn({ method: "POST" })
     const { data: prof } = await supabaseAdmin.from("profiles").select("full_name").eq("id", userId).maybeSingle();
     const operatorName = prof?.full_name || "—";
 
+    // Se o cancelamento já devolveu o estoque, precisamos removê-lo novamente
+    // para refletir o compromisso do pedido reintegrado. Sem isso, o produto
+    // aparece disponível na loja e pode ser vendido em dobro.
+    const stockDecrements: { productId: string; qty: number }[] = [];
+    if (order.stock_restored_at) {
+      const { data: items, error: itErr } = await supabaseAdmin
+        .from("order_items")
+        .select("product_id,quantity")
+        .eq("order_id", order.id);
+      if (itErr) throw new Error("Falha ao ler itens do pedido: " + itErr.message);
+      for (const it of items ?? []) {
+        const pid = it.product_id as string | null;
+        const qty = Number(it.quantity ?? 0);
+        if (!pid || qty <= 0) continue;
+        const { data: prod, error: pErr } = await supabaseAdmin
+          .from("products")
+          .select("stock")
+          .eq("id", pid)
+          .maybeSingle();
+        if (pErr) throw new Error("Falha ao ler estoque: " + pErr.message);
+        const current = Number(prod?.stock ?? 0);
+        const next = Math.max(0, current - qty);
+        const { error: uErr } = await supabaseAdmin
+          .from("products")
+          .update({ stock: next })
+          .eq("id", pid);
+        if (uErr) throw new Error("Falha ao ajustar estoque: " + uErr.message);
+        stockDecrements.push({ productId: pid, qty });
+      }
+    }
+
     const { error: upErr } = await supabaseAdmin
       .from("orders")
       .update({
@@ -480,7 +512,9 @@ export const reinstateOrderAsPaid = createServerFn({ method: "POST" })
       total: order.total,
       mpPaymentId: order.mp_payment_id,
       operator: operatorName,
+      stockDecrements,
     });
 
-    return { ok: true, orderId: order.id };
+    return { ok: true, orderId: order.id, stockDecrements };
   });
+
