@@ -54,13 +54,14 @@ function startOf(period: Period): Date | null {
   const d = new Date(now);
   if (period === "day") { d.setHours(0, 0, 0, 0); return d; }
   if (period === "week") {
-    // Janela Dom→Dom: 8 dias completos rolando (hoje + 7 dias anteriores),
-    // sempre iniciando às 00:00 do 8º dia atrás. Garante que a métrica não
-    // encolhe conforme a semana avança — sempre contabiliza 8 dias inteiros.
+    // Janela rolante dos últimos 8 dias (hoje + 7 dias anteriores), sempre
+    // iniciando às 00:00 do 8º dia atrás. Não é semana civil dom→dom — é
+    // um período rolante fixo de 8 dias para acompanhar tendência.
     d.setDate(d.getDate() - 7);
     d.setHours(0, 0, 0, 0);
     return d;
   }
+
   if (period === "month") { d.setMonth(d.getMonth() - 1); return d; }
   return null;
 }
