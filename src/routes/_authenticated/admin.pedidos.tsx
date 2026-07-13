@@ -54,13 +54,14 @@ function startOf(period: Period): Date | null {
   const d = new Date(now);
   if (period === "day") { d.setHours(0, 0, 0, 0); return d; }
   if (period === "week") {
-    // Janela Dom→Dom: 8 dias completos rolando (hoje + 7 dias anteriores),
-    // sempre iniciando às 00:00 do 8º dia atrás. Garante que a métrica não
-    // encolhe conforme a semana avança — sempre contabiliza 8 dias inteiros.
+    // Janela rolante dos últimos 8 dias (hoje + 7 dias anteriores), sempre
+    // iniciando às 00:00 do 8º dia atrás. Não é semana civil dom→dom — é
+    // um período rolante fixo de 8 dias para acompanhar tendência.
     d.setDate(d.getDate() - 7);
     d.setHours(0, 0, 0, 0);
     return d;
   }
+
   if (period === "month") { d.setMonth(d.getMonth() - 1); return d; }
   return null;
 }
@@ -203,10 +204,16 @@ function OrdersPanel() {
     }
 
     const productsRevenue = items.reduce((s, i) => s + Number(i.unit_price) * Number(i.quantity), 0);
-    const shippingRevenue = orders
-      .filter((o) => o.status === "paid")
-      .reduce((s, o) => s + Number((o as { delivery_fee?: number }).delivery_fee ?? 0), 0);
+    // Frete só entra na receita quando NÃO há filtro de categoria: um pedido
+    // pode ter itens de múltiplas categorias, e somar o frete inteiro em uma
+    // única categoria distorceria a comparação entre categorias.
+    const shippingRevenue = filterCategory !== "all"
+      ? 0
+      : orders
+          .filter((o) => o.status === "paid")
+          .reduce((s, o) => s + Number((o as { delivery_fee?: number }).delivery_fee ?? 0), 0);
     const revenue = productsRevenue + shippingRevenue;
+
     const unitsSold = items.reduce((s, i) => s + Number(i.quantity), 0);
 
     const byProduct = new Map<string, { name: string; qty: number; revenue: number }>();
@@ -250,7 +257,7 @@ function OrdersPanel() {
       return `${f} a ${t}`;
     }
     if (period === "day") return "Hoje";
-    if (period === "week") return "Semana (dom → dom)";
+    if (period === "week") return "Últimos 8 dias";
     if (period === "month") return "Últimos 30 dias";
     return "Todo o período";
   })();
@@ -413,7 +420,7 @@ function OrdersPanel() {
                     onClick={() => { setPeriod(p); setDateFrom(""); setDateTo(""); }}
                     className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded ${period === p && !hasCustomRange ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
                   >
-                    {p === "day" ? "Hoje" : p === "week" ? "Dom/Dom" : p === "month" ? "30 dias" : "Tudo"}
+                    {p === "day" ? "Hoje" : p === "week" ? "8 dias" : p === "month" ? "30 dias" : "Tudo"}
                   </button>
                 ))}
               </div>
@@ -968,7 +975,7 @@ function generateInsight(
   if (ranking.length === 0) {
     return "Ainda não há vendas no período. Compartilhe seus produtos para começar a gerar relatórios inteligentes.";
   }
-  const periodLabel = period === "day" ? "hoje" : period === "week" ? "nesta semana (dom a dom)" : period === "month" ? "nos últimos 30 dias" : "no histórico completo";
+  const periodLabel = period === "day" ? "hoje" : period === "week" ? "nos últimos 8 dias" : period === "month" ? "nos últimos 30 dias" : "no histórico completo";
   const top = ranking[0];
   const totalQty = ranking.reduce((s, r) => s + r.qty, 0);
   const topShare = Math.round((top.qty / totalQty) * 100);
