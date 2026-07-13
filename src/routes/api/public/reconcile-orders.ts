@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { safeCompare } from "@/lib/safe-compare.server";
+
 
 /**
  * Reconciliação periódica de pedidos.
