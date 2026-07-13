@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { safeCompare } from "@/lib/safe-compare.server";
+
 
 /**
  * Reconciliação periódica de pedidos.
@@ -29,7 +31,7 @@ export const Route = createFileRoute("/api/public/reconcile-orders")({
           .eq("name", "cron_secret")
           .maybeSingle();
         const expected = (secretRow as { value?: string } | null)?.value ?? "";
-        if (!expected || provided.length !== expected.length || provided !== expected) {
+        if (!expected || !safeCompare(provided, expected)) {
           return new Response("unauthorized", { status: 401 });
         }
 

@@ -1,4 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { safeCompare } from "@/lib/safe-compare.server";
+
+
 
 /**
  * Cron: expira cashback vencido (>30 dias após emissão).
@@ -16,9 +19,10 @@ export const Route = createFileRoute("/api/public/cashback/expire")({
           .eq("name", "cron_secret")
           .maybeSingle();
         const expected = (secretRow as { value?: string } | null)?.value ?? "";
-        if (!expected || provided.length !== expected.length || provided !== expected) {
+        if (!expected || !safeCompare(provided, expected)) {
           return new Response("unauthorized", { status: 401 });
         }
+
         const { data, error } = await supabaseAdmin.rpc("expire_cashback" as never);
         if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
         return new Response(JSON.stringify({ expired: data ?? 0 }), {

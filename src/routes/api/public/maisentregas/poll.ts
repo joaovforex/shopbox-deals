@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { safeCompare } from "@/lib/safe-compare.server";
+
 
 /**
  * Cron de polling de status da Mais Entregas.
@@ -23,7 +25,7 @@ export const Route = createFileRoute("/api/public/maisentregas/poll")({
           .eq("name", "cron_secret")
           .maybeSingle();
         const expected = (secretRow as { value?: string } | null)?.value ?? "";
-        if (!expected || provided.length !== expected.length || provided !== expected) {
+        if (!expected || !safeCompare(provided, expected)) {
           return new Response("unauthorized", { status: 401 });
         }
 
