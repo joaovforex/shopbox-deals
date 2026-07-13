@@ -23,17 +23,8 @@ function clientIp(): string {
   return "0.0.0.0";
 }
 
-const emailSchema = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .email()
-  .max(254);
+const emailSchema = z.string().trim().toLowerCase().email().max(254);
 
-/**
- * Verifica se o IP (e IP+email) está autorizado a tentar login agora.
- * Retorna { allowed, retryAfterSec, reason }.
- */
 export const checkLoginRateLimit = createServerFn({ method: "POST" })
   .inputValidator((raw: { email: string }) => ({ email: emailSchema.parse(raw.email) }))
   .handler(async ({ data }) => {
@@ -41,42 +32,31 @@ export const checkLoginRateLimit = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const since = new Date(Date.now() - WINDOW_MIN * 60_000).toISOString();
 
-    const [{ data: ipRows, error: ipErr }, { data: pairRows, error: pairErr }] = await Promise.all([
+    const [ipRes, pairRes] = await Promise.all([
       supabaseAdmin
-        .from("login_attempts")
-        .select("id", { count: "exact", head: true })
-        .eq("ip", ip)
-        .eq("success", false)
-        .gte("created_at", since),
-      supabaseAdmin
-        .from("login_attempts")
-        .select("id, created_at", { count: "exact" })
-        .eq("ip", ip)
-        .eq("email", data.email)
-        .eq("success", false)
-        .gte("created_at", since)
-        .order("created_at", { ascending: false })
-        .limit(MAX_FAILS_PER_IP_EMAIL),
-    ]);
-
-    if (ipErr || pairErr) {
-      // Fail-open leve: não bloqueia se o próprio limiter falhou (Supabase indisponível).
-      return { allowed: true, retryAfterSec: 0, reason: "limiter_unavailable" as const };
-    }
-
-    // supabase-js: quando head:true, o total vai no header count via .count — usamos length de pairRows abaixo.
-    // Para o ip-only usamos count via segundo shape:
-    const ipCount = (ipRows as unknown as { length?: number } | null)?.length ??
-      // fallback: refaz consulta rápida
-      (await supabaseAdmin
         .from("login_attempts")
         .select("id")
         .eq("ip", ip)
         .eq("success", false)
         .gte("created_at", since)
-      ).data?.length ?? 0;
+        .limit(MAX_FAILS_PER_IP),
+      supabaseAdmin
+        .from("login_attempts")
+        .select("id")
+        .eq("ip", ip)
+        .eq("email", data.email)
+        .eq("success", false)
+        .gte("created_at", since)
+        .limit(MAX_FAILS_PER_IP_EMAIL),
+    ]);
 
-    const pairCount = pairRows?.length ?? 0;
+    if (ipRes.error || pairRes.error) {
+      // Fail-open: se o limiter falhar não travamos o login legítimo.
+      return { allowed: true, retryAfterSec: 0, reason: "limiter_unavailable" as const };
+    }
+
+    const ipCount = ipRes.data?.length ?? 0;
+    const pairCount = pairRes.data?.length ?? 0;
 
     if (pairCount >= MAX_FAILS_PER_IP_EMAIL) {
       return { allowed: false, retryAfterSec: WINDOW_MIN * 60, reason: "too_many_for_account" as const };
@@ -87,9 +67,6 @@ export const checkLoginRateLimit = createServerFn({ method: "POST" })
     return { allowed: true, retryAfterSec: 0, reason: "ok" as const };
   });
 
-/**
- * Registra o resultado de uma tentativa de login para alimentar o rate-limit.
- */
 export const recordLoginAttempt = createServerFn({ method: "POST" })
   .inputValidator((raw: { email: string; success: boolean }) => ({
     email: emailSchema.parse(raw.email),
@@ -103,7 +80,7 @@ export const recordLoginAttempt = createServerFn({ method: "POST" })
       email: data.email,
       success: data.success,
     });
-    // Limpeza oportunista: apaga registros antigos (>24h) desse IP para manter tabela enxuta.
+    // Limpeza oportunista: remove registros antigos (>24h) desse IP.
     const cutoff = new Date(Date.now() - 24 * 60 * 60_000).toISOString();
     await supabaseAdmin.from("login_attempts").delete().eq("ip", ip).lt("created_at", cutoff);
     return { ok: true };
