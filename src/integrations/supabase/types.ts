@@ -350,6 +350,30 @@ export type Database = {
         }
         Relationships: []
       }
+      login_attempts: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: number
+          ip: unknown
+          success: boolean
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: number
+          ip: unknown
+          success?: boolean
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: number
+          ip?: unknown
+          success?: boolean
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
