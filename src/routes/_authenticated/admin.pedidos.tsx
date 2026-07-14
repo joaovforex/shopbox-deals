@@ -429,30 +429,55 @@ function OrdersPanel() {
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-1 bg-secondary rounded-md p-1">
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="bg-background border border-border rounded px-2 py-1 text-xs focus:outline-none focus:border-primary"
-                />
-                <span className="text-xs text-muted-foreground">até</span>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="bg-background border border-border rounded px-2 py-1 text-xs focus:outline-none focus:border-primary"
-                />
-                {hasCustomRange && (
-                  <button
-                    onClick={() => { setDateFrom(""); setDateTo(""); }}
-                    className="text-xs text-muted-foreground hover:text-foreground px-2"
-                    title="Limpar datas"
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn("h-auto justify-start text-left font-normal gap-2 text-xs", !hasCustomRange && "text-muted-foreground")}
                   >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                )}
-              </div>
+                    <CalendarIcon className="h-3.5 w-3.5" />
+                    {hasCustomRange ? (
+                      <span>
+                        {dateFrom ? new Date(dateFrom + "T00:00:00").toLocaleDateString("pt-BR") : "início"}
+                        {" até "}
+                        {dateTo ? new Date(dateTo + "T00:00:00").toLocaleDateString("pt-BR") : "hoje"}
+                      </span>
+                    ) : (
+                      <span>Selecionar datas</span>
+                    )}
+                    {hasCustomRange && (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); setDateFrom(""); setDateTo(""); }}
+                        onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); e.preventDefault(); setDateFrom(""); setDateTo(""); } }}
+                        className="ml-1 text-muted-foreground hover:text-foreground"
+                        title="Limpar datas"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 pointer-events-auto" align="end">
+                  <Calendar
+                    mode="range"
+                    numberOfMonths={2}
+                    selected={{
+                      from: dateFrom ? new Date(dateFrom + "T00:00:00") : undefined,
+                      to: dateTo ? new Date(dateTo + "T00:00:00") : undefined,
+                    } as DateRange}
+                    onSelect={(range: DateRange | undefined) => {
+                      const fmt = (d?: Date) => d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` : "";
+                      setDateFrom(fmt(range?.from));
+                      setDateTo(fmt(range?.to));
+                    }}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>
