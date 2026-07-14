@@ -146,9 +146,9 @@ function QrLabel({ url, title, subtitle }: { url: string; title: string; subtitl
   const displayUrl = url.replace(/^https?:\/\//, "");
   return (
     <div className="label-doc bg-white text-black flex flex-col">
-      <div className="flex items-center justify-between pb-1">
-        <img src={shopboxLogo} alt="shopbox" className="h-7 w-auto" />
-        <div className="text-[9px] font-black uppercase tracking-widest">Acesse & Compre</div>
+      <div className="flex flex-col items-center pb-1">
+        <img src={shopboxLogo} alt="shopbox" className="h-14 w-auto" style={{ filter: "brightness(0)" }} />
+        <div className="text-[9px] font-black uppercase tracking-widest mt-0.5">Acesse & Compre</div>
       </div>
 
       <div className="mt-1 border-4 border-black rounded-md flex-1 flex flex-col items-center justify-center px-2 py-3 text-center">

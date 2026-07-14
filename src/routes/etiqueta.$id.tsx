@@ -202,10 +202,10 @@ function LabelPage() {
 
 function LabelHeader({ logoOnly = false, title, subtitle, icon }: { logoOnly?: boolean; title?: string; subtitle?: string; icon?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-2 pb-1">
-      <img src={shopboxLogo} alt="shopbox" className="h-10 w-auto" />
-      {!logoOnly && (
-        <div className="text-right">
+    <div className="flex flex-col items-center gap-1 pb-1">
+      <img src={shopboxLogo} alt="shopbox" className="h-16 w-auto" style={{ filter: "brightness(0)" }} />
+      {!logoOnly && (title || subtitle || icon) && (
+        <div className="text-center">
           {icon}
           {title && <div className="font-black text-xs tracking-wider leading-tight">{title}</div>}
           {subtitle && <div className="text-[10px] uppercase">{subtitle}</div>}
@@ -278,8 +278,8 @@ function PickupLabel({ o, items }: { o: any; items: any[] }) {
   const shortCode = o.id.slice(0, 6).toUpperCase();
   return (
     <div className="label-doc bg-white text-black p-2">
-      <div className="pb-1">
-        <img src={shopboxLogo} alt="shopbox" className="h-8 w-auto" />
+      <div className="pb-1 flex justify-center">
+        <img src={shopboxLogo} alt="shopbox" className="h-16 w-auto" style={{ filter: "brightness(0)" }} />
       </div>
 
       <div className="border-t-2 border-black pt-2">
