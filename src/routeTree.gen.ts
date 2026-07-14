@@ -21,6 +21,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProdutoIdRouteImport } from './routes/produto.$id'
 import { Route as PedidoIdRouteImport } from './routes/pedido.$id'
+import { Route as EtiquetaQrcodeRouteImport } from './routes/etiqueta.qrcode'
 import { Route as EtiquetaFragilRouteImport } from './routes/etiqueta.fragil'
 import { Route as EtiquetaIdRouteImport } from './routes/etiqueta.$id'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
@@ -97,6 +98,11 @@ const ProdutoIdRoute = ProdutoIdRouteImport.update({
 const PedidoIdRoute = PedidoIdRouteImport.update({
   id: '/pedido/$id',
   path: '/pedido/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EtiquetaQrcodeRoute = EtiquetaQrcodeRouteImport.update({
+  id: '/etiqueta/qrcode',
+  path: '/etiqueta/qrcode',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EtiquetaFragilRoute = EtiquetaFragilRouteImport.update({
@@ -217,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/etiqueta/fragil': typeof EtiquetaFragilRoute
+  '/etiqueta/qrcode': typeof EtiquetaQrcodeRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
@@ -248,6 +255,7 @@ export interface FileRoutesByTo {
   '/perfil': typeof AuthenticatedPerfilRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/etiqueta/fragil': typeof EtiquetaFragilRoute
+  '/etiqueta/qrcode': typeof EtiquetaQrcodeRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
@@ -281,6 +289,7 @@ export interface FileRoutesById {
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/etiqueta/fragil': typeof EtiquetaFragilRoute
+  '/etiqueta/qrcode': typeof EtiquetaQrcodeRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
   '/_authenticated/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
@@ -314,6 +323,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/etiqueta/$id'
     | '/etiqueta/fragil'
+    | '/etiqueta/qrcode'
     | '/pedido/$id'
     | '/produto/$id'
     | '/admin/configuracoes'
@@ -345,6 +355,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/etiqueta/$id'
     | '/etiqueta/fragil'
+    | '/etiqueta/qrcode'
     | '/pedido/$id'
     | '/produto/$id'
     | '/admin/configuracoes'
@@ -377,6 +388,7 @@ export interface FileRouteTypes {
     | '/_authenticated/perfil'
     | '/etiqueta/$id'
     | '/etiqueta/fragil'
+    | '/etiqueta/qrcode'
     | '/pedido/$id'
     | '/produto/$id'
     | '/_authenticated/admin/configuracoes'
@@ -407,6 +419,7 @@ export interface RootRouteChildren {
   TermosRoute: typeof TermosRoute
   EtiquetaIdRoute: typeof EtiquetaIdRoute
   EtiquetaFragilRoute: typeof EtiquetaFragilRoute
+  EtiquetaQrcodeRoute: typeof EtiquetaQrcodeRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
   ApiPublicReconcileOrdersRoute: typeof ApiPublicReconcileOrdersRoute
@@ -500,6 +513,13 @@ declare module '@tanstack/react-router' {
       path: '/pedido/$id'
       fullPath: '/pedido/$id'
       preLoaderRoute: typeof PedidoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/etiqueta/qrcode': {
+      id: '/etiqueta/qrcode'
+      path: '/etiqueta/qrcode'
+      fullPath: '/etiqueta/qrcode'
+      preLoaderRoute: typeof EtiquetaQrcodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/etiqueta/fragil': {
@@ -684,6 +704,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermosRoute: TermosRoute,
   EtiquetaIdRoute: EtiquetaIdRoute,
   EtiquetaFragilRoute: EtiquetaFragilRoute,
+  EtiquetaQrcodeRoute: EtiquetaQrcodeRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
   ApiPublicReconcileOrdersRoute: ApiPublicReconcileOrdersRoute,
