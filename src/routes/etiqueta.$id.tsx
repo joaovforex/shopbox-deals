@@ -278,8 +278,8 @@ function PickupLabel({ o, items }: { o: any; items: any[] }) {
   const shortCode = o.id.slice(0, 6).toUpperCase();
   return (
     <div className="label-doc bg-white text-black p-2">
-      <div className="pb-1">
-        <img src={shopboxLogo} alt="shopbox" className="h-8 w-auto" />
+      <div className="pb-1 flex justify-center">
+        <img src={shopboxLogo} alt="shopbox" className="h-16 w-auto" style={{ filter: "brightness(0)" }} />
       </div>
 
       <div className="border-t-2 border-black pt-2">
