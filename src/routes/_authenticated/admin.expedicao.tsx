@@ -372,15 +372,26 @@ function FulfillmentPage() {
                 Separe os pedidos por <strong>Retirada na loja</strong> e <strong>Entrega motoboy</strong>. Escaneie a etiqueta para confirmar a entrega.
               </p>
             </div>
-            <a
-              href="/etiqueta/fragil"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-[#E11D1D] text-white font-black uppercase tracking-widest text-xs px-4 py-2.5 rounded shadow hover:opacity-90"
-              title="Imprimir etiqueta FRÁGIL para encomendas com vidro"
-            >
-              <AlertTriangle className="h-4 w-4" strokeWidth={3} /> Etiqueta Frágil
-            </a>
+            <div className="flex items-center gap-2 flex-wrap">
+              <a
+                href="/etiqueta/qrcode"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-foreground text-background font-black uppercase tracking-widest text-xs px-4 py-2.5 rounded shadow hover:opacity-90"
+                title="Imprimir etiqueta com QR Code da loja"
+              >
+                <QrCode className="h-4 w-4" strokeWidth={2.5} /> QR Code Loja
+              </a>
+              <a
+                href="/etiqueta/fragil"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-[#E11D1D] text-white font-black uppercase tracking-widest text-xs px-4 py-2.5 rounded shadow hover:opacity-90"
+                title="Imprimir etiqueta FRÁGIL para encomendas com vidro"
+              >
+                <AlertTriangle className="h-4 w-4" strokeWidth={3} /> Etiqueta Frágil
+              </a>
+            </div>
           </div>
         </div>
       </section>
