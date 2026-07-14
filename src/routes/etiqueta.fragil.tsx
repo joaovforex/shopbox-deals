@@ -107,9 +107,9 @@ function FragilPage() {
 function FragilLabel() {
   return (
     <div className="label-doc bg-white text-black flex flex-col">
-      <div className="flex items-center justify-between pb-1">
-        <img src={shopboxLogo} alt="shopbox" className="h-7 w-auto" />
-        <div className="text-[9px] font-black uppercase tracking-widest">Manuseio Especial</div>
+      <div className="flex flex-col items-center pb-1">
+        <img src={shopboxLogo} alt="shopbox" className="h-14 w-auto" style={{ filter: "brightness(0)" }} />
+        <div className="text-[9px] font-black uppercase tracking-widest mt-0.5">Manuseio Especial</div>
       </div>
 
       <div
