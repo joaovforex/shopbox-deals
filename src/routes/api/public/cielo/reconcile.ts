@@ -5,6 +5,12 @@ import { createFileRoute } from "@tanstack/react-router";
 // Autenticação: header apikey (Supabase publishable key). O prefixo
 // /api/public/* já dispensa auth de plataforma, mas checamos a apikey
 // para não expor um endpoint totalmente aberto.
+//
+// Como funciona: para cada pedido "pending" Cielo criado nas últimas 48h,
+// consultamos a Cielo pelo order_number (nosso próprio order.id) via
+// /v2/merchantOrderNumber/{order_number} → obtemos o checkoutOrderNumber
+// mais recente → consultamos os detalhes em /v2/orders/{checkoutOrderNumber}
+// → aplicamos o status ao pedido local.
 
 export const Route = createFileRoute("/api/public/cielo/reconcile")({
   server: {
@@ -17,16 +23,14 @@ export const Route = createFileRoute("/api/public/cielo/reconcile")({
         }
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { getOrder, mapCieloStatus } = await import("@/lib/cielo.server");
+        const { getOrderByOrderNumber, mapCieloStatus } = await import("@/lib/cielo.server");
 
-        // Pedidos Cielo em aberto criados nas últimas 48h
         const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
         const { data: candidates, error } = await supabaseAdmin
           .from("orders")
-          .select("id, cielo_payment_id, status, cielo_status")
+          .select("id, status, cielo_status")
           .eq("payment_provider", "cielo")
           .in("status", ["pending"])
-          .not("cielo_payment_id", "is", null)
           .gte("created_at", since)
           .limit(100);
         if (error) {
@@ -37,9 +41,9 @@ export const Route = createFileRoute("/api/public/cielo/reconcile")({
         let checked = 0;
         let updated = 0;
         for (const row of candidates ?? []) {
-          const r = row as { id: string; cielo_payment_id: string };
+          const r = row as { id: string };
           try {
-            const cielo = await getOrder(r.cielo_payment_id);
+            const cielo = await getOrderByOrderNumber(r.id);
             if (!cielo) continue;
             checked++;
 
@@ -48,6 +52,7 @@ export const Route = createFileRoute("/api/public/cielo/reconcile")({
             await supabaseAdmin
               .from("orders")
               .update({
+                cielo_payment_id: cielo.checkoutOrderNumber,
                 cielo_status,
                 cielo_tid: cielo.tid ?? null,
                 cielo_authorization_code: cielo.authorizationCode ?? null,
@@ -60,7 +65,7 @@ export const Route = createFileRoute("/api/public/cielo/reconcile")({
             if (order_action === "paid") {
               const { error: rpcErr } = await supabaseAdmin.rpc(
                 "confirm_order_paid" as never,
-                { p_order_id: r.id, p_mp_payment_id: r.cielo_payment_id } as never,
+                { p_order_id: r.id, p_mp_payment_id: cielo.checkoutOrderNumber } as never,
               );
               if (!rpcErr) updated++;
             } else if (order_action === "cancelled") {
@@ -75,9 +80,10 @@ export const Route = createFileRoute("/api/public/cielo/reconcile")({
           }
         }
 
-        return new Response(JSON.stringify({ checked, updated, candidates: candidates?.length ?? 0 }), {
-          headers: { "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ checked, updated, candidates: candidates?.length ?? 0 }),
+          { headers: { "Content-Type": "application/json" } },
+        );
       },
     },
   },

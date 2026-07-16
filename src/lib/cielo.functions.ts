@@ -239,7 +239,7 @@ export const createCieloCheckout = createServerFn({ method: "POST" })
 
     const shippingArg = data.delivery_method === "delivery" && data.shipping
       ? {
-          type: "Fixed" as const,
+          type: "FixedAmount" as const,
           priceCents: Math.round(shippingFee * 100),
           address: {
             street: data.shipping.street,
@@ -262,12 +262,10 @@ export const createCieloCheckout = createServerFn({ method: "POST" })
         shipping: shippingArg,
         maxInstallments: Math.min(MAX_INSTALLMENTS, data.installments ?? MAX_INSTALLMENTS),
         returnUrl: `${origin}/pedido/${orderId}`,
-        webhookUrl: `${origin}/api/public/cielo/webhook`,
         customer: {
           name: data.customer_name.trim(),
           email: data.customer_email.trim(),
           identity: cpfDigits,
-          identityType: "CPF",
           phone: phoneDigits,
         },
       });
@@ -281,7 +279,6 @@ export const createCieloCheckout = createServerFn({ method: "POST" })
       .from("orders")
       .update({
         cielo_checkout_url: checkout.checkoutUrl,
-        cielo_merchant_order_id: checkout.merchantOrderId,
       } as never)
       .eq("id", orderId as string);
 
@@ -290,6 +287,7 @@ export const createCieloCheckout = createServerFn({ method: "POST" })
       checkoutUrl: checkout.checkoutUrl,
     };
   });
+
 
 // Retomada do pagamento pendente (equivalente ao resumePendingPayment do MP)
 export const resumeCieloPayment = createServerFn({ method: "POST" })
