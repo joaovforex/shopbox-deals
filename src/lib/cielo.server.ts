@@ -277,17 +277,43 @@ export async function getOrderByOrderNumber(orderNumber: string): Promise<CieloO
 
 // ============ Cancelamento ============
 
-export async function voidOrder(checkoutOrderNumber: string, amountCents?: number): Promise<boolean> {
+export type VoidResult = {
+  ok: boolean;
+  status: number;
+  returnCode?: string;
+  returnMessage?: string;
+  insufficientBalance?: boolean;
+  raw?: string;
+};
+
+/**
+ * Solicita void/estorno na Cielo.
+ * Cielo pode responder 200 com { success: false, returnCode, returnMessage } — tratamos como falha.
+ * insufficientBalance = true quando o motivo é "saldo insuficiente para estorno" (D+1).
+ */
+export async function voidOrder(checkoutOrderNumber: string, amountCents?: number): Promise<VoidResult> {
   const url = `${ORDER_BY_CHECKOUT_ID_URL}/${encodeURIComponent(checkoutOrderNumber)}/void${
     amountCents ? `?amount=${amountCents}` : ""
   }`;
   const res = await authedFetch(url, { method: "PUT" });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
+  const text = await res.text().catch(() => "");
+  let parsed: Record<string, unknown> = {};
+  try { parsed = text ? JSON.parse(text) as Record<string, unknown> : {}; } catch { /* ignore */ }
+
+  const returnCode = pick<string>(parsed, "returnCode", "ReturnCode");
+  const returnMessage = pick<string>(parsed, "returnMessage", "ReturnMessage");
+  const success = pick<boolean>(parsed, "success", "Success");
+  const msgLower = String(returnMessage ?? "").toLowerCase();
+  const insufficientBalance =
+    msgLower.includes("insufficient balance") ||
+    msgLower.includes("saldo insuficiente") ||
+    returnCode === "7";
+
+  if (!res.ok || success === false) {
     console.error("[cielo] void error", res.status, text);
-    return false;
+    return { ok: false, status: res.status, returnCode, returnMessage, insufficientBalance, raw: text };
   }
-  return true;
+  return { ok: true, status: res.status, returnCode, returnMessage };
 }
 
 // ============ Mapeamento de status ============
