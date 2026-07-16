@@ -25,8 +25,11 @@ function RefundsPage() {
   const fetchRefunds = useServerFn(listRefunds);
   const fetchConsistency = useServerFn(getRefundConsistency);
   const reinstate = useServerFn(reinstateOrderAsPaid);
+  const fetchQueue = useServerFn(listCieloRefundQueue);
+  const retryNow = useServerFn(retryCieloRefundNow);
   const qc = useQueryClient();
   const [reinstatingId, setReinstatingId] = useState<string | null>(null);
+  const [retryingQueueId, setRetryingQueueId] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [confirmText, setConfirmText] = useState("");
   const [feedback, setFeedback] = useState<{ orderId: string; kind: "ok" | "err"; msg: string } | null>(null);
