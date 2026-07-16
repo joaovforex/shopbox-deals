@@ -513,6 +513,22 @@ function FulfillmentPage() {
 
         {!searchActive && tab === "notifications" ? (
           <NotificationsPanel rows={notifData?.orders ?? []} itemsByOrder={notifData?.itemsByOrder ?? new Map()} />
+        ) : !searchActive && tab === "refunds" ? (
+          <RefundsPanel
+            orders={orders}
+            queueByOrder={refundQueueByOrder}
+            itemsByOrder={itemsByOrder}
+            onRetry={async (queueId) => {
+              try {
+                await retryRefundFn({ data: { queueId } });
+                toast.success("Tentativa disparada. Aguardando resultado…");
+                qc.invalidateQueries({ queryKey: ["cielo-refund-queue"] });
+                qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
+              } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Falha ao retentar");
+              }
+            }}
+          />
         ) : (searchActive ? searchLoading : isLoading) ? (
           <div className="bg-card border border-border rounded-lg p-8 text-center text-muted-foreground">Carregando...</div>
         ) : orders.length === 0 ? (
