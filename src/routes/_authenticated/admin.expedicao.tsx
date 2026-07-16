@@ -518,7 +518,7 @@ function FulfillmentPage() {
             orders={orders}
             queueByOrder={refundQueueByOrder}
             itemsByOrder={itemsByOrder}
-            onRetry={async (queueId) => {
+            onRetry={async (queueId: string) => {
               try {
                 await retryRefundFn({ data: { queueId } });
                 toast.success("Tentativa disparada. Aguardando resultado…");
