@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
 import { STORE_ADDRESS } from "@/lib/whatsapp";
 import { resumePendingPayment } from "@/lib/mercadopago.functions";
+import { resumeCieloPayment } from "@/lib/cielo.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { toast } from "sonner";
 
@@ -219,8 +220,8 @@ function MyOrdersPage() {
                     )}
                   </Link>
 
-                  {o.status === "pending" && o.payment_method === "mercadopago" && (
-                    <ResumePaymentBlock orderId={o.id} createdAt={o.created_at} />
+                  {o.status === "pending" && (o.payment_method === "mercadopago" || o.payment_method === "cielo") && (
+                    <ResumePaymentBlock orderId={o.id} createdAt={o.created_at} paymentMethod={o.payment_method} />
                   )}
                 </li>
 
@@ -234,11 +235,13 @@ function MyOrdersPage() {
   );
 }
 
-function ResumePaymentBlock({ orderId, createdAt }: { orderId: string; createdAt: string }) {
+function ResumePaymentBlock({ orderId, createdAt, paymentMethod }: { orderId: string; createdAt: string; paymentMethod: string }) {
   const queryClient = useQueryClient();
   const deadline = new Date(createdAt).getTime() + 5 * 60 * 1000;
   const [now, setNow] = useState(() => Date.now());
   const [loading, setLoading] = useState(false);
+  const resumeMp = useServerFn(resumePendingPayment);
+  const resumeCielo = useServerFn(resumeCieloPayment);
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -261,9 +264,14 @@ function ResumePaymentBlock({ orderId, createdAt }: { orderId: string; createdAt
   const onResume = async () => {
     setLoading(true);
     try {
-      const res = await resumePendingPayment({ data: { orderId } });
-      if (res?.initPoint) {
-        if (typeof window !== "undefined") {
+      if (paymentMethod === "cielo") {
+        const res = await resumeCielo({ data: { orderId } });
+        if (res?.checkoutUrl && typeof window !== "undefined") {
+          window.location.assign(res.checkoutUrl);
+        }
+      } else {
+        const res = await resumeMp({ data: { orderId } });
+        if (res?.initPoint && typeof window !== "undefined") {
           sessionStorage.setItem("mp_init_point", res.initPoint);
           window.location.assign("/redirecionando");
         }
