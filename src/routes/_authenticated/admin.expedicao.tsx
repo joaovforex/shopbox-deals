@@ -515,7 +515,7 @@ function FulfillmentPage() {
 
         {!searchActive && tab === "notifications" ? (
           <NotificationsPanel rows={notifData?.orders ?? []} itemsByOrder={notifData?.itemsByOrder ?? new Map()} />
-        ) : !searchActive && tab === "refunds" ? (
+        ) : !searchActive && tab === "refunds" && superAdmin ? (
           <RefundsPanel
             orders={orders}
             queueByOrder={refundQueueByOrder}
