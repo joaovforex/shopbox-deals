@@ -67,6 +67,25 @@ function RefundsPage() {
     refetchInterval: 60_000,
   });
 
+  const { data: queue } = useQuery({
+    queryKey: ["cielo-refund-queue"],
+    queryFn: () => fetchQueue({}),
+    refetchInterval: 30_000,
+  });
+
+  const handleRetryQueue = async (queueId: string) => {
+    setRetryingQueueId(queueId);
+    try {
+      await retryNow({ data: { queueId } });
+      await qc.invalidateQueries({ queryKey: ["cielo-refund-queue"] });
+      await qc.invalidateQueries({ queryKey: ["admin-refunds"] });
+    } catch (e) {
+      alert("Falha ao retentar: " + (e as Error).message);
+    } finally {
+      setRetryingQueueId(null);
+    }
+  };
+
   const verificationByOrder = useMemo(() => {
     const m = new Map<string, NonNullable<typeof consistency>["verifications"][number]>();
     for (const v of consistency?.verifications ?? []) m.set(v.orderId, v);
