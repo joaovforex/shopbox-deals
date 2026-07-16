@@ -114,6 +114,114 @@ export type Database = {
           },
         ]
       }
+      cielo_refund_queue: {
+        Row: {
+          amount: number
+          attempts: number
+          cielo_payment_id: string
+          completed_at: string | null
+          created_at: string
+          customer_cpf: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          expected_mp_payment_id: string | null
+          id: string
+          is_full: boolean
+          items: Json | null
+          last_attempt_at: string | null
+          last_error: string | null
+          last_error_code: string | null
+          max_attempts: number
+          next_attempt_at: string
+          operator_id: string | null
+          operator_name: string | null
+          order_created_at: string | null
+          order_id: string
+          order_total: number | null
+          payment_method: string | null
+          reason: string
+          refund_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          attempts?: number
+          cielo_payment_id: string
+          completed_at?: string | null
+          created_at?: string
+          customer_cpf?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          expected_mp_payment_id?: string | null
+          id?: string
+          is_full?: boolean
+          items?: Json | null
+          last_attempt_at?: string | null
+          last_error?: string | null
+          last_error_code?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          operator_id?: string | null
+          operator_name?: string | null
+          order_created_at?: string | null
+          order_id: string
+          order_total?: number | null
+          payment_method?: string | null
+          reason: string
+          refund_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          attempts?: number
+          cielo_payment_id?: string
+          completed_at?: string | null
+          created_at?: string
+          customer_cpf?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          expected_mp_payment_id?: string | null
+          id?: string
+          is_full?: boolean
+          items?: Json | null
+          last_attempt_at?: string | null
+          last_error?: string | null
+          last_error_code?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          operator_id?: string | null
+          operator_name?: string | null
+          order_created_at?: string | null
+          order_id?: string
+          order_total?: number | null
+          payment_method?: string | null
+          reason?: string
+          refund_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cielo_refund_queue_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cielo_refund_queue_refund_id_fkey"
+            columns: ["refund_id"]
+            isOneToOne: false
+            referencedRelation: "refunds"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cielo_webhook_events: {
         Row: {
           change_type: number
