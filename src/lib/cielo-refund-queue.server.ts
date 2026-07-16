@@ -97,7 +97,7 @@ export async function processCieloRefundQueue(): Promise<{
             payment_method: row.payment_method,
             order_total: row.order_total,
             order_created_at: row.order_created_at,
-            items: row.items ?? [],
+            items: (row.items ?? []) as never,
             operator_id: row.operator_id,
             operator_name: row.operator_name,
           })
