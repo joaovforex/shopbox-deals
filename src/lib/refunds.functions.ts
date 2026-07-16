@@ -253,7 +253,7 @@ export const refundOrder = createServerFn({ method: "POST" })
     // Grava o histórico de reembolso ANTES de remover o pedido.
     const { error: insErr } = await supabaseAdmin.from("refunds").insert({
       order_id: order.id,
-      mp_payment_id: provider === "cielo" ? (cieloPaymentId ?? null) : order.mp_payment_id,
+      mp_payment_id: order.mp_payment_id,
       mp_refund_id: mpRefundId,
       amount: data.amount,
       is_full: isFull,
