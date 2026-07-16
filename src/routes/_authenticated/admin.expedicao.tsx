@@ -1052,3 +1052,128 @@ function SkuChip({ sku, small = false }: { sku: string; small?: boolean }) {
   );
 }
 
+
+// ============================================================
+// Painel de Reembolsos (aba na Expedição)
+// Mostra pedidos com refund_status em queued/processing/refund_failed
+// e o nível de processamento na fila Cielo.
+// ============================================================
+
+function refundStatusLabel(orderStatus: string | null | undefined, queue: CieloRefundQueueRow | undefined): { label: string; tone: "warn" | "info" | "error" | "ok" } {
+  if (queue?.status === "completed") return { label: "Reembolsado", tone: "ok" };
+  if (queue?.status === "processing") return { label: "Processando estorno…", tone: "info" };
+  if (queue?.status === "failed" || orderStatus === "refund_failed") return { label: "Falhou — ação necessária", tone: "error" };
+  if (queue?.status === "pending") return { label: "Aguardando saldo (D+1)", tone: "warn" };
+  if (orderStatus === "queued") return { label: "Na fila (D+1)", tone: "warn" };
+  return { label: "Em análise", tone: "info" };
+}
+
+function RefundsPanel({
+  orders,
+  queueByOrder,
+  itemsByOrder,
+  onRetry,
+}: {
+  orders: OrderRow[];
+  queueByOrder: Map<string, CieloRefundQueueRow>;
+  itemsByOrder: Map<string, ItemRow[]>;
+  onRetry: (queueId: string) => void | Promise<void>;
+}) {
+  if (orders.length === 0) {
+    return (
+      <div className="bg-card border border-border rounded-lg p-8 text-center text-muted-foreground">
+        <Undo2 className="h-10 w-10 mx-auto mb-2 text-primary" />
+        Nenhum pedido em fila de reembolso.
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 text-xs text-foreground">
+        <strong className="uppercase tracking-wider text-accent">Como funciona:</strong>{" "}
+        Reembolsos Cielo são processados automaticamente no próximo dia útil (D+1), quando o saldo é liberado pela adquirente.
+        Se o saldo ainda não estiver disponível, o sistema tenta novamente a cada 24h até completar.
+      </div>
+      <div className="grid md:grid-cols-2 gap-4">
+        {orders.map((o) => {
+          const q = queueByOrder.get(o.id);
+          const st = refundStatusLabel(o.refund_status, q);
+          const items = itemsByOrder.get(o.id) ?? [];
+          const tone =
+            st.tone === "ok" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" :
+            st.tone === "error" ? "bg-destructive/10 text-destructive border-destructive/30" :
+            st.tone === "info" ? "bg-blue-500/10 text-blue-600 border-blue-500/30" :
+            "bg-amber-500/10 text-amber-700 border-amber-500/30";
+          const nextAttempt = q?.next_attempt_at ? new Date(q.next_attempt_at) : null;
+          const lastAttempt = q?.last_attempt_at ? new Date(q.last_attempt_at) : null;
+          return (
+            <article key={o.id} className="bg-card border border-border rounded-lg p-4 flex flex-col gap-3">
+              <header className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="text-xs uppercase tracking-widest text-muted-foreground font-bold">
+                    #{o.id.slice(0, 8).toUpperCase()}
+                  </div>
+                  <div className="font-bold">{o.customer_name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {new Date(o.created_at).toLocaleString("pt-BR")} · {brl(o.total)}
+                  </div>
+                </div>
+                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded border ${tone}`}>
+                  {st.label}
+                </span>
+              </header>
+
+              {items.length > 0 && (
+                <ul className="text-xs text-muted-foreground space-y-0.5">
+                  {items.map((it, i) => (
+                    <li key={i}>· {it.quantity}× {it.product_name}</li>
+                  ))}
+                </ul>
+              )}
+
+              <div className="text-[11px] grid grid-cols-2 gap-2 border-t border-border pt-2">
+                <div>
+                  <div className="uppercase tracking-wider text-muted-foreground">Tentativas</div>
+                  <div className="font-mono font-bold">{q ? `${q.attempts}/${q.max_attempts}` : "—"}</div>
+                </div>
+                <div>
+                  <div className="uppercase tracking-wider text-muted-foreground">Valor</div>
+                  <div className="font-mono font-bold">{q ? brl(q.amount) : brl(o.total)}</div>
+                </div>
+                {lastAttempt && (
+                  <div className="col-span-2">
+                    <div className="uppercase tracking-wider text-muted-foreground">Última tentativa</div>
+                    <div>{lastAttempt.toLocaleString("pt-BR")}</div>
+                  </div>
+                )}
+                {nextAttempt && q?.status !== "completed" && (
+                  <div className="col-span-2">
+                    <div className="uppercase tracking-wider text-muted-foreground">Próxima tentativa</div>
+                    <div>{nextAttempt.toLocaleString("pt-BR")}</div>
+                  </div>
+                )}
+                {q?.last_error && (
+                  <div className="col-span-2">
+                    <div className="uppercase tracking-wider text-muted-foreground">Último erro</div>
+                    <div className="text-destructive">{q.last_error}{q.last_error_code ? ` (${q.last_error_code})` : ""}</div>
+                  </div>
+                )}
+              </div>
+
+              {q && q.status !== "completed" && (
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => onRetry(q.id)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-primary text-primary-foreground text-[11px] font-black uppercase tracking-wider hover:opacity-90"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" /> Tentar agora
+                  </button>
+                </div>
+              )}
+            </article>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
