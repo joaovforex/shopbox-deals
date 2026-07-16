@@ -17,7 +17,8 @@
 
 const CIELO_BASE = "https://cieloecommerce.cielo.com.br";
 const TOKEN_URL = `${CIELO_BASE}/api/public/v2/token`;
-const CHECKOUT_URL = `${CIELO_BASE}/api/public/v1/orders/`;
+// Nota: a Cielo devolve 401 quando a URL termina com barra ("/v1/orders/"). Manter sem barra final.
+const CHECKOUT_URL = `${CIELO_BASE}/api/public/v1/orders`;
 const ORDER_BY_ORDER_NUMBER_URL = `${CIELO_BASE}/api/public/v2/merchantOrderNumber`;
 const ORDER_BY_CHECKOUT_ID_URL = `${CIELO_BASE}/api/public/v2/orders`;
 
