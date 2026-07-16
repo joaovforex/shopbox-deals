@@ -6,7 +6,7 @@ type CartItemInput = { product_id: string; quantity: number; color?: string | nu
 
 type CreateManualSaleInput = {
   customer_name: string;
-  customer_phone: string; // digits only or formatted
+  customer_phone: string;
   delivery_method: "pickup" | "delivery";
   items: CartItemInput[];
 };
@@ -37,10 +37,7 @@ export const createManualSale = createServerFn({ method: "POST" })
     return { ...data, customer_phone: phone };
   })
   .handler(async ({ data, context }) => {
-    const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-    if (!accessToken) throw new Error("Mercado Pago não configurado");
-
-    // Verifica que é admin (defesa em profundidade — RPC também checa)
+    // Verifica que é admin
     const { data: isAdmin } = await context.supabase.rpc("has_role" as never, {
       _user_id: context.userId,
       _role: "admin",
@@ -48,6 +45,7 @@ export const createManualSale = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Sem permissão");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { createCheckout } = await import("@/lib/cielo.server");
 
     const { data: orderId, error: orderErr } = await context.supabase.rpc(
       "create_manual_order" as never,
@@ -60,73 +58,60 @@ export const createManualSale = createServerFn({ method: "POST" })
     );
     if (orderErr || !orderId) throw new Error(orderErr?.message ?? "Falha ao criar pedido");
 
+    // Marca como Cielo
+    await supabaseAdmin
+      .from("orders")
+      .update({ payment_provider: "cielo" } as never)
+      .eq("id", orderId as string);
+
     const { data: orderItems, error: itemsErr } = await supabaseAdmin
       .from("order_items")
       .select("product_name, unit_price, quantity")
       .eq("order_id", orderId as string);
     if (itemsErr || !orderItems) throw new Error("Falha ao carregar itens");
 
-    const origin = originFromRequest();
-    const mpItems = orderItems.map((it) => ({
-      id: orderId as string,
-      title: String(it.product_name).slice(0, 250),
-      quantity: it.quantity,
-      unit_price: Number(it.unit_price),
-      currency_id: "BRL",
+    const cieloItems = orderItems.map((it) => ({
+      name: String(it.product_name).slice(0, 128),
+      unitPriceCents: Math.round(Number(it.unit_price) * 100),
+      quantity: Number(it.quantity),
+      sku: (orderId as string).slice(0, 40),
     }));
 
-    const nameParts = data.customer_name.trim().split(/\s+/);
-    const firstName = nameParts[0] ?? "";
-    const lastName = nameParts.slice(1).join(" ") || firstName;
+    const origin = originFromRequest();
 
-    const preferenceBody = {
-      external_reference: orderId,
-      items: mpItems,
-      payer: {
-        name: firstName,
-        surname: lastName,
-        phone: {
-          area_code: data.customer_phone.slice(0, 2),
-          number: data.customer_phone.slice(2),
+    let checkout;
+    try {
+      checkout = await createCheckout({
+        orderNumber: orderId as string,
+        softDescriptor: "SHOPBOX",
+        items: cieloItems,
+        shipping: { type: "WithoutShipping" },
+        maxInstallments: 7,
+        returnUrl: `${origin}/pedido/${orderId}`,
+        webhookUrl: `${origin}/api/public/cielo/webhook`,
+        customer: {
+          name: data.customer_name.trim(),
+          phone: data.customer_phone,
         },
-      },
-      payment_methods: { default_installments: 1 },
-      back_urls: {
-        success: `${origin}/pedido/${orderId}`,
-        pending: `${origin}/pedido/${orderId}`,
-        failure: `${origin}/pedido/${orderId}`,
-      },
-      notification_url: `${origin}/api/public/mp/webhook`,
-      statement_descriptor: "SHOPBOX",
-      metadata: { order_id: orderId, manual_sale: true },
-    };
-
-    const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(preferenceBody),
-    });
-
-    if (!mpRes.ok) {
-      const errText = await mpRes.text();
-      console.error("[manual-sale] mp preference error", mpRes.status, errText);
+      });
+    } catch (err) {
+      console.error("[manual-sale] cielo checkout error", err);
       await supabaseAdmin.from("orders").update({ status: "cancelled" }).eq("id", orderId as string);
-      throw new Error("Falha ao gerar cobrança no Mercado Pago");
+      throw new Error("Falha ao gerar cobrança na Cielo");
     }
-
-    const pref = (await mpRes.json()) as { id: string; init_point: string };
 
     await supabaseAdmin
       .from("orders")
-      .update({ mp_preference_id: pref.id, mp_init_point: pref.init_point } as never)
+      .update({
+        cielo_checkout_url: checkout.checkoutUrl,
+        cielo_merchant_order_id: checkout.merchantOrderId,
+      } as never)
       .eq("id", orderId as string);
 
     return {
       orderId: orderId as string,
-      preferenceId: pref.id,
-      initPoint: pref.init_point,
+      // Mantém a chave "initPoint" para compatibilidade com a UI existente
+      initPoint: checkout.checkoutUrl,
+      preferenceId: checkout.merchantOrderId,
     };
   });

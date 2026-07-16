@@ -39,6 +39,8 @@ import { Route as AuthenticatedAdminConfiguracoesRouteImport } from './routes/_a
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp.webhook'
 import { Route as ApiPublicMaisentregasPollRouteImport } from './routes/api/public/maisentregas/poll'
+import { Route as ApiPublicCieloWebhookRouteImport } from './routes/api/public/cielo/webhook'
+import { Route as ApiPublicCieloReconcileRouteImport } from './routes/api/public/cielo/reconcile'
 import { Route as ApiPublicCashbackExpireRouteImport } from './routes/api/public/cashback/expire'
 
 const TermosRoute = TermosRouteImport.update({
@@ -202,6 +204,16 @@ const ApiPublicMaisentregasPollRoute =
     path: '/api/public/maisentregas/poll',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCieloWebhookRoute = ApiPublicCieloWebhookRouteImport.update({
+  id: '/api/public/cielo/webhook',
+  path: '/api/public/cielo/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicCieloReconcileRoute = ApiPublicCieloReconcileRouteImport.update({
+  id: '/api/public/cielo/reconcile',
+  path: '/api/public/cielo/reconcile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicCashbackExpireRoute = ApiPublicCashbackExpireRouteImport.update({
   id: '/api/public/cashback/expire',
   path: '/api/public/cashback/expire',
@@ -236,6 +248,8 @@ export interface FileRoutesByFullPath {
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
+  '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
+  '/api/public/cielo/webhook': typeof ApiPublicCieloWebhookRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -268,6 +282,8 @@ export interface FileRoutesByTo {
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
+  '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
+  '/api/public/cielo/webhook': typeof ApiPublicCieloWebhookRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -302,6 +318,8 @@ export interface FileRoutesById {
   '/_authenticated/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
+  '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
+  '/api/public/cielo/webhook': typeof ApiPublicCieloWebhookRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -336,6 +354,8 @@ export interface FileRouteTypes {
     | '/admin/venda-manual'
     | '/api/public/reconcile-orders'
     | '/api/public/cashback/expire'
+    | '/api/public/cielo/reconcile'
+    | '/api/public/cielo/webhook'
     | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
     | '/lovable/email/queue/process'
@@ -368,6 +388,8 @@ export interface FileRouteTypes {
     | '/admin/venda-manual'
     | '/api/public/reconcile-orders'
     | '/api/public/cashback/expire'
+    | '/api/public/cielo/reconcile'
+    | '/api/public/cielo/webhook'
     | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
     | '/lovable/email/queue/process'
@@ -401,6 +423,8 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/venda-manual'
     | '/api/public/reconcile-orders'
     | '/api/public/cashback/expire'
+    | '/api/public/cielo/reconcile'
+    | '/api/public/cielo/webhook'
     | '/api/public/maisentregas/poll'
     | '/api/public/mp/webhook'
     | '/lovable/email/queue/process'
@@ -424,6 +448,8 @@ export interface RootRouteChildren {
   ProdutoIdRoute: typeof ProdutoIdRoute
   ApiPublicReconcileOrdersRoute: typeof ApiPublicReconcileOrdersRoute
   ApiPublicCashbackExpireRoute: typeof ApiPublicCashbackExpireRoute
+  ApiPublicCieloReconcileRoute: typeof ApiPublicCieloReconcileRoute
+  ApiPublicCieloWebhookRoute: typeof ApiPublicCieloWebhookRoute
   ApiPublicMaisentregasPollRoute: typeof ApiPublicMaisentregasPollRoute
   ApiPublicMpWebhookRoute: typeof ApiPublicMpWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -641,6 +667,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMaisentregasPollRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cielo/webhook': {
+      id: '/api/public/cielo/webhook'
+      path: '/api/public/cielo/webhook'
+      fullPath: '/api/public/cielo/webhook'
+      preLoaderRoute: typeof ApiPublicCieloWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/cielo/reconcile': {
+      id: '/api/public/cielo/reconcile'
+      path: '/api/public/cielo/reconcile'
+      fullPath: '/api/public/cielo/reconcile'
+      preLoaderRoute: typeof ApiPublicCieloReconcileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cashback/expire': {
       id: '/api/public/cashback/expire'
       path: '/api/public/cashback/expire'
@@ -709,6 +749,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProdutoIdRoute: ProdutoIdRoute,
   ApiPublicReconcileOrdersRoute: ApiPublicReconcileOrdersRoute,
   ApiPublicCashbackExpireRoute: ApiPublicCashbackExpireRoute,
+  ApiPublicCieloReconcileRoute: ApiPublicCieloReconcileRoute,
+  ApiPublicCieloWebhookRoute: ApiPublicCieloWebhookRoute,
   ApiPublicMaisentregasPollRoute: ApiPublicMaisentregasPollRoute,
   ApiPublicMpWebhookRoute: ApiPublicMpWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
@@ -716,13 +758,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

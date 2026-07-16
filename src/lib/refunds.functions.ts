@@ -60,13 +60,10 @@ export const refundOrder = createServerFn({ method: "POST" })
     if (roleErr) throw new Error("Falha ao validar permissão");
     if (!isSuper) throw new Error("Apenas SUPERADMIN pode emitir reembolso");
 
-    const token = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-    if (!token) throw new Error("MERCADO_PAGO_ACCESS_TOKEN não configurado");
-
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: order, error: oerr } = await supabaseAdmin
       .from("orders")
-      .select("id,status,total,mp_payment_id,refund_status,customer_name,customer_phone,customer_email,customer_cpf,payment_method,created_at")
+      .select("id,status,total,mp_payment_id,cielo_payment_id,payment_provider,refund_status,customer_name,customer_phone,customer_email,customer_cpf,payment_method,created_at")
       .eq("id", data.orderId)
       .maybeSingle();
     if (oerr) throw new Error("Falha ao buscar pedido");
@@ -75,8 +72,26 @@ export const refundOrder = createServerFn({ method: "POST" })
     if (order.refund_status === "refunded" || order.refund_status === "partially_refunded") {
       throw new Error("Pedido já reembolsado");
     }
-    if (!order.mp_payment_id) {
-      throw new Error("Pedido sem pagamento Mercado Pago associado — estorne manualmente");
+
+    const provider = (order as { payment_provider?: string }).payment_provider ?? "mercadopago";
+    const cieloPaymentId = (order as { cielo_payment_id?: string | null }).cielo_payment_id;
+
+    if (provider === "mercadopago") {
+      if (!order.mp_payment_id) {
+        throw new Error("Pedido sem pagamento Mercado Pago associado — estorne manualmente");
+      }
+    } else if (provider === "cielo") {
+      if (!cieloPaymentId) {
+        throw new Error("Pedido sem pagamento Cielo associado — estorne manualmente");
+      }
+    } else {
+      throw new Error(`Provedor de pagamento desconhecido: ${provider}`);
+    }
+
+    // Token MP só é necessário para pedidos MP
+    const token = process.env.MERCADO_PAGO_ACCESS_TOKEN;
+    if (provider === "mercadopago" && !token) {
+      throw new Error("MERCADO_PAGO_ACCESS_TOKEN não configurado");
     }
 
     // ============================================================
@@ -149,25 +164,35 @@ export const refundOrder = createServerFn({ method: "POST" })
       .select("product_name,variant_color,quantity,unit_price")
       .eq("order_id", order.id);
 
-    const idempotencyKey = `refund-${order.id}-${Date.now()}`;
-    const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${order.mp_payment_id}/refunds`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        "X-Idempotency-Key": idempotencyKey,
-      },
-      body: isFull ? JSON.stringify({}) : JSON.stringify({ amount: data.amount }),
-    });
-    const mpJson: any = await mpRes.json().catch(() => ({}));
-    if (!mpRes.ok) {
-      const msg = mpJson?.message || mpJson?.error || `Mercado Pago retornou ${mpRes.status}`;
-      throw new Error(`Falha no estorno: ${msg}`);
+    let providerRefundId = "";
+    if (provider === "mercadopago") {
+      const idempotencyKey = `refund-${order.id}-${Date.now()}`;
+      const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${order.mp_payment_id}/refunds`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": idempotencyKey,
+        },
+        body: isFull ? JSON.stringify({}) : JSON.stringify({ amount: data.amount }),
+      });
+      const mpJson: any = await mpRes.json().catch(() => ({}));
+      if (!mpRes.ok) {
+        const msg = mpJson?.message || mpJson?.error || `Mercado Pago retornou ${mpRes.status}`;
+        throw new Error(`Falha no estorno: ${msg}`);
+      }
+      providerRefundId = String(mpJson?.id ?? "");
+    } else if (provider === "cielo") {
+      const { voidOrder } = await import("@/lib/cielo.server");
+      const amountCents = isFull ? undefined : Math.round(data.amount * 100);
+      const ok = await voidOrder(cieloPaymentId!, amountCents);
+      if (!ok) throw new Error("Falha no estorno da Cielo");
+      providerRefundId = `cielo-void-${Date.now()}`;
     }
 
     const { data: prof } = await supabaseAdmin.from("profiles").select("full_name").eq("id", userId).maybeSingle();
     const operatorName = prof?.full_name || "—";
-    const mpRefundId = String(mpJson?.id ?? "");
+    const mpRefundId = providerRefundId;
 
     const itemsSnapshot = (items ?? []).map((it: any) => ({
       name: it.product_name,
@@ -179,7 +204,7 @@ export const refundOrder = createServerFn({ method: "POST" })
     // Grava o histórico de reembolso ANTES de remover o pedido.
     const { error: insErr } = await supabaseAdmin.from("refunds").insert({
       order_id: order.id,
-      mp_payment_id: order.mp_payment_id,
+      mp_payment_id: provider === "cielo" ? (cieloPaymentId ?? null) : order.mp_payment_id,
       mp_refund_id: mpRefundId,
       amount: data.amount,
       is_full: isFull,

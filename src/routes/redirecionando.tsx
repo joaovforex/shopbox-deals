@@ -48,7 +48,7 @@ function RedirectingPage() {
           Redirecionando para o pagamento{dots}
         </h1>
         <p className="text-muted-foreground text-sm md:text-base">
-          Estamos te levando ao checkout seguro do Mercado Pago.
+          Estamos te levando ao checkout seguro da Cielo.
         </p>
         {target && (
           <p className="text-sm md:text-base">
