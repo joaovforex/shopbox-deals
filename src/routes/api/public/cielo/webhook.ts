@@ -108,16 +108,10 @@ async function processCieloNotification(p: Record<string, unknown>): Promise<voi
     } as never)
     .then(() => undefined, () => undefined);
 
-  // === Caso 1: API 3.0 e-Commerce ===
-  if (paymentId) {
+  // === Caso 1 (compat.): { PaymentId } antigo → tratamos como checkout id ===
+  if (paymentId && !checkoutOrderNumber && !linkUrl) {
     const { getOrder, mapCieloStatus } = await import("@/lib/cielo.server");
-    let cielo;
-    try {
-      cielo = await getOrder(paymentId);
-    } catch (err) {
-      console.error("[cielo:webhook] getOrder falhou", err);
-      return;
-    }
+    const cielo = await getOrder(paymentId).catch(() => null);
     if (!cielo?.orderNumber) return;
     const map = mapCieloStatus(cielo.status);
     await applyStatusToOrder(supabaseAdmin, cielo.orderNumber, map.order_action, paymentId, {
@@ -131,6 +125,7 @@ async function processCieloNotification(p: Record<string, unknown>): Promise<voi
     });
     return;
   }
+
 
   // === Caso 2: Link de Pagamento (JSON com URL) ===
   if (linkUrl && merchantOrderNumber) {
