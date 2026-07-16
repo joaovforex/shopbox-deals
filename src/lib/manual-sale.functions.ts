@@ -88,7 +88,6 @@ export const createManualSale = createServerFn({ method: "POST" })
         shipping: { type: "WithoutShipping" },
         maxInstallments: 7,
         returnUrl: `${origin}/pedido/${orderId}`,
-        webhookUrl: `${origin}/api/public/cielo/webhook`,
         customer: {
           name: data.customer_name.trim(),
           phone: data.customer_phone,
@@ -104,7 +103,6 @@ export const createManualSale = createServerFn({ method: "POST" })
       .from("orders")
       .update({
         cielo_checkout_url: checkout.checkoutUrl,
-        cielo_merchant_order_id: checkout.merchantOrderId,
       } as never)
       .eq("id", orderId as string);
 
@@ -112,6 +110,7 @@ export const createManualSale = createServerFn({ method: "POST" })
       orderId: orderId as string,
       // Mantém a chave "initPoint" para compatibilidade com a UI existente
       initPoint: checkout.checkoutUrl,
-      preferenceId: checkout.merchantOrderId,
+      preferenceId: orderId as string,
     };
   });
+
