@@ -193,59 +193,58 @@ export const refundOrder = createServerFn({ method: "POST" })
       }
       providerRefundId = String(mpJson?.id ?? "");
     } else if (provider === "cielo") {
-      const { voidOrder } = await import("@/lib/cielo.server");
-      const amountCents = isFull ? undefined : Math.round(data.amount * 100);
-      const voidRes = await voidOrder(cieloPaymentId!, amountCents);
-      if (!voidRes.ok) {
-        // Se for saldo insuficiente (D+1) → enfileira retentativa automática
-        if (voidRes.insufficientBalance) {
-          const { error: qErr } = await supabaseAdmin.from("cielo_refund_queue").insert({
-            order_id: order.id,
-            cielo_payment_id: cieloPaymentId!,
-            amount: data.amount,
-            is_full: isFull,
-            reason: data.reason,
-            customer_name: order.customer_name,
-            customer_email: order.customer_email,
-            customer_phone: order.customer_phone,
-            customer_cpf: order.customer_cpf,
-            payment_method: order.payment_method,
-            order_total: total,
-            order_created_at: order.created_at,
-            items: itemsSnapshot,
-            operator_id: userId,
-            operator_name: operatorName,
-            expected_mp_payment_id: data.expectedMpPaymentId,
-            status: "pending",
-            attempts: 1,
-            last_attempt_at: new Date().toISOString(),
-            last_error: voidRes.returnMessage ?? "Saldo insuficiente na Cielo",
-            last_error_code: voidRes.returnCode ?? null,
-            // Próxima tentativa: 24h (D+1)
-            next_attempt_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          });
-          if (qErr) {
-            console.error("[refund] failed to enqueue cielo refund", qErr);
-            throw new Error("Falha ao criar fila de reembolso: " + qErr.message);
-          }
-          // Marca o pedido como "refund_status = queued" e mantém como paid.
-          await supabaseAdmin
-            .from("orders")
-            .update({ refund_status: "queued" })
-            .eq("id", order.id);
-          return {
-            ok: true,
-            queued: true,
-            amount: data.amount,
-            full: isFull,
-            removed: false,
-            message:
-              "Saldo Cielo insuficiente no momento. Reembolso enfileirado — tentaremos automaticamente a cada 24h até completar.",
-          };
-        }
-        throw new Error(`Falha no estorno da Cielo: ${voidRes.returnMessage ?? voidRes.status}`);
+      // POLÍTICA: reembolsos Cielo são SEMPRE enfileirados para processamento
+      // no dia seguinte (D+1), garantindo que o saldo esteja liberado na
+      // adquirente. Isso evita erros de "saldo insuficiente" e centraliza
+      // toda a operação de estorno num horário previsível.
+      const nextAttempt = new Date();
+      nextAttempt.setUTCHours(12, 0, 0, 0); // 09:00 BRT
+      if (nextAttempt.getTime() - Date.now() < 18 * 60 * 60 * 1000) {
+        // Se ainda faltam menos de 18h para as 09:00 BRT de hoje, pula para amanhã
+        nextAttempt.setUTCDate(nextAttempt.getUTCDate() + 1);
       }
-      providerRefundId = `cielo-void-${Date.now()}`;
+      const { error: qErr } = await supabaseAdmin.from("cielo_refund_queue").insert({
+        order_id: order.id,
+        cielo_payment_id: cieloPaymentId!,
+        amount: data.amount,
+        is_full: isFull,
+        reason: data.reason,
+        customer_name: order.customer_name,
+        customer_email: order.customer_email,
+        customer_phone: order.customer_phone,
+        customer_cpf: order.customer_cpf,
+        payment_method: order.payment_method,
+        order_total: total,
+        order_created_at: order.created_at,
+        items: itemsSnapshot,
+        operator_id: userId,
+        operator_name: operatorName,
+        expected_mp_payment_id: data.expectedMpPaymentId,
+        status: "pending",
+        attempts: 0,
+        last_attempt_at: null,
+        last_error: null,
+        last_error_code: null,
+        next_attempt_at: nextAttempt.toISOString(),
+      });
+      if (qErr) {
+        console.error("[refund] failed to enqueue cielo refund", qErr);
+        throw new Error("Falha ao criar fila de reembolso: " + qErr.message);
+      }
+      await supabaseAdmin
+        .from("orders")
+        .update({ refund_status: "queued", fulfillment_status: "refund_pending" })
+        .eq("id", order.id);
+      return {
+        ok: true,
+        queued: true,
+        amount: data.amount,
+        full: isFull,
+        removed: false,
+        scheduledFor: nextAttempt.toISOString(),
+        message:
+          "Reembolso enfileirado — será processado automaticamente no próximo dia útil (D+1), quando o saldo Cielo estiver liberado. O pedido foi movido para a aba Reembolsos da expedição.",
+      };
     }
 
     const mpRefundId = providerRefundId;
@@ -254,7 +253,7 @@ export const refundOrder = createServerFn({ method: "POST" })
     // Grava o histórico de reembolso ANTES de remover o pedido.
     const { error: insErr } = await supabaseAdmin.from("refunds").insert({
       order_id: order.id,
-      mp_payment_id: provider === "cielo" ? (cieloPaymentId ?? null) : order.mp_payment_id,
+      mp_payment_id: order.mp_payment_id,
       mp_refund_id: mpRefundId,
       amount: data.amount,
       is_full: isFull,
