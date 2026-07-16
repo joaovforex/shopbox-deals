@@ -377,6 +377,89 @@ export const listRefunds = createServerFn({ method: "GET" })
 
 // ============================================================
 // Verificação pós-estorno
+// ============================================================
+
+export type CieloRefundQueueRow = {
+  id: string;
+  order_id: string;
+  cielo_payment_id: string;
+  amount: number;
+  is_full: boolean;
+  reason: string;
+  customer_name: string | null;
+  status: string;
+  attempts: number;
+  max_attempts: number;
+  next_attempt_at: string;
+  last_attempt_at: string | null;
+  last_error: string | null;
+  last_error_code: string | null;
+  completed_at: string | null;
+  created_at: string;
+};
+
+export const listCieloRefundQueue = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<CieloRefundQueueRow[]> => {
+    const { supabase, userId } = context;
+    const { data: isSuper } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isSuper) throw new Error("Apenas SUPERADMIN pode ver a fila de reembolsos");
+
+    const { data, error } = await supabase
+      .from("cielo_refund_queue")
+      .select("id,order_id,cielo_payment_id,amount,is_full,reason,customer_name,status,attempts,max_attempts,next_attempt_at,last_attempt_at,last_error,last_error_code,completed_at,created_at")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw new Error("Falha ao listar fila: " + error.message);
+    return (data ?? []).map((r: any) => ({
+      id: r.id,
+      order_id: r.order_id,
+      cielo_payment_id: r.cielo_payment_id,
+      amount: Number(r.amount),
+      is_full: !!r.is_full,
+      reason: r.reason,
+      customer_name: r.customer_name,
+      status: r.status,
+      attempts: r.attempts,
+      max_attempts: r.max_attempts,
+      next_attempt_at: r.next_attempt_at,
+      last_attempt_at: r.last_attempt_at,
+      last_error: r.last_error,
+      last_error_code: r.last_error_code,
+      completed_at: r.completed_at,
+      created_at: r.created_at,
+    }));
+  });
+
+// Força uma tentativa imediata (admin clica "Tentar agora")
+export const retryCieloRefundNow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { queueId: string }) => {
+    if (!data?.queueId || typeof data.queueId !== "string") throw new Error("ID inválido");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: isSuper } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isSuper) throw new Error("Apenas SUPERADMIN pode retentar reembolso");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Agenda para agora e deixa o processador rodar
+    const { error: upErr } = await supabaseAdmin
+      .from("cielo_refund_queue")
+      .update({ next_attempt_at: new Date().toISOString(), status: "pending" })
+      .eq("id", data.queueId)
+      .in("status", ["pending", "failed"]);
+    if (upErr) throw new Error("Falha ao agendar: " + upErr.message);
+
+    const { processCieloRefundQueue } = await import("@/lib/cielo-refund-queue.server");
+    const result = await processCieloRefundQueue();
+    return { ok: true, ...result };
+  });
+
+// ============================================================
+// Verificação pós-estorno (original)
+
 // Para cada refund, confirma:
 //  - o pedido foi removido (fluxo padrão) OU não está mais em "cancelled"
 //  - existe o registro em refunds (por definição, sim)
