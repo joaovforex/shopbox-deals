@@ -248,16 +248,8 @@ export const refundOrder = createServerFn({ method: "POST" })
       providerRefundId = `cielo-void-${Date.now()}`;
     }
 
-    const { data: prof } = await supabaseAdmin.from("profiles").select("full_name").eq("id", userId).maybeSingle();
-    const operatorName = prof?.full_name || "—";
     const mpRefundId = providerRefundId;
 
-    const itemsSnapshot = (items ?? []).map((it: any) => ({
-      name: it.product_name,
-      color: it.variant_color,
-      quantity: it.quantity,
-      unitPrice: Number(it.unit_price),
-    }));
 
     // Grava o histórico de reembolso ANTES de remover o pedido.
     const { error: insErr } = await supabaseAdmin.from("refunds").insert({
