@@ -88,8 +88,16 @@ function isDelayed(o: OrderRow) {
   return false;
 }
 
-function filterFulfillmentOrders(orders: OrderRow[], tab: "separation" | "pickup" | "delivery" | "done" | "notifications", labelFilter: "all" | "none" | "generated" | "printed") {
+const REFUND_PENDING_STATUSES = ["queued", "processing", "refund_failed"];
+function isRefundPending(o: Pick<OrderRow, "refund_status">) {
+  return !!o.refund_status && REFUND_PENDING_STATUSES.includes(o.refund_status);
+}
+
+function filterFulfillmentOrders(orders: OrderRow[], tab: "separation" | "pickup" | "delivery" | "done" | "notifications" | "refunds", labelFilter: "all" | "none" | "generated" | "printed") {
   let list = orders.filter((o) => {
+    if (tab === "refunds") return isRefundPending(o);
+    // Pedidos em fila de reembolso saem das abas de expedição normais
+    if (isRefundPending(o)) return false;
     if (tab === "done") return o.fulfillment_status === "completed";
     if (tab === "separation") return o.fulfillment_status === "pending" || o.fulfillment_status === "preparing";
     if (tab === "pickup") return o.delivery_method === "pickup" && o.fulfillment_status !== "completed";
