@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
 import { STORE_ADDRESS } from "@/lib/whatsapp";
 import { resumePendingPayment } from "@/lib/mercadopago.functions";
+import { resumeCieloPayment } from "@/lib/cielo.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { toast } from "sonner";
 
