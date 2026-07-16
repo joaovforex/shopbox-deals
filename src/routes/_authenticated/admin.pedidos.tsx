@@ -940,10 +940,14 @@ function OrdersPanel() {
             setBusy(true);
             try {
               const res = await refundFn({ data: { orderId: refundTarget.id, ...payload } });
-              toast.success((res.full ? "Reembolso total efetuado" : `Reembolso parcial de ${brl(res.amount)} efetuado`) + " · pedido removido");
-              if (res.receipt) {
-                const { printRefundReceipt } = await import("@/lib/refundReceipt");
-                printRefundReceipt(res.receipt);
+              if ((res as any).queued) {
+                toast.info((res as any).message ?? "Reembolso enfileirado — tentaremos automaticamente a cada 24h");
+              } else {
+                toast.success((res.full ? "Reembolso total efetuado" : `Reembolso parcial de ${brl(res.amount)} efetuado`) + " · pedido removido");
+                if (res.receipt) {
+                  const { printRefundReceipt } = await import("@/lib/refundReceipt");
+                  printRefundReceipt(res.receipt);
+                }
               }
               setRefundTarget(null);
               qc.invalidateQueries({ queryKey: ["admin-orders"] });

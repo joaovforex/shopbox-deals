@@ -6,7 +6,8 @@ import { ArrowLeft, Undo2, Printer, Search, X, AlertTriangle, CheckCircle2, Shie
 import { Header, Footer } from "@/components/Header";
 import { isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
-import { listRefunds, getRefundConsistency, reinstateOrderAsPaid, type RefundHistoryRow } from "@/lib/refunds.functions";
+import { listRefunds, getRefundConsistency, reinstateOrderAsPaid, listCieloRefundQueue, retryCieloRefundNow, type RefundHistoryRow } from "@/lib/refunds.functions";
+import { Clock, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/_authenticated/admin/reembolsos")({
@@ -24,8 +25,11 @@ function RefundsPage() {
   const fetchRefunds = useServerFn(listRefunds);
   const fetchConsistency = useServerFn(getRefundConsistency);
   const reinstate = useServerFn(reinstateOrderAsPaid);
+  const fetchQueue = useServerFn(listCieloRefundQueue);
+  const retryNow = useServerFn(retryCieloRefundNow);
   const qc = useQueryClient();
   const [reinstatingId, setReinstatingId] = useState<string | null>(null);
+  const [retryingQueueId, setRetryingQueueId] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [confirmText, setConfirmText] = useState("");
   const [feedback, setFeedback] = useState<{ orderId: string; kind: "ok" | "err"; msg: string } | null>(null);
@@ -62,6 +66,25 @@ function RefundsPage() {
     queryFn: () => fetchConsistency({}),
     refetchInterval: 60_000,
   });
+
+  const { data: queue } = useQuery({
+    queryKey: ["cielo-refund-queue"],
+    queryFn: () => fetchQueue({}),
+    refetchInterval: 30_000,
+  });
+
+  const handleRetryQueue = async (queueId: string) => {
+    setRetryingQueueId(queueId);
+    try {
+      await retryNow({ data: { queueId } });
+      await qc.invalidateQueries({ queryKey: ["cielo-refund-queue"] });
+      await qc.invalidateQueries({ queryKey: ["admin-refunds"] });
+    } catch (e) {
+      alert("Falha ao retentar: " + (e as Error).message);
+    } finally {
+      setRetryingQueueId(null);
+    }
+  };
 
   const verificationByOrder = useMemo(() => {
     const m = new Map<string, NonNullable<typeof consistency>["verifications"][number]>();
@@ -232,6 +255,63 @@ function RefundsPage() {
             Nenhuma inconsistência detectada. Todos os pedidos cancelados com pagamento aprovado têm reembolso registrado.
           </div>
         )}
+
+        {queue && queue.length > 0 && (
+          <div className="border-2 border-amber-500 bg-amber-500/10 rounded-lg overflow-hidden">
+            <div className="px-4 py-3 border-b border-amber-500/40 flex items-center gap-2 font-bold">
+              <Clock className="h-4 w-4 text-amber-700 dark:text-amber-400" />
+              Fila de reembolso Cielo ({queue.filter((q) => q.status === "pending" || q.status === "processing").length} pendente(s))
+            </div>
+            <ul className="divide-y divide-amber-500/30">
+              {queue.map((q) => (
+                <li key={q.id} className="p-3 flex flex-wrap items-center justify-between gap-3">
+                  <div className="text-xs space-y-0.5 min-w-0">
+                    <div className="font-mono text-[11px] text-muted-foreground">
+                      #{q.order_id.slice(0, 8).toUpperCase()} · Cielo {q.cielo_payment_id.slice(0, 8)}
+                    </div>
+                    <div className="font-bold">{q.customer_name ?? "—"} · {brl(q.amount)}</div>
+                    <div className="text-muted-foreground">
+                      Status: <strong className={
+                        q.status === "completed" ? "text-emerald-600" :
+                        q.status === "failed" ? "text-destructive" :
+                        q.status === "processing" ? "text-blue-600" : "text-amber-700"
+                      }>{q.status}</strong>
+                      {" · "}Tentativas: {q.attempts}/{q.max_attempts}
+                    </div>
+                    {q.status === "pending" && (
+                      <div className="text-muted-foreground">
+                        Próxima tentativa: {new Date(q.next_attempt_at).toLocaleString("pt-BR")}
+                      </div>
+                    )}
+                    {q.last_error && (
+                      <div className="text-destructive break-words">
+                        Último erro: {q.last_error}
+                        {q.last_error_code && <span className="ml-1 opacity-70">(código {q.last_error_code})</span>}
+                      </div>
+                    )}
+                    {q.completed_at && (
+                      <div className="text-emerald-600">
+                        Concluído em {new Date(q.completed_at).toLocaleString("pt-BR")}
+                      </div>
+                    )}
+                  </div>
+                  {(q.status === "pending" || q.status === "failed") && (
+                    <button
+                      onClick={() => handleRetryQueue(q.id)}
+                      disabled={retryingQueueId === q.id}
+                      className="text-[11px] font-bold uppercase tracking-wider bg-amber-600 hover:bg-amber-700 text-white px-3 py-2 rounded inline-flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      <RefreshCw className={`h-3.5 w-3.5 ${retryingQueueId === q.id ? "animate-spin" : ""}`} />
+                      {retryingQueueId === q.id ? "Tentando..." : "Tentar agora"}
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+
 
 
         <div className="bg-card border border-border rounded-lg overflow-hidden">
