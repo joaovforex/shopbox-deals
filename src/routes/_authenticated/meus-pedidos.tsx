@@ -220,8 +220,8 @@ function MyOrdersPage() {
                     )}
                   </Link>
 
-                  {o.status === "pending" && o.payment_method === "mercadopago" && (
-                    <ResumePaymentBlock orderId={o.id} createdAt={o.created_at} />
+                  {o.status === "pending" && (o.payment_method === "mercadopago" || o.payment_method === "cielo") && (
+                    <ResumePaymentBlock orderId={o.id} createdAt={o.created_at} paymentMethod={o.payment_method} />
                   )}
                 </li>
 
