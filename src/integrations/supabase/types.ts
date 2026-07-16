@@ -114,6 +114,44 @@ export type Database = {
           },
         ]
       }
+      cielo_webhook_events: {
+        Row: {
+          change_type: number
+          cielo_status: number | null
+          id: string
+          order_id: string | null
+          payment_id: string
+          processed_at: string
+          raw_payload: Json | null
+        }
+        Insert: {
+          change_type: number
+          cielo_status?: number | null
+          id?: string
+          order_id?: string | null
+          payment_id: string
+          processed_at?: string
+          raw_payload?: Json | null
+        }
+        Update: {
+          change_type?: number
+          cielo_status?: number | null
+          id?: string
+          order_id?: string | null
+          payment_id?: string
+          processed_at?: string
+          raw_payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cielo_webhook_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -431,6 +469,16 @@ export type Database = {
           cashback_earned: number
           cashback_granted_at: string | null
           cashback_used: number
+          cielo_authorization_code: string | null
+          cielo_checkout_url: string | null
+          cielo_installments: number | null
+          cielo_last_check_at: string | null
+          cielo_payment_id: string | null
+          cielo_payment_method: string | null
+          cielo_return_code: string | null
+          cielo_return_message: string | null
+          cielo_status: string | null
+          cielo_tid: string | null
           created_at: string
           customer_cpf: string | null
           customer_email: string | null
@@ -480,6 +528,7 @@ export type Database = {
           nfe_status: string | null
           nfe_xml_url: string | null
           payment_method: string
+          payment_provider: string
           refund_reason: string | null
           refund_status: string | null
           refunded_amount: number | null
@@ -507,6 +556,16 @@ export type Database = {
           cashback_earned?: number
           cashback_granted_at?: string | null
           cashback_used?: number
+          cielo_authorization_code?: string | null
+          cielo_checkout_url?: string | null
+          cielo_installments?: number | null
+          cielo_last_check_at?: string | null
+          cielo_payment_id?: string | null
+          cielo_payment_method?: string | null
+          cielo_return_code?: string | null
+          cielo_return_message?: string | null
+          cielo_status?: string | null
+          cielo_tid?: string | null
           created_at?: string
           customer_cpf?: string | null
           customer_email?: string | null
@@ -556,6 +615,7 @@ export type Database = {
           nfe_status?: string | null
           nfe_xml_url?: string | null
           payment_method?: string
+          payment_provider?: string
           refund_reason?: string | null
           refund_status?: string | null
           refunded_amount?: number | null
@@ -583,6 +643,16 @@ export type Database = {
           cashback_earned?: number
           cashback_granted_at?: string | null
           cashback_used?: number
+          cielo_authorization_code?: string | null
+          cielo_checkout_url?: string | null
+          cielo_installments?: number | null
+          cielo_last_check_at?: string | null
+          cielo_payment_id?: string | null
+          cielo_payment_method?: string | null
+          cielo_return_code?: string | null
+          cielo_return_message?: string | null
+          cielo_status?: string | null
+          cielo_tid?: string | null
           created_at?: string
           customer_cpf?: string | null
           customer_email?: string | null
@@ -632,6 +702,7 @@ export type Database = {
           nfe_status?: string | null
           nfe_xml_url?: string | null
           payment_method?: string
+          payment_provider?: string
           refund_reason?: string | null
           refund_status?: string | null
           refunded_amount?: number | null

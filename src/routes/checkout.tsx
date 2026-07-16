@@ -8,7 +8,7 @@ import { Header, Footer } from "@/components/Header";
 import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
-import { createMpPreference } from "@/lib/mercadopago.functions";
+import { createCieloCheckout } from "@/lib/cielo.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { calculateCashback } from "@/lib/cashback-config";
 import { useSiteSettings } from "@/lib/site-settings";
@@ -77,11 +77,13 @@ function isRmcCity(name: string | undefined | null): boolean {
   return RMC_CITIES.some((c) => c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === norm);
 }
 
+type PaymentMethod = "credit_card" | "debit_card" | "pix";
+
 function CheckoutPage() {
   const { items, total, clear } = useCart();
   const [busy, setBusy] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
-  const createPref = useServerFn(createMpPreference);
+  const createCheckout = useServerFn(createCieloCheckout);
   const fetchCashback = useServerFn(getMyCashback);
   const { data: settings } = useSiteSettings();
   const cashbackRate = settings?.cashback_rate ?? 0.05;
@@ -89,6 +91,9 @@ function CheckoutPage() {
   const [cashbackBalance, setCashbackBalance] = useState(0);
   const [cashbackExpiry, setCashbackExpiry] = useState<{ amount: number; expiresAt: string } | null>(null);
   const [useCashback, setUseCashback] = useState(false);
+
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("credit_card");
+  const [installments, setInstallments] = useState<number>(1);
 
   const user = useAuthUser();
   const navigate = useNavigate();
@@ -258,7 +263,7 @@ function CheckoutPage() {
     const cpfDigits = cpf.replace(/\D/g, "");
     if (!isValidCpf(cpfDigits)) return toast.error("CPF inválido");
 
-    let shipping: Parameters<typeof createPref>[0]["data"]["shipping"] = null;
+    let shipping: Parameters<typeof createCheckout>[0]["data"]["shipping"] = null;
     if (delivery === "delivery") {
       const cepDigits = cep.replace(/\D/g, "");
       if (cepDigits.length !== 8) return toast.error("CEP inválido");
@@ -281,7 +286,7 @@ function CheckoutPage() {
 
     setBusy(true);
     try {
-      const res = await createPref({
+      const res = await createCheckout({
         data: {
           customer_name: name.trim(),
           customer_email: email.trim(),
@@ -292,12 +297,12 @@ function CheckoutPage() {
           items: items.map((i) => ({ product_id: i.id, quantity: i.quantity, color: i.variant_color ?? null })),
           save_profile: saveProfile,
           use_cashback: useCashback ? Math.min(cashbackBalance, total) : 0,
+          payment_method: paymentMethod,
+          installments: paymentMethod === "credit_card" ? installments : 1,
         },
       });
       setRedirecting(true);
-      const sep = res.initPoint.includes("?") ? "&" : "?";
-      const webUrl = `${res.initPoint}${sep}source=web&platform=web`;
-      sessionStorage.setItem("mp_init_point", webUrl);
+      sessionStorage.setItem("mp_init_point", res.checkoutUrl);
       clear();
       navigate({ to: "/redirecionando" });
     } catch (err: unknown) {
@@ -319,7 +324,7 @@ function CheckoutPage() {
           </Link>
           <h1 className="display text-3xl md:text-4xl">Finalizar compra</h1>
           <div className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
-            Pagamento seguro via Mercado Pago
+            Pagamento seguro via Cielo
           </div>
         </div>
       </section>
@@ -449,10 +454,56 @@ function CheckoutPage() {
           </Section>
 
           <Section title="Pagamento">
+            <div className="grid grid-cols-3 gap-2">
+              <PaymentMethodOption
+                active={paymentMethod === "credit_card"}
+                onClick={() => setPaymentMethod("credit_card")}
+                title="Crédito"
+                subtitle={`até ${7}x`}
+              />
+              <PaymentMethodOption
+                active={paymentMethod === "debit_card"}
+                onClick={() => setPaymentMethod("debit_card")}
+                title="Débito"
+                subtitle="à vista"
+              />
+              <PaymentMethodOption
+                active={paymentMethod === "pix"}
+                onClick={() => setPaymentMethod("pix")}
+                title="Pix"
+                subtitle="instantâneo"
+              />
+            </div>
+
+            {paymentMethod === "credit_card" && (
+              <label className="block">
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Parcelamento (sem juros)</span>
+                <select
+                  value={installments}
+                  onChange={(e) => setInstallments(Number(e.target.value))}
+                  className="w-full bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary mt-1"
+                >
+                  {Array.from({ length: 7 }, (_, i) => i + 1).map((n) => {
+                    const shippingFeePreview = delivery === "delivery" ? (total < 80 ? 10 : 0) : 0;
+                    const cashbackApplyPreview = useCashback ? Math.min(cashbackBalance, total) : 0;
+                    const grand = Math.max(0, total - cashbackApplyPreview) + shippingFeePreview;
+                    return (
+                      <option key={n} value={n}>
+                        {n}x de {brl(grand / n)} {n === 1 ? "à vista" : "sem juros"}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+            )}
+
             <div className="bg-secondary rounded-md p-4 text-sm space-y-2">
-              <p className="font-semibold">Você será redirecionado ao Mercado Pago</p>
+              <p className="font-semibold">Você será redirecionado ao checkout Cielo</p>
               <p className="text-muted-foreground">
-                Após confirmar, abrimos o checkout seguro do Mercado Pago. Lá você escolhe entre <strong>Pix, cartão de crédito, débito ou boleto</strong>.
+                {paymentMethod === "credit_card" && `Pague com cartão de crédito em até ${installments}x sem juros. `}
+                {paymentMethod === "debit_card" && "Pague com cartão de débito à vista. "}
+                {paymentMethod === "pix" && "Escaneie o QR Code Pix ou use copia-e-cola — aprovação instantânea. "}
+                Ambiente seguro processado pela Cielo.
               </p>
               <p className="text-xs text-muted-foreground">
                 O pedido fica reservado por alguns minutos enquanto aguardamos a confirmação do pagamento.
@@ -541,13 +592,28 @@ function CheckoutPage() {
             );
           })()}
           <p className="text-[11px] text-muted-foreground text-center">
-            Ao confirmar você aceita os termos da loja. Pagamento processado pelo Mercado Pago.
+            Ao confirmar você aceita os termos da loja. Pagamento processado pela Cielo.
           </p>
         </aside>
       </form>
 
       <Footer />
     </div>
+  );
+}
+
+function PaymentMethodOption({
+  active, onClick, title, subtitle,
+}: { active: boolean; onClick: () => void; title: string; subtitle: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-center rounded-md border-2 p-2.5 transition-colors ${active ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40"}`}
+    >
+      <div className="font-bold text-sm">{title}</div>
+      <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{subtitle}</div>
+    </button>
   );
 }
 
