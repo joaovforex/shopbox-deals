@@ -225,6 +225,27 @@ function FulfillmentPage() {
     refetchInterval: 30000,
   });
 
+  // Fila de reembolsos Cielo (para exibir status por pedido na aba Reembolsos)
+  const fetchRefundQueue = useServerFn(listCieloRefundQueue);
+  const retryRefundFn = useServerFn(retryCieloRefundNow);
+  const { data: refundQueue } = useQuery({
+    queryKey: ["cielo-refund-queue"],
+    enabled: allowed === true && superAdmin === true,
+    queryFn: () => fetchRefundQueue(),
+    refetchInterval: 30000,
+  });
+  const refundQueueByOrder = useMemo(() => {
+    const map = new Map<string, CieloRefundQueueRow>();
+    for (const r of refundQueue ?? []) {
+      const existing = map.get(r.order_id);
+      // preferir o mais recente
+      if (!existing || new Date(r.created_at).getTime() > new Date(existing.created_at).getTime()) {
+        map.set(r.order_id, r);
+      }
+    }
+    return map;
+  }, [refundQueue]);
+
   // Busca global por nome ou CPF, independente de aba/data/status
   const { data: searchData, isLoading: searchLoading } = useQuery({
     queryKey: ["fulfillment-search", search.trim()],
