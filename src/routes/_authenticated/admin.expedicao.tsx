@@ -479,9 +479,11 @@ function FulfillmentPage() {
             <TabBtn active={tab === "done"} onClick={() => setTab("done")} icon={<CheckCircle2 className="h-4 w-4" />}>
               Entregues ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "completed").length})
             </TabBtn>
-            <TabBtn active={tab === "refunds"} onClick={() => setTab("refunds")} icon={<Undo2 className="h-4 w-4" />}>
-              Reembolsos ({(data?.orders ?? []).filter(isRefundPending).length})
-            </TabBtn>
+            {superAdmin && (
+              <TabBtn active={tab === "refunds"} onClick={() => setTab("refunds")} icon={<Undo2 className="h-4 w-4" />}>
+                Reembolsos ({(data?.orders ?? []).filter(isRefundPending).length})
+              </TabBtn>
+            )}
             <TabBtn active={tab === "notifications"} onClick={() => setTab("notifications")} icon={<BellRing className="h-4 w-4" />}>
               Notificações ({(notifData?.orders ?? []).length})
             </TabBtn>
