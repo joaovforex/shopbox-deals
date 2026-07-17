@@ -75,8 +75,11 @@ function AdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"todos" | "esgotados">("todos");
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isBulkHiding, setIsBulkHiding] = useState(false);
+  const [bulkShareOpen, setBulkShareOpen] = useState(false);
 
 
   // If a draft for an existing product was in progress, reopen edit form once loaded.
