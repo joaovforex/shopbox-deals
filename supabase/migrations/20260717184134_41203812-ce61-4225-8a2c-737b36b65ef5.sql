@@ -1,0 +1,2 @@
+ALTER TABLE public.orders ALTER COLUMN payment_provider SET DEFAULT 'mercadopago';
+UPDATE public.orders SET payment_provider = 'mercadopago' WHERE payment_provider = 'cielo' AND cielo_payment_id IS NULL AND mp_payment_id IS NOT NULL;
