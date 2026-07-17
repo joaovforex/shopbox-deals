@@ -522,18 +522,21 @@ function AdminPage() {
               </div>
             );
           }
-          const activeEsgotados = tab === "esgotados" ? filtered.filter((p) => p.active) : [];
-          const allSelected = activeEsgotados.length > 0 && activeEsgotados.every((p) => selected.has(p.id));
-          const someSelected = activeEsgotados.some((p) => selected.has(p.id)) && !allSelected;
+          const showCheckbox = selectMode || tab === "esgotados";
+          const selectableSet = tab === "esgotados"
+            ? filtered.filter((p) => p.active)
+            : filtered;
+          const allSelected = selectableSet.length > 0 && selectableSet.every((p) => selected.has(p.id));
+          const someSelected = selectableSet.some((p) => selected.has(p.id)) && !allSelected;
 
           const toggleSelectAll = () => {
             if (allSelected) {
               const next = new Set(selected);
-              activeEsgotados.forEach((p) => next.delete(p.id));
+              selectableSet.forEach((p) => next.delete(p.id));
               setSelected(next);
             } else {
               const next = new Set(selected);
-              activeEsgotados.forEach((p) => next.add(p.id));
+              selectableSet.forEach((p) => next.add(p.id));
               setSelected(next);
             }
           };
