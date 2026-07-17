@@ -224,6 +224,13 @@ function MyOrdersPage() {
                   {o.status === "pending" && (o.payment_method === "mercadopago" || o.payment_method === "cielo") && (
                     <ResumePaymentBlock orderId={o.id} createdAt={o.created_at} paymentMethod={o.payment_method} />
                   )}
+
+                  {o.status === "paid" &&
+                    o.delivery_method !== "delivery" &&
+                    o.fulfillment_status !== "completed" &&
+                    o.fulfillment_status !== "delivered" && (
+                      <DeliveryUpgradeButton orderId={o.id} />
+                    )}
                 </li>
 
               );
