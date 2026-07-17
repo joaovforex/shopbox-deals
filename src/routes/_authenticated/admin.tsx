@@ -424,7 +424,7 @@ function AdminPage() {
               </button>
             )}
 
-            {tab === "esgotados" && (
+            {showCheckbox && (
               selected.size > 0 ? (
                 <button
                   type="button"
@@ -555,7 +555,7 @@ function AdminPage() {
             {filtered.map((p) => (
               <div key={p.id} className="bg-card rounded-lg border border-border p-3">
                 <div className="flex items-start gap-3">
-                  {tab === "esgotados" && (
+                  {showCheckbox && (
                     <button
                       type="button"
                       onClick={() => toggleSelect(p.id)}
@@ -610,7 +610,7 @@ function AdminPage() {
             <table className="w-full text-sm">
               <thead className="bg-secondary text-left text-xs uppercase tracking-wider">
                 <tr>
-                  {tab === "esgotados" && (
+                  {showCheckbox && (
                     <th className="p-3 w-10">
                       <button
                         type="button"
@@ -633,7 +633,7 @@ function AdminPage() {
               <tbody>
                 {filtered.map((p) => (
                   <tr key={p.id} className="border-t border-border">
-                    {tab === "esgotados" && (
+                    {showCheckbox && (
                       <td className="p-3 w-10">
                         <button
                           type="button"
