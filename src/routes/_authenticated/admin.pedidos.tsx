@@ -502,6 +502,58 @@ function OrdersPanel() {
           <Kpi icon={<TrendingUp className="h-5 w-5" />} label="Ticket médio" value={stats.orders.length ? brl(stats.revenue / stats.orders.length) : brl(0)} />
         </div>
 
+        {/* Caixa QR — métricas separadas (balcão, fora do fluxo da loja online) */}
+        <div className="bg-card border border-border rounded-lg p-5">
+          <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="bg-primary text-primary-foreground rounded-md p-2">
+                <QrCode className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="display text-lg leading-tight">Caixa QR (balcão)</h3>
+                <p className="text-[11px] text-muted-foreground">
+                  Vendas provisórias pelo QR no balcão. Independentes da loja online.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/admin/caixa-qr"
+              className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider border border-border rounded-md px-3 py-1.5 hover:border-primary"
+            >
+              Abrir Caixa QR
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Kpi
+              icon={<DollarSign className="h-5 w-5" />}
+              label="Caixa hoje"
+              value={brl(posMetrics.data?.paidToday.total ?? 0)}
+              accent
+            />
+            <Kpi
+              icon={<ShoppingBag className="h-5 w-5" />}
+              label="Vendas hoje"
+              value={String(posMetrics.data?.paidToday.count ?? 0)}
+            />
+            <Kpi
+              icon={<TrendingUp className="h-5 w-5" />}
+              label="Caixa 8 dias"
+              value={brl(posMetrics.data?.paid8Days.total ?? 0)}
+            />
+            <Kpi
+              icon={<Package className="h-5 w-5" />}
+              label="Vendas 8 dias"
+              value={String(posMetrics.data?.paid8Days.count ?? 0)}
+            />
+          </div>
+          {(posMetrics.data?.pending8Days ?? 0) > 0 && (
+            <p className="text-[11px] text-muted-foreground mt-3">
+              {posMetrics.data?.pending8Days} cobrança(s) do caixa aguardando pagamento nos últimos 8 dias.
+            </p>
+          )}
+        </div>
+
+
         {/* Insight */}
         <div className="bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/40 rounded-lg p-5">
           <div className="flex items-start gap-3">
