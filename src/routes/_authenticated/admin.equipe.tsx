@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, UserPlus, Trash2, Crown, Package, Truck, User, KeyRound, UserX, ShieldCheck } from "lucide-react";
+import { ArrowLeft, UserPlus, Trash2, Crown, Package, Truck, User, KeyRound, UserX, ShieldCheck, QrCode } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { isAdmin, type TeamRole } from "@/lib/products";
 import { searchTeamCandidates, assignTeamRole, removeTeamRole, adminResetPassword, adminDeleteUser, listTeamMembers } from "@/lib/team.functions";
@@ -25,6 +25,7 @@ const ROLE_LABEL: Record<TeamRole, string> = {
   manager: "ADM (Catálogo + Expedição)",
   catalog: "Catálogo (somente)",
   fulfillment: "Expedição (somente)",
+  cashier: "Caixa (Caixa QR + comprovantes)",
   user: "Cliente",
 };
 
@@ -33,7 +34,11 @@ const ROLE_ICON: Record<TeamRole, React.ReactNode> = {
   manager: <ShieldCheck className="h-3.5 w-3.5" />,
   catalog: <Package className="h-3.5 w-3.5" />,
   fulfillment: <Truck className="h-3.5 w-3.5" />,
+  cashier: <QrCode className="h-3.5 w-3.5" />,
   user: <User className="h-3.5 w-3.5" />,
+};
+
+const ASSIGNABLE: TeamRole[] = ["admin", "manager", "catalog", "fulfillment", "cashier"];
 };
 
 const ASSIGNABLE: TeamRole[] = ["admin", "manager", "catalog", "fulfillment"];

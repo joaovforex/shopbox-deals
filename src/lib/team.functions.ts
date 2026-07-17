@@ -72,7 +72,7 @@ export const assignTeamRole = createServerFn({ method: "POST" })
       .from("user_roles")
       .delete()
       .eq("user_id", data.user_id)
-      .in("role", INTERNAL_ROLES as unknown as string[]);
+      .in("role", INTERNAL_ROLES as unknown as never);
     if (delErr) throw new Error(delErr.message);
     const { error } = await supabaseAdmin.from("user_roles").insert({
       user_id: data.user_id,
