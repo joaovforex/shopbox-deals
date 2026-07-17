@@ -835,6 +835,60 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_charges: {
+        Row: {
+          created_at: string
+          id: string
+          items: Json
+          last_event_at: string | null
+          mp_payment_id: string | null
+          mp_payment_method_id: string | null
+          mp_preference_id: string | null
+          mp_status: string | null
+          mp_status_detail: string | null
+          note: string | null
+          operator_id: string | null
+          operator_name: string | null
+          paid_at: string | null
+          status: string
+          total: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          items: Json
+          last_event_at?: string | null
+          mp_payment_id?: string | null
+          mp_payment_method_id?: string | null
+          mp_preference_id?: string | null
+          mp_status?: string | null
+          mp_status_detail?: string | null
+          note?: string | null
+          operator_id?: string | null
+          operator_name?: string | null
+          paid_at?: string | null
+          status?: string
+          total: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          items?: Json
+          last_event_at?: string | null
+          mp_payment_id?: string | null
+          mp_payment_method_id?: string | null
+          mp_preference_id?: string | null
+          mp_status?: string | null
+          mp_status_detail?: string | null
+          note?: string | null
+          operator_id?: string | null
+          operator_name?: string | null
+          paid_at?: string | null
+          status?: string
+          total?: number
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           active: boolean
