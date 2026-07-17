@@ -39,9 +39,6 @@ const ROLE_ICON: Record<TeamRole, React.ReactNode> = {
 };
 
 const ASSIGNABLE: TeamRole[] = ["admin", "manager", "catalog", "fulfillment", "cashier"];
-};
-
-const ASSIGNABLE: TeamRole[] = ["admin", "manager", "catalog", "fulfillment"];
 
 function TeamPage() {
   const [admin, setAdmin] = useState<boolean | null>(null);
