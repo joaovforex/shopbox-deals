@@ -155,11 +155,24 @@ export const getPosChargeStatus = createServerFn({ method: "POST" })
     await ensureStaff(context);
     const { data: row, error } = await context.supabase
       .from("pos_charges")
-      .select("id,status,total,mp_status,mp_status_detail,mp_payment_method_id,mp_payment_id,paid_at,last_event_at")
+      .select("id,status,total,items,note,operator_name,mp_status,mp_status_detail,mp_payment_method_id,mp_payment_id,paid_at,last_event_at,created_at")
       .eq("id", data.chargeId)
       .maybeSingle();
     if (error) throw new Error(error.message);
     return row;
+  });
+
+export const listRecentPosCharges = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureStaff(context);
+    const { data, error } = await context.supabase
+      .from("pos_charges")
+      .select("id,total,status,note,items,operator_name,mp_payment_method_id,paid_at,created_at")
+      .order("created_at", { ascending: false })
+      .limit(30);
+    if (error) throw new Error(error.message);
+    return data ?? [];
   });
 
 export const listRecentPosCharges = createServerFn({ method: "GET" })
