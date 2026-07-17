@@ -549,20 +549,6 @@ function CheckoutPage() {
   );
 }
 
-function PaymentMethodOption({
-  active, onClick, title, subtitle,
-}: { active: boolean; onClick: () => void; title: string; subtitle: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`text-center rounded-md border-2 p-2.5 transition-colors ${active ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40"}`}
-    >
-      <div className="font-bold text-sm">{title}</div>
-      <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{subtitle}</div>
-    </button>
-  );
-}
 
 function DeliveryOption({
   active, onClick, title, subtitle, description, highlight,
