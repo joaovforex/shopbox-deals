@@ -175,15 +175,3 @@ export const listRecentPosCharges = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
-export const listRecentPosCharges = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    await ensureStaff(context);
-    const { data, error } = await context.supabase
-      .from("pos_charges")
-      .select("id,total,status,note,operator_name,mp_payment_method_id,paid_at,created_at")
-      .order("created_at", { ascending: false })
-      .limit(30);
-    if (error) throw new Error(error.message);
-    return data ?? [];
-  });
