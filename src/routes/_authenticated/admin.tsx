@@ -726,6 +726,13 @@ function AdminPage() {
         />
       )}
 
+      {bulkShareOpen && (
+        <BulkShareDialog
+          products={products.filter((p) => selected.has(p.id))}
+          onClose={() => setBulkShareOpen(false)}
+        />
+      )}
+
       <Footer />
     </div>
   );
