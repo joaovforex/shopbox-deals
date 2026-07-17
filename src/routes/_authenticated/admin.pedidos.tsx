@@ -92,8 +92,17 @@ function OrdersPanel() {
   const refundFn = useServerFn(refundOrder);
   const voucherFn = useServerFn(createExchangeVoucher);
   const listCustomersFn = useServerFn(listAllCustomers);
+  const posMetricsFn = useServerFn(getPosChargesMetrics);
   const [exportingCustomers, setExportingCustomers] = useState(false);
   const qc = useQueryClient();
+
+  const posMetrics = useQuery({
+    queryKey: ["pos-charges", "metrics"],
+    queryFn: () => posMetricsFn(),
+    enabled: admin === true,
+    refetchInterval: 30000,
+    staleTime: 15000,
+  });
 
   async function downloadCustomersCsv() {
     if (exportingCustomers) return;
