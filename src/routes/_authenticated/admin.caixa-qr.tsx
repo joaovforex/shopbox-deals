@@ -437,12 +437,13 @@ function CaixaQrPage() {
                     <th className="text-left px-3 py-2">Operador / Obs</th>
                     <th className="text-right px-3 py-2">Total</th>
                     <th className="text-left px-3 py-2">Status</th>
+                    <th className="text-right px-3 py-2">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(recentQuery.data ?? []).length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="text-center text-muted-foreground py-6 text-xs">
+                      <td colSpan={5} className="text-center text-muted-foreground py-6 text-xs">
                         {recentQuery.isLoading ? "Carregando..." : "Nenhuma cobrança ainda."}
                       </td>
                     </tr>
@@ -459,6 +460,30 @@ function CaixaQrPage() {
                         <td className="px-3 py-2 text-right font-black">{brl(Number(c.total))}</td>
                         <td className="px-3 py-2">
                           <StatusBadge status={c.status} />
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {c.status === "paid" && Array.isArray(c.items) && c.items.length > 0 ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                printReceipt({
+                                  chargeId: c.id,
+                                  items: c.items,
+                                  total: Number(c.total),
+                                  paidAt: c.paid_at ?? c.created_at,
+                                  operator: c.operator_name ?? null,
+                                  paymentMethod: c.mp_payment_method_id ?? null,
+                                  note: c.note ?? null,
+                                })
+                              }
+                              className="inline-flex items-center gap-1 border border-border rounded px-2 py-1 text-[11px] font-bold uppercase tracking-wider hover:border-primary"
+                              title="Imprimir comprovante (80mm)"
+                            >
+                              <Printer className="h-3 w-3" /> 2ª via
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground">—</span>
+                          )}
                         </td>
                       </tr>
                     ))
