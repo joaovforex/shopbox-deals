@@ -260,6 +260,89 @@ export type Database = {
           },
         ]
       }
+      delivery_upgrades: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          fee: number
+          id: string
+          mp_init_point: string | null
+          mp_payment_id: string | null
+          mp_preference_id: string | null
+          mp_status: string | null
+          order_id: string
+          paid_at: string | null
+          shipping_city: string
+          shipping_complement: string | null
+          shipping_district: string | null
+          shipping_number: string
+          shipping_recipient_name: string | null
+          shipping_recipient_phone: string | null
+          shipping_state: string
+          shipping_street: string
+          shipping_zip: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          fee?: number
+          id?: string
+          mp_init_point?: string | null
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
+          mp_status?: string | null
+          order_id: string
+          paid_at?: string | null
+          shipping_city: string
+          shipping_complement?: string | null
+          shipping_district?: string | null
+          shipping_number: string
+          shipping_recipient_name?: string | null
+          shipping_recipient_phone?: string | null
+          shipping_state: string
+          shipping_street: string
+          shipping_zip: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          fee?: number
+          id?: string
+          mp_init_point?: string | null
+          mp_payment_id?: string | null
+          mp_preference_id?: string | null
+          mp_status?: string | null
+          order_id?: string
+          paid_at?: string | null
+          shipping_city?: string
+          shipping_complement?: string | null
+          shipping_district?: string | null
+          shipping_number?: string
+          shipping_recipient_name?: string | null
+          shipping_recipient_phone?: string | null
+          shipping_state?: string
+          shipping_street?: string
+          shipping_zip?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_upgrades_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
           created_at: string
@@ -1193,6 +1276,10 @@ export type Database = {
       apply_cashback_to_order: {
         Args: { p_amount: number; p_order_id: string }
         Returns: number
+      }
+      apply_delivery_upgrade: {
+        Args: { p_mp_payment_id: string; p_upgrade_id: string }
+        Returns: string
       }
       assign_team_role: {
         Args: {

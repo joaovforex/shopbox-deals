@@ -10,6 +10,7 @@ import { STORE_ADDRESS } from "@/lib/whatsapp";
 import { resumePendingPayment } from "@/lib/mercadopago.functions";
 import { resumeCieloPayment } from "@/lib/cielo.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
+import { DeliveryUpgradeButton } from "@/components/DeliveryUpgradeButton";
 import { toast } from "sonner";
 
 
@@ -223,6 +224,13 @@ function MyOrdersPage() {
                   {o.status === "pending" && (o.payment_method === "mercadopago" || o.payment_method === "cielo") && (
                     <ResumePaymentBlock orderId={o.id} createdAt={o.created_at} paymentMethod={o.payment_method} />
                   )}
+
+                  {o.status === "paid" &&
+                    o.delivery_method !== "delivery" &&
+                    o.fulfillment_status !== "completed" &&
+                    o.fulfillment_status !== "delivered" && (
+                      <DeliveryUpgradeButton orderId={o.id} />
+                    )}
                 </li>
 
               );

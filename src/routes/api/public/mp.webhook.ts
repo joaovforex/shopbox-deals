@@ -137,6 +137,33 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
           return new Response("ok", { status: 200 });
         }
 
+        // Conversão retirada -> entrega: external_reference "upgrade:<uuid>"
+        if (orderId.startsWith("upgrade:")) {
+          const upgradeId = orderId.slice("upgrade:".length);
+          await supabaseAdmin
+            .from("delivery_upgrades")
+            .update({ mp_status: payment.status, mp_payment_id: String(payment.id) } as never)
+            .eq("id", upgradeId);
+          if (payment.status === "approved") {
+            const { data: result, error: rpcErr } = await supabaseAdmin.rpc(
+              "apply_delivery_upgrade" as never,
+              { p_upgrade_id: upgradeId, p_mp_payment_id: String(payment.id) } as never,
+            );
+            if (rpcErr) {
+              console.error("[mp:webhook] apply_delivery_upgrade error", rpcErr);
+              return new Response("update failed", { status: 500 });
+            }
+            console.info("[mp:webhook] delivery upgrade applied", { upgradeId, result });
+          } else if (payment.status === "refunded" || payment.status === "cancelled" || payment.status === "rejected") {
+            await supabaseAdmin
+              .from("delivery_upgrades")
+              .update({ status: "cancelled", cancelled_at: new Date().toISOString() } as never)
+              .eq("id", upgradeId)
+              .eq("status", "pending");
+          }
+          return new Response("ok", { status: 200 });
+        }
+
         // Sempre registra o detalhe da última tentativa de pagamento — mesmo
         // que rejeitada — para a UI mostrar o motivo real ao cliente.
         await supabaseAdmin
