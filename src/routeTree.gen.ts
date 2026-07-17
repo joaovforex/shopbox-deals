@@ -37,6 +37,7 @@ import { Route as AuthenticatedAdminExpedicaoRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminEquipeRouteImport } from './routes/_authenticated/admin.equipe'
 import { Route as AuthenticatedAdminConfiguracoesRouteImport } from './routes/_authenticated/admin.configuracoes'
 import { Route as AuthenticatedAdminCaixaQrRouteImport } from './routes/_authenticated/admin.caixa-qr'
+import { Route as AuthenticatedAdminAgendadorCanalRouteImport } from './routes/_authenticated/admin.agendador-canal'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp.webhook'
 import { Route as ApiPublicMaisentregasPollRouteImport } from './routes/api/public/maisentregas/poll'
@@ -195,6 +196,12 @@ const AuthenticatedAdminCaixaQrRoute =
     path: '/caixa-qr',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminAgendadorCanalRoute =
+  AuthenticatedAdminAgendadorCanalRouteImport.update({
+    id: '/agendador-canal',
+    path: '/agendador-canal',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -252,6 +259,7 @@ export interface FileRoutesByFullPath {
   '/etiqueta/qrcode': typeof EtiquetaQrcodeRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
+  '/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
   '/admin/caixa-qr': typeof AuthenticatedAdminCaixaQrRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/admin/equipe': typeof AuthenticatedAdminEquipeRoute
@@ -288,6 +296,7 @@ export interface FileRoutesByTo {
   '/etiqueta/qrcode': typeof EtiquetaQrcodeRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
+  '/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
   '/admin/caixa-qr': typeof AuthenticatedAdminCaixaQrRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/admin/equipe': typeof AuthenticatedAdminEquipeRoute
@@ -326,6 +335,7 @@ export interface FileRoutesById {
   '/etiqueta/qrcode': typeof EtiquetaQrcodeRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
+  '/_authenticated/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
   '/_authenticated/admin/caixa-qr': typeof AuthenticatedAdminCaixaQrRoute
   '/_authenticated/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/_authenticated/admin/equipe': typeof AuthenticatedAdminEquipeRoute
@@ -364,6 +374,7 @@ export interface FileRouteTypes {
     | '/etiqueta/qrcode'
     | '/pedido/$id'
     | '/produto/$id'
+    | '/admin/agendador-canal'
     | '/admin/caixa-qr'
     | '/admin/configuracoes'
     | '/admin/equipe'
@@ -400,6 +411,7 @@ export interface FileRouteTypes {
     | '/etiqueta/qrcode'
     | '/pedido/$id'
     | '/produto/$id'
+    | '/admin/agendador-canal'
     | '/admin/caixa-qr'
     | '/admin/configuracoes'
     | '/admin/equipe'
@@ -437,6 +449,7 @@ export interface FileRouteTypes {
     | '/etiqueta/qrcode'
     | '/pedido/$id'
     | '/produto/$id'
+    | '/_authenticated/admin/agendador-canal'
     | '/_authenticated/admin/caixa-qr'
     | '/_authenticated/admin/configuracoes'
     | '/_authenticated/admin/equipe'
@@ -680,6 +693,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCaixaQrRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/agendador-canal': {
+      id: '/_authenticated/admin/agendador-canal'
+      path: '/agendador-canal'
+      fullPath: '/admin/agendador-canal'
+      preLoaderRoute: typeof AuthenticatedAdminAgendadorCanalRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
       path: '/lovable/email/queue/process'
@@ -733,6 +753,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminAgendadorCanalRoute: typeof AuthenticatedAdminAgendadorCanalRoute
   AuthenticatedAdminCaixaQrRoute: typeof AuthenticatedAdminCaixaQrRoute
   AuthenticatedAdminConfiguracoesRoute: typeof AuthenticatedAdminConfiguracoesRoute
   AuthenticatedAdminEquipeRoute: typeof AuthenticatedAdminEquipeRoute
@@ -745,6 +766,7 @@ interface AuthenticatedAdminRouteChildren {
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminAgendadorCanalRoute: AuthenticatedAdminAgendadorCanalRoute,
   AuthenticatedAdminCaixaQrRoute: AuthenticatedAdminCaixaQrRoute,
   AuthenticatedAdminConfiguracoesRoute: AuthenticatedAdminConfiguracoesRoute,
   AuthenticatedAdminEquipeRoute: AuthenticatedAdminEquipeRoute,
