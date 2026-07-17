@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Trash2, QrCode, RotateCcw, Copy, Printer } from "lucide-react";
+import { Plus, Trash2, QrCode, RotateCcw, Copy, Printer, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Header, Footer } from "@/components/Header";
-import { createCaixaQrPayment } from "@/lib/caixa-qr.functions";
+import { createCaixaQrPayment, getPosChargeStatus, listRecentPosCharges } from "@/lib/caixa-qr.functions";
 import { brl } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/admin/caixa-qr")({
@@ -24,12 +25,69 @@ function newItem(): Item {
   };
 }
 
+type StatusValue = "pending" | "paid" | "denied" | "refunded" | "cancelled" | "failed" | string;
+
+function StatusBadge({ status }: { status: StatusValue }) {
+  const map: Record<string, { label: string; cls: string; Icon: typeof Clock }> = {
+    pending: {
+      label: "Aguardando pagamento",
+      cls: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40",
+      Icon: Clock,
+    },
+    paid: {
+      label: "Pago",
+      cls: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/40",
+      Icon: CheckCircle2,
+    },
+    denied: {
+      label: "Recusado",
+      cls: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/40",
+      Icon: XCircle,
+    },
+    refunded: {
+      label: "Estornado",
+      cls: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/40",
+      Icon: XCircle,
+    },
+    cancelled: {
+      label: "Cancelado",
+      cls: "bg-muted text-muted-foreground border-border",
+      Icon: XCircle,
+    },
+    failed: {
+      label: "Falha ao gerar",
+      cls: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/40",
+      Icon: XCircle,
+    },
+  };
+  const cfg = map[status] ?? map.pending;
+  const { Icon } = cfg;
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 border rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider ${cfg.cls}`}
+    >
+      <Icon className="h-3.5 w-3.5" /> {cfg.label}
+    </span>
+  );
+}
+
 function CaixaQrPage() {
   const create = useServerFn(createCaixaQrPayment);
+  const getStatus = useServerFn(getPosChargeStatus);
+  const listRecent = useServerFn(listRecentPosCharges);
+  const qc = useQueryClient();
+
   const [items, setItems] = useState<Item[]>([newItem()]);
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ initPoint: string; total: number; preferenceId: string } | null>(null);
+  const [result, setResult] = useState<{
+    chargeId: string;
+    initPoint: string;
+    total: number;
+    preferenceId: string;
+  } | null>(null);
+  const [status, setStatus] = useState<StatusValue>("pending");
+  const paidToastShown = useRef(false);
 
   const total = useMemo(
     () =>
@@ -45,12 +103,16 @@ function CaixaQrPage() {
   const update = (id: string, patch: Partial<Item>) =>
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
 
-  const remove = (id: string) => setItems((prev) => (prev.length === 1 ? prev : prev.filter((it) => it.id !== id)));
+  const remove = (id: string) =>
+    setItems((prev) => (prev.length === 1 ? prev : prev.filter((it) => it.id !== id)));
 
   const reset = () => {
     setItems([newItem()]);
     setNote("");
     setResult(null);
+    setStatus("pending");
+    paidToastShown.current = false;
+    qc.invalidateQueries({ queryKey: ["pos-charges"] });
   };
 
   const onGenerate = async () => {
@@ -69,6 +131,9 @@ function CaixaQrPage() {
     try {
       const res = await create({ data: { items: cleaned, note: note.trim() || null } });
       setResult(res);
+      setStatus("pending");
+      paidToastShown.current = false;
+      qc.invalidateQueries({ queryKey: ["pos-charges"] });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Falha ao gerar cobrança";
       toast.error(msg);
@@ -76,6 +141,38 @@ function CaixaQrPage() {
       setLoading(false);
     }
   };
+
+  // Polling de status enquanto tiver uma cobrança em aberto
+  useEffect(() => {
+    if (!result) return;
+    if (status === "paid" || status === "refunded" || status === "denied" || status === "cancelled") {
+      qc.invalidateQueries({ queryKey: ["pos-charges"] });
+      return;
+    }
+    let alive = true;
+    const tick = async () => {
+      try {
+        const row = (await getStatus({ data: { chargeId: result.chargeId } })) as {
+          status: StatusValue;
+        } | null;
+        if (!alive || !row) return;
+        setStatus(row.status);
+        if (row.status === "paid" && !paidToastShown.current) {
+          paidToastShown.current = true;
+          toast.success("Pagamento confirmado!");
+          qc.invalidateQueries({ queryKey: ["pos-charges"] });
+        }
+      } catch {
+        // silencia erros transitórios de polling
+      }
+    };
+    void tick();
+    const interval = window.setInterval(tick, 4000);
+    return () => {
+      alive = false;
+      window.clearInterval(interval);
+    };
+  }, [result, status, getStatus, qc]);
 
   const copyLink = async () => {
     if (!result) return;
@@ -87,6 +184,13 @@ function CaixaQrPage() {
     }
   };
 
+  const recentQuery = useQuery({
+    queryKey: ["pos-charges", "recent"],
+    queryFn: () => listRecent(),
+    refetchInterval: 15000,
+    staleTime: 5000,
+  });
+
   return (
     <div className="flex min-h-screen flex-col bg-background">
       <Header />
@@ -96,7 +200,7 @@ function CaixaQrPage() {
           <h1 className="text-3xl font-black uppercase tracking-tight">Caixa QR</h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
             Solução provisória: cadastre os itens vendidos no balcão, gere um QR code e peça para o cliente
-            escanear com o celular. O pagamento acontece direto no Mercado Pago.
+            escanear com o celular. O pagamento acontece direto no Mercado Pago e o status atualiza aqui.
           </p>
         </div>
 
@@ -198,7 +302,7 @@ function CaixaQrPage() {
               </button>
               <p className="text-[11px] text-muted-foreground mt-3 leading-snug">
                 Ao gerar, o cliente escaneia o QR e finaliza no Mercado Pago (Pix, crédito, débito).
-                A confirmação aparece direto no seu painel do Mercado Pago.
+                A confirmação chega automaticamente pelo webhook e aparece aqui na tela.
               </p>
             </aside>
           </div>
@@ -213,11 +317,25 @@ function CaixaQrPage() {
             </div>
 
             <div className="space-y-4">
-              <div className="bg-emerald-500/10 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 rounded-md p-4 text-sm">
-                <strong className="font-black uppercase tracking-wider block mb-1">QR pronto</strong>
-                Peça ao cliente para abrir a câmera do celular, escanear este QR e finalizar o pagamento.
-                Confira a confirmação diretamente no painel do Mercado Pago antes de liberar a mercadoria.
+              <div className="flex items-center gap-3">
+                <StatusBadge status={status} />
+                {status === "pending" && (
+                  <span className="text-xs text-muted-foreground">Verificando pagamento…</span>
+                )}
               </div>
+
+              {status === "paid" ? (
+                <div className="bg-emerald-500/10 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 rounded-md p-4 text-sm">
+                  <strong className="font-black uppercase tracking-wider block mb-1">Pagamento confirmado</strong>
+                  Já pode liberar a mercadoria. O registro ficou salvo no histórico do caixa.
+                </div>
+              ) : (
+                <div className="bg-emerald-500/10 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 rounded-md p-4 text-sm">
+                  <strong className="font-black uppercase tracking-wider block mb-1">QR pronto</strong>
+                  Peça ao cliente para abrir a câmera do celular, escanear este QR e finalizar o pagamento.
+                  A confirmação chega aqui automaticamente pelo webhook do Mercado Pago.
+                </div>
+              )}
 
               <div className="bg-card border border-border rounded-md p-4">
                 <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1">
@@ -260,6 +378,50 @@ function CaixaQrPage() {
             </div>
           </div>
         )}
+
+        {/* Histórico */}
+        <div className="mt-10 print:hidden">
+          <h2 className="text-lg font-black uppercase tracking-wider mb-3">Últimas cobranças do caixa</h2>
+          <div className="bg-card border border-border rounded-md overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/40 text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <tr>
+                    <th className="text-left px-3 py-2">Quando</th>
+                    <th className="text-left px-3 py-2">Operador / Obs</th>
+                    <th className="text-right px-3 py-2">Total</th>
+                    <th className="text-left px-3 py-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(recentQuery.data ?? []).length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="text-center text-muted-foreground py-6 text-xs">
+                        {recentQuery.isLoading ? "Carregando..." : "Nenhuma cobrança ainda."}
+                      </td>
+                    </tr>
+                  ) : (
+                    (recentQuery.data as any[]).map((c) => (
+                      <tr key={c.id} className="border-t border-border">
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-muted-foreground">
+                          {new Date(c.created_at).toLocaleString("pt-BR")}
+                        </td>
+                        <td className="px-3 py-2 text-xs">
+                          <div className="font-bold">{c.operator_name ?? "—"}</div>
+                          {c.note && <div className="text-muted-foreground">{c.note}</div>}
+                        </td>
+                        <td className="px-3 py-2 text-right font-black">{brl(Number(c.total))}</td>
+                        <td className="px-3 py-2">
+                          <StatusBadge status={c.status} />
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </section>
 
       <Footer />

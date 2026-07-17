@@ -12,6 +12,23 @@ function originFromRequest(): string {
   return `${proto}://${host}`;
 }
 
+async function ensureStaff(context: { supabase: any; userId: string }): Promise<void> {
+  const roles: Array<"admin" | "manager" | "catalog" | "fulfillment"> = [
+    "admin",
+    "manager",
+    "catalog",
+    "fulfillment",
+  ];
+  for (const r of roles) {
+    const { data: has } = await context.supabase.rpc("has_role" as never, {
+      _user_id: context.userId,
+      _role: r,
+    } as never);
+    if (has) return;
+  }
+  throw new Error("Sem permissão");
+}
+
 export const createCaixaQrPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: Input) => {
@@ -38,28 +55,44 @@ export const createCaixaQrPayment = createServerFn({ method: "POST" })
     return { items, note: (data.note ?? "").toString().slice(0, 200) || null };
   })
   .handler(async ({ data, context }) => {
-    // Autorização: admin, gerente, catálogo ou expedição (equipe da loja)
-    const roles: Array<"admin" | "manager" | "catalog" | "fulfillment"> = [
-      "admin",
-      "manager",
-      "catalog",
-      "fulfillment",
-    ];
-    let allowed = false;
-    for (const r of roles) {
-      const { data: has } = await context.supabase.rpc("has_role" as never, {
-        _user_id: context.userId,
-        _role: r,
-      } as never);
-      if (has) { allowed = true; break; }
-    }
-    if (!allowed) throw new Error("Sem permissão");
+    await ensureStaff(context);
 
     const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
     if (!accessToken) throw new Error("Mercado Pago não configurado");
 
     const origin = originFromRequest();
     const total = data.items.reduce((a, i) => a + i.unit_price * i.quantity, 0);
+
+    // Nome do operador para histórico
+    const { data: profile } = await context.supabase
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", context.userId)
+      .maybeSingle();
+    const operatorName =
+      (profile as any)?.full_name || (profile as any)?.email || (context.claims as any)?.email || null;
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Cria o registro da cobrança primeiro para termos o id como external_reference
+    const { data: charge, error: insErr } = await supabaseAdmin
+      .from("pos_charges")
+      .insert({
+        operator_id: context.userId,
+        operator_name: operatorName,
+        items: data.items,
+        total,
+        note: data.note,
+        status: "pending",
+      } as never)
+      .select("id")
+      .single();
+    if (insErr || !charge) {
+      console.error("[caixa-qr] insert pos_charges failed", insErr);
+      throw new Error("Falha ao registrar cobrança");
+    }
+    const chargeId = (charge as { id: string }).id;
+    const externalReference = `pos:${chargeId}`;
 
     const preferenceBody = {
       items: data.items.map((it) => ({
@@ -74,8 +107,10 @@ export const createCaixaQrPayment = createServerFn({ method: "POST" })
         failure: `${origin}/redirecionando`,
       },
       statement_descriptor: "SHOPBOX",
+      external_reference: externalReference,
       metadata: {
         source: "caixa_qr",
+        pos_charge_id: chargeId,
         cashier_user_id: context.userId,
         note: data.note ?? "",
       },
@@ -93,13 +128,54 @@ export const createCaixaQrPayment = createServerFn({ method: "POST" })
     if (!mpRes.ok) {
       const errText = await mpRes.text();
       console.error("[caixa-qr] mp preference error", mpRes.status, errText);
+      await supabaseAdmin
+        .from("pos_charges")
+        .update({ status: "failed", mp_status_detail: errText.slice(0, 500) } as never)
+        .eq("id", chargeId);
       throw new Error("Falha ao gerar cobrança no Mercado Pago");
     }
 
     const pref = (await mpRes.json()) as { id: string; init_point: string };
+
+    await supabaseAdmin
+      .from("pos_charges")
+      .update({ mp_preference_id: pref.id } as never)
+      .eq("id", chargeId);
+
     return {
+      chargeId,
       preferenceId: pref.id,
       initPoint: pref.init_point,
       total,
     };
+  });
+
+export const getPosChargeStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { chargeId: string }) => {
+    if (!data?.chargeId || typeof data.chargeId !== "string") throw new Error("chargeId obrigatório");
+    return { chargeId: data.chargeId };
+  })
+  .handler(async ({ data, context }) => {
+    await ensureStaff(context);
+    const { data: row, error } = await context.supabase
+      .from("pos_charges")
+      .select("id,status,total,mp_status,mp_status_detail,mp_payment_method_id,mp_payment_id,paid_at,last_event_at")
+      .eq("id", data.chargeId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const listRecentPosCharges = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureStaff(context);
+    const { data, error } = await context.supabase
+      .from("pos_charges")
+      .select("id,total,status,note,operator_name,mp_payment_method_id,paid_at,created_at")
+      .order("created_at", { ascending: false })
+      .limit(30);
+    if (error) throw new Error(error.message);
+    return data ?? [];
   });
