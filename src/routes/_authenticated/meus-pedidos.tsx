@@ -10,6 +10,7 @@ import { STORE_ADDRESS } from "@/lib/whatsapp";
 import { resumePendingPayment } from "@/lib/mercadopago.functions";
 import { resumeCieloPayment } from "@/lib/cielo.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
+import { DeliveryUpgradeButton } from "@/components/DeliveryUpgradeButton";
 import { toast } from "sonner";
 
 
