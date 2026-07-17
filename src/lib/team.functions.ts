@@ -51,11 +51,14 @@ export const searchTeamCandidates = createServerFn({ method: "POST" })
     return (results ?? []) as Found[];
   });
 
+const INTERNAL_ROLES = ["admin", "manager", "catalog", "fulfillment", "cashier"] as const;
+type InternalRole = (typeof INTERNAL_ROLES)[number];
+
 export const assignTeamRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { user_id: string; role: "admin" | "manager" | "catalog" | "fulfillment" }) => {
+  .inputValidator((input: { user_id: string; role: InternalRole }) => {
     if (!input?.user_id) throw new Error("user_id obrigatório");
-    if (!["admin", "manager", "catalog", "fulfillment"].includes(input.role))
+    if (!(INTERNAL_ROLES as readonly string[]).includes(input.role))
       throw new Error("Função inválida");
     return input;
   })
@@ -69,11 +72,11 @@ export const assignTeamRole = createServerFn({ method: "POST" })
       .from("user_roles")
       .delete()
       .eq("user_id", data.user_id)
-      .in("role", ["admin", "manager", "catalog", "fulfillment"]);
+      .in("role", INTERNAL_ROLES as unknown as string[]);
     if (delErr) throw new Error(delErr.message);
     const { error } = await supabaseAdmin.from("user_roles").insert({
       user_id: data.user_id,
-      role: data.role,
+      role: data.role as never,
     });
     if (error) {
       if (error.code === "23505") return { ok: false as const, reason: "duplicate" };
@@ -84,9 +87,9 @@ export const assignTeamRole = createServerFn({ method: "POST" })
 
 export const removeTeamRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { user_id: string; role: "admin" | "manager" | "catalog" | "fulfillment" }) => {
+  .inputValidator((input: { user_id: string; role: InternalRole }) => {
     if (!input?.user_id) throw new Error("user_id obrigatório");
-    if (!["admin", "manager", "catalog", "fulfillment"].includes(input.role))
+    if (!(INTERNAL_ROLES as readonly string[]).includes(input.role))
       throw new Error("Função inválida");
     return input;
   })
@@ -97,7 +100,7 @@ export const removeTeamRole = createServerFn({ method: "POST" })
       .from("user_roles")
       .delete()
       .eq("user_id", data.user_id)
-      .eq("role", data.role);
+      .eq("role", data.role as never);
     if (error) throw new Error(error.message);
     return { ok: true };
   });

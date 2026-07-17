@@ -13,16 +13,11 @@ function originFromRequest(): string {
 }
 
 async function ensureStaff(context: { supabase: any; userId: string }): Promise<void> {
-  const roles: Array<"admin" | "manager" | "catalog" | "fulfillment"> = [
-    "admin",
-    "manager",
-    "catalog",
-    "fulfillment",
-  ];
+  const roles = ["admin", "manager", "catalog", "fulfillment", "cashier"] as const;
   for (const r of roles) {
     const { data: has } = await context.supabase.rpc("has_role" as never, {
       _user_id: context.userId,
-      _role: r,
+      _role: r as never,
     } as never);
     if (has) return;
   }
