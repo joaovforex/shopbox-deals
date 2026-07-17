@@ -143,7 +143,7 @@ export const createMpPreference = createServerFn({ method: "POST" })
     }
 
     // Salva endereço no pedido + força user_id
-    const orderUpdate: Record<string, unknown> = {};
+    const orderUpdate: Record<string, unknown> = { payment_provider: "mercadopago" };
     if (data.delivery_method === "delivery" && data.shipping) {
       const s = data.shipping;
       orderUpdate.shipping_zip = s.zip.replace(/\D/g, "");
