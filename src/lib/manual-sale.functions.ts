@@ -44,8 +44,10 @@ export const createManualSale = createServerFn({ method: "POST" })
     } as never);
     if (!isAdmin) throw new Error("Sem permissão");
 
+    const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
+    if (!accessToken) throw new Error("Mercado Pago não configurado");
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { createCheckout } = await import("@/lib/cielo.server");
 
     const { data: orderId, error: orderErr } = await context.supabase.rpc(
       "create_manual_order" as never,
@@ -58,10 +60,10 @@ export const createManualSale = createServerFn({ method: "POST" })
     );
     if (orderErr || !orderId) throw new Error(orderErr?.message ?? "Falha ao criar pedido");
 
-    // Marca como Cielo
+    // Marca como Mercado Pago
     await supabaseAdmin
       .from("orders")
-      .update({ payment_provider: "cielo" } as never)
+      .update({ payment_provider: "mercadopago" } as never)
       .eq("id", orderId as string);
 
     const { data: orderItems, error: itemsErr } = await supabaseAdmin
@@ -70,47 +72,60 @@ export const createManualSale = createServerFn({ method: "POST" })
       .eq("order_id", orderId as string);
     if (itemsErr || !orderItems) throw new Error("Falha ao carregar itens");
 
-    const cieloItems = orderItems.map((it) => ({
-      name: String(it.product_name).slice(0, 128),
-      unitPriceCents: Math.round(Number(it.unit_price) * 100),
-      quantity: Number(it.quantity),
-      sku: (orderId as string).slice(0, 40),
-    }));
-
     const origin = originFromRequest();
 
-    let checkout;
-    try {
-      checkout = await createCheckout({
-        orderNumber: orderId as string,
-        softDescriptor: "SHOPBOX",
-        items: cieloItems,
-        shipping: { type: "WithoutShipping" },
-        maxInstallments: 7,
-        returnUrl: `${origin}/pedido/${orderId}`,
-        customer: {
-          name: data.customer_name.trim(),
-          phone: data.customer_phone,
-        },
-      });
-    } catch (err) {
-      console.error("[manual-sale] cielo checkout error", err);
+    const preferenceBody = {
+      items: orderItems.map((it) => ({
+        title: String(it.product_name).slice(0, 200),
+        quantity: Number(it.quantity),
+        unit_price: Number(it.unit_price),
+        currency_id: "BRL",
+      })),
+      payer: {
+        name: data.customer_name.trim(),
+        phone: { area_code: data.customer_phone.slice(0, 2), number: data.customer_phone.slice(2) },
+      },
+      external_reference: orderId as string,
+      back_urls: {
+        success: `${origin}/pedido/${orderId}`,
+        failure: `${origin}/pedido/${orderId}`,
+        pending: `${origin}/pedido/${orderId}`,
+      },
+      auto_return: "approved",
+      notification_url: `${origin}/api/public/mp/webhook`,
+      payment_methods: {
+        installments: 7,
+      },
+      statement_descriptor: "SHOPBOX",
+    };
+
+    const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(preferenceBody),
+    });
+    if (!mpRes.ok) {
+      const errText = await mpRes.text();
+      console.error("[manual-sale] mp preference error", mpRes.status, errText);
       await supabaseAdmin.from("orders").update({ status: "cancelled" }).eq("id", orderId as string);
-      throw new Error("Falha ao gerar cobrança na Cielo");
+      throw new Error("Falha ao gerar cobrança no Mercado Pago");
     }
+    const pref = (await mpRes.json()) as { id: string; init_point: string };
 
     await supabaseAdmin
       .from("orders")
       .update({
-        cielo_checkout_url: checkout.checkoutUrl,
+        mp_preference_id: pref.id,
+        mp_init_point: pref.init_point,
       } as never)
       .eq("id", orderId as string);
 
     return {
       orderId: orderId as string,
-      // Mantém a chave "initPoint" para compatibilidade com a UI existente
-      initPoint: checkout.checkoutUrl,
-      preferenceId: orderId as string,
+      initPoint: pref.init_point,
+      preferenceId: pref.id,
     };
   });
-
