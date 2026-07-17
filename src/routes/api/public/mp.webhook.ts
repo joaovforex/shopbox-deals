@@ -104,11 +104,38 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
           return new Response("ok", { status: 200 });
         }
 
-
-
-
-
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+        // Caixa QR (venda avulsa) — external_reference no formato "pos:<uuid>"
+        if (orderId.startsWith("pos:")) {
+          const chargeId = orderId.slice(4);
+          let newStatus: "pending" | "paid" | "denied" | "refunded" | "cancelled" = "pending";
+          if (payment.status === "approved") newStatus = "paid";
+          else if (payment.status === "refunded" || payment.status === "charged_back") newStatus = "refunded";
+          else if (payment.status === "cancelled") newStatus = "cancelled";
+          else if (payment.status === "rejected") newStatus = "denied";
+
+          const patch: Record<string, unknown> = {
+            mp_payment_id: String(payment.id),
+            mp_status: payment.status,
+            mp_status_detail: payment.status_detail ?? null,
+            mp_payment_method_id: payment.payment_method_id ?? null,
+            status: newStatus,
+            last_event_at: new Date().toISOString(),
+          };
+          if (newStatus === "paid") patch.paid_at = new Date().toISOString();
+
+          const { error: updErr } = await supabaseAdmin
+            .from("pos_charges")
+            .update(patch as never)
+            .eq("id", chargeId);
+          if (updErr) {
+            console.error("[mp:webhook] pos_charges update failed", updErr);
+            return new Response("update failed", { status: 500 });
+          }
+          console.info("[mp:webhook] pos_charge updated", { chargeId, newStatus });
+          return new Response("ok", { status: 200 });
+        }
 
         // Sempre registra o detalhe da última tentativa de pagamento — mesmo
         // que rejeitada — para a UI mostrar o motivo real ao cliente.
