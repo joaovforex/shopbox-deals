@@ -41,7 +41,7 @@ export type ProductCard = {
 
 
 
-export type TeamRole = "admin" | "manager" | "catalog" | "fulfillment" | "user";
+export type TeamRole = "admin" | "manager" | "catalog" | "fulfillment" | "cashier" | "user";
 
 export function productImages(p: Pick<Product, "images" | "image_url">): string[] {
   const arr = (p.images ?? []).filter(Boolean);
@@ -368,6 +368,7 @@ export type RoleSummary = {
   isManager: boolean;
   isCatalog: boolean;
   isFulfillment: boolean;
+  isCashier: boolean;
   hasAnyTeamRole: boolean;
 };
 
@@ -377,6 +378,7 @@ export type RoleSummary = {
  * - manager     → ADM (catálogo + expedição)
  * - catalog     → somente catálogo
  * - fulfillment → somente expedição
+ * - cashier     → Caixa (apenas Caixa QR e impressão de comprovantes)
  */
 export async function getRoleSummary(): Promise<RoleSummary> {
   const roles = await getMyRoles();
@@ -384,11 +386,13 @@ export async function getRoleSummary(): Promise<RoleSummary> {
   const isManager = roles.includes("manager");
   const isCatalog = isSuperAdmin || isManager || roles.includes("catalog");
   const isFulfillment = isSuperAdmin || isManager || roles.includes("fulfillment");
+  const isCashier = isSuperAdmin || isManager || roles.includes("cashier");
   return {
     isSuperAdmin,
     isManager,
     isCatalog,
     isFulfillment,
-    hasAnyTeamRole: isSuperAdmin || isManager || isCatalog || isFulfillment,
+    isCashier,
+    hasAnyTeamRole: isSuperAdmin || isManager || isCatalog || isFulfillment || roles.includes("cashier"),
   };
 }

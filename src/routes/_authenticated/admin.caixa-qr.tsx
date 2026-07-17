@@ -8,6 +8,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Header, Footer } from "@/components/Header";
 import { createCaixaQrPayment, getPosChargeStatus, listRecentPosCharges } from "@/lib/caixa-qr.functions";
 import { brl } from "@/lib/format";
+import { printReceipt } from "@/lib/receiptPrint";
 
 export const Route = createFileRoute("/_authenticated/admin/caixa-qr")({
   head: () => ({ meta: [{ title: "Caixa QR · shopbox" }] }),
@@ -325,9 +326,54 @@ function CaixaQrPage() {
               </div>
 
               {status === "paid" ? (
-                <div className="bg-emerald-500/10 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 rounded-md p-4 text-sm">
-                  <strong className="font-black uppercase tracking-wider block mb-1">Pagamento confirmado</strong>
-                  Já pode liberar a mercadoria. O registro ficou salvo no histórico do caixa.
+                <div className="bg-emerald-500/10 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 rounded-md p-4 text-sm space-y-3">
+                  <div>
+                    <strong className="font-black uppercase tracking-wider block mb-1">Pagamento confirmado</strong>
+                    Já pode liberar a mercadoria. O registro ficou salvo no histórico do caixa.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const row = (await getStatus({ data: { chargeId: result.chargeId } })) as any;
+                        printReceipt({
+                          chargeId: result.chargeId,
+                          items: Array.isArray(row?.items)
+                            ? row.items
+                            : items
+                                .map((i) => ({
+                                  title: i.title,
+                                  unit_price: Number(String(i.unit_price).replace(",", ".")),
+                                  quantity: Number(i.quantity),
+                                }))
+                                .filter((i) => i.title && i.unit_price > 0 && i.quantity > 0),
+                          total: Number(row?.total ?? result.total),
+                          paidAt: row?.paid_at ?? new Date().toISOString(),
+                          operator: row?.operator_name ?? null,
+                          paymentMethod: row?.mp_payment_method_id ?? null,
+                          note: row?.note ?? note ?? null,
+                        });
+                      } catch {
+                        printReceipt({
+                          chargeId: result.chargeId,
+                          items: items
+                            .map((i) => ({
+                              title: i.title,
+                              unit_price: Number(String(i.unit_price).replace(",", ".")),
+                              quantity: Number(i.quantity),
+                            }))
+                            .filter((i) => i.title && i.unit_price > 0 && i.quantity > 0),
+                          total: result.total,
+                          paidAt: new Date().toISOString(),
+                          paymentMethod: null,
+                          note: note || null,
+                        });
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 bg-emerald-600 text-white font-black uppercase tracking-wider px-4 py-2.5 rounded-md shadow-deal hover:bg-emerald-700"
+                  >
+                    <Printer className="h-4 w-4" /> Imprimir comprovante (80mm)
+                  </button>
                 </div>
               ) : (
                 <div className="bg-emerald-500/10 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 rounded-md p-4 text-sm">
@@ -391,12 +437,13 @@ function CaixaQrPage() {
                     <th className="text-left px-3 py-2">Operador / Obs</th>
                     <th className="text-right px-3 py-2">Total</th>
                     <th className="text-left px-3 py-2">Status</th>
+                    <th className="text-right px-3 py-2">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(recentQuery.data ?? []).length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="text-center text-muted-foreground py-6 text-xs">
+                      <td colSpan={5} className="text-center text-muted-foreground py-6 text-xs">
                         {recentQuery.isLoading ? "Carregando..." : "Nenhuma cobrança ainda."}
                       </td>
                     </tr>
@@ -413,6 +460,30 @@ function CaixaQrPage() {
                         <td className="px-3 py-2 text-right font-black">{brl(Number(c.total))}</td>
                         <td className="px-3 py-2">
                           <StatusBadge status={c.status} />
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {c.status === "paid" && Array.isArray(c.items) && c.items.length > 0 ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                printReceipt({
+                                  chargeId: c.id,
+                                  items: c.items,
+                                  total: Number(c.total),
+                                  paidAt: c.paid_at ?? c.created_at,
+                                  operator: c.operator_name ?? null,
+                                  paymentMethod: c.mp_payment_method_id ?? null,
+                                  note: c.note ?? null,
+                                })
+                              }
+                              className="inline-flex items-center gap-1 border border-border rounded px-2 py-1 text-[11px] font-bold uppercase tracking-wider hover:border-primary"
+                              title="Imprimir comprovante (80mm)"
+                            >
+                              <Printer className="h-3 w-3" /> 2ª via
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground">—</span>
+                          )}
                         </td>
                       </tr>
                     ))

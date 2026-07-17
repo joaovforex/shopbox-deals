@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, TrendingUp, Package, DollarSign, ShoppingBag, Sparkles, Truck, Store, Trash2, AlertTriangle, Search, Filter, X, Undo2, Share2, Gift, Download, CalendarIcon } from "lucide-react";
+import { ArrowLeft, TrendingUp, Package, DollarSign, ShoppingBag, Sparkles, Truck, Store, Trash2, AlertTriangle, Search, Filter, X, Undo2, Share2, Gift, Download, CalendarIcon, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -19,6 +19,7 @@ import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import { refundOrder } from "@/lib/refunds.functions";
 import { createExchangeVoucher } from "@/lib/exchange-vouchers.functions";
 import { listAllCustomers } from "@/lib/customers.functions";
+import { getPosChargesMetrics } from "@/lib/caixa-qr.functions";
 
 
 export const Route = createFileRoute("/_authenticated/admin/pedidos")({
@@ -91,8 +92,17 @@ function OrdersPanel() {
   const refundFn = useServerFn(refundOrder);
   const voucherFn = useServerFn(createExchangeVoucher);
   const listCustomersFn = useServerFn(listAllCustomers);
+  const posMetricsFn = useServerFn(getPosChargesMetrics);
   const [exportingCustomers, setExportingCustomers] = useState(false);
   const qc = useQueryClient();
+
+  const posMetrics = useQuery({
+    queryKey: ["pos-charges", "metrics"],
+    queryFn: () => posMetricsFn(),
+    enabled: admin === true,
+    refetchInterval: 30000,
+    staleTime: 15000,
+  });
 
   async function downloadCustomersCsv() {
     if (exportingCustomers) return;
@@ -491,6 +501,58 @@ function OrdersPanel() {
           <Kpi icon={<Package className="h-5 w-5" />} label="Itens vendidos" value={String(stats.unitsSold)} />
           <Kpi icon={<TrendingUp className="h-5 w-5" />} label="Ticket médio" value={stats.orders.length ? brl(stats.revenue / stats.orders.length) : brl(0)} />
         </div>
+
+        {/* Caixa QR — métricas separadas (balcão, fora do fluxo da loja online) */}
+        <div className="bg-card border border-border rounded-lg p-5">
+          <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="bg-primary text-primary-foreground rounded-md p-2">
+                <QrCode className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="display text-lg leading-tight">Caixa QR (balcão)</h3>
+                <p className="text-[11px] text-muted-foreground">
+                  Vendas provisórias pelo QR no balcão. Independentes da loja online.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/admin/caixa-qr"
+              className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider border border-border rounded-md px-3 py-1.5 hover:border-primary"
+            >
+              Abrir Caixa QR
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Kpi
+              icon={<DollarSign className="h-5 w-5" />}
+              label="Caixa hoje"
+              value={brl(posMetrics.data?.paidToday.total ?? 0)}
+              accent
+            />
+            <Kpi
+              icon={<ShoppingBag className="h-5 w-5" />}
+              label="Vendas hoje"
+              value={String(posMetrics.data?.paidToday.count ?? 0)}
+            />
+            <Kpi
+              icon={<TrendingUp className="h-5 w-5" />}
+              label="Caixa 8 dias"
+              value={brl(posMetrics.data?.paid8Days.total ?? 0)}
+            />
+            <Kpi
+              icon={<Package className="h-5 w-5" />}
+              label="Vendas 8 dias"
+              value={String(posMetrics.data?.paid8Days.count ?? 0)}
+            />
+          </div>
+          {(posMetrics.data?.pending8Days ?? 0) > 0 && (
+            <p className="text-[11px] text-muted-foreground mt-3">
+              {posMetrics.data?.pending8Days} cobrança(s) do caixa aguardando pagamento nos últimos 8 dias.
+            </p>
+          )}
+        </div>
+
 
         {/* Insight */}
         <div className="bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/40 rounded-lg p-5">
