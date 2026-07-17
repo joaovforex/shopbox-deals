@@ -30,8 +30,13 @@ function AdminPage() {
   const refresh = async () => setRoles(await getRoleSummary());
   useEffect(() => { refresh(); }, []);
 
-  // Expedição-only (sem catálogo) é redirecionado para sua área
+  // Cargo Caixa (sem catálogo/expedição) vai direto para Caixa QR
   useEffect(() => {
+    if (!isChildRoute && roles && !roles.isCatalog && !roles.isFulfillment && roles.isCashier) {
+      navigate({ to: "/admin/caixa-qr", replace: true });
+      return;
+    }
+    // Expedição-only (sem catálogo) é redirecionado para sua área
     if (!isChildRoute && roles && !roles.isCatalog && roles.isFulfillment) {
       navigate({ to: "/admin/expedicao", replace: true });
     }
