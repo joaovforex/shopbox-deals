@@ -157,9 +157,7 @@ export const createMpPreference = createServerFn({ method: "POST" })
       orderUpdate.shipping_recipient_phone = (s.recipient_phone ?? data.customer_phone).replace(/\D/g, "");
       orderUpdate.shipping_address = `${orderUpdate.shipping_street}, ${orderUpdate.shipping_number}${orderUpdate.shipping_complement ? " - " + orderUpdate.shipping_complement : ""}, ${orderUpdate.shipping_district ?? ""} - ${orderUpdate.shipping_city}/${orderUpdate.shipping_state} - ${orderUpdate.shipping_zip}`;
     }
-    if (Object.keys(orderUpdate).length > 0) {
-      await supabaseAdmin.from("orders").update(orderUpdate as never).eq("id", orderId as string);
-    }
+    await supabaseAdmin.from("orders").update(orderUpdate as never).eq("id", orderId as string);
     await supabaseAdmin
       .from("orders")
       .update({ user_id: context.userId })
