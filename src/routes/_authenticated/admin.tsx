@@ -344,6 +344,12 @@ function AdminPage() {
                   <QrCode className="h-4 w-4" /> Caixa QR
                 </Link>
                 <Link
+                  to="/admin/agendador-canal"
+                  className="inline-flex items-center gap-2 bg-card border border-[#25D366]/60 text-[#128C7E] dark:text-[#25D366] font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-[#25D366]/10 text-sm"
+                >
+                  <Radio className="h-4 w-4" /> Agendador canal
+                </Link>
+                <Link
                   to="/admin/configuracoes"
                   className="inline-flex items-center gap-2 bg-card border border-border font-black uppercase tracking-wider px-4 py-3 rounded-md hover:border-primary text-sm"
                 >
