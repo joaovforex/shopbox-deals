@@ -11,6 +11,7 @@ import { claimFirstAdmin } from "@/lib/admin.functions";
 import { brl, discountPct, postDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ProductForm, PRODUCT_FORM_DRAFT_KEY as DRAFT_KEY } from "@/components/ProductForm";
+import { BulkShareDialog } from "@/components/BulkShareDialog";
 
 
 
@@ -74,8 +75,11 @@ function AdminPage() {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"todos" | "esgotados">("todos");
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isBulkHiding, setIsBulkHiding] = useState(false);
+  const [bulkShareOpen, setBulkShareOpen] = useState(false);
 
 
   // If a draft for an existing product was in progress, reopen edit form once loaded.
@@ -389,9 +393,39 @@ function AdminPage() {
             </button>
           </div>
 
-          {tab === "esgotados" && (
-            <div className="flex items-center gap-2">
-              {selected.size > 0 ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectMode((v) => {
+                  if (v) setSelected(new Set());
+                  return !v;
+                });
+              }}
+              className={cn(
+                "inline-flex items-center gap-2 font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs border",
+                selectMode
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card border-border hover:bg-secondary",
+              )}
+            >
+              <CheckSquare className="h-4 w-4" />
+              {selectMode ? "Sair da seleção" : "Selecionar"}
+            </button>
+
+            {selectMode && selected.size > 0 && (
+              <button
+                type="button"
+                onClick={() => setBulkShareOpen(true)}
+                className="inline-flex items-center gap-2 bg-[#25D366] text-white font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:opacity-90"
+              >
+                <Share2 className="h-4 w-4" />
+                Compartilhar {selected.size}
+              </button>
+            )}
+
+            {tab === "esgotados" && (
+              selected.size > 0 ? (
                 <button
                   type="button"
                   disabled={isBulkHiding}
@@ -399,7 +433,7 @@ function AdminPage() {
                   className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-destructive/90 disabled:opacity-50"
                 >
                   <EyeOff className="h-4 w-4" />
-                  Ocultar {selected.size} selecionado{selected.size === 1 ? "" : "s"}
+                  Ocultar {selected.size}
                 </button>
               ) : (
                 <button
@@ -412,11 +446,11 @@ function AdminPage() {
                   className="inline-flex items-center gap-2 bg-card border border-border text-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-secondary disabled:opacity-50"
                 >
                   <EyeOff className="h-4 w-4" />
-                  Ocultar todos os esgotados
+                  Ocultar todos esgotados
                 </button>
-              )}
-            </div>
-          )}
+              )
+            )}
+          </div>
         </div>
 
         <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -429,8 +463,23 @@ function AdminPage() {
               className="w-full h-11 pl-4 pr-4 rounded-md border border-border bg-card text-sm focus:outline-none focus:border-primary"
             />
           </div>
-          {search && (
-            <button onClick={() => setSearch("")} className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="h-11 rounded-md border border-border bg-card text-sm px-3 focus:outline-none focus:border-primary min-w-[180px]"
+          >
+            <option value="">Todas as categorias</option>
+            {Array.from(new Set(products.map((p) => p.category).filter((c): c is string => !!c)))
+              .sort((a, b) => a.localeCompare(b, "pt-BR"))
+              .map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+          </select>
+          {(search || categoryFilter) && (
+            <button
+              onClick={() => { setSearch(""); setCategoryFilter(""); }}
+              className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+            >
               Limpar
             </button>
           )}
@@ -438,11 +487,12 @@ function AdminPage() {
             {(() => {
               const t = search.trim().toLowerCase();
               const byTab = tab === "esgotados" ? products.filter((p) => p.stock === 0) : products;
+              const byCat = categoryFilter ? byTab.filter((p) => p.category === categoryFilter) : byTab;
               const match = (p: typeof products[number]) =>
                 p.name.toLowerCase().includes(t)
                 || (p.category ?? "").toLowerCase().includes(t)
                 || (p.sku ?? "").toLowerCase().includes(t);
-              const n = t ? byTab.filter(match).length : byTab.length;
+              const n = t ? byCat.filter(match).length : byCat.length;
               return `${n} ${n === 1 ? "resultado" : "resultados"}`;
             })()}
           </span>
@@ -450,11 +500,12 @@ function AdminPage() {
         {(() => {
           const t = search.trim().toLowerCase();
           const byTab = tab === "esgotados" ? products.filter((p) => p.stock === 0) : products;
+          const byCat = categoryFilter ? byTab.filter((p) => p.category === categoryFilter) : byTab;
           const match = (p: typeof products[number]) =>
             p.name.toLowerCase().includes(t)
             || (p.category ?? "").toLowerCase().includes(t)
             || (p.sku ?? "").toLowerCase().includes(t);
-          const filtered = t ? byTab.filter(match) : byTab;
+          const filtered = t ? byCat.filter(match) : byCat;
           if (products.length === 0) {
             return (
               <div className="text-center py-20 bg-card rounded-lg border border-border">
@@ -471,18 +522,21 @@ function AdminPage() {
               </div>
             );
           }
-          const activeEsgotados = tab === "esgotados" ? filtered.filter((p) => p.active) : [];
-          const allSelected = activeEsgotados.length > 0 && activeEsgotados.every((p) => selected.has(p.id));
-          const someSelected = activeEsgotados.some((p) => selected.has(p.id)) && !allSelected;
+          const showCheckbox = selectMode || tab === "esgotados";
+          const selectableSet = tab === "esgotados"
+            ? filtered.filter((p) => p.active)
+            : filtered;
+          const allSelected = selectableSet.length > 0 && selectableSet.every((p) => selected.has(p.id));
+          const someSelected = selectableSet.some((p) => selected.has(p.id)) && !allSelected;
 
           const toggleSelectAll = () => {
             if (allSelected) {
               const next = new Set(selected);
-              activeEsgotados.forEach((p) => next.delete(p.id));
+              selectableSet.forEach((p) => next.delete(p.id));
               setSelected(next);
             } else {
               const next = new Set(selected);
-              activeEsgotados.forEach((p) => next.add(p.id));
+              selectableSet.forEach((p) => next.add(p.id));
               setSelected(next);
             }
           };
@@ -501,7 +555,7 @@ function AdminPage() {
             {filtered.map((p) => (
               <div key={p.id} className="bg-card rounded-lg border border-border p-3">
                 <div className="flex items-start gap-3">
-                  {tab === "esgotados" && (
+                  {showCheckbox && (
                     <button
                       type="button"
                       onClick={() => toggleSelect(p.id)}
@@ -556,7 +610,7 @@ function AdminPage() {
             <table className="w-full text-sm">
               <thead className="bg-secondary text-left text-xs uppercase tracking-wider">
                 <tr>
-                  {tab === "esgotados" && (
+                  {showCheckbox && (
                     <th className="p-3 w-10">
                       <button
                         type="button"
@@ -579,7 +633,7 @@ function AdminPage() {
               <tbody>
                 {filtered.map((p) => (
                   <tr key={p.id} className="border-t border-border">
-                    {tab === "esgotados" && (
+                    {showCheckbox && (
                       <td className="p-3 w-10">
                         <button
                           type="button"
@@ -669,6 +723,13 @@ function AdminPage() {
           product={editing}
           onClose={() => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} setShowForm(false); }}
           onSaved={() => { setShowForm(false); refetch(); qc.invalidateQueries({ queryKey: ["products"] }); }}
+        />
+      )}
+
+      {bulkShareOpen && (
+        <BulkShareDialog
+          products={products.filter((p) => selected.has(p.id))}
+          onClose={() => setBulkShareOpen(false)}
         />
       )}
 
