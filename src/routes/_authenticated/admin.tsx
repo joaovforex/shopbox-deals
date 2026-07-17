@@ -424,7 +424,7 @@ function AdminPage() {
               </button>
             )}
 
-            {showCheckbox && (
+            {tab === "esgotados" && (
               selected.size > 0 ? (
                 <button
                   type="button"
