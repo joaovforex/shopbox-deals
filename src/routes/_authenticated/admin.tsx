@@ -3,7 +3,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Crown, BarChart3, Truck, Users, Package, ShieldAlert, Undo2, ShoppingBag, CheckSquare, Square, XSquare, Gift, FileText, Settings, QrCode } from "lucide-react";
+import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Crown, BarChart3, Truck, Users, Package, ShieldAlert, Undo2, ShoppingBag, CheckSquare, Square, XSquare, Gift, FileText, Settings, QrCode, Radio } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { adminProductsInfiniteQuery, ADMIN_PRODUCTS_PAGE_SIZE, getRoleSummary, type Product, type RoleSummary } from "@/lib/products";
@@ -342,6 +342,12 @@ function AdminPage() {
                   className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] text-sm"
                 >
                   <QrCode className="h-4 w-4" /> Caixa QR
+                </Link>
+                <Link
+                  to="/admin/agendador-canal"
+                  className="inline-flex items-center gap-2 bg-card border border-[#25D366]/60 text-[#128C7E] dark:text-[#25D366] font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-[#25D366]/10 text-sm"
+                >
+                  <Radio className="h-4 w-4" /> Agendador canal
                 </Link>
                 <Link
                   to="/admin/configuracoes"
