@@ -393,9 +393,39 @@ function AdminPage() {
             </button>
           </div>
 
-          {tab === "esgotados" && (
-            <div className="flex items-center gap-2">
-              {selected.size > 0 ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectMode((v) => {
+                  if (v) setSelected(new Set());
+                  return !v;
+                });
+              }}
+              className={cn(
+                "inline-flex items-center gap-2 font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs border",
+                selectMode
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card border-border hover:bg-secondary",
+              )}
+            >
+              <CheckSquare className="h-4 w-4" />
+              {selectMode ? "Sair da seleção" : "Selecionar"}
+            </button>
+
+            {selectMode && selected.size > 0 && (
+              <button
+                type="button"
+                onClick={() => setBulkShareOpen(true)}
+                className="inline-flex items-center gap-2 bg-[#25D366] text-white font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:opacity-90"
+              >
+                <Share2 className="h-4 w-4" />
+                Compartilhar {selected.size}
+              </button>
+            )}
+
+            {tab === "esgotados" && (
+              selected.size > 0 ? (
                 <button
                   type="button"
                   disabled={isBulkHiding}
@@ -403,7 +433,7 @@ function AdminPage() {
                   className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-destructive/90 disabled:opacity-50"
                 >
                   <EyeOff className="h-4 w-4" />
-                  Ocultar {selected.size} selecionado{selected.size === 1 ? "" : "s"}
+                  Ocultar {selected.size}
                 </button>
               ) : (
                 <button
@@ -416,11 +446,11 @@ function AdminPage() {
                   className="inline-flex items-center gap-2 bg-card border border-border text-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-secondary disabled:opacity-50"
                 >
                   <EyeOff className="h-4 w-4" />
-                  Ocultar todos os esgotados
+                  Ocultar todos esgotados
                 </button>
-              )}
-            </div>
-          )}
+              )
+            )}
+          </div>
         </div>
 
         <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -433,8 +463,23 @@ function AdminPage() {
               className="w-full h-11 pl-4 pr-4 rounded-md border border-border bg-card text-sm focus:outline-none focus:border-primary"
             />
           </div>
-          {search && (
-            <button onClick={() => setSearch("")} className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="h-11 rounded-md border border-border bg-card text-sm px-3 focus:outline-none focus:border-primary min-w-[180px]"
+          >
+            <option value="">Todas as categorias</option>
+            {Array.from(new Set(products.map((p) => p.category).filter((c): c is string => !!c)))
+              .sort((a, b) => a.localeCompare(b, "pt-BR"))
+              .map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+          </select>
+          {(search || categoryFilter) && (
+            <button
+              onClick={() => { setSearch(""); setCategoryFilter(""); }}
+              className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
+            >
               Limpar
             </button>
           )}
@@ -442,11 +487,12 @@ function AdminPage() {
             {(() => {
               const t = search.trim().toLowerCase();
               const byTab = tab === "esgotados" ? products.filter((p) => p.stock === 0) : products;
+              const byCat = categoryFilter ? byTab.filter((p) => p.category === categoryFilter) : byTab;
               const match = (p: typeof products[number]) =>
                 p.name.toLowerCase().includes(t)
                 || (p.category ?? "").toLowerCase().includes(t)
                 || (p.sku ?? "").toLowerCase().includes(t);
-              const n = t ? byTab.filter(match).length : byTab.length;
+              const n = t ? byCat.filter(match).length : byCat.length;
               return `${n} ${n === 1 ? "resultado" : "resultados"}`;
             })()}
           </span>
@@ -454,11 +500,12 @@ function AdminPage() {
         {(() => {
           const t = search.trim().toLowerCase();
           const byTab = tab === "esgotados" ? products.filter((p) => p.stock === 0) : products;
+          const byCat = categoryFilter ? byTab.filter((p) => p.category === categoryFilter) : byTab;
           const match = (p: typeof products[number]) =>
             p.name.toLowerCase().includes(t)
             || (p.category ?? "").toLowerCase().includes(t)
             || (p.sku ?? "").toLowerCase().includes(t);
-          const filtered = t ? byTab.filter(match) : byTab;
+          const filtered = t ? byCat.filter(match) : byCat;
           if (products.length === 0) {
             return (
               <div className="text-center py-20 bg-card rounded-lg border border-border">
