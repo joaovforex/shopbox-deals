@@ -175,3 +175,50 @@ export const listRecentPosCharges = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+
+export const getPosChargesMetrics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await ensureStaff(context);
+    // Janela de 8 dias (hoje + 7 dias anteriores) alinhada com 00:00 local (America/Sao_Paulo ≈ -03:00).
+    const now = new Date();
+    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const start8d = new Date(startToday.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const { data, error } = await context.supabase
+      .from("pos_charges")
+      .select("total,status,paid_at,created_at")
+      .gte("created_at", start8d.toISOString())
+      .limit(2000);
+    if (error) throw new Error(error.message);
+    const rows = (data ?? []) as Array<{
+      total: number | string;
+      status: string;
+      paid_at: string | null;
+      created_at: string;
+    }>;
+    let paid8dTotal = 0,
+      paid8dCount = 0,
+      paidTodayTotal = 0,
+      paidTodayCount = 0,
+      pending8dCount = 0;
+    for (const r of rows) {
+      const total = Number(r.total ?? 0);
+      const paidAt = r.paid_at ? new Date(r.paid_at) : null;
+      if (r.status === "paid") {
+        paid8dTotal += total;
+        paid8dCount += 1;
+        if (paidAt && paidAt >= startToday) {
+          paidTodayTotal += total;
+          paidTodayCount += 1;
+        }
+      } else if (r.status === "pending") {
+        pending8dCount += 1;
+      }
+    }
+    return {
+      paidToday: { total: paidTodayTotal, count: paidTodayCount },
+      paid8Days: { total: paid8dTotal, count: paid8dCount },
+      pending8Days: pending8dCount,
+      since: start8d.toISOString(),
+    };
+  });
