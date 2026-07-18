@@ -225,6 +225,43 @@ export const createMpPreference = createServerFn({ method: "POST" })
       } as never)
       .eq("id", orderId as string);
 
+    // Pedido 100% pago com cashback (produtos zerados e sem frete): não passa
+    // pelo Mercado Pago (unit_price=0 é rejeitado). Confirmamos direto e
+    // devolvemos um "initPoint" que só redireciona o cliente para a página do pedido.
+    if (grandTotal <= 0) {
+      const origin = originFromRequest();
+      const { data: confirmResult, error: confirmErr } = await supabaseAdmin.rpc(
+        "confirm_order_paid" as never,
+        { p_order_id: orderId as string, p_mp_payment_id: `cashback-only:${orderId}` } as never,
+      );
+      if (confirmErr) {
+        console.error("[mp] confirm cashback-only failed", confirmErr);
+        // devolve saldo consumido e cancela pedido para não travar o cliente
+        await supabaseAdmin.rpc("refund_cashback_for_order" as never, { p_order_id: orderId as string } as never);
+        await supabaseAdmin.from("orders").update({ status: "cancelled" } as never).eq("id", orderId as string);
+        throw new Error("Falha ao finalizar pedido pago com cashback. Tente novamente.");
+      }
+      if (confirmResult === "out_of_stock") {
+        await supabaseAdmin.rpc("refund_cashback_for_order" as never, { p_order_id: orderId as string } as never);
+        throw new Error("Um dos itens ficou sem estoque. Seu cashback foi devolvido.");
+      }
+      await supabaseAdmin
+        .from("orders")
+        .update({
+          payment_method: "cashback",
+          mp_payment_status: "approved",
+          mp_last_attempt_at: new Date().toISOString(),
+        } as never)
+        .eq("id", orderId as string);
+      return {
+        orderId: orderId as string,
+        preferenceId: "",
+        initPoint: `${origin}/pedido/${orderId}`,
+      };
+    }
+
+
+
     const origin = originFromRequest();
     const nameParts = data.customer_name.trim().split(/\s+/);
     const firstName = nameParts[0] ?? "";
