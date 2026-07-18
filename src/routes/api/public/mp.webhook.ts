@@ -154,6 +154,42 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
               return new Response("update failed", { status: 500 });
             }
             console.info("[mp:webhook] delivery upgrade applied", { upgradeId, result });
+
+            // Notifica admin/expedição do upgrade retirada -> entrega
+            try {
+              const { data: up } = await supabaseAdmin
+                .from("delivery_upgrades")
+                .select("order_id, shipping_street, shipping_number, shipping_district, shipping_city")
+                .eq("id", upgradeId)
+                .maybeSingle();
+              if (up?.order_id) {
+                const { data: ord } = await supabaseAdmin
+                  .from("orders")
+                  .select("id, customer_name, customer_phone, total")
+                  .eq("id", up.order_id)
+                  .maybeSingle();
+                const name = ord?.customer_name ?? "Cliente";
+                const shortId = up.order_id.slice(0, 8).toUpperCase();
+                const street = [up.shipping_street, up.shipping_number].filter(Boolean).join(", ");
+                const addrParts = [street, up.shipping_district, up.shipping_city].filter(Boolean);
+                await supabaseAdmin.from("admin_notifications").insert({
+                  type: "delivery_upgrade_paid",
+                  title: `Upgrade para entrega confirmado #${shortId}`,
+                  body: `${name} pagou o frete de R$10 e o pedido foi movido para entrega.${addrParts.length ? ` Endereço: ${addrParts.join(", ")}.` : ""}`,
+                  order_id: up.order_id,
+                  metadata: {
+                    upgrade_id: upgradeId,
+                    mp_payment_id: String(payment.id),
+                    customer_phone: ord?.customer_phone ?? null,
+                    total: ord?.total ?? null,
+                  },
+                } as never);
+              }
+            } catch (notifErr) {
+              console.warn("[mp:webhook] admin notification insert failed", notifErr);
+            }
+
+
           } else if (payment.status === "refunded" || payment.status === "cancelled" || payment.status === "rejected") {
             await supabaseAdmin
               .from("delivery_upgrades")
