@@ -159,21 +159,22 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
             try {
               const { data: up } = await supabaseAdmin
                 .from("delivery_upgrades")
-                .select("order_id, shipping_address, shipping_city, shipping_neighborhood")
+                .select("order_id, shipping_street, shipping_number, shipping_district, shipping_city")
                 .eq("id", upgradeId)
                 .maybeSingle();
               if (up?.order_id) {
                 const { data: ord } = await supabaseAdmin
                   .from("orders")
-                  .select("id, order_code, customer_name, customer_phone, total")
+                  .select("id, customer_name, customer_phone, total")
                   .eq("id", up.order_id)
                   .maybeSingle();
                 const name = ord?.customer_name ?? "Cliente";
-                const code = ord?.order_code ? `#${ord.order_code}` : "";
-                const addrParts = [up.shipping_address, up.shipping_neighborhood, up.shipping_city].filter(Boolean);
+                const shortId = up.order_id.slice(0, 8).toUpperCase();
+                const street = [up.shipping_street, up.shipping_number].filter(Boolean).join(", ");
+                const addrParts = [street, up.shipping_district, up.shipping_city].filter(Boolean);
                 await supabaseAdmin.from("admin_notifications").insert({
                   type: "delivery_upgrade_paid",
-                  title: `Upgrade para entrega confirmado ${code}`.trim(),
+                  title: `Upgrade para entrega confirmado #${shortId}`,
                   body: `${name} pagou o frete de R$10 e o pedido foi movido para entrega.${addrParts.length ? ` Endereço: ${addrParts.join(", ")}.` : ""}`,
                   order_id: up.order_id,
                   metadata: {
@@ -187,6 +188,7 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
             } catch (notifErr) {
               console.warn("[mp:webhook] admin notification insert failed", notifErr);
             }
+
 
           } else if (payment.status === "refunded" || payment.status === "cancelled" || payment.status === "rejected") {
             await supabaseAdmin
