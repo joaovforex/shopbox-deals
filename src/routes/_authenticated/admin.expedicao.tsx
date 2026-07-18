@@ -294,11 +294,48 @@ function FulfillmentPage() {
           }
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "admin_notifications" },
+        (payload) => {
+          const row = payload.new as { type?: string; title?: string; body?: string };
+          qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
+          qc.invalidateQueries({ queryKey: ["fulfillment-notifications"] });
+          if (row.type === "delivery_upgrade_paid") {
+            toast.success(row.title ?? "Upgrade para entrega confirmado", {
+              description: row.body ?? undefined,
+              duration: 15000,
+            });
+            // Bipe curto para chamar atenção do balcão
+            try {
+              const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+              if (Ctor) {
+                const ctx = new Ctor();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = "sine";
+                osc.frequency.value = 880;
+                gain.gain.value = 0.1;
+                osc.connect(gain).connect(ctx.destination);
+                osc.start();
+                setTimeout(() => { osc.stop(); ctx.close(); }, 400);
+              }
+            } catch { /* ignore */ }
+            if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+              new Notification(row.title ?? "Upgrade para entrega confirmado", { body: row.body ?? "" });
+            }
+          }
+        },
+      )
       .subscribe();
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => { /* ignore */ });
+    }
     return () => {
       supabase.removeChannel(channel);
     };
   }, [allowed, qc]);
+
 
   const dispatchFn = useServerFn(dispatchDelivery);
   const advance = async (o: OrderRow) => {
