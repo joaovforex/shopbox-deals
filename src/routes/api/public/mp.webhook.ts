@@ -154,6 +154,40 @@ export const Route = createFileRoute("/api/public/mp/webhook")({
               return new Response("update failed", { status: 500 });
             }
             console.info("[mp:webhook] delivery upgrade applied", { upgradeId, result });
+
+            // Notifica admin/expedição do upgrade retirada -> entrega
+            try {
+              const { data: up } = await supabaseAdmin
+                .from("delivery_upgrades")
+                .select("order_id, shipping_address, shipping_city, shipping_neighborhood")
+                .eq("id", upgradeId)
+                .maybeSingle();
+              if (up?.order_id) {
+                const { data: ord } = await supabaseAdmin
+                  .from("orders")
+                  .select("id, order_code, customer_name, customer_phone, total")
+                  .eq("id", up.order_id)
+                  .maybeSingle();
+                const name = ord?.customer_name ?? "Cliente";
+                const code = ord?.order_code ? `#${ord.order_code}` : "";
+                const addrParts = [up.shipping_address, up.shipping_neighborhood, up.shipping_city].filter(Boolean);
+                await supabaseAdmin.from("admin_notifications").insert({
+                  type: "delivery_upgrade_paid",
+                  title: `Upgrade para entrega confirmado ${code}`.trim(),
+                  body: `${name} pagou o frete de R$10 e o pedido foi movido para entrega.${addrParts.length ? ` Endereço: ${addrParts.join(", ")}.` : ""}`,
+                  order_id: up.order_id,
+                  metadata: {
+                    upgrade_id: upgradeId,
+                    mp_payment_id: String(payment.id),
+                    customer_phone: ord?.customer_phone ?? null,
+                    total: ord?.total ?? null,
+                  },
+                } as never);
+              }
+            } catch (notifErr) {
+              console.warn("[mp:webhook] admin notification insert failed", notifErr);
+            }
+
           } else if (payment.status === "refunded" || payment.status === "cancelled" || payment.status === "rejected") {
             await supabaseAdmin
               .from("delivery_upgrades")
