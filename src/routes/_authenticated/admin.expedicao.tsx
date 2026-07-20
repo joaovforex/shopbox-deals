@@ -841,13 +841,23 @@ function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliv
     if (!raw) return;
 
     const norm = raw.replace(/[^a-z0-9]/gi, "").toLowerCase();
-    const match = orders.find(
-      (o) => {
-        const id = o.id.toLowerCase();
-        const compact = o.id.replace(/-/g, "").toLowerCase();
-        return id === norm || id.startsWith(norm) || compact === norm || compact.startsWith(norm) || barcodeValue(o.id) === norm;
-      },
-    );
+
+    // Exige código completo. A etiqueta usa os 12 primeiros chars do UUID
+    // sem hífen (barcodeValue). Menos que isso é ruído do leitor ou tecla
+    // acidental — NÃO pode marcar pedido como entregue.
+    if (norm.length < 12) {
+      setLast({ id: raw, name: "—", ok: false });
+      toast.error("Código incompleto. Escaneie a etiqueta inteira.");
+      return;
+    }
+
+    // Match EXATO. Prefixo (startsWith) casa o primeiro pedido da lista
+    // por acidente e move o pedido errado para "entregue".
+    const match = orders.find((o) => {
+      const id = o.id.toLowerCase();
+      const compact = o.id.replace(/-/g, "").toLowerCase();
+      return id === norm || compact === norm || barcodeValue(o.id) === norm;
+    });
 
     if (!match) {
       setLast({ id: raw, name: "—", ok: false });
@@ -858,6 +868,19 @@ function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliv
     if (match.fulfillment_status === "completed") {
       setLast({ id: match.id, name: match.customer_name, ok: false });
       toast.info(`Pedido de ${match.customer_name} já está marcado como entregue.`);
+      return;
+    }
+
+    // Só pode ir para "entregue" se já estiver pronto/enviado. Isso impede
+    // que um bip pule "separação → entregue" e o pedido suma da fila.
+    const okStatus = mode === "pickup"
+      ? (match.fulfillment_status === "ready")
+      : (match.fulfillment_status === "ready" || match.fulfillment_status === "shipped");
+    if (!okStatus) {
+      setLast({ id: match.id, name: match.customer_name, ok: false });
+      toast.error(
+        `Pedido de ${match.customer_name} está em "${STATUS_LABEL[match.fulfillment_status] ?? match.fulfillment_status}". Avance para "Pronto" antes de dar baixa.`,
+      );
       return;
     }
 
