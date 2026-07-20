@@ -508,10 +508,10 @@ function FulfillmentPage() {
               Em separação ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "pending" || o.fulfillment_status === "preparing").length})
             </TabBtn>
             <TabBtn active={tab === "pickup"} onClick={() => setTab("pickup")} icon={<Store className="h-4 w-4" />}>
-              Retirada ({(data?.orders ?? []).filter((o) => o.delivery_method === "pickup" && o.fulfillment_status !== "completed").length})
+              Retirada ({(data?.orders ?? []).filter((o) => o.delivery_method === "pickup" && (o.fulfillment_status === "ready" || o.fulfillment_status === "shipped")).length})
             </TabBtn>
             <TabBtn active={tab === "delivery"} onClick={() => setTab("delivery")} icon={<Truck className="h-4 w-4" />}>
-              Entrega ({(data?.orders ?? []).filter((o) => o.delivery_method === "delivery" && o.fulfillment_status !== "completed").length})
+              Entrega ({(data?.orders ?? []).filter((o) => o.delivery_method === "delivery" && (o.fulfillment_status === "ready" || o.fulfillment_status === "shipped")).length})
             </TabBtn>
             <TabBtn active={tab === "done"} onClick={() => setTab("done")} icon={<CheckCircle2 className="h-4 w-4" />}>
               Entregues ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "completed").length})
