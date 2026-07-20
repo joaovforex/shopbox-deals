@@ -398,8 +398,8 @@ function FulfillmentPage() {
     let list = (data?.orders ?? []).filter((o) => {
       if (tab === "done") return o.fulfillment_status === "completed";
       if (tab === "separation") return o.fulfillment_status === "pending" || o.fulfillment_status === "preparing";
-      if (tab === "pickup") return o.delivery_method === "pickup" && o.fulfillment_status !== "completed";
-      if (tab === "delivery") return o.delivery_method === "delivery" && o.fulfillment_status !== "completed";
+      if (tab === "pickup") return o.delivery_method === "pickup" && (o.fulfillment_status === "ready" || o.fulfillment_status === "shipped");
+      if (tab === "delivery") return o.delivery_method === "delivery" && (o.fulfillment_status === "ready" || o.fulfillment_status === "shipped");
       return false;
     });
     list = filterFulfillmentOrders(data?.orders ?? [], tab, labelFilter);
