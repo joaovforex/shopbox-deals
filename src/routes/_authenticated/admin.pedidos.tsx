@@ -502,6 +502,10 @@ function OrdersPanel() {
           <Kpi icon={<TrendingUp className="h-5 w-5" />} label="Ticket médio" value={stats.orders.length ? brl(stats.revenue / stats.orders.length) : brl(0)} />
         </div>
 
+        {/* Valor do catálogo publicado no site */}
+        <CatalogValueCard />
+
+
         {/* Caixa QR — métricas separadas (balcão, fora do fluxo da loja online) */}
         <div className="bg-card border border-border rounded-lg p-5">
           <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
