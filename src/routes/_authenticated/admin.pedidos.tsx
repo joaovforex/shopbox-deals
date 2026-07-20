@@ -502,6 +502,10 @@ function OrdersPanel() {
           <Kpi icon={<TrendingUp className="h-5 w-5" />} label="Ticket médio" value={stats.orders.length ? brl(stats.revenue / stats.orders.length) : brl(0)} />
         </div>
 
+        {/* Valor do catálogo publicado no site */}
+        <CatalogValueCard />
+
+
         {/* Caixa QR — métricas separadas (balcão, fora do fluxo da loja online) */}
         <div className="bg-card border border-border rounded-lg p-5">
           <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
@@ -1102,6 +1106,71 @@ function generateInsight(
 
   return parts.join("\n");
 }
+
+
+function CatalogValueCard() {
+  const { data, isLoading } = useQuery({
+    queryKey: ["catalog-value"],
+    queryFn: async () => {
+      // Pagina para além do limite implícito de 1000 do PostgREST
+      const PAGE = 1000;
+      let totalRetail = 0;
+      let totalOriginal = 0;
+      let totalUnits = 0;
+      let activeCount = 0;
+      let outOfStockCount = 0;
+      for (let from = 0; ; from += PAGE) {
+        const { data: rows, error } = await supabase
+          .from("products")
+          .select("price, original_price, stock")
+          .eq("active", true)
+          .range(from, from + PAGE - 1);
+        if (error) throw error;
+        const list = rows ?? [];
+        for (const r of list) {
+          const price = Number(r.price ?? 0);
+          const original = Number(r.original_price ?? price);
+          const stock = Number(r.stock ?? 0);
+          activeCount += 1;
+          if (stock <= 0) outOfStockCount += 1;
+          totalUnits += Math.max(0, stock);
+          totalRetail += price * Math.max(0, stock);
+          totalOriginal += original * Math.max(0, stock);
+        }
+        if (list.length < PAGE) break;
+      }
+      return { totalRetail, totalOriginal, totalUnits, activeCount, outOfStockCount };
+    },
+    staleTime: 5 * 60_000,
+  });
+
+  return (
+    <div className="bg-card border border-border rounded-lg p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="bg-primary text-primary-foreground rounded-md p-2">
+          <Package className="h-4 w-4" />
+        </div>
+        <div>
+          <h3 className="display text-lg leading-tight">Valor do catálogo publicado</h3>
+          <p className="text-[11px] text-muted-foreground">
+            Soma de preço × estoque de todos os produtos ativos no site. Independe de vendas.
+          </p>
+        </div>
+      </div>
+      {isLoading || !data ? (
+        <div className="text-sm text-muted-foreground">Calculando…</div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Kpi icon={<DollarSign className="h-5 w-5" />} label="Valor total (venda)" value={brl(data.totalRetail)} accent />
+          <Kpi icon={<TrendingUp className="h-5 w-5" />} label="Valor s/ desconto" value={brl(data.totalOriginal)} />
+          <Kpi icon={<Package className="h-5 w-5" />} label="Unidades em estoque" value={String(data.totalUnits)} />
+          <Kpi icon={<ShoppingBag className="h-5 w-5" />} label="Produtos ativos" value={`${data.activeCount}${data.outOfStockCount ? ` · ${data.outOfStockCount} s/ estoque` : ""}`} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 
 function Kpi({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: string; accent?: boolean }) {
