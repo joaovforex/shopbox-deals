@@ -2,11 +2,12 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, ImageIcon, Percent, Save, Upload, Trash2, ShieldAlert, Tag, RotateCcw } from "lucide-react";
+import { ArrowLeft, ImageIcon, Percent, Save, Upload, Trash2, ShieldAlert, Tag, RotateCcw, Check } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { isSuperAdmin } from "@/lib/products";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchSiteSettings, formatCashbackLabel } from "@/lib/site-settings";
+import { PRODUCT_CATEGORIES } from "@/lib/categories";
 
 export const Route = createFileRoute("/_authenticated/admin/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações · Admin" }] }),
