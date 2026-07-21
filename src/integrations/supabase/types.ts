@@ -1324,6 +1324,10 @@ export type Database = {
         Args: { p_amount: number; p_order_id: string }
         Returns: number
       }
+      apply_category_discount: {
+        Args: { categories: string[]; pct: number }
+        Returns: number
+      }
       apply_delivery_upgrade: {
         Args: { p_mp_payment_id: string; p_upgrade_id: string }
         Returns: string
@@ -1349,6 +1353,10 @@ export type Database = {
         Returns: boolean
       }
       claim_first_admin_if_none: { Args: never; Returns: boolean }
+      clear_category_discount: {
+        Args: { categories: string[] }
+        Returns: number
+      }
       clear_global_discount: { Args: never; Returns: number }
       confirm_order_delivery: {
         Args: { p_delivered_by_name: string; p_order_id: string }
