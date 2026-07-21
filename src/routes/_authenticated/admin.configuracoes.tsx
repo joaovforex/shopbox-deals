@@ -292,9 +292,16 @@ function BannerSection(props: {
 function MassDiscountSection({ currentPct, onDone }: { currentPct: number; onDone: () => void }) {
   const [pct, setPct] = useState<string>(currentPct > 0 ? String(currentPct) : "");
   const [busy, setBusy] = useState(false);
+  const [scope, setScope] = useState<"all" | "category">("all");
+  const [selected, setSelected] = useState<string[]>([]);
+
   useEffect(() => {
     setPct(currentPct > 0 ? String(currentPct) : "");
   }, [currentPct]);
+
+  function toggleCat(cat: string) {
+    setSelected((prev) => (prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]));
+  }
 
   async function apply() {
     const n = Number(String(pct).replace(",", "."));
@@ -302,11 +309,25 @@ function MassDiscountSection({ currentPct, onDone }: { currentPct: number; onDon
       toast.error("Informe um percentual entre 1 e 90");
       return;
     }
-    if (!confirm(`Aplicar ${n}% de desconto em TODOS os produtos ativos do site?\n\nO preço atual de cada produto será congelado como "preço original" (De/Por) e o desconto será aplicado por cima.`)) {
+    if (scope === "category" && selected.length === 0) {
+      toast.error("Selecione ao menos uma categoria");
       return;
     }
+
+    const alvo =
+      scope === "all"
+        ? "TODOS os produtos ativos do site"
+        : `produtos ativos das categorias: ${selected.join(", ")}`;
+
+    if (!confirm(`Aplicar ${n}% de desconto em ${alvo}?\n\nO preço atual de cada produto será congelado como "preço original" (De/Por) e o desconto será aplicado por cima.`)) {
+      return;
+    }
+
     setBusy(true);
-    const { data, error } = await supabase.rpc("apply_global_discount" as never, { pct: n } as never);
+    const { data, error } =
+      scope === "all"
+        ? await supabase.rpc("apply_global_discount" as never, { pct: n } as never)
+        : await supabase.rpc("apply_category_discount" as never, { pct: n, categories: selected } as never);
     setBusy(false);
     if (error) {
       toast.error(`Falha: ${error.message}`);
@@ -316,8 +337,8 @@ function MassDiscountSection({ currentPct, onDone }: { currentPct: number; onDon
     onDone();
   }
 
-  async function clear() {
-    if (!confirm("Remover o desconto e restaurar os preços originais de todos os produtos?")) return;
+  async function clearAll() {
+    if (!confirm("Remover o desconto e restaurar os preços originais de TODOS os produtos?")) return;
     setBusy(true);
     const { data, error } = await supabase.rpc("clear_global_discount" as never);
     setBusy(false);
@@ -330,6 +351,23 @@ function MassDiscountSection({ currentPct, onDone }: { currentPct: number; onDon
     onDone();
   }
 
+  async function clearCategories() {
+    if (selected.length === 0) {
+      toast.error("Selecione as categorias a restaurar");
+      return;
+    }
+    if (!confirm(`Restaurar os preços originais dos produtos das categorias: ${selected.join(", ")}?`)) return;
+    setBusy(true);
+    const { data, error } = await supabase.rpc("clear_category_discount" as never, { categories: selected } as never);
+    setBusy(false);
+    if (error) {
+      toast.error(`Falha: ${error.message}`);
+      return;
+    }
+    toast.success(`${data ?? 0} produtos restaurados nas categorias selecionadas.`);
+    onDone();
+  }
+
   return (
     <section className="bg-card border-2 border-border rounded-lg p-5">
       <div className="flex items-center gap-2 mb-2">
@@ -337,13 +375,90 @@ function MassDiscountSection({ currentPct, onDone }: { currentPct: number; onDon
         <h2 className="display text-xl">Desconto em massa</h2>
       </div>
       <p className="text-sm text-muted-foreground mb-3">
-        Aplica um percentual de desconto sobre <strong>todos os produtos ativos</strong> do site. O preço atual vira "De" (preço riscado) e o "Por" já sai com o desconto aplicado.
+        Aplica um percentual de desconto sobre <strong>produtos ativos</strong>. O preço atual vira "De" (preço riscado) e o "Por" já sai com o desconto aplicado.
       </p>
       {currentPct > 0 && (
         <div className="mb-4 bg-primary/10 border border-primary/30 rounded-md px-3 py-2 text-xs">
-          Desconto ativo no site: <strong>{currentPct}%</strong>
+          Desconto global ativo no site: <strong>{currentPct}%</strong>
         </div>
       )}
+
+      {/* Escopo */}
+      <div className="mb-4">
+        <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Aplicar em</label>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setScope("all")}
+            className={`px-3 py-2 rounded-md border-2 text-xs font-black uppercase tracking-wider ${
+              scope === "all" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background hover:border-primary/50"
+            }`}
+          >
+            Todos os produtos
+          </button>
+          <button
+            type="button"
+            onClick={() => setScope("category")}
+            className={`px-3 py-2 rounded-md border-2 text-xs font-black uppercase tracking-wider ${
+              scope === "category" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background hover:border-primary/50"
+            }`}
+          >
+            Por categoria
+          </button>
+        </div>
+      </div>
+
+      {/* Seletor de categorias */}
+      {scope === "category" && (
+        <div className="mb-4 border-2 border-border rounded-md p-3 bg-background">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Categorias ({selected.length} selecionadas)
+            </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setSelected([...PRODUCT_CATEGORIES])}
+                className="text-[11px] font-bold uppercase text-primary hover:underline"
+              >
+                Todas
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelected([])}
+                className="text-[11px] font-bold uppercase text-muted-foreground hover:underline"
+              >
+                Limpar
+              </button>
+            </div>
+          </div>
+          <div className="max-h-56 overflow-y-auto grid grid-cols-2 gap-1.5">
+            {PRODUCT_CATEGORIES.map((cat) => {
+              const isOn = selected.includes(cat);
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => toggleCat(cat)}
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs text-left border ${
+                    isOn ? "bg-primary/10 border-primary text-foreground" : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  <span
+                    className={`inline-flex h-4 w-4 items-center justify-center rounded border ${
+                      isOn ? "bg-primary border-primary text-primary-foreground" : "border-border"
+                    }`}
+                  >
+                    {isOn && <Check className="h-3 w-3" />}
+                  </span>
+                  <span className="truncate">{cat}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex-1 max-w-[200px]">
           <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Percentual (%)</label>
@@ -364,21 +479,31 @@ function MassDiscountSection({ currentPct, onDone }: { currentPct: number; onDon
           disabled={busy}
           className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-2.5 rounded-md hover:opacity-90 disabled:opacity-60 text-xs"
         >
-          <Tag className="h-4 w-4" /> {busy ? "Aplicando…" : "Aplicar em todos"}
+          <Tag className="h-4 w-4" /> {busy ? "Aplicando…" : scope === "all" ? "Aplicar em todos" : "Aplicar nas categorias"}
         </button>
-        {currentPct > 0 && (
+        {scope === "category" && selected.length > 0 && (
           <button
             type="button"
-            onClick={clear}
+            onClick={clearCategories}
             disabled={busy}
             className="inline-flex items-center gap-2 bg-card border border-border font-black uppercase tracking-wider px-4 py-2.5 rounded-md hover:border-destructive hover:text-destructive disabled:opacity-60 text-xs"
           >
-            <RotateCcw className="h-4 w-4" /> Restaurar preços
+            <RotateCcw className="h-4 w-4" /> Restaurar categorias
+          </button>
+        )}
+        {scope === "all" && currentPct > 0 && (
+          <button
+            type="button"
+            onClick={clearAll}
+            disabled={busy}
+            className="inline-flex items-center gap-2 bg-card border border-border font-black uppercase tracking-wider px-4 py-2.5 rounded-md hover:border-destructive hover:text-destructive disabled:opacity-60 text-xs"
+          >
+            <RotateCcw className="h-4 w-4" /> Restaurar todos
           </button>
         )}
       </div>
       <p className="mt-3 text-[11px] text-muted-foreground">
-        ⚠️ Ação irreversível pelo próprio botão: ao "Restaurar", os preços originais salvos serão reaplicados e o desconto é zerado.
+        ⚠️ Ao "Restaurar", os preços originais salvos serão reaplicados. O desconto global do site só é zerado ao restaurar todos.
       </p>
     </section>
   );
