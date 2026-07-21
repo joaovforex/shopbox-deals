@@ -517,10 +517,11 @@ function FulfillmentPage() {
         {!searchActive && (tab === "pickup" || tab === "delivery") && (
           <ScannerPanel
             orders={(data?.orders ?? []).filter((o) => o.delivery_method === tab)}
-            onDeliver={markDelivered}
+            onMatch={(o) => setDeliverTarget(o)}
             mode={tab}
           />
         )}
+
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex bg-secondary rounded-md p-1">
