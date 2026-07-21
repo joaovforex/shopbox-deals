@@ -255,12 +255,60 @@ export async function fetchProduct(id: string) {
   return data as Product | null;
 }
 
+/**
+ * Redimensiona/recomprime a imagem no navegador antes do upload.
+ * Fotos de celular ~3–5MB caem para ~150–250KB, o que resolve o efeito de
+ * "foto carregando pela metade" — na prática era uma JPEG progressiva grande
+ * baixando devagar em conexões móveis. As transformações do Storage
+ * (/render/image/?width=...) NÃO estão ativas neste projeto (o endpoint
+ * devolve o original), então a compressão precisa acontecer no cliente.
+ */
+async function compressImageForUpload(file: File): Promise<File> {
+  try {
+    if (!file.type.startsWith("image/")) return file;
+    if (file.type === "image/gif" || file.type === "image/svg+xml") return file;
+    if (file.size < 300 * 1024) return file;
+
+    const MAX_DIM = 1400;
+    const QUALITY = 0.82;
+
+    const bitmap = await createImageBitmap(file).catch(() => null);
+    if (!bitmap) return file;
+
+    const scale = Math.min(1, MAX_DIM / Math.max(bitmap.width, bitmap.height));
+    const w = Math.round(bitmap.width * scale);
+    const h = Math.round(bitmap.height * scale);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close?.();
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", QUALITY),
+    );
+    if (!blob || blob.size >= file.size) return file;
+    return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", {
+      type: "image/jpeg",
+      lastModified: Date.now(),
+    });
+  } catch {
+    return file;
+  }
+}
+
 export async function uploadProductImage(file: File) {
-  const ext = file.name.split(".").pop() ?? "jpg";
+  const compressed = await compressImageForUpload(file);
+  const ext = compressed.type === "image/jpeg" ? "jpg" : (compressed.name.split(".").pop() ?? "jpg");
   const path = `${crypto.randomUUID()}.${ext}`;
-  const { error } = await supabase.storage.from("product-images").upload(path, file, {
+  const { error } = await supabase.storage.from("product-images").upload(path, compressed, {
     cacheControl: "31536000",
     upsert: false,
+    contentType: compressed.type || "image/jpeg",
   });
   if (error) throw error;
   const { data, error: signErr } = await supabase.storage
