@@ -733,7 +733,7 @@ function FulfillmentPage() {
                     )}
                     {o.fulfillment_status !== "completed" && (
                       <button
-                        onClick={() => markDelivered(o)}
+                        onClick={() => setDeliverTarget(o)}
                         className="inline-flex items-center gap-1.5 text-xs bg-[#25D366] text-white hover:opacity-90 px-3 py-2 rounded font-bold uppercase tracking-wider"
                         title="Confirmar entrega ao cliente"
                       >
