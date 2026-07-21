@@ -2,7 +2,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, ImageIcon, Percent, Save, Upload, Trash2, ShieldAlert } from "lucide-react";
+import { ArrowLeft, ImageIcon, Percent, Save, Upload, Trash2, ShieldAlert, Tag, RotateCcw } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { isSuperAdmin } from "@/lib/products";
 import { supabase } from "@/integrations/supabase/client";
@@ -207,6 +207,9 @@ function SettingsPage() {
           onChange={onPickMobile}
         />
 
+        {/* Desconto em massa */}
+        <MassDiscountSection currentPct={Number(data?.global_discount_percent ?? 0)} onDone={() => qc.invalidateQueries({ queryKey: ["site_settings"] })} />
+
         <div className="sticky bottom-4 z-10">
           <button
             onClick={onSave}
@@ -281,6 +284,101 @@ function BannerSection(props: {
           onChange={props.onChange}
         />
       </div>
+    </section>
+  );
+}
+
+function MassDiscountSection({ currentPct, onDone }: { currentPct: number; onDone: () => void }) {
+  const [pct, setPct] = useState<string>(currentPct > 0 ? String(currentPct) : "");
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    setPct(currentPct > 0 ? String(currentPct) : "");
+  }, [currentPct]);
+
+  async function apply() {
+    const n = Number(String(pct).replace(",", "."));
+    if (!Number.isFinite(n) || n <= 0 || n > 90) {
+      toast.error("Informe um percentual entre 1 e 90");
+      return;
+    }
+    if (!confirm(`Aplicar ${n}% de desconto em TODOS os produtos ativos do site?\n\nO preço atual de cada produto será congelado como "preço original" (De/Por) e o desconto será aplicado por cima.`)) {
+      return;
+    }
+    setBusy(true);
+    const { data, error } = await supabase.rpc("apply_global_discount" as never, { pct: n } as never);
+    setBusy(false);
+    if (error) {
+      toast.error(`Falha: ${error.message}`);
+      return;
+    }
+    toast.success(`Desconto de ${n}% aplicado em ${data ?? 0} produtos`);
+    onDone();
+  }
+
+  async function clear() {
+    if (!confirm("Remover o desconto e restaurar os preços originais de todos os produtos?")) return;
+    setBusy(true);
+    const { data, error } = await supabase.rpc("clear_global_discount" as never);
+    setBusy(false);
+    if (error) {
+      toast.error(`Falha: ${error.message}`);
+      return;
+    }
+    toast.success(`Desconto removido. ${data ?? 0} produtos restaurados.`);
+    setPct("");
+    onDone();
+  }
+
+  return (
+    <section className="bg-card border-2 border-border rounded-lg p-5">
+      <div className="flex items-center gap-2 mb-2">
+        <Tag className="h-5 w-5 text-primary" />
+        <h2 className="display text-xl">Desconto em massa</h2>
+      </div>
+      <p className="text-sm text-muted-foreground mb-3">
+        Aplica um percentual de desconto sobre <strong>todos os produtos ativos</strong> do site. O preço atual vira "De" (preço riscado) e o "Por" já sai com o desconto aplicado.
+      </p>
+      {currentPct > 0 && (
+        <div className="mb-4 bg-primary/10 border border-primary/30 rounded-md px-3 py-2 text-xs">
+          Desconto ativo no site: <strong>{currentPct}%</strong>
+        </div>
+      )}
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex-1 max-w-[200px]">
+          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Percentual (%)</label>
+          <input
+            type="number"
+            min={1}
+            max={90}
+            step="1"
+            value={pct}
+            onChange={(e) => setPct(e.target.value)}
+            placeholder="Ex.: 15"
+            className="mt-1 w-full bg-background border-2 border-border rounded-md px-3 py-2 text-lg font-black"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={apply}
+          disabled={busy}
+          className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-2.5 rounded-md hover:opacity-90 disabled:opacity-60 text-xs"
+        >
+          <Tag className="h-4 w-4" /> {busy ? "Aplicando…" : "Aplicar em todos"}
+        </button>
+        {currentPct > 0 && (
+          <button
+            type="button"
+            onClick={clear}
+            disabled={busy}
+            className="inline-flex items-center gap-2 bg-card border border-border font-black uppercase tracking-wider px-4 py-2.5 rounded-md hover:border-destructive hover:text-destructive disabled:opacity-60 text-xs"
+          >
+            <RotateCcw className="h-4 w-4" /> Restaurar preços
+          </button>
+        )}
+      </div>
+      <p className="mt-3 text-[11px] text-muted-foreground">
+        ⚠️ Ação irreversível pelo próprio botão: ao "Restaurar", os preços originais salvos serão reaplicados e o desconto é zerado.
+      </p>
     </section>
   );
 }

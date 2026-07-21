@@ -374,8 +374,8 @@ function CheckoutPage() {
                 active={delivery === "delivery"}
                 onClick={() => setDelivery("delivery")}
                 title="Receber em casa"
-                subtitle="FRETE R$10 ABAIXO DE R$80"
-                description="Acima de R$ 80,00 o frete é grátis. Entrega em até 2 dias úteis."
+                subtitle="FRETE R$ 12"
+                description="Frete fixo de R$ 12,00. Entrega em até 2 dias úteis."
                 highlight
               />
             </div>
@@ -396,7 +396,7 @@ function CheckoutPage() {
                 </div>
                 <div className="bg-primary/10 border border-primary/30 text-primary rounded-md px-3 py-2 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                   <span>🚚</span>
-                  <span>Frete R$ 10,00 para compras abaixo de R$ 80,00 · GRÁTIS acima de R$ 80,00</span>
+                  <span>Frete fixo R$ 12,00 · Curitiba e região metropolitana</span>
                 </div>
                 <div className="grid sm:grid-cols-[160px_1fr] gap-3">
                   <Field
@@ -471,7 +471,7 @@ function CheckoutPage() {
             ))}
           </ul>
           {(() => {
-            const shippingFee = delivery === "delivery" ? (total < 80 ? 10 : 0) : 0;
+            const shippingFee = delivery === "delivery" ? 12 : 0;
             const cashbackApply = useCashback ? Math.min(cashbackBalance, total) : 0;
             const grandTotal = Math.max(0, total - cashbackApply) + shippingFee;
             const expiresInDays = cashbackExpiry
@@ -516,9 +516,7 @@ function CheckoutPage() {
                 </div>
                 {delivery === "delivery" && (
                   <p className="text-[11px] text-muted-foreground -mt-1">
-                    {shippingFee > 0
-                      ? `Frete R$ 10,00 para pedidos abaixo de R$ 80,00. Faltam ${brl(80 - total)} para frete grátis.`
-                      : "Frete grátis em pedidos a partir de R$ 80,00."}
+                    Frete fixo de R$ 12,00 para Curitiba e região metropolitana.
                   </p>
                 )}
                 <div className="border-t border-border pt-3 flex justify-between items-baseline">

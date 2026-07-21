@@ -1216,6 +1216,7 @@ export type Database = {
           banner_desktop_url: string | null
           banner_mobile_url: string | null
           cashback_rate: number
+          global_discount_percent: number
           id: number
           updated_at: string
           updated_by: string | null
@@ -1224,6 +1225,7 @@ export type Database = {
           banner_desktop_url?: string | null
           banner_mobile_url?: string | null
           cashback_rate?: number
+          global_discount_percent?: number
           id?: number
           updated_at?: string
           updated_by?: string | null
@@ -1232,6 +1234,7 @@ export type Database = {
           banner_desktop_url?: string | null
           banner_mobile_url?: string | null
           cashback_rate?: number
+          global_discount_percent?: number
           id?: number
           updated_at?: string
           updated_by?: string | null
@@ -1325,6 +1328,7 @@ export type Database = {
         Args: { p_mp_payment_id: string; p_upgrade_id: string }
         Returns: string
       }
+      apply_global_discount: { Args: { pct: number }; Returns: number }
       assign_team_role: {
         Args: {
           p_role: Database["public"]["Enums"]["app_role"]
@@ -1345,6 +1349,7 @@ export type Database = {
         Returns: boolean
       }
       claim_first_admin_if_none: { Args: never; Returns: boolean }
+      clear_global_discount: { Args: never; Returns: number }
       confirm_order_paid: {
         Args: { p_mp_payment_id?: string; p_order_id: string }
         Returns: string
