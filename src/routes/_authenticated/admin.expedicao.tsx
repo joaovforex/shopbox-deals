@@ -357,24 +357,44 @@ function FulfillmentPage() {
     qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
   };
 
-  const markDelivered = async (o: OrderRow) => {
+  const markDelivered = async (o: OrderRow, agentName: string) => {
+    const name = agentName.trim();
+    if (!name) {
+      toast.error("Informe o nome do agente que fez a entrega.");
+      return false;
+    }
     try {
+      const { error: upErr } = await supabase
+        .from("orders")
+        .update({ delivered_by_name: name } as never)
+        .eq("id", o.id);
+      if (upErr) {
+        console.error("[markDelivered] erro ao gravar agente:", upErr);
+        toast.error(upErr.message || "Falha ao registrar o agente entregante.");
+        return false;
+      }
       const { error } = await supabase.rpc("set_fulfillment_status" as never, { p_order_id: o.id, p_status: "completed" } as never);
       if (error) {
         console.error("[markDelivered] erro RPC:", error);
-        return toast.error(error.message || "Não foi possível marcar como entregue. Atualize a página e tente novamente.");
+        toast.error(error.message || "Não foi possível marcar como entregue. Atualize a página e tente novamente.");
+        return false;
       }
     } catch (e: any) {
       console.error("[markDelivered] exceção:", e);
-      return toast.error(e?.message || "Falha ao atualizar o pedido.");
+      toast.error(e?.message || "Falha ao atualizar o pedido.");
+      return false;
     }
     qc.setQueryData(["fulfillment-orders"], (prev: any) => {
       if (!prev?.orders) return prev;
-      return { ...prev, orders: prev.orders.map((x: OrderRow) => x.id === o.id ? { ...x, fulfillment_status: "completed" } : x) };
+      return { ...prev, orders: prev.orders.map((x: OrderRow) => x.id === o.id ? { ...x, fulfillment_status: "completed", delivered_by_name: name } : x) };
     });
-    toast.success("Pedido marcado como entregue.");
+    toast.success(`Entrega de ${o.customer_name} confirmada por ${name}.`);
     qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
+    return true;
   };
+
+  const [deliverTarget, setDeliverTarget] = useState<OrderRow | null>(null);
+
 
 
 
