@@ -357,24 +357,44 @@ function FulfillmentPage() {
     qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
   };
 
-  const markDelivered = async (o: OrderRow) => {
+  const markDelivered = async (o: OrderRow, agentName: string) => {
+    const name = agentName.trim();
+    if (!name) {
+      toast.error("Informe o nome do agente que fez a entrega.");
+      return false;
+    }
     try {
+      const { error: upErr } = await supabase
+        .from("orders")
+        .update({ delivered_by_name: name } as never)
+        .eq("id", o.id);
+      if (upErr) {
+        console.error("[markDelivered] erro ao gravar agente:", upErr);
+        toast.error(upErr.message || "Falha ao registrar o agente entregante.");
+        return false;
+      }
       const { error } = await supabase.rpc("set_fulfillment_status" as never, { p_order_id: o.id, p_status: "completed" } as never);
       if (error) {
         console.error("[markDelivered] erro RPC:", error);
-        return toast.error(error.message || "Não foi possível marcar como entregue. Atualize a página e tente novamente.");
+        toast.error(error.message || "Não foi possível marcar como entregue. Atualize a página e tente novamente.");
+        return false;
       }
     } catch (e: any) {
       console.error("[markDelivered] exceção:", e);
-      return toast.error(e?.message || "Falha ao atualizar o pedido.");
+      toast.error(e?.message || "Falha ao atualizar o pedido.");
+      return false;
     }
     qc.setQueryData(["fulfillment-orders"], (prev: any) => {
       if (!prev?.orders) return prev;
-      return { ...prev, orders: prev.orders.map((x: OrderRow) => x.id === o.id ? { ...x, fulfillment_status: "completed" } : x) };
+      return { ...prev, orders: prev.orders.map((x: OrderRow) => x.id === o.id ? { ...x, fulfillment_status: "completed", delivered_by_name: name } : x) };
     });
-    toast.success("Pedido marcado como entregue.");
+    toast.success(`Entrega de ${o.customer_name} confirmada por ${name}.`);
     qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
+    return true;
   };
+
+  const [deliverTarget, setDeliverTarget] = useState<OrderRow | null>(null);
+
 
 
 
@@ -497,10 +517,11 @@ function FulfillmentPage() {
         {!searchActive && (tab === "pickup" || tab === "delivery") && (
           <ScannerPanel
             orders={(data?.orders ?? []).filter((o) => o.delivery_method === tab)}
-            onDeliver={markDelivered}
+            onMatch={(o) => setDeliverTarget(o)}
             mode={tab}
           />
         )}
+
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex bg-secondary rounded-md p-1">
@@ -712,7 +733,7 @@ function FulfillmentPage() {
                     )}
                     {o.fulfillment_status !== "completed" && (
                       <button
-                        onClick={() => markDelivered(o)}
+                        onClick={() => setDeliverTarget(o)}
                         className="inline-flex items-center gap-1.5 text-xs bg-[#25D366] text-white hover:opacity-90 px-3 py-2 rounded font-bold uppercase tracking-wider"
                         title="Confirmar entrega ao cliente"
                       >
@@ -806,7 +827,18 @@ function FulfillmentPage() {
           }}
         />
       )}
+      {deliverTarget && (
+        <DeliveryConfirmModal
+          order={deliverTarget}
+          onCancel={() => setDeliverTarget(null)}
+          onConfirm={async (agent) => {
+            const ok = await markDelivered(deliverTarget, agent);
+            if (ok) setDeliverTarget(null);
+          }}
+        />
+      )}
     </Shell>
+
   );
 }
 
@@ -821,15 +853,11 @@ function TabBtn({ active, onClick, icon, children }: { active: boolean; onClick:
   );
 }
 
-function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliver: (o: OrderRow) => void; mode: "pickup" | "delivery" }) {
+function ScannerPanel({ orders, onMatch, mode }: { orders: OrderRow[]; onMatch: (o: OrderRow) => void; mode: "pickup" | "delivery" }) {
   const [code, setCode] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const [last, setLast] = useState<{ id: string; name: string; ok: boolean } | null>(null);
 
-  // Foca apenas na primeira montagem. NÃO refocar em cada clique — isso
-  // impedia o usuário de selecionar/copiar SKUs, códigos e textos da tela.
-  // Para voltar a mirar o leitor USB, o operador clica no próprio input
-  // (ou usa o botão "Focar leitor" abaixo).
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
@@ -842,17 +870,12 @@ function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliv
 
     const norm = raw.replace(/[^a-z0-9]/gi, "").toLowerCase();
 
-    // Exige código completo. A etiqueta usa os 12 primeiros chars do UUID
-    // sem hífen (barcodeValue). Menos que isso é ruído do leitor ou tecla
-    // acidental — NÃO pode marcar pedido como entregue.
     if (norm.length < 12) {
       setLast({ id: raw, name: "—", ok: false });
       toast.error("Código incompleto. Escaneie a etiqueta inteira.");
       return;
     }
 
-    // Match EXATO. Prefixo (startsWith) casa o primeiro pedido da lista
-    // por acidente e move o pedido errado para "entregue".
     const match = orders.find((o) => {
       const id = o.id.toLowerCase();
       const compact = o.id.replace(/-/g, "").toLowerCase();
@@ -871,8 +894,6 @@ function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliv
       return;
     }
 
-    // Só pode ir para "entregue" se já estiver pronto/enviado. Isso impede
-    // que um bip pule "separação → entregue" e o pedido suma da fila.
     const okStatus = mode === "pickup"
       ? (match.fulfillment_status === "ready")
       : (match.fulfillment_status === "ready" || match.fulfillment_status === "shipped");
@@ -884,7 +905,7 @@ function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliv
       return;
     }
 
-    onDeliver(match);
+    onMatch(match);
     setLast({ id: match.id, name: match.customer_name, ok: true });
   };
 
@@ -911,8 +932,9 @@ function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliv
         type="submit"
         className="text-xs font-bold uppercase tracking-wider bg-primary text-primary-foreground px-3 py-2 rounded hover:opacity-90"
       >
-        Confirmar entrega
+        Localizar pedido
       </button>
+
       <button
         type="button"
         onClick={() => inputRef.current?.focus()}
@@ -1236,6 +1258,88 @@ function RefundsPanel({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function DeliveryConfirmModal({ order, onCancel, onConfirm }: { order: OrderRow; onCancel: () => void; onConfirm: (agentName: string) => Promise<void> | void }) {
+  const [agent, setAgent] = useState("");
+  const [saving, setSaving] = useState(false);
+  const shortId = order.id.slice(0, 8).toUpperCase();
+  const isDelivery = order.delivery_method === "delivery";
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = agent.trim();
+    if (!name) {
+      toast.error("Digite o nome do agente entregante.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await onConfirm(name);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onCancel}>
+      <form
+        onSubmit={submit}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-card border-2 border-primary rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+              <CheckCheck className="h-4 w-4" /> Confirmar entrega
+            </div>
+            <h2 className="display text-xl mt-1">Pedido #{shortId}</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {order.customer_name} · {isDelivery ? "Entrega motoboy" : "Retirada na loja"}
+            </p>
+          </div>
+          <button type="button" onClick={onCancel} className="text-muted-foreground hover:text-foreground" aria-label="Fechar">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div>
+          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Nome do agente que {isDelivery ? "entregou" : "atendeu a retirada"}
+          </label>
+          <input
+            autoFocus
+            value={agent}
+            onChange={(e) => setAgent(e.target.value)}
+            placeholder="Ex.: Carlos"
+            className="mt-1 w-full bg-secondary/60 border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          <p className="text-[11px] text-muted-foreground mt-1.5">
+            Este nome fica registrado no pedido como comprovante da entrega.
+          </p>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={saving}
+            className="text-xs font-bold uppercase tracking-wider bg-secondary hover:bg-muted px-4 py-2 rounded disabled:opacity-60"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={saving || !agent.trim()}
+            className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-[#25D366] text-white hover:opacity-90 px-4 py-2 rounded disabled:opacity-60"
+          >
+            <CheckCheck className="h-4 w-4" />
+            {saving ? "Confirmando…" : "Confirmar entrega"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
