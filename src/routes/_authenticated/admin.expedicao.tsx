@@ -364,19 +364,17 @@ function FulfillmentPage() {
       return false;
     }
     try {
-      const { error: upErr } = await supabase
-        .from("orders")
-        .update({ delivered_by_name: name } as never)
-        .eq("id", o.id);
-      if (upErr) {
-        console.error("[markDelivered] erro ao gravar agente:", upErr);
-        toast.error(upErr.message || "Falha ao registrar o agente entregante.");
-        return false;
-      }
-      const { error } = await supabase.rpc("set_fulfillment_status" as never, { p_order_id: o.id, p_status: "completed" } as never);
+      // RPC atômica: valida cargo (admin/manager/fulfillment), grava o
+      // nome do agente e marca fulfillment_status=completed em uma única
+      // transação. Substitui o update direto na tabela (que dependia
+      // exclusivamente das políticas de UPDATE de orders).
+      const { error } = await supabase.rpc(
+        "confirm_order_delivery" as never,
+        { p_order_id: o.id, p_delivered_by_name: name } as never,
+      );
       if (error) {
         console.error("[markDelivered] erro RPC:", error);
-        toast.error(error.message || "Não foi possível marcar como entregue. Atualize a página e tente novamente.");
+        toast.error(error.message || "Não foi possível confirmar a entrega. Atualize a página e tente novamente.");
         return false;
       }
     } catch (e: any) {
