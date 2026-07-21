@@ -905,10 +905,11 @@ function OrdersPanel() {
                       </span>
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-secondary">{o.payment_method}</span>
                       {o.refund_status && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/15 text-amber-700 dark:text-amber-400">
-                          {o.refund_status === "refunded" ? "Reembolsado" : "Reemb. parcial"}
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${refundBadgeClass(o.refund_status)}`}>
+                          {refundLabel(o.refund_status)}
                         </span>
                       )}
+
                       {superAdmin && o.status === "paid" && o.mp_payment_id && !o.refund_status && (
                         <button
                           onClick={() => setRefundTarget(o)}
