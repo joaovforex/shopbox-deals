@@ -171,15 +171,43 @@ async function processCieloNotification(p: Record<string, unknown>): Promise<voi
   }
 }
 
+async function resolveOrderUuid(admin: any, candidate: string): Promise<string | null> {
+  const raw = (candidate ?? "").trim();
+  if (!raw) return null;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) return raw;
+  const clean = raw.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+  if (clean.length < 8) return null;
+  // Busca em pedidos recentes (últimos 7 dias) — o merchant orderNumber da Cielo
+  // é o UUID do pedido sem hífens, truncado a 20 chars. Casamos pelo prefixo.
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data } = await admin
+    .from("orders")
+    .select("id")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (!data?.length) return null;
+  const match = (data as Array<{ id: string }>).find(
+    (r) => r.id.replace(/-/g, "").toLowerCase().startsWith(clean),
+  );
+  return match?.id ?? null;
+}
+
+
 async function applyStatusToOrder(
   supabaseAdmin: unknown,
-  orderId: string,
+  orderIdOrNumber: string,
   action: "paid" | "cancelled" | "pending" | "noop",
   paymentId: string,
   snapshot: Record<string, unknown>,
 ): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = supabaseAdmin as any;
+  const orderId = await resolveOrderUuid(admin, orderIdOrNumber);
+  if (!orderId) {
+    console.warn("[cielo:webhook] order não encontrada localmente", orderIdOrNumber);
+    return;
+  }
   await admin
     .from("orders")
     .update({
@@ -212,6 +240,7 @@ async function applyStatusToOrder(
     if (error) console.error("[cielo:webhook] cancel update error", error);
   }
 }
+
 
 function normalizePaymentType(t: string | undefined): string | null {
   if (!t) return null;

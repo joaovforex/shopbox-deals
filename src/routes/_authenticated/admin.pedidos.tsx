@@ -859,10 +859,11 @@ function OrdersPanel() {
                               </button>
                             )}
                             {o.refund_status && (
-                              <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 mr-1">
-                                {o.refund_status === "refunded" ? "Reembolsado" : "Reemb. parcial"}
+                              <span className={`inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded mr-1 ${refundBadgeClass(o.refund_status)}`}>
+                                {refundLabel(o.refund_status)}
                               </span>
                             )}
+
                             <button
                               onClick={() => deleteOrder(o.id)}
                               disabled={busy}
@@ -904,10 +905,11 @@ function OrdersPanel() {
                       </span>
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-secondary">{o.payment_method}</span>
                       {o.refund_status && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/15 text-amber-700 dark:text-amber-400">
-                          {o.refund_status === "refunded" ? "Reembolsado" : "Reemb. parcial"}
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${refundBadgeClass(o.refund_status)}`}>
+                          {refundLabel(o.refund_status)}
                         </span>
                       )}
+
                       {superAdmin && o.status === "paid" && o.mp_payment_id && !o.refund_status && (
                         <button
                           onClick={() => setRefundTarget(o)}
@@ -1192,4 +1194,24 @@ function Shell({ children }: { children: React.ReactNode }) {
       <Footer />
     </div>
   );
+}
+
+function refundLabel(s: string): string {
+  switch (s) {
+    case "refunded": return "Reembolsado";
+    case "queued": return "Reemb. na fila";
+    case "processing": return "Reemb. em andamento";
+    case "refund_failed": return "Reemb. falhou";
+    case "partial": return "Reemb. parcial";
+    default: return "Reemb. parcial";
+  }
+}
+function refundBadgeClass(s: string): string {
+  switch (s) {
+    case "refunded": return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
+    case "queued":
+    case "processing": return "bg-sky-500/15 text-sky-700 dark:text-sky-400";
+    case "refund_failed": return "bg-destructive/15 text-destructive";
+    default: return "bg-amber-500/15 text-amber-700 dark:text-amber-400";
+  }
 }
