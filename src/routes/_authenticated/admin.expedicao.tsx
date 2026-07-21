@@ -827,7 +827,18 @@ function FulfillmentPage() {
           }}
         />
       )}
+      {deliverTarget && (
+        <DeliveryConfirmModal
+          order={deliverTarget}
+          onCancel={() => setDeliverTarget(null)}
+          onConfirm={async (agent) => {
+            const ok = await markDelivered(deliverTarget, agent);
+            if (ok) setDeliverTarget(null);
+          }}
+        />
+      )}
     </Shell>
+
   );
 }
 
