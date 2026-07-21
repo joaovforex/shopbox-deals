@@ -1195,3 +1195,23 @@ function Shell({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+function refundLabel(s: string): string {
+  switch (s) {
+    case "refunded": return "Reembolsado";
+    case "queued": return "Reemb. na fila";
+    case "processing": return "Reemb. em andamento";
+    case "refund_failed": return "Reemb. falhou";
+    case "partial": return "Reemb. parcial";
+    default: return "Reemb. parcial";
+  }
+}
+function refundBadgeClass(s: string): string {
+  switch (s) {
+    case "refunded": return "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400";
+    case "queued":
+    case "processing": return "bg-sky-500/15 text-sky-700 dark:text-sky-400";
+    case "refund_failed": return "bg-destructive/15 text-destructive";
+    default: return "bg-amber-500/15 text-amber-700 dark:text-amber-400";
+  }
+}
