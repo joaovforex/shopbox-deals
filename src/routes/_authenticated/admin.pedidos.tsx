@@ -859,10 +859,11 @@ function OrdersPanel() {
                               </button>
                             )}
                             {o.refund_status && (
-                              <span className="inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 mr-1">
-                                {o.refund_status === "refunded" ? "Reembolsado" : "Reemb. parcial"}
+                              <span className={`inline-block text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded mr-1 ${refundBadgeClass(o.refund_status)}`}>
+                                {refundLabel(o.refund_status)}
                               </span>
                             )}
+
                             <button
                               onClick={() => deleteOrder(o.id)}
                               disabled={busy}
