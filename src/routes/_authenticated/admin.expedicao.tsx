@@ -1261,3 +1261,85 @@ function RefundsPanel({
     </div>
   );
 }
+
+function DeliveryConfirmModal({ order, onCancel, onConfirm }: { order: OrderRow; onCancel: () => void; onConfirm: (agentName: string) => Promise<void> | void }) {
+  const [agent, setAgent] = useState("");
+  const [saving, setSaving] = useState(false);
+  const shortId = order.id.slice(0, 8).toUpperCase();
+  const isDelivery = order.delivery_method === "delivery";
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = agent.trim();
+    if (!name) {
+      toast.error("Digite o nome do agente entregante.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await onConfirm(name);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onCancel}>
+      <form
+        onSubmit={submit}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-card border-2 border-primary rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+              <CheckCheck className="h-4 w-4" /> Confirmar entrega
+            </div>
+            <h2 className="display text-xl mt-1">Pedido #{shortId}</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {order.customer_name} · {isDelivery ? "Entrega motoboy" : "Retirada na loja"}
+            </p>
+          </div>
+          <button type="button" onClick={onCancel} className="text-muted-foreground hover:text-foreground" aria-label="Fechar">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div>
+          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Nome do agente que {isDelivery ? "entregou" : "atendeu a retirada"}
+          </label>
+          <input
+            autoFocus
+            value={agent}
+            onChange={(e) => setAgent(e.target.value)}
+            placeholder="Ex.: Carlos"
+            className="mt-1 w-full bg-secondary/60 border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          <p className="text-[11px] text-muted-foreground mt-1.5">
+            Este nome fica registrado no pedido como comprovante da entrega.
+          </p>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={saving}
+            className="text-xs font-bold uppercase tracking-wider bg-secondary hover:bg-muted px-4 py-2 rounded disabled:opacity-60"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={saving || !agent.trim()}
+            className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-[#25D366] text-white hover:opacity-90 px-4 py-2 rounded disabled:opacity-60"
+          >
+            <CheckCheck className="h-4 w-4" />
+            {saving ? "Confirmando…" : "Confirmar entrega"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
