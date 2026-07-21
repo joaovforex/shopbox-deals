@@ -1031,6 +1031,8 @@ export type Database = {
           id: string
           image_url: string | null
           images: string[]
+          mass_discount_snapshot_original: number | null
+          mass_discount_snapshot_price: number | null
           name: string
           ncm: string | null
           origem: number | null
@@ -1056,6 +1058,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           images?: string[]
+          mass_discount_snapshot_original?: number | null
+          mass_discount_snapshot_price?: number | null
           name: string
           ncm?: string | null
           origem?: number | null
@@ -1081,6 +1085,8 @@ export type Database = {
           id?: string
           image_url?: string | null
           images?: string[]
+          mass_discount_snapshot_original?: number | null
+          mass_discount_snapshot_price?: number | null
           name?: string
           ncm?: string | null
           origem?: number | null
