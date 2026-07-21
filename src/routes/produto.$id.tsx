@@ -29,7 +29,19 @@ export const Route = createFileRoute("/produto/$id")({
     return { product, origin };
   },
   head: ({ loaderData }) => {
+    if (!loaderData) {
+      return {
+        meta: [
+          { title: "Produto — Shopbox" },
+          { name: "description", content: "Confira os produtos da Shopbox." },
+          { name: "robots", content: "noindex" },
+          { property: "og:title", content: "Shopbox" },
+          { property: "og:description", content: "Confira os produtos da Shopbox." },
+        ],
+      };
+    }
     const { product, origin } = loaderData as { product: Product; origin: string };
+
     const imgs = productImages(product);
     const rawImage = imgs[0] ?? "";
     const image = rawImage.startsWith("http") ? rawImage : rawImage ? `${origin}${rawImage}` : "";
