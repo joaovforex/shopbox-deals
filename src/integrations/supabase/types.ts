@@ -1350,6 +1350,10 @@ export type Database = {
       }
       claim_first_admin_if_none: { Args: never; Returns: boolean }
       clear_global_discount: { Args: never; Returns: number }
+      confirm_order_delivery: {
+        Args: { p_delivered_by_name: string; p_order_id: string }
+        Returns: string
+      }
       confirm_order_paid: {
         Args: { p_mp_payment_id?: string; p_order_id: string }
         Returns: string
