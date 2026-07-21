@@ -842,15 +842,11 @@ function TabBtn({ active, onClick, icon, children }: { active: boolean; onClick:
   );
 }
 
-function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliver: (o: OrderRow) => void; mode: "pickup" | "delivery" }) {
+function ScannerPanel({ orders, onMatch, mode }: { orders: OrderRow[]; onMatch: (o: OrderRow) => void; mode: "pickup" | "delivery" }) {
   const [code, setCode] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const [last, setLast] = useState<{ id: string; name: string; ok: boolean } | null>(null);
 
-  // Foca apenas na primeira montagem. NÃO refocar em cada clique — isso
-  // impedia o usuário de selecionar/copiar SKUs, códigos e textos da tela.
-  // Para voltar a mirar o leitor USB, o operador clica no próprio input
-  // (ou usa o botão "Focar leitor" abaixo).
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
@@ -863,17 +859,12 @@ function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliv
 
     const norm = raw.replace(/[^a-z0-9]/gi, "").toLowerCase();
 
-    // Exige código completo. A etiqueta usa os 12 primeiros chars do UUID
-    // sem hífen (barcodeValue). Menos que isso é ruído do leitor ou tecla
-    // acidental — NÃO pode marcar pedido como entregue.
     if (norm.length < 12) {
       setLast({ id: raw, name: "—", ok: false });
       toast.error("Código incompleto. Escaneie a etiqueta inteira.");
       return;
     }
 
-    // Match EXATO. Prefixo (startsWith) casa o primeiro pedido da lista
-    // por acidente e move o pedido errado para "entregue".
     const match = orders.find((o) => {
       const id = o.id.toLowerCase();
       const compact = o.id.replace(/-/g, "").toLowerCase();
@@ -892,8 +883,6 @@ function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliv
       return;
     }
 
-    // Só pode ir para "entregue" se já estiver pronto/enviado. Isso impede
-    // que um bip pule "separação → entregue" e o pedido suma da fila.
     const okStatus = mode === "pickup"
       ? (match.fulfillment_status === "ready")
       : (match.fulfillment_status === "ready" || match.fulfillment_status === "shipped");
@@ -905,7 +894,7 @@ function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliv
       return;
     }
 
-    onDeliver(match);
+    onMatch(match);
     setLast({ id: match.id, name: match.customer_name, ok: true });
   };
 
@@ -932,8 +921,9 @@ function ScannerPanel({ orders, onDeliver, mode }: { orders: OrderRow[]; onDeliv
         type="submit"
         className="text-xs font-bold uppercase tracking-wider bg-primary text-primary-foreground px-3 py-2 rounded hover:opacity-90"
       >
-        Confirmar entrega
+        Localizar pedido
       </button>
+
       <button
         type="button"
         onClick={() => inputRef.current?.focus()}
