@@ -2,7 +2,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, ImageIcon, Percent, Save, Upload, Trash2, ShieldAlert } from "lucide-react";
+import { ArrowLeft, ImageIcon, Percent, Save, Upload, Trash2, ShieldAlert, Tag, RotateCcw } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { isSuperAdmin } from "@/lib/products";
 import { supabase } from "@/integrations/supabase/client";
@@ -207,7 +207,8 @@ function SettingsPage() {
           onChange={onPickMobile}
         />
 
-        <div className="sticky bottom-4 z-10">
+        {/* Desconto em massa */}
+        <MassDiscountSection currentPct={Number(data?.global_discount_percent ?? 0)} onDone={() => qc.invalidateQueries({ queryKey: ["site_settings"] })} />
           <button
             onClick={onSave}
             disabled={saving || uploadingDesk || uploadingMob}
