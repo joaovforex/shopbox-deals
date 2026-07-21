@@ -290,80 +290,50 @@ function AdminPage() {
               </p>
             )}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             {(roles.isSuperAdmin || roles.isManager) && (
-              <Link
-                to="/admin/expedicao"
-                className="inline-flex items-center gap-2 bg-card border-2 border-primary text-primary font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-primary hover:text-primary-foreground text-sm"
-              >
-                <Truck className="h-4 w-4" /> Expedição
+              <Link to="/admin/expedicao" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                <Truck className="h-3.5 w-3.5" /> Expedição
               </Link>
             )}
             {roles.isSuperAdmin && (
               <>
-                <Link
-                  to="/admin/pedidos"
-                  className="inline-flex items-center gap-2 bg-accent text-accent-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md hover:opacity-90 text-sm"
-                >
-                  <BarChart3 className="h-4 w-4" /> Pedidos & Métricas
+                <Link to="/admin/pedidos" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                  <BarChart3 className="h-3.5 w-3.5" /> Pedidos
                 </Link>
-                <Link
-                  to="/admin/equipe"
-                  className="inline-flex items-center gap-2 bg-card border border-border font-black uppercase tracking-wider px-4 py-3 rounded-md hover:border-primary text-sm"
-                >
-                  <Users className="h-4 w-4" /> Equipe
+                <Link to="/admin/venda-manual" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                  <ShoppingBag className="h-3.5 w-3.5" /> Venda manual
                 </Link>
-                <Link
-                  to="/admin/reembolsos"
-                  className="inline-flex items-center gap-2 bg-card border border-amber-500/50 text-amber-700 dark:text-amber-400 font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-amber-500/10 text-sm"
-                >
-                  <Undo2 className="h-4 w-4" /> Reembolsos
+                <Link to="/admin/caixa-qr" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                  <QrCode className="h-3.5 w-3.5" /> Caixa QR
                 </Link>
-                <Link
-                  to="/admin/vale-troca"
-                  className="inline-flex items-center gap-2 bg-card border border-emerald-500/50 text-emerald-700 dark:text-emerald-400 font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-emerald-500/10 text-sm"
-                >
-                  <Gift className="h-4 w-4" /> Vale-Troca
+                <span className="h-4 w-px bg-border mx-1" aria-hidden />
+                <Link to="/admin/reembolsos" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                  <Undo2 className="h-3.5 w-3.5" /> Reembolsos
                 </Link>
-                <Link
-                  to="/admin/fiscal"
-                  className="inline-flex items-center gap-2 bg-card border border-blue-500/50 text-blue-700 dark:text-blue-400 font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-blue-500/10 text-sm"
-                >
-                  <FileText className="h-4 w-4" /> Fiscal
+                <Link to="/admin/vale-troca" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                  <Gift className="h-3.5 w-3.5" /> Vale-troca
                 </Link>
-                <Link
-                  to="/admin/venda-manual"
-                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] text-sm"
-                >
-                  <ShoppingBag className="h-4 w-4" /> Venda manual
+                <Link to="/admin/fiscal" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                  <FileText className="h-3.5 w-3.5" /> Fiscal
                 </Link>
-                <Link
-                  to="/admin/caixa-qr"
-                  className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] text-sm"
-                >
-                  <QrCode className="h-4 w-4" /> Caixa QR
+                <Link to="/admin/agendador-canal" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                  <Radio className="h-3.5 w-3.5" /> Canal
                 </Link>
-                <Link
-                  to="/admin/agendador-canal"
-                  className="inline-flex items-center gap-2 bg-card border border-[#25D366]/60 text-[#128C7E] dark:text-[#25D366] font-black uppercase tracking-wider px-4 py-3 rounded-md hover:bg-[#25D366]/10 text-sm"
-                >
-                  <Radio className="h-4 w-4" /> Agendador canal
+                <span className="h-4 w-px bg-border mx-1" aria-hidden />
+                <Link to="/admin/equipe" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                  <Users className="h-3.5 w-3.5" /> Equipe
                 </Link>
-                <Link
-                  to="/admin/configuracoes"
-                  className="inline-flex items-center gap-2 bg-card border border-border font-black uppercase tracking-wider px-4 py-3 rounded-md hover:border-primary text-sm"
-                >
-                  <Settings className="h-4 w-4" /> Configurações
+                <Link to="/admin/configuracoes" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+                  <Settings className="h-3.5 w-3.5" /> Configurações
                 </Link>
-
-
               </>
             )}
             <button
               onClick={() => { setEditing(null); setShowForm(true); }}
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] text-sm"
+              className="inline-flex items-center gap-1.5 ml-1 bg-foreground text-background font-semibold px-3 py-1.5 rounded-md text-xs hover:opacity-90 transition-opacity"
             >
-              <Plus className="h-4 w-4" /> Novo produto
+              <Plus className="h-3.5 w-3.5" /> Novo produto
             </button>
           </div>
         </div>
