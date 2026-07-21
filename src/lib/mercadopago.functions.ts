@@ -199,7 +199,7 @@ export const createMpPreference = createServerFn({ method: "POST" })
       0,
     );
     const shippingFee =
-      data.delivery_method === "delivery" ? (subtotal < 80 ? 10 : 0) : 0;
+      data.delivery_method === "delivery" ? 12 : 0;
 
     // 2.1) Cashback (opcional) — aplicado via RPC para garantir consistência de saldo
     let cashbackUsed = 0;

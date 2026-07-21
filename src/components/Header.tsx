@@ -200,7 +200,7 @@ export function Header() {
     <>
       <div className="bg-foreground text-background text-[10px] sm:text-xs py-1.5 px-3">
         <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-center">
-          <span>Frete grátis em Curitiba e região acima de R$ 80</span>
+          <span>Frete fixo de R$ 12 em Curitiba e região · Retirada grátis</span>
           <span className="opacity-40">·</span>
           <span>Pix e cartões</span>
           <span className="opacity-40">·</span>

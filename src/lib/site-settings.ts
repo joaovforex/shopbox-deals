@@ -5,6 +5,7 @@ export type SiteSettings = {
   cashback_rate: number;
   banner_desktop_url: string | null;
   banner_mobile_url: string | null;
+  global_discount_percent: number;
   updated_at: string | null;
 };
 
@@ -12,22 +13,25 @@ const DEFAULTS: SiteSettings = {
   cashback_rate: 0.05,
   banner_desktop_url: null,
   banner_mobile_url: null,
+  global_discount_percent: 0,
   updated_at: null,
 };
 
 export async function fetchSiteSettings(): Promise<SiteSettings> {
   const { data, error } = await supabase
     .from("site_settings")
-    .select("cashback_rate, banner_desktop_url, banner_mobile_url, updated_at")
+    .select("cashback_rate, banner_desktop_url, banner_mobile_url, global_discount_percent, updated_at")
     .eq("id", 1)
     .maybeSingle();
   if (error) throw error;
   if (!data) return DEFAULTS;
+  const d = data as Record<string, unknown>;
   return {
-    cashback_rate: Number(data.cashback_rate ?? 0.05),
-    banner_desktop_url: (data.banner_desktop_url as string | null) ?? null,
-    banner_mobile_url: (data.banner_mobile_url as string | null) ?? null,
-    updated_at: (data.updated_at as string | null) ?? null,
+    cashback_rate: Number(d.cashback_rate ?? 0.05),
+    banner_desktop_url: (d.banner_desktop_url as string | null) ?? null,
+    banner_mobile_url: (d.banner_mobile_url as string | null) ?? null,
+    global_discount_percent: Number(d.global_discount_percent ?? 0),
+    updated_at: (d.updated_at as string | null) ?? null,
   };
 }
 
