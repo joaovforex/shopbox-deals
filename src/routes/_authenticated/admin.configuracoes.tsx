@@ -209,6 +209,8 @@ function SettingsPage() {
 
         {/* Desconto em massa */}
         <MassDiscountSection currentPct={Number(data?.global_discount_percent ?? 0)} onDone={() => qc.invalidateQueries({ queryKey: ["site_settings"] })} />
+
+        <div className="sticky bottom-4 z-10">
           <button
             onClick={onSave}
             disabled={saving || uploadingDesk || uploadingMob}
