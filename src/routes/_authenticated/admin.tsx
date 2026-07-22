@@ -392,6 +392,18 @@ function AdminPage() {
             >
               Esgotados
             </button>
+            <button
+              type="button"
+              onClick={() => setTab("ocultos")}
+              className={cn(
+                "px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
+                tab === "ocultos"
+                  ? "bg-background text-foreground shadow"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Ocultos
+            </button>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
