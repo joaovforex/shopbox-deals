@@ -17,6 +17,7 @@ import { Route as LojaRouteImport } from './routes/loja'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProdutoIdRouteImport } from './routes/produto.$id'
@@ -32,6 +33,7 @@ import { Route as AuthenticatedAdminVendaManualRouteImport } from './routes/_aut
 import { Route as AuthenticatedAdminValeTrocaRouteImport } from './routes/_authenticated/admin.vale-troca'
 import { Route as AuthenticatedAdminReembolsosRouteImport } from './routes/_authenticated/admin.reembolsos'
 import { Route as AuthenticatedAdminPedidosRouteImport } from './routes/_authenticated/admin.pedidos'
+import { Route as AuthenticatedAdminLinksRouteImport } from './routes/_authenticated/admin.links'
 import { Route as AuthenticatedAdminFiscalRouteImport } from './routes/_authenticated/admin.fiscal'
 import { Route as AuthenticatedAdminExpedicaoRouteImport } from './routes/_authenticated/admin.expedicao'
 import { Route as AuthenticatedAdminEquipeRouteImport } from './routes/_authenticated/admin.equipe'
@@ -84,6 +86,11 @@ const CarrinhoRoute = CarrinhoRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SlugRoute = SlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -166,6 +173,11 @@ const AuthenticatedAdminPedidosRoute =
     path: '/pedidos',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminLinksRoute = AuthenticatedAdminLinksRouteImport.update({
+  id: '/links',
+  path: '/links',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedAdminFiscalRoute =
   AuthenticatedAdminFiscalRouteImport.update({
     id: '/fiscal',
@@ -243,6 +255,7 @@ const ApiPublicCashbackExpireRoute = ApiPublicCashbackExpireRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
@@ -265,6 +278,7 @@ export interface FileRoutesByFullPath {
   '/admin/equipe': typeof AuthenticatedAdminEquipeRoute
   '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/admin/fiscal': typeof AuthenticatedAdminFiscalRoute
+  '/admin/links': typeof AuthenticatedAdminLinksRoute
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
   '/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
@@ -280,6 +294,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
@@ -302,6 +317,7 @@ export interface FileRoutesByTo {
   '/admin/equipe': typeof AuthenticatedAdminEquipeRoute
   '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/admin/fiscal': typeof AuthenticatedAdminFiscalRoute
+  '/admin/links': typeof AuthenticatedAdminLinksRoute
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
   '/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
@@ -319,6 +335,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/$slug': typeof SlugRoute
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
@@ -341,6 +358,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/equipe': typeof AuthenticatedAdminEquipeRoute
   '/_authenticated/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
   '/_authenticated/admin/fiscal': typeof AuthenticatedAdminFiscalRoute
+  '/_authenticated/admin/links': typeof AuthenticatedAdminLinksRoute
   '/_authenticated/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/_authenticated/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
   '/_authenticated/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
@@ -358,6 +376,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$slug'
     | '/auth'
     | '/carrinho'
     | '/checkout'
@@ -380,6 +399,7 @@ export interface FileRouteTypes {
     | '/admin/equipe'
     | '/admin/expedicao'
     | '/admin/fiscal'
+    | '/admin/links'
     | '/admin/pedidos'
     | '/admin/reembolsos'
     | '/admin/vale-troca'
@@ -395,6 +415,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$slug'
     | '/auth'
     | '/carrinho'
     | '/checkout'
@@ -417,6 +438,7 @@ export interface FileRouteTypes {
     | '/admin/equipe'
     | '/admin/expedicao'
     | '/admin/fiscal'
+    | '/admin/links'
     | '/admin/pedidos'
     | '/admin/reembolsos'
     | '/admin/vale-troca'
@@ -433,6 +455,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/$slug'
     | '/auth'
     | '/carrinho'
     | '/checkout'
@@ -455,6 +478,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/equipe'
     | '/_authenticated/admin/expedicao'
     | '/_authenticated/admin/fiscal'
+    | '/_authenticated/admin/links'
     | '/_authenticated/admin/pedidos'
     | '/_authenticated/admin/reembolsos'
     | '/_authenticated/admin/vale-troca'
@@ -472,6 +496,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  SlugRoute: typeof SlugRoute
   AuthRoute: typeof AuthRoute
   CarrinhoRoute: typeof CarrinhoRoute
   CheckoutRoute: typeof CheckoutRoute
@@ -551,6 +576,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$slug': {
+      id: '/$slug'
+      path: '/$slug'
+      fullPath: '/$slug'
+      preLoaderRoute: typeof SlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -658,6 +690,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminPedidosRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/links': {
+      id: '/_authenticated/admin/links'
+      path: '/links'
+      fullPath: '/admin/links'
+      preLoaderRoute: typeof AuthenticatedAdminLinksRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/fiscal': {
       id: '/_authenticated/admin/fiscal'
       path: '/fiscal'
@@ -759,6 +798,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminEquipeRoute: typeof AuthenticatedAdminEquipeRoute
   AuthenticatedAdminExpedicaoRoute: typeof AuthenticatedAdminExpedicaoRoute
   AuthenticatedAdminFiscalRoute: typeof AuthenticatedAdminFiscalRoute
+  AuthenticatedAdminLinksRoute: typeof AuthenticatedAdminLinksRoute
   AuthenticatedAdminPedidosRoute: typeof AuthenticatedAdminPedidosRoute
   AuthenticatedAdminReembolsosRoute: typeof AuthenticatedAdminReembolsosRoute
   AuthenticatedAdminValeTrocaRoute: typeof AuthenticatedAdminValeTrocaRoute
@@ -772,6 +812,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminEquipeRoute: AuthenticatedAdminEquipeRoute,
   AuthenticatedAdminExpedicaoRoute: AuthenticatedAdminExpedicaoRoute,
   AuthenticatedAdminFiscalRoute: AuthenticatedAdminFiscalRoute,
+  AuthenticatedAdminLinksRoute: AuthenticatedAdminLinksRoute,
   AuthenticatedAdminPedidosRoute: AuthenticatedAdminPedidosRoute,
   AuthenticatedAdminReembolsosRoute: AuthenticatedAdminReembolsosRoute,
   AuthenticatedAdminValeTrocaRoute: AuthenticatedAdminValeTrocaRoute,
@@ -799,6 +840,7 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  SlugRoute: SlugRoute,
   AuthRoute: AuthRoute,
   CarrinhoRoute: CarrinhoRoute,
   CheckoutRoute: CheckoutRoute,

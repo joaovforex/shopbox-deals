@@ -11,6 +11,7 @@ import {
   Radio,
   Users,
   Settings,
+  Link2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RoleSummary } from "@/lib/products";
@@ -33,6 +34,7 @@ const ITEMS: Item[] = [
   { to: "/admin/vale-troca", label: "Vale-troca", icon: Gift, color: "text-pink-600", show: (r) => r.isSuperAdmin },
   { to: "/admin/fiscal", label: "Fiscal", icon: FileText, color: "text-amber-600", show: (r) => r.isSuperAdmin },
   { to: "/admin/agendador-canal", label: "Canal", icon: Radio, color: "text-fuchsia-600", show: (r) => r.isSuperAdmin },
+  { to: "/admin/links", label: "Links curtos", icon: Link2, color: "text-teal-600", show: (r) => r.isSuperAdmin },
   { to: "/admin/equipe", label: "Equipe", icon: Users, color: "text-cyan-600", show: (r) => r.isSuperAdmin },
   { to: "/admin/configuracoes", label: "Configurações", icon: Settings, color: "text-slate-600", show: (r) => r.isSuperAdmin },
 ];
