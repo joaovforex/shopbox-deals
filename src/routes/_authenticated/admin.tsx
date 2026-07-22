@@ -438,28 +438,82 @@ function AdminPage() {
             )}
 
             {tab === "esgotados" && (
+              <>
+                {selected.size > 0 ? (
+                  <>
+                    <button
+                      type="button"
+                      disabled={isBulkHiding}
+                      onClick={() => bulkHide(Array.from(selected))}
+                      className="inline-flex items-center gap-2 bg-card border border-border text-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-secondary disabled:opacity-50"
+                    >
+                      <EyeOff className="h-4 w-4" />
+                      Ocultar {selected.size}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isBulkDeleting}
+                      onClick={() => bulkDelete(Array.from(selected))}
+                      className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-destructive/90 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir {selected.size}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      disabled={isBulkHiding}
+                      onClick={() => {
+                        const ids = products.filter((p) => p.stock === 0 && p.active).map((p) => p.id);
+                        bulkHide(ids);
+                      }}
+                      className="inline-flex items-center gap-2 bg-card border border-border text-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-secondary disabled:opacity-50"
+                    >
+                      <EyeOff className="h-4 w-4" />
+                      Ocultar todos esgotados
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isBulkDeleting}
+                      onClick={() => {
+                        const ids = products.filter((p) => p.stock === 0).map((p) => p.id);
+                        bulkDelete(ids);
+                      }}
+                      className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-destructive/90 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir todos esgotados
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+
+            {tab === "ocultos" && (
               selected.size > 0 ? (
                 <button
                   type="button"
-                  disabled={isBulkHiding}
-                  onClick={() => bulkHide(Array.from(selected))}
+                  disabled={isBulkDeleting}
+                  onClick={() => bulkDelete(Array.from(selected))}
                   className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-destructive/90 disabled:opacity-50"
                 >
-                  <EyeOff className="h-4 w-4" />
-                  Ocultar {selected.size}
+                  <Trash2 className="h-4 w-4" />
+                  Excluir {selected.size}
                 </button>
               ) : (
                 <button
                   type="button"
-                  disabled={isBulkHiding}
+                  disabled={isBulkDeleting}
                   onClick={() => {
-                    const ids = products.filter((p) => p.stock === 0 && p.active).map((p) => p.id);
-                    bulkHide(ids);
+                    const ids = products.filter((p) => !p.active).map((p) => p.id);
+                    bulkDelete(ids);
                   }}
-                  className="inline-flex items-center gap-2 bg-card border border-border text-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-secondary disabled:opacity-50"
+                  className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-destructive/90 disabled:opacity-50"
                 >
-                  <EyeOff className="h-4 w-4" />
-                  Ocultar todos esgotados
+                  <Trash2 className="h-4 w-4" />
+                  Excluir todos os ocultos
                 </button>
               )
             )}
