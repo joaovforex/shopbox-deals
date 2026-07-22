@@ -317,47 +317,9 @@ function AdminPage() {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            {(roles.isSuperAdmin || roles.isManager) && (
-              <Link to="/admin/expedicao" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                <Truck className="h-3.5 w-3.5 text-blue-600" /> Expedição
-              </Link>
-            )}
-            {roles.isSuperAdmin && (
-              <>
-                <Link to="/admin/pedidos" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <BarChart3 className="h-3.5 w-3.5 text-emerald-600" /> Pedidos
-                </Link>
-                <Link to="/admin/venda-manual" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <ShoppingBag className="h-3.5 w-3.5 text-orange-600" /> Venda manual
-                </Link>
-                <Link to="/admin/caixa-qr" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <QrCode className="h-3.5 w-3.5 text-indigo-600" /> Caixa QR
-                </Link>
-                <span className="h-4 w-px bg-border mx-1" aria-hidden />
-                <Link to="/admin/reembolsos" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <Undo2 className="h-3.5 w-3.5 text-rose-600" /> Reembolsos
-                </Link>
-                <Link to="/admin/vale-troca" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <Gift className="h-3.5 w-3.5 text-pink-600" /> Vale-troca
-                </Link>
-                <Link to="/admin/fiscal" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <FileText className="h-3.5 w-3.5 text-amber-600" /> Fiscal
-                </Link>
-                <Link to="/admin/agendador-canal" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <Radio className="h-3.5 w-3.5 text-fuchsia-600" /> Canal
-                </Link>
-                <span className="h-4 w-px bg-border mx-1" aria-hidden />
-                <Link to="/admin/equipe" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <Users className="h-3.5 w-3.5 text-cyan-600" /> Equipe
-                </Link>
-                <Link to="/admin/configuracoes" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <Settings className="h-3.5 w-3.5 text-slate-600" /> Configurações
-                </Link>
-              </>
-            )}
             <button
               onClick={() => { setEditing(null); setShowForm(true); }}
-              className="inline-flex items-center gap-1.5 ml-1 bg-foreground text-background font-semibold px-3 py-1.5 rounded-md text-xs hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-1.5 bg-foreground text-background font-semibold px-3 py-1.5 rounded-md text-xs hover:opacity-90 transition-opacity"
             >
               <Plus className="h-3.5 w-3.5" /> Novo produto
             </button>
@@ -788,7 +750,7 @@ function AdminPage() {
               disabled={isFetchingNextPage}
               className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-6 py-3 rounded-md shadow-deal hover:scale-[1.02] text-sm disabled:opacity-60 disabled:cursor-wait"
             >
-              {isFetchingNextPage ? "Carregando..." : `Carregar mais ${Math.min(ADMIN_PRODUCTS_PAGE_SIZE, totalProducts - loadedCount)}`}
+              {isFetchingNextPage ? "Carregando..." : `Carregar mais`}
             </button>
           )}
           {!hasNextPage && loadedCount > 0 && isFetchingProducts === false && (
