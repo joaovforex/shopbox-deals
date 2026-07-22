@@ -1,14 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { ProductCard } from "@/components/ProductCard";
 import { MegaOffersCarousel } from "@/components/MegaOffersCarousel";
-import { pageProductsQuery, productImages, PRODUCTS_PAGE_SIZE } from "@/lib/products";
+import { pageProductsQuery, productImages, PRODUCTS_PAGE_SIZE, usedCategoriesQuery } from "@/lib/products";
 import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
 import { brl } from "@/lib/format";
-import { Search, X, ChevronLeft, ChevronRight, Tag } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, Tag, LayoutGrid, ChevronDown } from "lucide-react";
 
 type LojaSearch = { cat?: string; q?: string; focus?: number; max?: number; page?: number };
 
@@ -54,6 +54,8 @@ function Loja() {
   const navigate = useNavigate();
   const [q, setQ] = useState(qParam ?? "");
   const debouncedQ = useDebounced(q, 350);
+  const [catOpen, setCatOpen] = useState(false);
+  const { data: categories = [] } = useQuery(usedCategoriesQuery());
   useRealtimeProducts();
 
   const baseSearch = useMemo(
