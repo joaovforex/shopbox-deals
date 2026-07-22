@@ -119,7 +119,15 @@ function AdminPage() {
     } catch {}
   }, [isChildRoute]);
 
-  if (isChildRoute) return <Outlet />;
+  if (isChildRoute) {
+    if (!roles) return <Outlet />;
+    return (
+      <div className="flex min-h-screen">
+        <AdminSidebar roles={roles} />
+        <div className="flex-1 min-w-0 flex flex-col"><Outlet /></div>
+      </div>
+    );
+  }
 
   if (roles === null) {
     return (
@@ -288,7 +296,9 @@ function AdminPage() {
 
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen">
+      <AdminSidebar roles={roles} />
+      <div className="flex-1 min-w-0 flex flex-col">
       <Header />
 
       <section className="bg-card border-b-4 border-primary">
