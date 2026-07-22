@@ -592,12 +592,16 @@ function AdminPage() {
             return (
               <div className="text-center py-20 bg-card rounded-lg border border-border">
                 <p className="text-muted-foreground">
-                  {tab === "esgotados" ? "Nenhum produto esgotado." : `Nenhum produto encontrado para "${search}".`}
+                  {tab === "esgotados"
+                    ? "Nenhum produto esgotado."
+                    : tab === "ocultos"
+                      ? "Nenhum produto oculto."
+                      : `Nenhum produto encontrado para "${search}".`}
                 </p>
               </div>
             );
           }
-          const showCheckbox = selectMode || tab === "esgotados";
+          const showCheckbox = selectMode || tab === "esgotados" || tab === "ocultos";
           const selectableSet = tab === "esgotados"
             ? filtered.filter((p) => p.active)
             : filtered;
