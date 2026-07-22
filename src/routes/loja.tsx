@@ -1,14 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { ProductCard } from "@/components/ProductCard";
 import { MegaOffersCarousel } from "@/components/MegaOffersCarousel";
-import { pageProductsQuery, productImages, PRODUCTS_PAGE_SIZE } from "@/lib/products";
+import { pageProductsQuery, productImages, PRODUCTS_PAGE_SIZE, usedCategoriesQuery } from "@/lib/products";
 import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
 import { brl } from "@/lib/format";
-import { Search, X, ChevronLeft, ChevronRight, Tag } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, Tag, LayoutGrid, ChevronDown } from "lucide-react";
 
 type LojaSearch = { cat?: string; q?: string; focus?: number; max?: number; page?: number };
 
@@ -54,6 +54,8 @@ function Loja() {
   const navigate = useNavigate();
   const [q, setQ] = useState(qParam ?? "");
   const debouncedQ = useDebounced(q, 350);
+  const [catOpen, setCatOpen] = useState(false);
+  const { data: categories = [] } = useQuery(usedCategoriesQuery());
   useRealtimeProducts();
 
   const baseSearch = useMemo(
@@ -183,6 +185,58 @@ function Loja() {
               </button>
             )}
           </div>
+        </div>
+
+        <div className="mb-4 sm:mb-6">
+          <button
+            type="button"
+            onClick={() => setCatOpen((v) => !v)}
+            aria-expanded={catOpen}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-card border border-border text-sm font-medium hover:bg-secondary transition-colors"
+          >
+            <LayoutGrid className="h-4 w-4" />
+            Categorias
+            <ChevronDown className={`h-4 w-4 transition-transform ${catOpen ? "rotate-180" : ""}`} />
+          </button>
+          {catOpen && (
+            <div className="mt-3 p-3 rounded-md bg-card border border-border">
+              {categories.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Nenhuma categoria disponível.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCatOpen(false);
+                      navigate({
+                        to: "/loja",
+                        search: { ...(qParam ? { q: qParam } : {}), ...(max ? { max } : {}) },
+                      });
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-colors ${!cat ? "bg-foreground text-background border-foreground" : "bg-background border-border hover:border-foreground"}`}
+                  >
+                    Todas
+                  </button>
+                  {categories.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        setCatOpen(false);
+                        navigate({
+                          to: "/loja",
+                          search: { cat: c, ...(qParam ? { q: qParam } : {}), ...(max ? { max } : {}) },
+                        });
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-colors ${cat === c ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-foreground"}`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {!hasFilter && page === 1 && products.length > 0 && (

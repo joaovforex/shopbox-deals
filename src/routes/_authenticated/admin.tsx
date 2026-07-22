@@ -3,10 +3,11 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Crown, BarChart3, Truck, Users, Package, ShieldAlert, Undo2, ShoppingBag, CheckSquare, Square, XSquare, Gift, FileText, Settings, QrCode, Radio } from "lucide-react";
+import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Crown, Truck, Package, ShieldAlert, CheckSquare, Square, XSquare } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
+import { AdminSidebar } from "@/components/AdminSidebar";
 import { supabase } from "@/integrations/supabase/client";
-import { adminProductsInfiniteQuery, ADMIN_PRODUCTS_PAGE_SIZE, getRoleSummary, type Product, type RoleSummary } from "@/lib/products";
+import { adminProductsInfiniteQuery, getRoleSummary, type Product, type RoleSummary } from "@/lib/products";
 import { claimFirstAdmin } from "@/lib/admin.functions";
 import { brl, discountPct, postDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -118,7 +119,15 @@ function AdminPage() {
     } catch {}
   }, [isChildRoute]);
 
-  if (isChildRoute) return <Outlet />;
+  if (isChildRoute) {
+    if (!roles) return <Outlet />;
+    return (
+      <div className="flex min-h-screen">
+        <AdminSidebar roles={roles} />
+        <div className="flex-1 min-w-0 flex flex-col"><Outlet /></div>
+      </div>
+    );
+  }
 
   if (roles === null) {
     return (
@@ -184,23 +193,18 @@ function AdminPage() {
 
   const del = async (p: Product) => {
     if (!confirm(`Apagar "${p.name}"?`)) return;
-    // .select() força o retorno das linhas afetadas; se vier vazio, foi RLS bloqueando silenciosamente.
-    const { data, error } = await supabase.from("products").delete().eq("id", p.id).select("id");
+    const { data, error } = await supabase.rpc("admin_delete_products" as never, { p_ids: [p.id] } as never);
     if (error) return toast.error(error.message);
-    if (!data || data.length === 0) {
-      return toast.error("Sem permissão para apagar este produto. Confirme que sua conta possui o cargo de admin, gerente ou catálogo.");
-    }
+    if (!data || Number(data) === 0) return toast.error("Nenhum produto removido.");
     toast.success("Produto removido");
     refetch();
     qc.invalidateQueries({ queryKey: ["products"] });
   };
 
   const toggleActive = async (p: Product) => {
-    const { data, error } = await supabase.from("products").update({ active: !p.active }).eq("id", p.id).select("id");
+    const { data, error } = await supabase.rpc("admin_set_products_active" as never, { p_ids: [p.id], p_active: !p.active } as never);
     if (error) return toast.error(error.message);
-    if (!data || data.length === 0) {
-      return toast.error("Sem permissão para alterar este produto.");
-    }
+    if (!data || Number(data) === 0) return toast.error("Nenhuma alteração aplicada.");
     refetch();
     qc.invalidateQueries({ queryKey: ["products"] });
   };
@@ -209,13 +213,11 @@ function AdminPage() {
     if (ids.length === 0) return;
     if (!confirm(`Ocultar ${ids.length} ${ids.length === 1 ? "produto" : "produtos"}?`)) return;
     setIsBulkHiding(true);
-    const { data, error } = await supabase.from("products").update({ active: false }).in("id", ids).select("id");
+    const { data, error } = await supabase.rpc("admin_set_products_active" as never, { p_ids: ids, p_active: false } as never);
     setIsBulkHiding(false);
     if (error) return toast.error(error.message);
-    const changed = data?.length ?? 0;
-    if (changed === 0) {
-      return toast.error("Sem permissão para ocultar estes produtos.");
-    }
+    const changed = Number(data ?? 0);
+    if (changed === 0) return toast.error("Nenhum produto alterado.");
     setSelected(new Set());
     toast.success(`${changed} produto(s) ocultado(s)`);
     refetch();
@@ -226,19 +228,18 @@ function AdminPage() {
     if (ids.length === 0) return;
     if (!confirm(`Apagar definitivamente ${ids.length} ${ids.length === 1 ? "produto" : "produtos"}? Essa ação não pode ser desfeita.`)) return;
     setIsBulkDeleting(true);
-    // Divide em lotes para não estourar limites de URL/statement
-    const BATCH = 200;
+    const BATCH = 500;
     let removed = 0;
     let firstError: string | null = null;
     for (let i = 0; i < ids.length; i += BATCH) {
       const slice = ids.slice(i, i + BATCH);
-      const { data, error } = await supabase.from("products").delete().in("id", slice).select("id");
+      const { data, error } = await supabase.rpc("admin_delete_products" as never, { p_ids: slice } as never);
       if (error) { firstError = error.message; break; }
-      removed += data?.length ?? 0;
+      removed += Number(data ?? 0);
     }
     setIsBulkDeleting(false);
     if (firstError) return toast.error(firstError);
-    if (removed === 0) return toast.error("Sem permissão para apagar estes produtos.");
+    if (removed === 0) return toast.error("Nenhum produto apagado.");
     setSelected(new Set());
     toast.success(`${removed} produto(s) apagado(s)`);
     refetch();
@@ -287,7 +288,9 @@ function AdminPage() {
 
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="flex min-h-screen">
+      <AdminSidebar roles={roles} />
+      <div className="flex-1 min-w-0 flex flex-col">
       <Header />
 
       <section className="bg-card border-b-4 border-primary">
@@ -316,47 +319,9 @@ function AdminPage() {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            {(roles.isSuperAdmin || roles.isManager) && (
-              <Link to="/admin/expedicao" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                <Truck className="h-3.5 w-3.5 text-blue-600" /> Expedição
-              </Link>
-            )}
-            {roles.isSuperAdmin && (
-              <>
-                <Link to="/admin/pedidos" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <BarChart3 className="h-3.5 w-3.5 text-emerald-600" /> Pedidos
-                </Link>
-                <Link to="/admin/venda-manual" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <ShoppingBag className="h-3.5 w-3.5 text-orange-600" /> Venda manual
-                </Link>
-                <Link to="/admin/caixa-qr" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <QrCode className="h-3.5 w-3.5 text-indigo-600" /> Caixa QR
-                </Link>
-                <span className="h-4 w-px bg-border mx-1" aria-hidden />
-                <Link to="/admin/reembolsos" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <Undo2 className="h-3.5 w-3.5 text-rose-600" /> Reembolsos
-                </Link>
-                <Link to="/admin/vale-troca" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <Gift className="h-3.5 w-3.5 text-pink-600" /> Vale-troca
-                </Link>
-                <Link to="/admin/fiscal" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <FileText className="h-3.5 w-3.5 text-amber-600" /> Fiscal
-                </Link>
-                <Link to="/admin/agendador-canal" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <Radio className="h-3.5 w-3.5 text-fuchsia-600" /> Canal
-                </Link>
-                <span className="h-4 w-px bg-border mx-1" aria-hidden />
-                <Link to="/admin/equipe" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <Users className="h-3.5 w-3.5 text-cyan-600" /> Equipe
-                </Link>
-                <Link to="/admin/configuracoes" className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-                  <Settings className="h-3.5 w-3.5 text-slate-600" /> Configurações
-                </Link>
-              </>
-            )}
             <button
               onClick={() => { setEditing(null); setShowForm(true); }}
-              className="inline-flex items-center gap-1.5 ml-1 bg-foreground text-background font-semibold px-3 py-1.5 rounded-md text-xs hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-1.5 bg-foreground text-background font-semibold px-3 py-1.5 rounded-md text-xs hover:opacity-90 transition-opacity"
             >
               <Plus className="h-3.5 w-3.5" /> Novo produto
             </button>
@@ -787,7 +752,7 @@ function AdminPage() {
               disabled={isFetchingNextPage}
               className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-6 py-3 rounded-md shadow-deal hover:scale-[1.02] text-sm disabled:opacity-60 disabled:cursor-wait"
             >
-              {isFetchingNextPage ? "Carregando..." : `Carregar mais ${Math.min(ADMIN_PRODUCTS_PAGE_SIZE, totalProducts - loadedCount)}`}
+              {isFetchingNextPage ? "Carregando..." : `Carregar mais`}
             </button>
           )}
           {!hasNextPage && loadedCount > 0 && isFetchingProducts === false && (
@@ -813,6 +778,7 @@ function AdminPage() {
       )}
 
       <Footer />
+      </div>
     </div>
   );
 }
