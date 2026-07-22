@@ -238,11 +238,19 @@ export function ProductForm({
       const finalStock = cleanVariants.length > 0
         ? cleanVariants.reduce((s, v) => s + v.stock, 0)
         : Number(stock);
+      // Arredondamento explícito para 2 casas — evita salvar 189.98 quando o usuário digitou 190.
+      const round2 = (n: number) => Math.round(n * 100) / 100;
+      const priceNum = round2(Number(price));
+      const originalNum = originalPrice ? round2(Number(originalPrice)) : null;
+      if (!Number.isFinite(priceNum) || priceNum < 0) {
+        setBusy(false);
+        return toast.error("Preço inválido");
+      }
       const basePayload = {
         name: name.trim(),
         description: description.trim() || null,
-        price: Number(price),
-        original_price: originalPrice ? Number(originalPrice) : null,
+        price: priceNum,
+        original_price: originalNum,
         category: category.trim() || null,
         stock: finalStock,
         image_url: images[0] ?? null,
@@ -253,6 +261,9 @@ export function ProductForm({
         cest: cestDigits || null,
         unidade_comercial: (unidadeComercial.trim() || "UN").toUpperCase().slice(0, 6),
         origem: Number.isFinite(Number(origem)) ? Number(origem) : 0,
+        // Edição manual apaga o snapshot para futuros descontos em massa não reverterem o preço.
+        mass_discount_snapshot_price: null,
+        mass_discount_snapshot_original: null,
       };
       if (product) {
         const { data, error } = await supabase
