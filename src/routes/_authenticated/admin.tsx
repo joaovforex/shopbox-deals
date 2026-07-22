@@ -193,23 +193,18 @@ function AdminPage() {
 
   const del = async (p: Product) => {
     if (!confirm(`Apagar "${p.name}"?`)) return;
-    // .select() força o retorno das linhas afetadas; se vier vazio, foi RLS bloqueando silenciosamente.
-    const { data, error } = await supabase.from("products").delete().eq("id", p.id).select("id");
+    const { data, error } = await supabase.rpc("admin_delete_products" as never, { p_ids: [p.id] } as never);
     if (error) return toast.error(error.message);
-    if (!data || data.length === 0) {
-      return toast.error("Sem permissão para apagar este produto. Confirme que sua conta possui o cargo de admin, gerente ou catálogo.");
-    }
+    if (!data || Number(data) === 0) return toast.error("Nenhum produto removido.");
     toast.success("Produto removido");
     refetch();
     qc.invalidateQueries({ queryKey: ["products"] });
   };
 
   const toggleActive = async (p: Product) => {
-    const { data, error } = await supabase.from("products").update({ active: !p.active }).eq("id", p.id).select("id");
+    const { data, error } = await supabase.rpc("admin_set_products_active" as never, { p_ids: [p.id], p_active: !p.active } as never);
     if (error) return toast.error(error.message);
-    if (!data || data.length === 0) {
-      return toast.error("Sem permissão para alterar este produto.");
-    }
+    if (!data || Number(data) === 0) return toast.error("Nenhuma alteração aplicada.");
     refetch();
     qc.invalidateQueries({ queryKey: ["products"] });
   };
@@ -218,13 +213,11 @@ function AdminPage() {
     if (ids.length === 0) return;
     if (!confirm(`Ocultar ${ids.length} ${ids.length === 1 ? "produto" : "produtos"}?`)) return;
     setIsBulkHiding(true);
-    const { data, error } = await supabase.from("products").update({ active: false }).in("id", ids).select("id");
+    const { data, error } = await supabase.rpc("admin_set_products_active" as never, { p_ids: ids, p_active: false } as never);
     setIsBulkHiding(false);
     if (error) return toast.error(error.message);
-    const changed = data?.length ?? 0;
-    if (changed === 0) {
-      return toast.error("Sem permissão para ocultar estes produtos.");
-    }
+    const changed = Number(data ?? 0);
+    if (changed === 0) return toast.error("Nenhum produto alterado.");
     setSelected(new Set());
     toast.success(`${changed} produto(s) ocultado(s)`);
     refetch();
@@ -235,19 +228,18 @@ function AdminPage() {
     if (ids.length === 0) return;
     if (!confirm(`Apagar definitivamente ${ids.length} ${ids.length === 1 ? "produto" : "produtos"}? Essa ação não pode ser desfeita.`)) return;
     setIsBulkDeleting(true);
-    // Divide em lotes para não estourar limites de URL/statement
-    const BATCH = 200;
+    const BATCH = 500;
     let removed = 0;
     let firstError: string | null = null;
     for (let i = 0; i < ids.length; i += BATCH) {
       const slice = ids.slice(i, i + BATCH);
-      const { data, error } = await supabase.from("products").delete().in("id", slice).select("id");
+      const { data, error } = await supabase.rpc("admin_delete_products" as never, { p_ids: slice } as never);
       if (error) { firstError = error.message; break; }
-      removed += data?.length ?? 0;
+      removed += Number(data ?? 0);
     }
     setIsBulkDeleting(false);
     if (firstError) return toast.error(firstError);
-    if (removed === 0) return toast.error("Sem permissão para apagar estes produtos.");
+    if (removed === 0) return toast.error("Nenhum produto apagado.");
     setSelected(new Set());
     toast.success(`${removed} produto(s) apagado(s)`);
     refetch();
