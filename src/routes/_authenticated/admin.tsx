@@ -570,7 +570,11 @@ function AdminPage() {
         </div>
         {(() => {
           const t = search.trim().toLowerCase();
-          const byTab = tab === "esgotados" ? products.filter((p) => p.stock === 0) : products;
+          const byTab = tab === "esgotados"
+            ? products.filter((p) => p.stock === 0)
+            : tab === "ocultos"
+              ? products.filter((p) => !p.active)
+              : products;
           const byCat = categoryFilter ? byTab.filter((p) => p.category === categoryFilter) : byTab;
           const match = (p: typeof products[number]) =>
             p.name.toLowerCase().includes(t)
