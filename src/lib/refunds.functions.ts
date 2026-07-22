@@ -76,23 +76,29 @@ export const refundOrder = createServerFn({ method: "POST" })
     const provider = (order as { payment_provider?: string }).payment_provider ?? "mercadopago";
     const cieloPaymentId = (order as { cielo_payment_id?: string | null }).cielo_payment_id;
 
-    if (provider === "mercadopago") {
-      if (!order.mp_payment_id) {
-        throw new Error("Pedido sem pagamento Mercado Pago associado — estorne manualmente");
-      }
-    } else if (provider === "cielo") {
-      if (!cieloPaymentId) {
-        throw new Error("Pedido sem pagamento Cielo associado — estorne manualmente");
-      }
-    } else {
+    // Cielo foi descontinuada como gateway ativo. Para pedidos antigos da Cielo
+    // aceitamos duas rotas:
+    //  1) Se o pedido já foi migrado/atualizado com mp_payment_id, estorna via MP.
+    //  2) Caso contrário, registra o reembolso como MANUAL (sem chamada de gateway):
+    //     o operador devolve o dinheiro externamente (PIX/transferência) e o
+    //     sistema apenas grava o histórico e libera o pedido.
+    const isCieloManual = provider === "cielo" && !order.mp_payment_id;
+    const useMpApi = provider === "mercadopago" || (provider === "cielo" && !!order.mp_payment_id);
+
+    if (useMpApi && !order.mp_payment_id) {
+      throw new Error("Pedido sem pagamento Mercado Pago associado — estorne manualmente");
+    }
+    if (!useMpApi && !isCieloManual && provider !== "cielo") {
       throw new Error(`Provedor de pagamento desconhecido: ${provider}`);
     }
 
-    // Token MP só é necessário para pedidos MP
+    // Token MP só é necessário quando vamos chamar a API do MP
     const token = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-    if (provider === "mercadopago" && !token) {
+    if (useMpApi && !token) {
       throw new Error("MERCADO_PAGO_ACCESS_TOKEN não configurado");
     }
+    // Suprime aviso de variável não utilizada quando não caímos na fila Cielo
+    void cieloPaymentId;
 
     // ============================================================
     // BLINDAGEM ANTI-REEMBOLSO-NO-CLIENTE-ERRADO
