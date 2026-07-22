@@ -76,23 +76,29 @@ export const refundOrder = createServerFn({ method: "POST" })
     const provider = (order as { payment_provider?: string }).payment_provider ?? "mercadopago";
     const cieloPaymentId = (order as { cielo_payment_id?: string | null }).cielo_payment_id;
 
-    if (provider === "mercadopago") {
-      if (!order.mp_payment_id) {
-        throw new Error("Pedido sem pagamento Mercado Pago associado — estorne manualmente");
-      }
-    } else if (provider === "cielo") {
-      if (!cieloPaymentId) {
-        throw new Error("Pedido sem pagamento Cielo associado — estorne manualmente");
-      }
-    } else {
+    // Cielo foi descontinuada como gateway ativo. Para pedidos antigos da Cielo
+    // aceitamos duas rotas:
+    //  1) Se o pedido já foi migrado/atualizado com mp_payment_id, estorna via MP.
+    //  2) Caso contrário, registra o reembolso como MANUAL (sem chamada de gateway):
+    //     o operador devolve o dinheiro externamente (PIX/transferência) e o
+    //     sistema apenas grava o histórico e libera o pedido.
+    const isCieloManual = provider === "cielo" && !order.mp_payment_id;
+    const useMpApi = provider === "mercadopago" || (provider === "cielo" && !!order.mp_payment_id);
+
+    if (useMpApi && !order.mp_payment_id) {
+      throw new Error("Pedido sem pagamento Mercado Pago associado — estorne manualmente");
+    }
+    if (!useMpApi && !isCieloManual && provider !== "cielo") {
       throw new Error(`Provedor de pagamento desconhecido: ${provider}`);
     }
 
-    // Token MP só é necessário para pedidos MP
+    // Token MP só é necessário quando vamos chamar a API do MP
     const token = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-    if (provider === "mercadopago" && !token) {
+    if (useMpApi && !token) {
       throw new Error("MERCADO_PAGO_ACCESS_TOKEN não configurado");
     }
+    // Suprime aviso de variável não utilizada quando não caímos na fila Cielo
+    void cieloPaymentId;
 
     // ============================================================
     // BLINDAGEM ANTI-REEMBOLSO-NO-CLIENTE-ERRADO
@@ -175,7 +181,7 @@ export const refundOrder = createServerFn({ method: "POST" })
     }));
 
     let providerRefundId = "";
-    if (provider === "mercadopago") {
+    if (useMpApi) {
       const idempotencyKey = `refund-${order.id}-${Date.now()}`;
       const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${order.mp_payment_id}/refunds`, {
         method: "POST",
@@ -192,59 +198,13 @@ export const refundOrder = createServerFn({ method: "POST" })
         throw new Error(`Falha no estorno: ${msg}`);
       }
       providerRefundId = String(mpJson?.id ?? "");
-    } else if (provider === "cielo") {
-      // POLÍTICA: reembolsos Cielo são SEMPRE enfileirados para processamento
-      // no dia seguinte (D+1), garantindo que o saldo esteja liberado na
-      // adquirente. Isso evita erros de "saldo insuficiente" e centraliza
-      // toda a operação de estorno num horário previsível.
-      const nextAttempt = new Date();
-      nextAttempt.setUTCHours(12, 0, 0, 0); // 09:00 BRT
-      if (nextAttempt.getTime() - Date.now() < 18 * 60 * 60 * 1000) {
-        // Se ainda faltam menos de 18h para as 09:00 BRT de hoje, pula para amanhã
-        nextAttempt.setUTCDate(nextAttempt.getUTCDate() + 1);
-      }
-      const { error: qErr } = await supabaseAdmin.from("cielo_refund_queue").insert({
-        order_id: order.id,
-        cielo_payment_id: cieloPaymentId!,
-        amount: data.amount,
-        is_full: isFull,
-        reason: data.reason,
-        customer_name: order.customer_name,
-        customer_email: order.customer_email,
-        customer_phone: order.customer_phone,
-        customer_cpf: order.customer_cpf,
-        payment_method: order.payment_method,
-        order_total: total,
-        order_created_at: order.created_at,
-        items: itemsSnapshot,
-        operator_id: userId,
-        operator_name: operatorName,
-        expected_mp_payment_id: data.expectedMpPaymentId,
-        status: "pending",
-        attempts: 0,
-        last_attempt_at: null,
-        last_error: null,
-        last_error_code: null,
-        next_attempt_at: nextAttempt.toISOString(),
+    } else if (isCieloManual) {
+      // Cielo descontinuada: registra reembolso manual. Operador devolve o
+      // dinheiro por fora (PIX/transferência) — sistema apenas grava histórico.
+      providerRefundId = `manual-cielo-${Date.now()}`;
+      console.log("[refund] manual cielo refund", {
+        orderId: order.id, amount: data.amount, operator: operatorName,
       });
-      if (qErr) {
-        console.error("[refund] failed to enqueue cielo refund", qErr);
-        throw new Error("Falha ao criar fila de reembolso: " + qErr.message);
-      }
-      await supabaseAdmin
-        .from("orders")
-        .update({ refund_status: "queued", fulfillment_status: "refund_pending" })
-        .eq("id", order.id);
-      return {
-        ok: true,
-        queued: true,
-        amount: data.amount,
-        full: isFull,
-        removed: false,
-        scheduledFor: nextAttempt.toISOString(),
-        message:
-          "Reembolso enfileirado — será processado automaticamente no próximo dia útil (D+1), quando o saldo Cielo estiver liberado. O pedido foi movido para a aba Reembolsos da expedição.",
-      };
     }
 
     const mpRefundId = providerRefundId;
