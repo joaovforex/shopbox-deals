@@ -786,6 +786,7 @@ function AdminPage() {
       )}
 
       <Footer />
+      </div>
     </div>
   );
 }
