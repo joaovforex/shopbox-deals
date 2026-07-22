@@ -288,7 +288,7 @@ function AdminPage() {
 
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex flex-col lg:flex-row min-h-screen">
       <AdminSidebar roles={roles} />
       <div className="flex-1 min-w-0 flex flex-col">
       <Header />
