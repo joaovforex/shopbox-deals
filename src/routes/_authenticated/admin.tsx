@@ -74,11 +74,12 @@ function AdminPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState<"todos" | "esgotados">("todos");
+  const [tab, setTab] = useState<"todos" | "esgotados" | "ocultos">("todos");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isBulkHiding, setIsBulkHiding] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [bulkShareOpen, setBulkShareOpen] = useState(false);
 
 
