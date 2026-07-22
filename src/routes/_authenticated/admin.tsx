@@ -74,11 +74,12 @@ function AdminPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
-  const [tab, setTab] = useState<"todos" | "esgotados">("todos");
+  const [tab, setTab] = useState<"todos" | "esgotados" | "ocultos">("todos");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isBulkHiding, setIsBulkHiding] = useState(false);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   const [bulkShareOpen, setBulkShareOpen] = useState(false);
 
 
@@ -220,6 +221,30 @@ function AdminPage() {
     refetch();
     qc.invalidateQueries({ queryKey: ["products"] });
   };
+
+  const bulkDelete = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    if (!confirm(`Apagar definitivamente ${ids.length} ${ids.length === 1 ? "produto" : "produtos"}? Essa ação não pode ser desfeita.`)) return;
+    setIsBulkDeleting(true);
+    // Divide em lotes para não estourar limites de URL/statement
+    const BATCH = 200;
+    let removed = 0;
+    let firstError: string | null = null;
+    for (let i = 0; i < ids.length; i += BATCH) {
+      const slice = ids.slice(i, i + BATCH);
+      const { data, error } = await supabase.from("products").delete().in("id", slice).select("id");
+      if (error) { firstError = error.message; break; }
+      removed += data?.length ?? 0;
+    }
+    setIsBulkDeleting(false);
+    if (firstError) return toast.error(firstError);
+    if (removed === 0) return toast.error("Sem permissão para apagar estes produtos.");
+    setSelected(new Set());
+    toast.success(`${removed} produto(s) apagado(s)`);
+    refetch();
+    qc.invalidateQueries({ queryKey: ["products"] });
+  };
+
 
 
   const share = async (p: Product) => {
@@ -367,6 +392,18 @@ function AdminPage() {
             >
               Esgotados
             </button>
+            <button
+              type="button"
+              onClick={() => setTab("ocultos")}
+              className={cn(
+                "px-4 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition-all",
+                tab === "ocultos"
+                  ? "bg-background text-foreground shadow"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              Ocultos
+            </button>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -401,28 +438,82 @@ function AdminPage() {
             )}
 
             {tab === "esgotados" && (
+              <>
+                {selected.size > 0 ? (
+                  <>
+                    <button
+                      type="button"
+                      disabled={isBulkHiding}
+                      onClick={() => bulkHide(Array.from(selected))}
+                      className="inline-flex items-center gap-2 bg-card border border-border text-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-secondary disabled:opacity-50"
+                    >
+                      <EyeOff className="h-4 w-4" />
+                      Ocultar {selected.size}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isBulkDeleting}
+                      onClick={() => bulkDelete(Array.from(selected))}
+                      className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-destructive/90 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir {selected.size}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      disabled={isBulkHiding}
+                      onClick={() => {
+                        const ids = products.filter((p) => p.stock === 0 && p.active).map((p) => p.id);
+                        bulkHide(ids);
+                      }}
+                      className="inline-flex items-center gap-2 bg-card border border-border text-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-secondary disabled:opacity-50"
+                    >
+                      <EyeOff className="h-4 w-4" />
+                      Ocultar todos esgotados
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isBulkDeleting}
+                      onClick={() => {
+                        const ids = products.filter((p) => p.stock === 0).map((p) => p.id);
+                        bulkDelete(ids);
+                      }}
+                      className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-destructive/90 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Excluir todos esgotados
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+
+            {tab === "ocultos" && (
               selected.size > 0 ? (
                 <button
                   type="button"
-                  disabled={isBulkHiding}
-                  onClick={() => bulkHide(Array.from(selected))}
+                  disabled={isBulkDeleting}
+                  onClick={() => bulkDelete(Array.from(selected))}
                   className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-destructive/90 disabled:opacity-50"
                 >
-                  <EyeOff className="h-4 w-4" />
-                  Ocultar {selected.size}
+                  <Trash2 className="h-4 w-4" />
+                  Excluir {selected.size}
                 </button>
               ) : (
                 <button
                   type="button"
-                  disabled={isBulkHiding}
+                  disabled={isBulkDeleting}
                   onClick={() => {
-                    const ids = products.filter((p) => p.stock === 0 && p.active).map((p) => p.id);
-                    bulkHide(ids);
+                    const ids = products.filter((p) => !p.active).map((p) => p.id);
+                    bulkDelete(ids);
                   }}
-                  className="inline-flex items-center gap-2 bg-card border border-border text-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-secondary disabled:opacity-50"
+                  className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-destructive/90 disabled:opacity-50"
                 >
-                  <EyeOff className="h-4 w-4" />
-                  Ocultar todos esgotados
+                  <Trash2 className="h-4 w-4" />
+                  Excluir todos os ocultos
                 </button>
               )
             )}
@@ -462,7 +553,11 @@ function AdminPage() {
           <span className="text-xs text-muted-foreground ml-auto">
             {(() => {
               const t = search.trim().toLowerCase();
-              const byTab = tab === "esgotados" ? products.filter((p) => p.stock === 0) : products;
+              const byTab = tab === "esgotados"
+                ? products.filter((p) => p.stock === 0)
+                : tab === "ocultos"
+                  ? products.filter((p) => !p.active)
+                  : products;
               const byCat = categoryFilter ? byTab.filter((p) => p.category === categoryFilter) : byTab;
               const match = (p: typeof products[number]) =>
                 p.name.toLowerCase().includes(t)
@@ -475,7 +570,11 @@ function AdminPage() {
         </div>
         {(() => {
           const t = search.trim().toLowerCase();
-          const byTab = tab === "esgotados" ? products.filter((p) => p.stock === 0) : products;
+          const byTab = tab === "esgotados"
+            ? products.filter((p) => p.stock === 0)
+            : tab === "ocultos"
+              ? products.filter((p) => !p.active)
+              : products;
           const byCat = categoryFilter ? byTab.filter((p) => p.category === categoryFilter) : byTab;
           const match = (p: typeof products[number]) =>
             p.name.toLowerCase().includes(t)
@@ -493,12 +592,16 @@ function AdminPage() {
             return (
               <div className="text-center py-20 bg-card rounded-lg border border-border">
                 <p className="text-muted-foreground">
-                  {tab === "esgotados" ? "Nenhum produto esgotado." : `Nenhum produto encontrado para "${search}".`}
+                  {tab === "esgotados"
+                    ? "Nenhum produto esgotado."
+                    : tab === "ocultos"
+                      ? "Nenhum produto oculto."
+                      : `Nenhum produto encontrado para "${search}".`}
                 </p>
               </div>
             );
           }
-          const showCheckbox = selectMode || tab === "esgotados";
+          const showCheckbox = selectMode || tab === "esgotados" || tab === "ocultos";
           const selectableSet = tab === "esgotados"
             ? filtered.filter((p) => p.active)
             : filtered;
