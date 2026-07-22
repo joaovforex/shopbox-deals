@@ -1318,6 +1318,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_can_manage_products: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
+      admin_delete_products: { Args: { p_ids: string[] }; Returns: number }
       admin_search_team_candidates: {
         Args: { p_term: string }
         Returns: {
@@ -1325,6 +1330,10 @@ export type Database = {
           full_name: string
           id: string
         }[]
+      }
+      admin_set_products_active: {
+        Args: { p_active: boolean; p_ids: string[] }
+        Returns: number
       }
       apply_cashback_to_order: {
         Args: { p_amount: number; p_order_id: string }
@@ -1574,6 +1583,7 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
       app_role:
