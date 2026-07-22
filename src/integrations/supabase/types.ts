@@ -1596,6 +1596,10 @@ export type Database = {
         Returns: string
       }
       resolve_short_link: { Args: { _slug: string }; Returns: string }
+      revert_fulfillment_to_preparing: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
       search_products_quick: {
         Args: { p_term: string }
         Returns: {

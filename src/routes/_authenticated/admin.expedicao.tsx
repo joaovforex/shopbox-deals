@@ -767,6 +767,21 @@ function FulfillmentPage() {
                         <Gift className="h-3.5 w-3.5" /> Vale-Troca
                       </button>
                     )}
+                    {superAdmin && (o.fulfillment_status === "ready" || o.fulfillment_status === "shipped" || o.fulfillment_status === "completed") && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Voltar o pedido de ${o.customer_name} para "Em preparo"? Isso apagará o registro de entrega.`)) return;
+                          const { error } = await supabase.rpc("revert_fulfillment_to_preparing" as never, { p_order_id: o.id } as never);
+                          if (error) { toast.error(error.message); return; }
+                          toast.success("Pedido retornado para Em preparo");
+                          qc.invalidateQueries({ queryKey: ["expedicao"] });
+                        }}
+                        className="inline-flex items-center gap-1.5 text-xs bg-orange-600 text-white hover:opacity-90 px-3 py-2 rounded font-bold uppercase tracking-wider"
+                        title="Reverter para Em preparo (Super Admin)"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" /> Voltar p/ preparo
+                      </button>
+                    )}
                   </div>
                 </article>
               );
