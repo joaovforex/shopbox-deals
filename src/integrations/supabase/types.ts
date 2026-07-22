@@ -1016,6 +1016,41 @@ export type Database = {
         }
         Relationships: []
       }
+      product_price_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          original_price: number | null
+          price: number
+          product_id: string
+          snapshot_date: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          original_price?: number | null
+          price: number
+          product_id: string
+          snapshot_date?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          original_price?: number | null
+          price?: number
+          product_id?: string
+          snapshot_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_price_snapshots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           active: boolean
@@ -1471,6 +1506,14 @@ export type Database = {
         Returns: number
       }
       generate_product_sku: { Args: never; Returns: string }
+      get_latest_price_snapshot: {
+        Args: { _product_id: string }
+        Returns: {
+          original_price: number
+          price: number
+          snapshot_date: string
+        }[]
+      }
       grant_order_cashback: { Args: { p_order_id: string }; Returns: number }
       has_role: {
         Args: {
@@ -1624,6 +1667,7 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      snapshot_product_prices_daily: { Args: never; Returns: number }
       unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
