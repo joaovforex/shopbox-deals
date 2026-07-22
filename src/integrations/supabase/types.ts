@@ -1217,6 +1217,42 @@ export type Database = {
         }
         Relationships: []
       }
+      short_links: {
+        Row: {
+          active: boolean
+          click_count: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          slug: string
+          target_url: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          click_count?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          slug: string
+          target_url: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          click_count?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          slug?: string
+          target_url?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           banner_desktop_url: string | null
@@ -1559,6 +1595,7 @@ export type Database = {
         }
         Returns: string
       }
+      resolve_short_link: { Args: { _slug: string }; Returns: string }
       search_products_quick: {
         Args: { p_term: string }
         Returns: {
