@@ -222,6 +222,30 @@ function AdminPage() {
     qc.invalidateQueries({ queryKey: ["products"] });
   };
 
+  const bulkDelete = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    if (!confirm(`Apagar definitivamente ${ids.length} ${ids.length === 1 ? "produto" : "produtos"}? Essa ação não pode ser desfeita.`)) return;
+    setIsBulkDeleting(true);
+    // Divide em lotes para não estourar limites de URL/statement
+    const BATCH = 200;
+    let removed = 0;
+    let firstError: string | null = null;
+    for (let i = 0; i < ids.length; i += BATCH) {
+      const slice = ids.slice(i, i + BATCH);
+      const { data, error } = await supabase.from("products").delete().in("id", slice).select("id");
+      if (error) { firstError = error.message; break; }
+      removed += data?.length ?? 0;
+    }
+    setIsBulkDeleting(false);
+    if (firstError) return toast.error(firstError);
+    if (removed === 0) return toast.error("Sem permissão para apagar estes produtos.");
+    setSelected(new Set());
+    toast.success(`${removed} produto(s) apagado(s)`);
+    refetch();
+    qc.invalidateQueries({ queryKey: ["products"] });
+  };
+
+
 
   const share = async (p: Product) => {
     const url = `${window.location.origin}/produto/${p.id}`;
