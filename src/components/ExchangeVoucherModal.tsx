@@ -136,6 +136,7 @@ export function ExchangeVoucherModal({ orderId, busy, onClose, onConfirm }: Prop
       customerVerify: verifyDigits,
       expectedCustomerName: order.customer_name,
       expectedTotal: total,
+      extraAmount,
     });
   }
 
