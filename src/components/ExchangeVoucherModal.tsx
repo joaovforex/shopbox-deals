@@ -69,6 +69,7 @@ export function ExchangeVoucherModal({ orderId, busy, onClose, onConfirm }: Prop
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [sel, setSel] = useState<Record<string, number>>({}); // itemId -> qty selecionada
   const [reason, setReason] = useState("");
+  const [extraStr, setExtraStr] = useState("");
   const [ack1, setAck1] = useState(false);
   const [ack2, setAck2] = useState(false);
   const [ack3, setAck3] = useState(false);
@@ -80,11 +81,13 @@ export function ExchangeVoucherModal({ orderId, busy, onClose, onConfirm }: Prop
   const noUser = !!order && !order.user_id;
 
   const selectedItems = order?.items.filter((it) => (sel[it.id] ?? 0) > 0) ?? [];
-  const amount = selectedItems.reduce(
+  const itemsAmount = selectedItems.reduce(
     (s, it) => s + Number(it.unit_price) * (sel[it.id] ?? 0),
     0,
   );
-  const amountValid = amount > 0 && amount <= total + 0.001;
+  const extraAmount = Math.max(0, Number((extraStr || "0").replace(",", ".")) || 0);
+  const amount = itemsAmount + extraAmount;
+  const amountValid = itemsAmount > 0 && itemsAmount <= total + 0.001 && extraAmount >= 0 && extraAmount <= 10000;
   const reasonValid = reason.trim().length >= 5;
 
   const realName = (order?.customer_name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
