@@ -15,6 +15,7 @@ type CreateInput = {
   customerVerify: string;
   expectedCustomerName: string;
   expectedTotal: number;
+  extraAmount?: number;
 };
 
 function digitsOnly(s: string | null | undefined) {
