@@ -191,7 +191,7 @@ export const createExchangeVoucher = createServerFn({ method: "POST" })
     return {
       ok: true,
       voucherId: String(voucherId),
-      amount,
+      amount: totalCredit,
       receipt: {
         voucherId: String(voucherId),
         orderId: order.id,
@@ -199,7 +199,9 @@ export const createExchangeVoucher = createServerFn({ method: "POST" })
         customerPhone: order.customer_phone,
         customerEmail: order.customer_email,
         orderTotal: realTotal,
-        amount,
+        amount: totalCredit,
+        extraAmount,
+        itemsAmount: amount,
         reason: data.reason,
         operatorName,
         createdAt: new Date().toISOString(),
