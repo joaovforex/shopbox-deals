@@ -12,6 +12,7 @@ export type ExchangeVoucherPayload = {
   customerVerify: string;
   expectedCustomerName: string;
   expectedTotal: number;
+  extraAmount: number;
 };
 
 type Props = {
