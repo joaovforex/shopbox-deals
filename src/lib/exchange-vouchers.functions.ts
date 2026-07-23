@@ -158,7 +158,9 @@ export const createExchangeVoucher = createServerFn({ method: "POST" })
     }
     amount = Math.round(amount * 100) / 100;
     if (amount <= 0) throw new Error("Valor total inválido");
-    if (amount > realTotal + 0.01) throw new Error("Valor maior que o total do pedido");
+    const extraAmount = data.extraAmount ?? 0;
+    const totalCredit = Math.round((amount + extraAmount) * 100) / 100;
+    if (totalCredit > realTotal + extraAmount + 0.01) throw new Error("Valor maior que o total do pedido + bônus");
 
     const { data: prof } = await supabaseAdmin
       .from("profiles")
@@ -169,11 +171,12 @@ export const createExchangeVoucher = createServerFn({ method: "POST" })
 
     const { data: voucherId, error: rpcErr } = await supabaseAdmin.rpc("create_exchange_voucher" as never, {
       p_order_id: order.id,
-      p_amount: amount,
-      p_reason: data.reason,
+      p_amount: totalCredit,
+      p_reason: extraAmount > 0 ? `${data.reason} [+ bônus ${extraAmount.toFixed(2)}]` : data.reason,
       p_items: itemsSnapshot as never,
       p_operator_id: userId,
       p_operator_name: operatorName,
+      p_extra_amount: extraAmount,
     } as never);
     if (rpcErr) throw new Error("Falha ao registrar vale-troca: " + rpcErr.message);
 
