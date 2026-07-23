@@ -49,6 +49,9 @@ export const createExchangeVoucher = createServerFn({ method: "POST" })
     if (typeof data.expectedTotal !== "number" || !Number.isFinite(data.expectedTotal) || data.expectedTotal <= 0) {
       throw new Error("Faltam dados de verificação");
     }
+    const extra = typeof data.extraAmount === "number" && Number.isFinite(data.extraAmount) ? data.extraAmount : 0;
+    if (extra < 0) throw new Error("Valor adicional não pode ser negativo");
+    if (extra > 10000) throw new Error("Valor adicional muito alto");
     return {
       orderId: data.orderId,
       items: data.items.map((i) => ({ itemId: i.itemId, quantity: Math.floor(i.quantity) })),
@@ -57,6 +60,7 @@ export const createExchangeVoucher = createServerFn({ method: "POST" })
       customerVerify: data.customerVerify,
       expectedCustomerName: data.expectedCustomerName.trim(),
       expectedTotal: Math.round(data.expectedTotal * 100) / 100,
+      extraAmount: Math.round(extra * 100) / 100,
     };
   })
   .handler(async ({ data, context }) => {
