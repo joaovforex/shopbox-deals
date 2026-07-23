@@ -480,6 +480,7 @@ export type Database = {
           customer_email: string | null
           customer_name: string | null
           customer_phone: string | null
+          extra_amount: number
           id: string
           items: Json
           operator_id: string | null
@@ -498,6 +499,7 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          extra_amount?: number
           id?: string
           items?: Json
           operator_id?: string | null
@@ -516,6 +518,7 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          extra_amount?: number
           id?: string
           items?: Json
           operator_id?: string | null
@@ -1452,17 +1455,30 @@ export type Database = {
         Args: { p_mp_payment_id?: string; p_order_id: string }
         Returns: string
       }
-      create_exchange_voucher: {
-        Args: {
-          p_amount: number
-          p_items: Json
-          p_operator_id: string
-          p_operator_name: string
-          p_order_id: string
-          p_reason: string
-        }
-        Returns: string
-      }
+      create_exchange_voucher:
+        | {
+            Args: {
+              p_amount: number
+              p_items: Json
+              p_operator_id: string
+              p_operator_name: string
+              p_order_id: string
+              p_reason: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_extra_amount?: number
+              p_items: Json
+              p_operator_id: string
+              p_operator_name: string
+              p_order_id: string
+              p_reason: string
+            }
+            Returns: string
+          }
       create_manual_order: {
         Args: {
           p_customer_cpf?: string

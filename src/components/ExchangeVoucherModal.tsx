@@ -12,6 +12,7 @@ export type ExchangeVoucherPayload = {
   customerVerify: string;
   expectedCustomerName: string;
   expectedTotal: number;
+  extraAmount: number;
 };
 
 type Props = {
@@ -68,6 +69,7 @@ export function ExchangeVoucherModal({ orderId, busy, onClose, onConfirm }: Prop
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [sel, setSel] = useState<Record<string, number>>({}); // itemId -> qty selecionada
   const [reason, setReason] = useState("");
+  const [extraStr, setExtraStr] = useState("");
   const [ack1, setAck1] = useState(false);
   const [ack2, setAck2] = useState(false);
   const [ack3, setAck3] = useState(false);
@@ -79,11 +81,13 @@ export function ExchangeVoucherModal({ orderId, busy, onClose, onConfirm }: Prop
   const noUser = !!order && !order.user_id;
 
   const selectedItems = order?.items.filter((it) => (sel[it.id] ?? 0) > 0) ?? [];
-  const amount = selectedItems.reduce(
+  const itemsAmount = selectedItems.reduce(
     (s, it) => s + Number(it.unit_price) * (sel[it.id] ?? 0),
     0,
   );
-  const amountValid = amount > 0 && amount <= total + 0.001;
+  const extraAmount = Math.max(0, Number((extraStr || "0").replace(",", ".")) || 0);
+  const amount = itemsAmount + extraAmount;
+  const amountValid = itemsAmount > 0 && itemsAmount <= total + 0.001 && extraAmount >= 0 && extraAmount <= 10000;
   const reasonValid = reason.trim().length >= 5;
 
   const realName = (order?.customer_name ?? "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -132,6 +136,7 @@ export function ExchangeVoucherModal({ orderId, busy, onClose, onConfirm }: Prop
       customerVerify: verifyDigits,
       expectedCustomerName: order.customer_name,
       expectedTotal: total,
+      extraAmount,
     });
   }
 
@@ -250,9 +255,40 @@ export function ExchangeVoucherModal({ orderId, busy, onClose, onConfirm }: Prop
                     })}
                   </ul>
                 </div>
-                <div className="rounded bg-secondary/40 p-3 flex justify-between text-sm">
-                  <span className="text-muted-foreground">Valor a creditar como cashback:</span>
-                  <span className="font-black text-emerald-700 dark:text-emerald-400 text-base">{brl(amount)}</span>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold uppercase tracking-wider">
+                    Bônus adicional (opcional)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">R$</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={extraStr}
+                      onChange={(e) => setExtraStr(e.target.value.replace(/[^\d.,]/g, ""))}
+                      placeholder="0,00"
+                      className="w-full pl-10 pr-3 py-2 rounded border border-border bg-background text-sm"
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Valor extra dado pelo agente (ex.: cortesia por transtorno). Somado ao valor dos itens.
+                  </p>
+                </div>
+                <div className="rounded bg-secondary/40 p-3 space-y-1 text-sm">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Itens devolvidos</span>
+                    <span className="font-mono">{brl(itemsAmount)}</span>
+                  </div>
+                  {extraAmount > 0 && (
+                    <div className="flex justify-between text-xs text-emerald-700 dark:text-emerald-400">
+                      <span>+ Bônus do agente</span>
+                      <span className="font-mono">{brl(extraAmount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-1 border-t border-border">
+                    <span className="text-muted-foreground">Total em cashback:</span>
+                    <span className="font-black text-emerald-700 dark:text-emerald-400 text-base">{brl(amount)}</span>
+                  </div>
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <button onClick={onClose} className="text-xs font-bold uppercase px-4 py-2 rounded border border-border">Cancelar</button>

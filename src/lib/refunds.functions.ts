@@ -194,8 +194,20 @@ export const refundOrder = createServerFn({ method: "POST" })
       });
       const mpJson: any = await mpRes.json().catch(() => ({}));
       if (!mpRes.ok) {
-        const msg = mpJson?.message || mpJson?.error || `Mercado Pago retornou ${mpRes.status}`;
-        throw new Error(`Falha no estorno: ${msg}`);
+        const rawMsg = mpJson?.message || mpJson?.error || `Mercado Pago retornou ${mpRes.status}`;
+        const code = mpJson?.error || mpJson?.cause?.[0]?.code;
+        console.error("[refund] MP API error", { orderId: order.id, mpPaymentId: order.mp_payment_id, status: mpRes.status, rawMsg, mpJson });
+        // Traduz o erro mais comum: pagamento não encontrado na conta MP atual.
+        // Isso acontece quando o pedido guarda um mp_payment_id de outra conta
+        // (ex.: sandbox → produção, ou pedidos antigos de outra integração).
+        if (code === "payment_not_found" || /not.?found/i.test(rawMsg)) {
+          throw new Error(
+            `Pagamento ${order.mp_payment_id} não existe na sua conta Mercado Pago atual. ` +
+            `Isso costuma acontecer com pedidos antigos ou de outra conta MP. ` +
+            `Faça o estorno manualmente via PIX pelo app do Mercado Pago e depois use "Reembolso manual" no admin.`,
+          );
+        }
+        throw new Error(`Falha no estorno: ${rawMsg}`);
       }
       providerRefundId = String(mpJson?.id ?? "");
     } else if (isCieloManual) {
