@@ -26,6 +26,10 @@ export function ProductReviews({ productId }: { productId: string }) {
   const user = useAuthUser();
   const { data: reviews = [] } = useQuery(productReviewsQuery(productId));
   const { data: summary } = useQuery(reviewsSummaryQuery(productId));
+  const { data: purchased, isLoading: loadingPurchased } = useQuery(
+    userPurchasedProductQuery(user?.id, productId),
+  );
+
 
   const own = user ? reviews.find((r) => r.user_id === user.id) : null;
   const [rating, setRating] = useState<number>(own?.rating ?? 0);
