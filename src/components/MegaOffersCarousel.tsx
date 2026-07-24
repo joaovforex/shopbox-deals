@@ -154,3 +154,55 @@ export function MegaOffersCarousel({ products }: { products: ProductCardData[] }
     </section>
   );
 }
+
+function MegaCard({ p, off }: { p: ProductCardData; off: number }) {
+  const cover = productImages(p)[0];
+  const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
+  return (
+    <Link
+      data-mega-card
+      to="/produto/$id"
+      params={{ id: p.id }}
+      className="snap-start flex-shrink-0 w-[170px] sm:w-[200px] bg-card rounded-xl border border-border hover:border-deal transition-all overflow-hidden group active:scale-[0.98]"
+    >
+      <div className="aspect-square bg-muted relative overflow-hidden">
+        {cover && !errored ? (
+          <>
+            {!loaded && (
+              <Skeleton
+                aria-hidden
+                className="absolute inset-0 rounded-none bg-gradient-to-r from-muted via-muted-foreground/10 to-muted"
+              />
+            )}
+            <img
+              src={cover}
+              alt={p.name}
+              loading="lazy"
+              decoding="async"
+              onLoad={() => setLoaded(true)}
+              onError={() => setErrored(true)}
+              className={`w-full h-full object-cover group-hover:scale-110 transition-all duration-500 ${loaded ? "opacity-100" : "opacity-0"}`}
+            />
+          </>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-[10px]">
+            Sem imagem
+          </div>
+        )}
+        <div className="absolute top-1.5 left-1.5 bg-deal text-deal-foreground text-[11px] font-black px-1.5 py-0.5 rounded shadow-md -rotate-3 flex items-center gap-0.5">
+          <Zap className="h-2.5 w-2.5" />-{off}%
+        </div>
+      </div>
+      <div className="p-2 flex flex-col gap-0.5">
+        <h3 className="text-[11px] font-semibold line-clamp-2 min-h-[2rem] leading-snug">
+          {p.name}
+        </h3>
+        {p.original_price && p.original_price > p.price && (
+          <span className="text-[10px] text-muted-foreground line-through">{brl(p.original_price)}</span>
+        )}
+        <span className="text-sm font-black text-price leading-tight">{brl(p.price)}</span>
+      </div>
+    </Link>
+  );
+}
