@@ -1,11 +1,14 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Zap, Tag, ShoppingBag } from "lucide-react";
 import { brl, discountPct } from "@/lib/format";
 import type { Product } from "@/lib/products";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function DiscountCard({ product, index }: { product: Product; index: number }) {
   const off = discountPct(product.original_price, product.price);
+  const [loaded, setLoaded] = useState(false);
+  const [errored, setErrored] = useState(false);
 
   return (
     <div
@@ -15,13 +18,23 @@ function DiscountCard({ product, index }: { product: Product; index: number }) {
       <div className="group relative flex flex-col bg-card rounded-2xl overflow-hidden border border-border hover:border-primary transition-all duration-300 hover:shadow-deal hover:-translate-y-1">
         {/* Image */}
         <div className="aspect-[4/3] bg-muted overflow-hidden relative">
-          {product.image_url ? (
-            <img
-              src={product.image_url}
-              alt={product.name}
-              loading="lazy"
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-            />
+          {product.image_url && !errored ? (
+            <>
+              {!loaded && (
+                <Skeleton
+                  aria-hidden
+                  className="absolute inset-0 rounded-none bg-gradient-to-r from-muted via-muted-foreground/10 to-muted"
+                />
+              )}
+              <img
+                src={product.image_url}
+                alt={product.name}
+                loading="lazy"
+                onLoad={() => setLoaded(true)}
+                onError={() => setErrored(true)}
+                className={`w-full h-full object-cover group-hover:scale-110 transition-all duration-500 ${loaded ? "opacity-100" : "opacity-0"}`}
+              />
+            </>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
               Sem imagem

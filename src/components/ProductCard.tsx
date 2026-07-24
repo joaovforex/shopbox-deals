@@ -1,11 +1,16 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { brl, discountPct } from "@/lib/format";
 import { productImages, useHasTeamRole, type Product, type ProductCard as ProductCardData } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { optimizedImage, optimizedSrcSet } from "@/lib/image-url";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StarRatingCompact } from "@/components/StarRating";
+import { reviewsSummaryQuery } from "@/lib/reviews";
 
 export function ProductCard({ product, priority = false }: { product: Product | ProductCardData; priority?: boolean }) {
   const off = discountPct(product.original_price, product.price);
@@ -17,6 +22,9 @@ export function ProductCard({ product, priority = false }: { product: Product | 
   const isTeam = useHasTeamRole();
   const ageDays = (Date.now() - new Date(product.created_at).getTime()) / 86_400_000;
   const stale = isTeam && product.stock > 0 && ageDays > 5;
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgErrored, setImgErrored] = useState(false);
+  const { data: reviews } = useQuery(reviewsSummaryQuery(product.id));
 
   const cartItem = {
     id: product.id,
@@ -48,19 +56,29 @@ export function ProductCard({ product, priority = false }: { product: Product | 
       className="group relative flex flex-col bg-card rounded-xl overflow-hidden border border-border hover:border-foreground/30 transition-colors"
     >
       <div className="aspect-[4/5] bg-muted overflow-hidden relative">
-        {cover ? (
-          <img
-            src={optimizedImage(cover, { width: 480, quality: 70 })}
-            srcSet={optimizedSrcSet(cover, 480, 70)}
-            sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
-            alt={product.name}
-            loading={priority ? "eager" : "lazy"}
-            fetchPriority={priority ? "high" : "auto"}
-            decoding="async"
-            width={480}
-            height={600}
-            className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
-          />
+        {cover && !imgErrored ? (
+          <>
+            {!imgLoaded && (
+              <Skeleton
+                aria-hidden
+                className="absolute inset-0 rounded-none bg-gradient-to-r from-muted via-muted-foreground/10 to-muted"
+              />
+            )}
+            <img
+              src={optimizedImage(cover, { width: 480, quality: 70 })}
+              srcSet={optimizedSrcSet(cover, 480, 70)}
+              sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+              alt={product.name}
+              loading={priority ? "eager" : "lazy"}
+              fetchPriority={priority ? "high" : "auto"}
+              decoding="async"
+              width={480}
+              height={600}
+              onLoad={() => setImgLoaded(true)}
+              onError={() => setImgErrored(true)}
+              className={`w-full h-full object-cover group-hover:scale-[1.03] transition-all duration-500 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+            />
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
             Sem imagem
@@ -92,6 +110,10 @@ export function ProductCard({ product, priority = false }: { product: Product | 
         <h3 className="text-sm font-medium text-foreground line-clamp-2 min-h-[2.5rem] leading-snug">
           {product.name}
         </h3>
+
+        {reviews && reviews.count > 0 && (
+          <StarRatingCompact average={reviews.average} count={reviews.count} />
+        )}
 
         <div className="mt-auto pt-1">
           {product.original_price && product.original_price > product.price && (

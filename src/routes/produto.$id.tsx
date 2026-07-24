@@ -6,6 +6,8 @@ import { Share2, MessageCircle, Minus, Plus, ArrowLeft, Copy, Pencil } from "luc
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { ProductCarousel } from "@/components/ProductCarousel";
 import { ProductForm } from "@/components/ProductForm";
+import { RelatedProducts } from "@/components/RelatedProducts";
+import { ProductReviews } from "@/components/ProductReviews";
 import { brl, discountPct, postDate } from "@/lib/format";
 import { calculateCashback } from "@/lib/cashback-config";
 import { useSiteSettings } from "@/lib/site-settings";
@@ -489,8 +491,29 @@ function ProductPage() {
         </div>
       </div>
 
+      <div className="container mx-auto px-4 sm:px-6 pb-8">
+        <a
+          href="https://shopboxonline.com/grupowhatsapp"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full text-center rounded-lg border border-green-500/40 bg-green-500/10 text-green-700 dark:text-green-300 hover:bg-green-500/20 transition-colors py-3 px-4 text-sm font-semibold"
+        >
+          📲 Receba as ofertas no nosso grupo do WhatsApp
+        </a>
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 pb-10">
+        <ProductReviews productId={id} />
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 pb-10">
+        <RelatedProducts category={product.category ?? null} excludeId={product.id} />
+      </div>
+
       <Footer />
       <MobileBottomNav />
+
+
 
       {editing && admin && (
         <ProductForm

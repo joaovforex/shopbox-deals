@@ -9,11 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TrocasEGarantiaRouteImport } from './routes/trocas-e-garantia'
 import { Route as TermosRouteImport } from './routes/termos'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RedirecionandoRouteImport } from './routes/redirecionando'
 import { Route as PoliticaPrivacidadeRouteImport } from './routes/politica-privacidade'
 import { Route as LojaRouteImport } from './routes/loja'
+import { Route as FaqRouteImport } from './routes/faq'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CarrinhoRouteImport } from './routes/carrinho'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -48,6 +50,11 @@ import { Route as ApiPublicCieloWebhookRouteImport } from './routes/api/public/c
 import { Route as ApiPublicCieloReconcileRouteImport } from './routes/api/public/cielo/reconcile'
 import { Route as ApiPublicCashbackExpireRouteImport } from './routes/api/public/cashback/expire'
 
+const TrocasEGarantiaRoute = TrocasEGarantiaRouteImport.update({
+  id: '/trocas-e-garantia',
+  path: '/trocas-e-garantia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
   path: '/termos',
@@ -71,6 +78,11 @@ const PoliticaPrivacidadeRoute = PoliticaPrivacidadeRouteImport.update({
 const LojaRoute = LojaRouteImport.update({
   id: '/loja',
   path: '/loja',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutRoute = CheckoutRouteImport.update({
@@ -259,11 +271,13 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
+  '/faq': typeof FaqRoute
   '/loja': typeof LojaRoute
   '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/termos': typeof TermosRoute
+  '/trocas-e-garantia': typeof TrocasEGarantiaRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
@@ -298,11 +312,13 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
+  '/faq': typeof FaqRoute
   '/loja': typeof LojaRoute
   '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/termos': typeof TermosRoute
+  '/trocas-e-garantia': typeof TrocasEGarantiaRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
@@ -339,11 +355,13 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/carrinho': typeof CarrinhoRoute
   '/checkout': typeof CheckoutRoute
+  '/faq': typeof FaqRoute
   '/loja': typeof LojaRoute
   '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/termos': typeof TermosRoute
+  '/trocas-e-garantia': typeof TrocasEGarantiaRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
@@ -380,11 +398,13 @@ export interface FileRouteTypes {
     | '/auth'
     | '/carrinho'
     | '/checkout'
+    | '/faq'
     | '/loja'
     | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
     | '/termos'
+    | '/trocas-e-garantia'
     | '/admin'
     | '/meus-pedidos'
     | '/perfil'
@@ -419,11 +439,13 @@ export interface FileRouteTypes {
     | '/auth'
     | '/carrinho'
     | '/checkout'
+    | '/faq'
     | '/loja'
     | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
     | '/termos'
+    | '/trocas-e-garantia'
     | '/admin'
     | '/meus-pedidos'
     | '/perfil'
@@ -459,11 +481,13 @@ export interface FileRouteTypes {
     | '/auth'
     | '/carrinho'
     | '/checkout'
+    | '/faq'
     | '/loja'
     | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
     | '/termos'
+    | '/trocas-e-garantia'
     | '/_authenticated/admin'
     | '/_authenticated/meus-pedidos'
     | '/_authenticated/perfil'
@@ -500,11 +524,13 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CarrinhoRoute: typeof CarrinhoRoute
   CheckoutRoute: typeof CheckoutRoute
+  FaqRoute: typeof FaqRoute
   LojaRoute: typeof LojaRoute
   PoliticaPrivacidadeRoute: typeof PoliticaPrivacidadeRoute
   RedirecionandoRoute: typeof RedirecionandoRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermosRoute: typeof TermosRoute
+  TrocasEGarantiaRoute: typeof TrocasEGarantiaRoute
   EtiquetaIdRoute: typeof EtiquetaIdRoute
   EtiquetaFragilRoute: typeof EtiquetaFragilRoute
   EtiquetaQrcodeRoute: typeof EtiquetaQrcodeRoute
@@ -522,6 +548,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/trocas-e-garantia': {
+      id: '/trocas-e-garantia'
+      path: '/trocas-e-garantia'
+      fullPath: '/trocas-e-garantia'
+      preLoaderRoute: typeof TrocasEGarantiaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/termos': {
       id: '/termos'
       path: '/termos'
@@ -555,6 +588,13 @@ declare module '@tanstack/react-router' {
       path: '/loja'
       fullPath: '/loja'
       preLoaderRoute: typeof LojaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout': {
@@ -844,11 +884,13 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CarrinhoRoute: CarrinhoRoute,
   CheckoutRoute: CheckoutRoute,
+  FaqRoute: FaqRoute,
   LojaRoute: LojaRoute,
   PoliticaPrivacidadeRoute: PoliticaPrivacidadeRoute,
   RedirecionandoRoute: RedirecionandoRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermosRoute: TermosRoute,
+  TrocasEGarantiaRoute: TrocasEGarantiaRoute,
   EtiquetaIdRoute: EtiquetaIdRoute,
   EtiquetaFragilRoute: EtiquetaFragilRoute,
   EtiquetaQrcodeRoute: EtiquetaQrcodeRoute,

@@ -8,19 +8,20 @@ import { MegaOffersCarousel } from "@/components/MegaOffersCarousel";
 import { pageProductsQuery, productImages, PRODUCTS_PAGE_SIZE, usedCategoriesQuery } from "@/lib/products";
 import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
 import { brl } from "@/lib/format";
-import { Search, X, ChevronLeft, ChevronRight, Tag, LayoutGrid, ChevronDown } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, Tag, LayoutGrid, ChevronDown, SlidersHorizontal } from "lucide-react";
 
-type LojaSearch = { cat?: string; q?: string; focus?: number; max?: number; page?: number };
+type LojaSearch = { cat?: string; q?: string; focus?: number; min?: number; max?: number; page?: number };
 
 export const Route = createFileRoute("/loja")({
   validateSearch: (search: Record<string, unknown>): LojaSearch => ({
     cat: typeof search.cat === "string" ? search.cat : undefined,
     q: typeof search.q === "string" ? search.q : undefined,
     focus: search.focus ? 1 : undefined,
+    min: typeof search.min === "number" ? search.min : (typeof search.min === "string" && search.min ? Number(search.min) || undefined : undefined),
     max: typeof search.max === "number" ? search.max : (typeof search.max === "string" && search.max ? Number(search.max) || undefined : undefined),
     page: typeof search.page === "number" ? search.page : (typeof search.page === "string" && search.page ? Number(search.page) || undefined : undefined),
   }),
-  loaderDeps: ({ search }) => ({ cat: search.cat, q: search.q, max: search.max, page: search.page ?? 1 }),
+  loaderDeps: ({ search }) => ({ cat: search.cat, q: search.q, min: search.min, max: search.max, page: search.page ?? 1 }),
   head: () => ({
     meta: [
       { title: "Ofertas · shopbox" },
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/loja")({
     // não derrubem o SSR — o cliente reexecuta a query com retry.
     context.queryClient
       .prefetchQuery(
-        pageProductsQuery({ search: deps.q, category: deps.cat, maxPrice: deps.max, page: deps.page }),
+        pageProductsQuery({ search: deps.q, category: deps.cat, minPrice: deps.min, maxPrice: deps.max, page: deps.page }),
       )
       .catch(() => undefined),
   component: Loja,
@@ -49,12 +50,15 @@ function useDebounced<T>(value: T, ms = 300): T {
 }
 
 function Loja() {
-  const { cat, q: qParam, focus, max, page: pageParam } = Route.useSearch();
+  const { cat, q: qParam, focus, min, max, page: pageParam } = Route.useSearch();
   const page = pageParam && pageParam > 0 ? pageParam : 1;
   const navigate = useNavigate();
   const [q, setQ] = useState(qParam ?? "");
   const debouncedQ = useDebounced(q, 350);
   const [catOpen, setCatOpen] = useState(false);
+  const [priceOpen, setPriceOpen] = useState(false);
+  const [minInput, setMinInput] = useState<string>(min ? String(min) : "");
+  const [maxInput, setMaxInput] = useState<string>(max ? String(max) : "");
   const { data: categories = [] } = useQuery(usedCategoriesQuery());
   useRealtimeProducts();
 
@@ -62,9 +66,10 @@ function Loja() {
     () => ({
       ...(cat ? { cat } : {}),
       ...(qParam ? { q: qParam } : {}),
+      ...(min ? { min } : {}),
       ...(max ? { max } : {}),
     }),
-    [cat, qParam, max],
+    [cat, qParam, min, max],
   );
 
   useEffect(() => {
@@ -73,12 +78,13 @@ function Loja() {
       to: "/loja",
       search: {
         ...(cat ? { cat } : {}),
+        ...(min ? { min } : {}),
         ...(max ? { max } : {}),
         ...(debouncedQ ? { q: debouncedQ } : {}),
       },
       replace: true,
     });
-  }, [debouncedQ, qParam, cat, max, navigate]);
+  }, [debouncedQ, qParam, cat, min, max, navigate]);
 
   useEffect(() => {
     if (!focus) return;
@@ -89,7 +95,7 @@ function Loja() {
   }, [focus, baseSearch, navigate]);
 
   const { data } = useSuspenseQuery(
-    pageProductsQuery({ search: qParam, category: cat, maxPrice: max, page }),
+    pageProductsQuery({ search: qParam, category: cat, minPrice: min, maxPrice: max, page }),
   );
 
   const products = data.items;
@@ -101,6 +107,32 @@ function Loja() {
       navigate({ to: "/loja", search: baseSearch, replace: true });
     }
   }, [page, totalPages, baseSearch, navigate]);
+
+  const applyPriceRange = () => {
+    const nMin = Number(minInput.replace(",", "."));
+    const nMax = Number(maxInput.replace(",", "."));
+    setPriceOpen(false);
+    navigate({
+      to: "/loja",
+      search: {
+        ...(cat ? { cat } : {}),
+        ...(qParam ? { q: qParam } : {}),
+        ...(minInput && !Number.isNaN(nMin) && nMin > 0 ? { min: nMin } : {}),
+        ...(maxInput && !Number.isNaN(nMax) && nMax > 0 ? { max: nMax } : {}),
+      },
+    });
+  };
+
+  const clearPriceRange = () => {
+    setMinInput("");
+    setMaxInput("");
+    setPriceOpen(false);
+    navigate({
+      to: "/loja",
+      search: { ...(cat ? { cat } : {}), ...(qParam ? { q: qParam } : {}) },
+    });
+  };
+
 
   const goToPage = (p: number) => {
     const clamped = Math.min(Math.max(1, p), totalPages);
@@ -130,7 +162,8 @@ function Loja() {
     return range;
   }, [page, totalPages]);
 
-  const hasFilter = Boolean(qParam || cat || max);
+  const hasFilter = Boolean(qParam || cat || min || max);
+  const priceLabel = min && max ? `${brl(min)}–${brl(max)}` : max ? `Até ${brl(max)}` : min ? `A partir de ${brl(min)}` : null;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -159,7 +192,7 @@ function Loja() {
                 onClick={() =>
                   navigate({
                     to: "/loja",
-                    search: { ...(qParam ? { q: qParam } : {}), ...(max ? { max } : {}) },
+                    search: { ...(qParam ? { q: qParam } : {}), ...(min ? { min } : {}), ...(max ? { max } : {}) },
                   })
                 }
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider"
@@ -168,26 +201,82 @@ function Loja() {
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
-            {max && (
+            {priceLabel && (
               <button
                 type="button"
-                onClick={() =>
-                  navigate({
-                    to: "/loja",
-                    search: { ...(qParam ? { q: qParam } : {}), ...(cat ? { cat } : {}) },
-                  })
-                }
+                onClick={clearPriceRange}
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-deal text-deal-foreground text-xs font-black uppercase tracking-wider"
               >
                 <Tag className="h-3.5 w-3.5" />
-                Até {brl(max)}
+                {priceLabel}
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
         </div>
 
+        <div className="mb-4 sm:mb-6 flex flex-wrap gap-2 items-start">
+          <div>
+
+            <button
+              type="button"
+              onClick={() => setPriceOpen((v) => !v)}
+              aria-expanded={priceOpen}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-card border border-border text-sm font-medium hover:bg-secondary transition-colors"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              Faixa de preço
+              <ChevronDown className={`h-4 w-4 transition-transform ${priceOpen ? "rotate-180" : ""}`} />
+            </button>
+            {priceOpen && (
+              <div className="mt-3 p-3 rounded-md bg-card border border-border flex flex-wrap items-end gap-2">
+                <label className="flex flex-col text-xs text-muted-foreground">
+                  Mín (R$)
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    value={minInput}
+                    onChange={(e) => setMinInput(e.target.value)}
+                    placeholder="0"
+                    className="mt-1 w-28 bg-input text-foreground rounded-md px-2 py-1.5 border border-border focus:outline-none focus:border-primary"
+                  />
+                </label>
+                <label className="flex flex-col text-xs text-muted-foreground">
+                  Máx (R$)
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    value={maxInput}
+                    onChange={(e) => setMaxInput(e.target.value)}
+                    placeholder="1000"
+                    className="mt-1 w-28 bg-input text-foreground rounded-md px-2 py-1.5 border border-border focus:outline-none focus:border-primary"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={applyPriceRange}
+                  className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:opacity-90"
+                >
+                  Aplicar
+                </button>
+                {(min || max) && (
+                  <button
+                    type="button"
+                    onClick={clearPriceRange}
+                    className="h-9 px-3 rounded-md bg-background border border-border text-xs font-bold uppercase tracking-wider hover:bg-secondary"
+                  >
+                    Limpar
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="mb-4 sm:mb-6">
+
           <button
             type="button"
             onClick={() => setCatOpen((v) => !v)}
@@ -210,7 +299,7 @@ function Loja() {
                       setCatOpen(false);
                       navigate({
                         to: "/loja",
-                        search: { ...(qParam ? { q: qParam } : {}), ...(max ? { max } : {}) },
+                        search: { ...(qParam ? { q: qParam } : {}), ...(min ? { min } : {}), ...(max ? { max } : {}) },
                       });
                     }}
                     className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-colors ${!cat ? "bg-foreground text-background border-foreground" : "bg-background border-border hover:border-foreground"}`}
@@ -225,7 +314,7 @@ function Loja() {
                         setCatOpen(false);
                         navigate({
                           to: "/loja",
-                          search: { cat: c, ...(qParam ? { q: qParam } : {}), ...(max ? { max } : {}) },
+                          search: { cat: c, ...(qParam ? { q: qParam } : {}), ...(min ? { min } : {}), ...(max ? { max } : {}) },
                         });
                       }}
                       className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-colors ${cat === c ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-foreground"}`}

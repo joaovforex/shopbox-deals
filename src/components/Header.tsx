@@ -353,6 +353,26 @@ export function Footer() {
           <h4 className="font-bold uppercase tracking-wider mb-3 text-primary">Institucional</h4>
           <ul className="text-sm text-muted-foreground space-y-1.5">
             <li>
+              <a
+                href="https://shopboxonline.com/grupowhatsapp"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-[#25D366] font-semibold hover:underline"
+              >
+                📲 Entrar no grupo de ofertas do WhatsApp
+              </a>
+            </li>
+            <li>
+              <Link to="/faq" className="hover:text-primary transition-colors">
+                Perguntas frequentes
+              </Link>
+            </li>
+            <li>
+              <Link to="/trocas-e-garantia" className="hover:text-primary transition-colors">
+                Trocas e garantia
+              </Link>
+            </li>
+            <li>
               <Link to="/politica-privacidade" className="hover:text-primary transition-colors">
                 Política de Privacidade
               </Link>

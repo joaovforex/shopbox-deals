@@ -140,6 +140,7 @@ async function fetchProductsPagedDirect(args: {
   search?: string;
   category?: string;
   stock?: "in_stock" | "out_of_stock";
+  minPrice?: number;
   maxPrice?: number;
   offset: number;
   limit: number;
@@ -153,6 +154,7 @@ async function fetchProductsPagedDirect(args: {
   const term = args.search?.trim() ? cleanSearchTerm(args.search) : "";
   if (term) query = query.ilike("name", `%${term}%`);
   if (args.category) query = query.eq("category", args.category);
+  if (typeof args.minPrice === "number") query = query.gte("price", args.minPrice);
   if (typeof args.maxPrice === "number") query = query.lte("price", args.maxPrice);
   if (args.stock === "in_stock") query = query.gt("stock", 0);
   if (args.stock === "out_of_stock") query = query.eq("stock", 0);
@@ -170,10 +172,21 @@ export async function fetchProductsPaged(args: {
   search?: string;
   category?: string;
   stock?: "in_stock" | "out_of_stock";
+  minPrice?: number;
   maxPrice?: number;
   offset: number;
   limit: number;
 }): Promise<PagedResult> {
+  // O RPC list_products_paged não conhece o filtro de preço mínimo, então
+  // caímos direto na query quando ele estiver presente.
+  if (typeof args.minPrice === "number") {
+    try {
+      return await fetchProductsPagedDirect(args);
+    } catch (err) {
+      console.error("Catalog direct query failed with minPrice; returning empty.", err);
+      return { items: [], total: 0, nextOffset: null };
+    }
+  }
   try {
     const { data, error } = await supabase.rpc("list_products_paged", {
       p_search: args.search?.trim() ? args.search.trim() : undefined,
@@ -202,14 +215,15 @@ export async function fetchProductsPaged(args: {
   }
 }
 
-export const pagedProductsQuery = (args: { search?: string; category?: string; stock?: "in_stock" | "out_of_stock"; maxPrice?: number }) =>
+export const pagedProductsQuery = (args: { search?: string; category?: string; stock?: "in_stock" | "out_of_stock"; minPrice?: number; maxPrice?: number }) =>
   infiniteQueryOptions({
-    queryKey: ["products", "paged", args.category ?? null, args.search ?? "", args.stock ?? "all", args.maxPrice ?? null],
+    queryKey: ["products", "paged", args.category ?? null, args.search ?? "", args.stock ?? "all", args.minPrice ?? null, args.maxPrice ?? null],
     queryFn: ({ pageParam }) =>
       fetchProductsPaged({
         search: args.search,
         category: args.category,
         stock: args.stock,
+        minPrice: args.minPrice,
         maxPrice: args.maxPrice,
         offset: pageParam as number,
         limit: PRODUCTS_PAGE_SIZE,
@@ -220,14 +234,15 @@ export const pagedProductsQuery = (args: { search?: string; category?: string; s
   });
 
 /** Query para uma página específica (paginação numerada). */
-export const pageProductsQuery = (args: { search?: string; category?: string; stock?: "in_stock" | "out_of_stock"; maxPrice?: number; page: number }) =>
+export const pageProductsQuery = (args: { search?: string; category?: string; stock?: "in_stock" | "out_of_stock"; minPrice?: number; maxPrice?: number; page: number }) =>
   queryOptions({
-    queryKey: ["products", "page", args.category ?? null, args.search ?? "", args.stock ?? "all", args.maxPrice ?? null, args.page],
+    queryKey: ["products", "page", args.category ?? null, args.search ?? "", args.stock ?? "all", args.minPrice ?? null, args.maxPrice ?? null, args.page],
     queryFn: () =>
       fetchProductsPaged({
         search: args.search,
         category: args.category,
         stock: args.stock,
+        minPrice: args.minPrice,
         maxPrice: args.maxPrice,
         offset: Math.max(0, (args.page - 1) * PRODUCTS_PAGE_SIZE),
         limit: PRODUCTS_PAGE_SIZE,
