@@ -96,83 +96,94 @@ export function ProductReviews({ productId }: { productId: string }) {
         </div>
       </div>
 
-      {/* Formulário */}
-      <form
-        onSubmit={onSubmit}
-        className="bg-card border border-border rounded-xl p-4 sm:p-5 space-y-3 mb-6"
-      >
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-            {own ? "Sua avaliação" : "Deixe sua avaliação"}
-          </label>
-          <div className="flex items-center gap-1">
-            {[1, 2, 3, 4, 5].map((n) => {
-              const active = (hover || rating) >= n;
-              return (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setRating(n)}
-                  onMouseEnter={() => setHover(n)}
-                  onMouseLeave={() => setHover(0)}
-                  aria-label={`${n} estrela${n > 1 ? "s" : ""}`}
-                  className="p-1 hover:scale-110 transition-transform"
-                >
-                  <Star
-                    className={cn(
-                      "h-7 w-7",
-                      active ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground",
-                    )}
-                  />
-                </button>
-              );
-            })}
+      {/* Formulário / Gate de acesso */}
+      {!user ? (
+        <div className="bg-card border border-border rounded-xl p-4 sm:p-5 mb-6 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">Entre para avaliar este produto.</p>
+          <Link
+            to="/auth"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-md bg-primary text-primary-foreground text-sm font-bold uppercase tracking-wider hover:opacity-90"
+          >
+            Entrar para avaliar
+          </Link>
+        </div>
+      ) : loadingPurchased ? (
+        <div className="bg-card border border-border rounded-xl p-4 sm:p-5 mb-6">
+          <p className="text-sm text-muted-foreground">Carregando…</p>
+        </div>
+      ) : !purchased && !own ? (
+        <div className="bg-card border border-border rounded-xl p-4 sm:p-5 mb-6">
+          <p className="text-sm text-muted-foreground">
+            Somente quem comprou este produto pode avaliar.
+          </p>
+        </div>
+      ) : (
+        <form
+          onSubmit={onSubmit}
+          className="bg-card border border-border rounded-xl p-4 sm:p-5 space-y-3 mb-6"
+        >
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              {own ? "Sua avaliação" : "Deixe sua avaliação"}
+            </label>
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((n) => {
+                const active = (hover || rating) >= n;
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setRating(n)}
+                    onMouseEnter={() => setHover(n)}
+                    onMouseLeave={() => setHover(0)}
+                    aria-label={`${n} estrela${n > 1 ? "s" : ""}`}
+                    className="p-1 hover:scale-110 transition-transform"
+                  >
+                    <Star
+                      className={cn(
+                        "h-7 w-7",
+                        active ? "fill-yellow-500 text-yellow-500" : "text-muted-foreground",
+                      )}
+                    />
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
-            Comentário (opcional)
-          </label>
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            rows={3}
-            maxLength={800}
-            placeholder="Conte o que achou do produto..."
-            className="w-full bg-input text-foreground rounded-md p-3 border border-border focus:outline-none focus:border-primary text-sm"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {!user && (
-            <Link
-              to="/auth"
-              className="inline-flex items-center justify-center px-4 py-2.5 rounded-md bg-primary text-primary-foreground text-sm font-bold uppercase tracking-wider hover:opacity-90"
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+              Comentário (opcional)
+            </label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={3}
+              maxLength={800}
+              placeholder="Conte o que achou do produto..."
+              className="w-full bg-input text-foreground rounded-md p-3 border border-border focus:outline-none focus:border-primary text-sm"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center justify-center px-4 py-2.5 rounded-md bg-primary text-primary-foreground text-sm font-bold uppercase tracking-wider hover:opacity-90 disabled:opacity-50"
             >
-              Entrar para avaliar
-            </Link>
-          )}
-          {user && (
-            <>
+              {saving ? "Enviando..." : own ? "Atualizar avaliação" : "Enviar avaliação"}
+            </button>
+            {own && (
               <button
-                type="submit"
-                disabled={saving}
-                className="inline-flex items-center justify-center px-4 py-2.5 rounded-md bg-primary text-primary-foreground text-sm font-bold uppercase tracking-wider hover:opacity-90 disabled:opacity-50"
+                type="button"
+                onClick={onDelete}
+                className="inline-flex items-center justify-center px-4 py-2.5 rounded-md bg-secondary text-foreground text-sm font-semibold hover:bg-muted"
               >
-                {saving ? "Enviando..." : own ? "Atualizar avaliação" : "Enviar avaliação"}
+                Remover
               </button>
-              {own && (
-                <button
-                  type="button"
-                  onClick={onDelete}
-                  className="inline-flex items-center justify-center px-4 py-2.5 rounded-md bg-secondary text-foreground text-sm font-semibold hover:bg-muted"
-                >
-                  Remover
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      </form>
+            )}
+          </div>
+        </form>
+      )}
+
 
       {/* Lista */}
       {reviews.length === 0 ? (
