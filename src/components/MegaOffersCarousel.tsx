@@ -1,9 +1,10 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Flame, Zap } from "lucide-react";
 import { brl, discountPct } from "@/lib/format";
 import type { ProductCard as ProductCardData } from "@/lib/products";
 import { productImages } from "@/lib/products";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const MIN_OFF = 30;
 const SPEED_MS = 1200; // 1.2s por card
