@@ -267,33 +267,49 @@ async function compressImageForUpload(file: File): Promise<File> {
   try {
     if (!file.type.startsWith("image/")) return file;
     if (file.type === "image/gif" || file.type === "image/svg+xml") return file;
-    if (file.size < 300 * 1024) return file;
 
-    const MAX_DIM = 1400;
-    const QUALITY = 0.82;
+    const MAX_DIM = 1200;
+    const QUALITY = 0.78;
 
     const bitmap = await createImageBitmap(file).catch(() => null);
     if (!bitmap) return file;
 
     const scale = Math.min(1, MAX_DIM / Math.max(bitmap.width, bitmap.height));
-    const w = Math.round(bitmap.width * scale);
-    const h = Math.round(bitmap.height * scale);
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
 
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
+    // OffscreenCanvas evita bloquear a UI e é bem mais rápido em mobile
+    const canvas: OffscreenCanvas | HTMLCanvasElement =
+      typeof OffscreenCanvas !== "undefined"
+        ? new OffscreenCanvas(w, h)
+        : Object.assign(document.createElement("canvas"), { width: w, height: h });
+    if ("width" in canvas && !(canvas instanceof OffscreenCanvas)) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+    const ctx = (canvas as any).getContext("2d");
     if (!ctx) return file;
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(bitmap, 0, 0, w, h);
     bitmap.close?.();
 
-    const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, "image/jpeg", QUALITY),
-    );
+    // Preferimos WebP (arquivos ~30% menores que JPEG na mesma qualidade)
+    const supportsWebp = (() => {
+      try {
+        const c = document.createElement("canvas");
+        return c.toDataURL("image/webp").startsWith("data:image/webp");
+      } catch { return false; }
+    })();
+    const mime = supportsWebp ? "image/webp" : "image/jpeg";
+
+    const blob: Blob | null = await (canvas instanceof OffscreenCanvas
+      ? canvas.convertToBlob({ type: mime, quality: QUALITY }).catch(() => null)
+      : new Promise((resolve) => (canvas as HTMLCanvasElement).toBlob(resolve, mime, QUALITY)));
+
     if (!blob || blob.size >= file.size) return file;
-    return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", {
-      type: "image/jpeg",
+    const ext = mime === "image/webp" ? ".webp" : ".jpg";
+    return new File([blob], file.name.replace(/\.\w+$/, "") + ext, {
+      type: mime,
       lastModified: Date.now(),
     });
   } catch {
@@ -303,8 +319,11 @@ async function compressImageForUpload(file: File): Promise<File> {
 
 export async function uploadProductImage(file: File) {
   const compressed = await compressImageForUpload(file);
-  const ext = compressed.type === "image/jpeg" ? "jpg" : (compressed.name.split(".").pop() ?? "jpg");
-  const path = `${crypto.randomUUID()}.${ext}`;
+  const extFromType =
+    compressed.type === "image/webp" ? "webp" :
+    compressed.type === "image/jpeg" ? "jpg" :
+    (compressed.name.split(".").pop() ?? "jpg");
+  const path = `${crypto.randomUUID()}.${extFromType}`;
   const { error } = await supabase.storage.from("product-images").upload(path, compressed, {
     cacheControl: "31536000",
     upsert: false,
@@ -317,6 +336,7 @@ export async function uploadProductImage(file: File) {
   if (signErr) throw signErr;
   return data.signedUrl;
 }
+
 
 const ROLES_CACHE_KEY = "shopbox_roles_v1";
 

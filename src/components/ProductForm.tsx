@@ -104,24 +104,42 @@ export function ProductForm({
 
   const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} };
 
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+
   const handleFiles = async (files: FileList | File[]) => {
     const selected = Array.from(files);
     if (!selected.length) return;
     setUploading(true);
+    setUploadProgress({ done: 0, total: selected.length });
     try {
-      const urls: string[] = [];
-      for (const file of selected) {
-        const url = await uploadProductImage(file);
-        urls.push(url);
-      }
-      setImages((p) => [...p, ...urls]);
-      toast.success(`${urls.length} imagem(ns) enviada(s)`);
+      // Upload em paralelo com limite de concorrência para acelerar sem
+      // sobrecarregar a rede/CPU do celular.
+      const CONCURRENCY = 4;
+      const results: string[] = new Array(selected.length);
+      let cursor = 0;
+      let done = 0;
+      const worker = async () => {
+        while (true) {
+          const i = cursor++;
+          if (i >= selected.length) break;
+          results[i] = await uploadProductImage(selected[i]);
+          done++;
+          setUploadProgress({ done, total: selected.length });
+        }
+      };
+      await Promise.all(
+        Array.from({ length: Math.min(CONCURRENCY, selected.length) }, worker),
+      );
+      setImages((p) => [...p, ...results]);
+      toast.success(`${results.length} imagem(ns) enviada(s)`);
     } catch (e: any) {
       toast.error(e.message ?? "Erro no upload");
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
+
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.currentTarget.files ?? []);
@@ -338,7 +356,7 @@ export function ProductForm({
                 onChange={handleFileInputChange}
               />
               <label className="inline-flex items-center gap-1.5 text-xs bg-secondary hover:bg-muted px-3 py-1.5 rounded cursor-pointer">
-                <Upload className="h-3.5 w-3.5" /> {uploading ? "Enviando..." : "Adicionar fotos/vídeos"}
+                <Upload className="h-3.5 w-3.5" /> {uploading ? (uploadProgress ? `Enviando ${uploadProgress.done}/${uploadProgress.total}...` : "Enviando...") : "Adicionar fotos/vídeos"}
                 <input
                   type="file"
                   accept="image/*,video/*"
