@@ -8,19 +8,20 @@ import { MegaOffersCarousel } from "@/components/MegaOffersCarousel";
 import { pageProductsQuery, productImages, PRODUCTS_PAGE_SIZE, usedCategoriesQuery } from "@/lib/products";
 import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
 import { brl } from "@/lib/format";
-import { Search, X, ChevronLeft, ChevronRight, Tag, LayoutGrid, ChevronDown } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, Tag, LayoutGrid, ChevronDown, SlidersHorizontal } from "lucide-react";
 
-type LojaSearch = { cat?: string; q?: string; focus?: number; max?: number; page?: number };
+type LojaSearch = { cat?: string; q?: string; focus?: number; min?: number; max?: number; page?: number };
 
 export const Route = createFileRoute("/loja")({
   validateSearch: (search: Record<string, unknown>): LojaSearch => ({
     cat: typeof search.cat === "string" ? search.cat : undefined,
     q: typeof search.q === "string" ? search.q : undefined,
     focus: search.focus ? 1 : undefined,
+    min: typeof search.min === "number" ? search.min : (typeof search.min === "string" && search.min ? Number(search.min) || undefined : undefined),
     max: typeof search.max === "number" ? search.max : (typeof search.max === "string" && search.max ? Number(search.max) || undefined : undefined),
     page: typeof search.page === "number" ? search.page : (typeof search.page === "string" && search.page ? Number(search.page) || undefined : undefined),
   }),
-  loaderDeps: ({ search }) => ({ cat: search.cat, q: search.q, max: search.max, page: search.page ?? 1 }),
+  loaderDeps: ({ search }) => ({ cat: search.cat, q: search.q, min: search.min, max: search.max, page: search.page ?? 1 }),
   head: () => ({
     meta: [
       { title: "Ofertas · shopbox" },
