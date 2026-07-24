@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Star } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { StarRating } from "@/components/StarRating";
-import { productReviewsQuery, reviewsSummaryQuery, submitReview } from "@/lib/reviews";
+import { productReviewsQuery, reviewsSummaryQuery, submitReview, userPurchasedProductQuery } from "@/lib/reviews";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
