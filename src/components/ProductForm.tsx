@@ -113,8 +113,9 @@ export function ProductForm({
     setUploadProgress({ done: 0, total: selected.length });
     try {
       // Upload em paralelo com limite de concorrência para acelerar sem
-      // sobrecarregar a rede/CPU do celular.
-      const CONCURRENCY = 4;
+      // sobrecarregar a rede/CPU do celular. No iOS o limite cai para 1
+      // porque o WebKit recarrega a aba quando o pico de memória estoura.
+      const CONCURRENCY = UPLOAD_CONCURRENCY;
       const results: string[] = new Array(selected.length);
       let cursor = 0;
       let done = 0;
