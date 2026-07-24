@@ -1723,6 +1723,10 @@ export type Database = {
       show_trgm: { Args: { "": string }; Returns: string[] }
       snapshot_product_prices_daily: { Args: never; Returns: number }
       unaccent: { Args: { "": string }; Returns: string }
+      user_purchased_product: {
+        Args: { _product_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
