@@ -356,7 +356,7 @@ export function ProductForm({
                 onChange={handleFileInputChange}
               />
               <label className="inline-flex items-center gap-1.5 text-xs bg-secondary hover:bg-muted px-3 py-1.5 rounded cursor-pointer">
-                <Upload className="h-3.5 w-3.5" /> {uploading ? "Enviando..." : "Adicionar fotos/vídeos"}
+                <Upload className="h-3.5 w-3.5" /> {uploading ? (uploadProgress ? `Enviando ${uploadProgress.done}/${uploadProgress.total}...` : "Enviando...") : "Adicionar fotos/vídeos"}
                 <input
                   type="file"
                   accept="image/*,video/*"
