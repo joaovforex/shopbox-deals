@@ -33,7 +33,7 @@ export const Route = createFileRoute("/loja")({
     // não derrubem o SSR — o cliente reexecuta a query com retry.
     context.queryClient
       .prefetchQuery(
-        pageProductsQuery({ search: deps.q, category: deps.cat, maxPrice: deps.max, page: deps.page }),
+        pageProductsQuery({ search: deps.q, category: deps.cat, minPrice: deps.min, maxPrice: deps.max, page: deps.page }),
       )
       .catch(() => undefined),
   component: Loja,
@@ -50,12 +50,15 @@ function useDebounced<T>(value: T, ms = 300): T {
 }
 
 function Loja() {
-  const { cat, q: qParam, focus, max, page: pageParam } = Route.useSearch();
+  const { cat, q: qParam, focus, min, max, page: pageParam } = Route.useSearch();
   const page = pageParam && pageParam > 0 ? pageParam : 1;
   const navigate = useNavigate();
   const [q, setQ] = useState(qParam ?? "");
   const debouncedQ = useDebounced(q, 350);
   const [catOpen, setCatOpen] = useState(false);
+  const [priceOpen, setPriceOpen] = useState(false);
+  const [minInput, setMinInput] = useState<string>(min ? String(min) : "");
+  const [maxInput, setMaxInput] = useState<string>(max ? String(max) : "");
   const { data: categories = [] } = useQuery(usedCategoriesQuery());
   useRealtimeProducts();
 
@@ -63,9 +66,10 @@ function Loja() {
     () => ({
       ...(cat ? { cat } : {}),
       ...(qParam ? { q: qParam } : {}),
+      ...(min ? { min } : {}),
       ...(max ? { max } : {}),
     }),
-    [cat, qParam, max],
+    [cat, qParam, min, max],
   );
 
   useEffect(() => {
@@ -74,12 +78,13 @@ function Loja() {
       to: "/loja",
       search: {
         ...(cat ? { cat } : {}),
+        ...(min ? { min } : {}),
         ...(max ? { max } : {}),
         ...(debouncedQ ? { q: debouncedQ } : {}),
       },
       replace: true,
     });
-  }, [debouncedQ, qParam, cat, max, navigate]);
+  }, [debouncedQ, qParam, cat, min, max, navigate]);
 
   useEffect(() => {
     if (!focus) return;
@@ -90,7 +95,7 @@ function Loja() {
   }, [focus, baseSearch, navigate]);
 
   const { data } = useSuspenseQuery(
-    pageProductsQuery({ search: qParam, category: cat, maxPrice: max, page }),
+    pageProductsQuery({ search: qParam, category: cat, minPrice: min, maxPrice: max, page }),
   );
 
   const products = data.items;
@@ -102,6 +107,32 @@ function Loja() {
       navigate({ to: "/loja", search: baseSearch, replace: true });
     }
   }, [page, totalPages, baseSearch, navigate]);
+
+  const applyPriceRange = () => {
+    const nMin = Number(minInput.replace(",", "."));
+    const nMax = Number(maxInput.replace(",", "."));
+    setPriceOpen(false);
+    navigate({
+      to: "/loja",
+      search: {
+        ...(cat ? { cat } : {}),
+        ...(qParam ? { q: qParam } : {}),
+        ...(minInput && !Number.isNaN(nMin) && nMin > 0 ? { min: nMin } : {}),
+        ...(maxInput && !Number.isNaN(nMax) && nMax > 0 ? { max: nMax } : {}),
+      },
+    });
+  };
+
+  const clearPriceRange = () => {
+    setMinInput("");
+    setMaxInput("");
+    setPriceOpen(false);
+    navigate({
+      to: "/loja",
+      search: { ...(cat ? { cat } : {}), ...(qParam ? { q: qParam } : {}) },
+    });
+  };
+
 
   const goToPage = (p: number) => {
     const clamped = Math.min(Math.max(1, p), totalPages);
