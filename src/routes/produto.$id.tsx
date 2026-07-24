@@ -6,6 +6,8 @@ import { Share2, MessageCircle, Minus, Plus, ArrowLeft, Copy, Pencil } from "luc
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { ProductCarousel } from "@/components/ProductCarousel";
 import { ProductForm } from "@/components/ProductForm";
+import { RelatedProducts } from "@/components/RelatedProducts";
+import { ProductReviews } from "@/components/ProductReviews";
 import { brl, discountPct, postDate } from "@/lib/format";
 import { calculateCashback } from "@/lib/cashback-config";
 import { useSiteSettings } from "@/lib/site-settings";
