@@ -263,38 +263,55 @@ export async function fetchProduct(id: string) {
  * (/render/image/?width=...) NÃO estão ativas neste projeto (o endpoint
  * devolve o original), então a compressão precisa acontecer no cliente.
  */
+// iOS Safari/WebKit (Chrome no iPhone também usa WebKit) tem um limite
+// agressivo de memória por aba (~200-300MB) e recarrega a página quando
+// estoura — sintoma reportado por admins: "o site recarrega e buga".
+// Decodificar várias fotos grandes em paralelo com createImageBitmap +
+// OffscreenCanvas + encoding WebP é o gatilho clássico.
+export const IS_IOS =
+  typeof navigator !== "undefined" &&
+  (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    // iPadOS 13+ se apresenta como Mac com touch
+    (navigator.platform === "MacIntel" && (navigator as any).maxTouchPoints > 1));
+
+export const UPLOAD_CONCURRENCY = IS_IOS ? 1 : 4;
+
 async function compressImageForUpload(file: File): Promise<File> {
+  let bitmap: ImageBitmap | null = null;
   try {
     if (!file.type.startsWith("image/")) return file;
     if (file.type === "image/gif" || file.type === "image/svg+xml") return file;
 
-    const MAX_DIM = 1200;
-    const QUALITY = 0.78;
+    // iOS: dimensão menor + qualidade um pouco menor para reduzir pico de memória
+    const MAX_DIM = IS_IOS ? 1000 : 1200;
+    const QUALITY = IS_IOS ? 0.75 : 0.78;
 
-    const bitmap = await createImageBitmap(file).catch(() => null);
+    bitmap = await createImageBitmap(file).catch(() => null);
     if (!bitmap) return file;
 
     const scale = Math.min(1, MAX_DIM / Math.max(bitmap.width, bitmap.height));
     const w = Math.max(1, Math.round(bitmap.width * scale));
     const h = Math.max(1, Math.round(bitmap.height * scale));
 
-    // OffscreenCanvas evita bloquear a UI e é bem mais rápido em mobile
-    const canvas: OffscreenCanvas | HTMLCanvasElement =
-      typeof OffscreenCanvas !== "undefined"
-        ? new OffscreenCanvas(w, h)
-        : Object.assign(document.createElement("canvas"), { width: w, height: h });
-    if ("width" in canvas && !(canvas instanceof OffscreenCanvas)) {
-      canvas.width = w;
-      canvas.height = h;
+    // iOS Safari: OffscreenCanvas.convertToBlob('image/webp') não é confiável
+    // e o encoding WebP consome muito mais memória que JPEG. No iOS forçamos
+    // canvas comum + JPEG (mais rápido e sem risco de crash de memória).
+    const useOffscreen = !IS_IOS && typeof OffscreenCanvas !== "undefined";
+    const canvas: OffscreenCanvas | HTMLCanvasElement = useOffscreen
+      ? new OffscreenCanvas(w, h)
+      : Object.assign(document.createElement("canvas"), { width: w, height: h });
+    if (!useOffscreen) {
+      (canvas as HTMLCanvasElement).width = w;
+      (canvas as HTMLCanvasElement).height = h;
     }
     const ctx = (canvas as any).getContext("2d");
     if (!ctx) return file;
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(bitmap, 0, 0, w, h);
     bitmap.close?.();
+    bitmap = null;
 
-    // Preferimos WebP (arquivos ~30% menores que JPEG na mesma qualidade)
-    const supportsWebp = (() => {
+    const supportsWebp = !IS_IOS && (() => {
       try {
         const c = document.createElement("canvas");
         return c.toDataURL("image/webp").startsWith("data:image/webp");
@@ -306,6 +323,12 @@ async function compressImageForUpload(file: File): Promise<File> {
       ? canvas.convertToBlob({ type: mime, quality: QUALITY }).catch(() => null)
       : new Promise((resolve) => (canvas as HTMLCanvasElement).toBlob(resolve, mime, QUALITY)));
 
+    // Libera a bitmap do canvas para o GC do WebKit recuperar memória rápido
+    if (!useOffscreen) {
+      (canvas as HTMLCanvasElement).width = 0;
+      (canvas as HTMLCanvasElement).height = 0;
+    }
+
     if (!blob || blob.size >= file.size) return file;
     const ext = mime === "image/webp" ? ".webp" : ".jpg";
     return new File([blob], file.name.replace(/\.\w+$/, "") + ext, {
@@ -314,6 +337,8 @@ async function compressImageForUpload(file: File): Promise<File> {
     });
   } catch {
     return file;
+  } finally {
+    bitmap?.close?.();
   }
 }
 
