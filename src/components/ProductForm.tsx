@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Upload, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { isVideoUrl, uploadProductImage, type ColorVariant, type Product } from "@/lib/products";
+import { isVideoUrl, uploadProductImage, UPLOAD_CONCURRENCY, type ColorVariant, type Product } from "@/lib/products";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import { suggestFromNcm } from "@/lib/ncm-suggestions";
 
@@ -113,8 +113,9 @@ export function ProductForm({
     setUploadProgress({ done: 0, total: selected.length });
     try {
       // Upload em paralelo com limite de concorrência para acelerar sem
-      // sobrecarregar a rede/CPU do celular.
-      const CONCURRENCY = 4;
+      // sobrecarregar a rede/CPU do celular. No iOS o limite cai para 1
+      // porque o WebKit recarrega a aba quando o pico de memória estoura.
+      const CONCURRENCY = UPLOAD_CONCURRENCY;
       const results: string[] = new Array(selected.length);
       let cursor = 0;
       let done = 0;
