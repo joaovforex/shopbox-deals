@@ -111,6 +111,10 @@ export function ProductCard({ product, priority = false }: { product: Product | 
           {product.name}
         </h3>
 
+        {reviews && reviews.count > 0 && (
+          <StarRatingCompact average={reviews.average} count={reviews.count} />
+        )}
+
         <div className="mt-auto pt-1">
           {product.original_price && product.original_price > product.price && (
             <span className="block text-xs text-muted-foreground line-through">
