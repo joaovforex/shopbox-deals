@@ -77,6 +77,8 @@ export const userPurchasedProductQuery = (userId: string | undefined, productId:
 // NOTA: por ora aceitamos avaliação de qualquer usuário logado.
 // Idealmente restringir a quem comprou o produto (checando public.orders +
 // public.order_items). Marcado para revisão futura pelo time.
+// Regra: apenas quem comprou o produto (pedido pago) pode avaliar. A RLS
+// no banco também garante isso; aqui damos uma mensagem amigável antes.
 export async function submitReview(input: {
   productId: string;
   rating: number;
@@ -85,6 +87,10 @@ export async function submitReview(input: {
   const { data: userData } = await supabase.auth.getUser();
   const user = userData.user;
   if (!user) return { ok: false, error: "Faça login para avaliar." };
+  const purchased = await fetchUserPurchasedProduct(user.id, input.productId);
+  if (!purchased) {
+    return { ok: false, error: "Somente quem comprou este produto pode avaliar." };
+  }
   const { error } = await supabase
     .from("product_reviews")
     .upsert(
@@ -99,3 +105,4 @@ export async function submitReview(input: {
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }
+
