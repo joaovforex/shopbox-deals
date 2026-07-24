@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
-import { Instagram, MapPin, MessageCircle, ChevronUp, X } from "lucide-react";
+import { Instagram, MapPin, MessageCircle, ChevronUp, X, Users } from "lucide-react";
 
 const WHATSAPP_MESSAGE = "Preciso de ajuda com a loja online.";
 const INSTAGRAM_URL = "https://www.instagram.com/shopbox.colombo/";
 const MAPS_ADDRESS = "Rua Abel Scuissiato, 2996";
+const GROUP_URL = "https://shopboxonline.com/grupowhatsapp";
 
 const CONTACTS = [
   {
@@ -43,6 +44,19 @@ export function FloatingActions() {
 
   return (
     <div className="fixed bottom-20 right-4 z-50 flex flex-col gap-3 items-end md:bottom-8 md:right-8">
+      <a
+        href={GROUP_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Entrar no grupo de ofertas do WhatsApp"
+        className="group flex items-center gap-2 rounded-full bg-[#25D366] p-3 text-black shadow-lg transition-transform hover:scale-105 hover:shadow-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+      >
+        <span className="hidden max-w-0 overflow-hidden whitespace-nowrap text-sm font-bold transition-all duration-300 group-hover:max-w-xs group-hover:px-2 md:inline">
+          Grupo de Ofertas 🔥
+        </span>
+        <Users className="h-6 w-6" />
+      </a>
+
       <a
         href={INSTAGRAM_URL}
         target="_blank"
