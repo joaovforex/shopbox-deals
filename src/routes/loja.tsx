@@ -217,18 +217,7 @@ function Loja() {
 
         <div className="mb-4 sm:mb-6 flex flex-wrap gap-2 items-start">
           <div>
-            <button
-              type="button"
-              onClick={() => setCatOpen((v) => !v)}
-              aria-expanded={catOpen}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-card border border-border text-sm font-medium hover:bg-secondary transition-colors"
-            >
-              <LayoutGrid className="h-4 w-4" />
-              Categorias
-              <ChevronDown className={`h-4 w-4 transition-transform ${catOpen ? "rotate-180" : ""}`} />
-            </button>
-          </div>
-          <div>
+
             <button
               type="button"
               onClick={() => setPriceOpen((v) => !v)}
