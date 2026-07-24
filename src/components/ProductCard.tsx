@@ -56,19 +56,29 @@ export function ProductCard({ product, priority = false }: { product: Product | 
       className="group relative flex flex-col bg-card rounded-xl overflow-hidden border border-border hover:border-foreground/30 transition-colors"
     >
       <div className="aspect-[4/5] bg-muted overflow-hidden relative">
-        {cover ? (
-          <img
-            src={optimizedImage(cover, { width: 480, quality: 70 })}
-            srcSet={optimizedSrcSet(cover, 480, 70)}
-            sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
-            alt={product.name}
-            loading={priority ? "eager" : "lazy"}
-            fetchPriority={priority ? "high" : "auto"}
-            decoding="async"
-            width={480}
-            height={600}
-            className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
-          />
+        {cover && !imgErrored ? (
+          <>
+            {!imgLoaded && (
+              <Skeleton
+                aria-hidden
+                className="absolute inset-0 rounded-none bg-gradient-to-r from-muted via-muted-foreground/10 to-muted"
+              />
+            )}
+            <img
+              src={optimizedImage(cover, { width: 480, quality: 70 })}
+              srcSet={optimizedSrcSet(cover, 480, 70)}
+              sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
+              alt={product.name}
+              loading={priority ? "eager" : "lazy"}
+              fetchPriority={priority ? "high" : "auto"}
+              decoding="async"
+              width={480}
+              height={600}
+              onLoad={() => setImgLoaded(true)}
+              onError={() => setImgErrored(true)}
+              className={`w-full h-full object-cover group-hover:scale-[1.03] transition-all duration-500 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+            />
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
             Sem imagem
