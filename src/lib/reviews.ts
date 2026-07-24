@@ -73,12 +73,9 @@ export const userPurchasedProductQuery = (userId: string | undefined, productId:
     staleTime: 60_000,
   });
 
-
-// NOTA: por ora aceitamos avaliação de qualquer usuário logado.
-// Idealmente restringir a quem comprou o produto (checando public.orders +
-// public.order_items). Marcado para revisão futura pelo time.
 // Regra: apenas quem comprou o produto (pedido pago) pode avaliar. A RLS
 // no banco também garante isso; aqui damos uma mensagem amigável antes.
+
 export async function submitReview(input: {
   productId: string;
   rating: number;
