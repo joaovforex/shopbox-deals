@@ -299,7 +299,7 @@ function Loja() {
                       setCatOpen(false);
                       navigate({
                         to: "/loja",
-                        search: { ...(qParam ? { q: qParam } : {}), ...(max ? { max } : {}) },
+                        search: { ...(qParam ? { q: qParam } : {}), ...(min ? { min } : {}), ...(max ? { max } : {}) },
                       });
                     }}
                     className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-colors ${!cat ? "bg-foreground text-background border-foreground" : "bg-background border-border hover:border-foreground"}`}
