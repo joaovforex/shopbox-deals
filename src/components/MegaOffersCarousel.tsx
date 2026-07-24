@@ -147,44 +147,9 @@ export function MegaOffersCarousel({ products }: { products: ProductCardData[] }
         className="flex gap-3 overflow-x-auto pb-2 snap-x sm:snap-mandatory"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch", overscrollBehaviorX: "contain" }}
       >
-        {items.map(({ p, off }, i) => {
-          const cover = productImages(p)[0];
-          return (
-            <Link
-              key={`${p.id}-${i}`}
-              data-mega-card
-              to="/produto/$id"
-              params={{ id: p.id }}
-              className="snap-start flex-shrink-0 w-[170px] sm:w-[200px] bg-card rounded-xl border border-border hover:border-deal transition-all overflow-hidden group active:scale-[0.98]"
-            >
-              <div className="aspect-square bg-muted relative overflow-hidden">
-                {cover ? (
-                  <img
-                    src={cover}
-                    alt={p.name}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                ) : (
-                  <div className="w-full h-full" />
-                )}
-                <div className="absolute top-1.5 left-1.5 bg-deal text-deal-foreground text-[11px] font-black px-1.5 py-0.5 rounded shadow-md -rotate-3 flex items-center gap-0.5">
-                  <Zap className="h-2.5 w-2.5" />-{off}%
-                </div>
-              </div>
-              <div className="p-2 flex flex-col gap-0.5">
-                <h3 className="text-[11px] font-semibold line-clamp-2 min-h-[2rem] leading-snug">
-                  {p.name}
-                </h3>
-                {p.original_price && p.original_price > p.price && (
-                  <span className="text-[10px] text-muted-foreground line-through">{brl(p.original_price)}</span>
-                )}
-                <span className="text-sm font-black text-price leading-tight">{brl(p.price)}</span>
-              </div>
-            </Link>
-          );
-        })}
+        {items.map(({ p, off }, i) => (
+          <MegaCard key={`${p.id}-${i}`} p={p} off={off} />
+        ))}
       </div>
     </section>
   );
