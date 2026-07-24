@@ -50,6 +50,30 @@ export const reviewsSummaryQuery = (productId: string) =>
     staleTime: 60_000,
   });
 
+export async function fetchUserPurchasedProduct(
+  userId: string,
+  productId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("order_items")
+    .select("order_id, orders!inner(user_id, status)")
+    .eq("product_id", productId)
+    .eq("orders.user_id", userId)
+    .eq("orders.status", "paid")
+    .limit(1);
+  if (error) return false;
+  return (data ?? []).length > 0;
+}
+
+export const userPurchasedProductQuery = (userId: string | undefined, productId: string) =>
+  queryOptions({
+    queryKey: ["purchased", userId ?? "anon", productId],
+    queryFn: () => (userId ? fetchUserPurchasedProduct(userId, productId) : Promise.resolve(false)),
+    enabled: !!userId,
+    staleTime: 60_000,
+  });
+
+
 // NOTA: por ora aceitamos avaliação de qualquer usuário logado.
 // Idealmente restringir a quem comprou o produto (checando public.orders +
 // public.order_items). Marcado para revisão futura pelo time.
