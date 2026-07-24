@@ -162,7 +162,8 @@ function Loja() {
     return range;
   }, [page, totalPages]);
 
-  const hasFilter = Boolean(qParam || cat || max);
+  const hasFilter = Boolean(qParam || cat || min || max);
+  const priceLabel = min && max ? `${brl(min)}–${brl(max)}` : max ? `Até ${brl(max)}` : min ? `A partir de ${brl(min)}` : null;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -191,7 +192,7 @@ function Loja() {
                 onClick={() =>
                   navigate({
                     to: "/loja",
-                    search: { ...(qParam ? { q: qParam } : {}), ...(max ? { max } : {}) },
+                    search: { ...(qParam ? { q: qParam } : {}), ...(min ? { min } : {}), ...(max ? { max } : {}) },
                   })
                 }
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider"
@@ -200,26 +201,93 @@ function Loja() {
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
-            {max && (
+            {priceLabel && (
               <button
                 type="button"
-                onClick={() =>
-                  navigate({
-                    to: "/loja",
-                    search: { ...(qParam ? { q: qParam } : {}), ...(cat ? { cat } : {}) },
-                  })
-                }
+                onClick={clearPriceRange}
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-deal text-deal-foreground text-xs font-black uppercase tracking-wider"
               >
                 <Tag className="h-3.5 w-3.5" />
-                Até {brl(max)}
+                {priceLabel}
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
           </div>
         </div>
 
+        <div className="mb-4 sm:mb-6 flex flex-wrap gap-2 items-start">
+          <div>
+            <button
+              type="button"
+              onClick={() => setCatOpen((v) => !v)}
+              aria-expanded={catOpen}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-card border border-border text-sm font-medium hover:bg-secondary transition-colors"
+            >
+              <LayoutGrid className="h-4 w-4" />
+              Categorias
+              <ChevronDown className={`h-4 w-4 transition-transform ${catOpen ? "rotate-180" : ""}`} />
+            </button>
+          </div>
+          <div>
+            <button
+              type="button"
+              onClick={() => setPriceOpen((v) => !v)}
+              aria-expanded={priceOpen}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-card border border-border text-sm font-medium hover:bg-secondary transition-colors"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              Faixa de preço
+              <ChevronDown className={`h-4 w-4 transition-transform ${priceOpen ? "rotate-180" : ""}`} />
+            </button>
+            {priceOpen && (
+              <div className="mt-3 p-3 rounded-md bg-card border border-border flex flex-wrap items-end gap-2">
+                <label className="flex flex-col text-xs text-muted-foreground">
+                  Mín (R$)
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    value={minInput}
+                    onChange={(e) => setMinInput(e.target.value)}
+                    placeholder="0"
+                    className="mt-1 w-28 bg-input text-foreground rounded-md px-2 py-1.5 border border-border focus:outline-none focus:border-primary"
+                  />
+                </label>
+                <label className="flex flex-col text-xs text-muted-foreground">
+                  Máx (R$)
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    value={maxInput}
+                    onChange={(e) => setMaxInput(e.target.value)}
+                    placeholder="1000"
+                    className="mt-1 w-28 bg-input text-foreground rounded-md px-2 py-1.5 border border-border focus:outline-none focus:border-primary"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={applyPriceRange}
+                  className="h-9 px-4 rounded-md bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider hover:opacity-90"
+                >
+                  Aplicar
+                </button>
+                {(min || max) && (
+                  <button
+                    type="button"
+                    onClick={clearPriceRange}
+                    className="h-9 px-3 rounded-md bg-background border border-border text-xs font-bold uppercase tracking-wider hover:bg-secondary"
+                  >
+                    Limpar
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="mb-4 sm:mb-6">
+
           <button
             type="button"
             onClick={() => setCatOpen((v) => !v)}
