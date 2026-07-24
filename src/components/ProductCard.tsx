@@ -1,11 +1,16 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { brl, discountPct } from "@/lib/format";
 import { productImages, useHasTeamRole, type Product, type ProductCard as ProductCardData } from "@/lib/products";
 import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { optimizedImage, optimizedSrcSet } from "@/lib/image-url";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StarRatingCompact } from "@/components/StarRating";
+import { reviewsSummaryQuery } from "@/lib/reviews";
 
 export function ProductCard({ product, priority = false }: { product: Product | ProductCardData; priority?: boolean }) {
   const off = discountPct(product.original_price, product.price);
@@ -17,6 +22,9 @@ export function ProductCard({ product, priority = false }: { product: Product | 
   const isTeam = useHasTeamRole();
   const ageDays = (Date.now() - new Date(product.created_at).getTime()) / 86_400_000;
   const stale = isTeam && product.stock > 0 && ageDays > 5;
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgErrored, setImgErrored] = useState(false);
+  const { data: reviews } = useQuery(reviewsSummaryQuery(product.id));
 
   const cartItem = {
     id: product.id,
