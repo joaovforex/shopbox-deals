@@ -2,8 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Header, Footer } from "@/components/Header";
-import { brl, discountPct } from "@/lib/format";
+import { brl } from "@/lib/format";
 import { toast } from "sonner";
+import { shareProduct } from "@/lib/share-product";
 import {
   Play,
   Pause,
