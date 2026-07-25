@@ -96,63 +96,8 @@ function uid() {
   return `q_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function buildShareText(p: Product) {
-  const url = `${window.location.origin}/produto/${p.id}`;
-  const off = discountPct(p.original_price, p.price);
-  const stockLine =
-    p.stock > 0
-      ? `📦 ${p.stock} ${p.stock === 1 ? "peça" : "peças"} em estoque`
-      : "❌ Sem estoque no momento";
-  return [
-    `🔥 *${p.name}*`,
-    `Por ${brl(p.price)}${off > 0 ? ` (${off}% OFF!)` : ""}`,
-    p.description ? "" : null,
-    p.description ?? null,
-    "",
-    stockLine,
-    "",
-    "COMPRE NO LINK ABAIXO:",
-    `👇 ${url}`,
-  ]
-    .filter((l) => l !== null)
-    .join("\n");
-}
+// buildShareText / shareProduct centralizados em src/lib/share-product.ts
 
-async function shareProduct(p: Product): Promise<boolean> {
-  const text = buildShareText(p);
-  const url = `${window.location.origin}/produto/${p.id}`;
-  const nav =
-    typeof navigator !== "undefined"
-      ? (navigator as unknown as {
-          share?: (data: ShareData) => Promise<void>;
-          canShare?: (data: ShareData) => boolean;
-        })
-      : null;
-  if (nav?.share && p.image_url) {
-    try {
-      const res = await fetch(p.image_url);
-      const blob = await res.blob();
-      const ext = (blob.type.split("/")[1] || "jpg").split("+")[0];
-      const safe =
-        p.name.replace(/[^\w]+/g, "-").toLowerCase().slice(0, 40) || "produto";
-      const file = new File([blob], `${safe}.${ext}`, {
-        type: blob.type || "image/jpeg",
-      });
-      if (nav.canShare?.({ files: [file] })) {
-        await nav.share({ files: [file], text, title: p.name });
-        return true;
-      }
-    } catch {}
-    try {
-      await nav.share({ title: p.name, text, url });
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-  return true;
-}
 
 function playBeep() {
   try {
