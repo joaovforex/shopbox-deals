@@ -1,55 +1,13 @@
 import { useState } from "react";
 import { Share2, X, Check, ChevronRight, Copy } from "lucide-react";
 import { toast } from "sonner";
-import { brl, discountPct } from "@/lib/format";
+import { brl } from "@/lib/format";
 import type { Product } from "@/lib/products";
+import { buildShareText, shareProduct } from "@/lib/share-product";
 
-function buildText(p: Product) {
-  const url = `${window.location.origin}/produto/${p.id}`;
-  const off = discountPct(p.original_price, p.price);
-  const stockLine =
-    p.stock > 0 ? `📦 ${p.stock} ${p.stock === 1 ? "peça" : "peças"} em estoque` : "❌ Sem estoque no momento";
-  return [
-    `🔥 *${p.name}*`,
-    `Por ${brl(p.price)}${off > 0 ? ` (${off}% OFF!)` : ""}`,
-    p.description ? "" : null,
-    p.description ?? null,
-    "",
-    stockLine,
-    "",
-    "COMPRE NO LINK ABAIXO:",
-    `👇 ${url}`,
-  ]
-    .filter((l) => l !== null)
-    .join("\n");
-}
+const buildText = (p: Product) => buildShareText(p);
+const shareOne = (p: Product) => shareProduct(p);
 
-async function shareOne(p: Product) {
-  const text = buildText(p);
-  const url = `${window.location.origin}/produto/${p.id}`;
-  const nav = typeof navigator !== "undefined" ? (navigator as unknown as {
-    share?: (data: ShareData) => Promise<void>;
-    canShare?: (data: ShareData) => boolean;
-  }) : null;
-  if (nav?.share && p.image_url) {
-    try {
-      const res = await fetch(p.image_url);
-      const blob = await res.blob();
-      const ext = (blob.type.split("/")[1] || "jpg").split("+")[0];
-      const safe = p.name.replace(/[^\w]+/g, "-").toLowerCase().slice(0, 40) || "produto";
-      const file = new File([blob], `${safe}.${ext}`, { type: blob.type || "image/jpeg" });
-      if (nav.canShare?.({ files: [file] })) {
-        await nav.share({ files: [file], text, title: p.name });
-        return;
-      }
-    } catch {}
-    try {
-      await nav.share({ title: p.name, text, url });
-      return;
-    } catch {}
-  }
-  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-}
 
 export function BulkShareDialog({
   products,
