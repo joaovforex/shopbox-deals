@@ -341,6 +341,12 @@ function AgendadorCanalPage() {
           </div>
         </div>
 
+        {/* Aviso mobile-first */}
+        <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs md:text-sm text-amber-900 dark:text-amber-200">
+          📱 <strong>Para postar COM FOTO no Canal, use esta tela pelo CELULAR</strong> — lá o WhatsApp abre a opção de escolher o Canal e a imagem vai junto.
+          No computador, o WhatsApp Web não anexa a foto automaticamente: a imagem é baixada e o texto é copiado — arraste a imagem para o Canal e cole o texto.
+        </div>
+
         {/* Painel de controle */}
         <div className="bg-card border border-border rounded-lg p-4 mb-4">
           <div className="flex flex-wrap items-center gap-3">
