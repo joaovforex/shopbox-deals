@@ -6,6 +6,7 @@ import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { ProductCard } from "@/components/ProductCard";
 import { MegaOffersCarousel } from "@/components/MegaOffersCarousel";
 import { pageProductsQuery, productImages, PRODUCTS_PAGE_SIZE, usedCategoriesQuery } from "@/lib/products";
+import { optimizedImage } from "@/lib/image-url";
 import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
 import { brl } from "@/lib/format";
 import { Search, X, ChevronLeft, ChevronRight, Tag, LayoutGrid, ChevronDown, SlidersHorizontal } from "lucide-react";
