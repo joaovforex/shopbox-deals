@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, X, ZoomIn, Play } from "lucide-react";
 import { isVideoUrl } from "@/lib/products";
+import { optimizedImage, optimizedSrcSet } from "@/lib/image-url";
 
 export function ProductCarousel({
   images,
@@ -70,8 +71,13 @@ export function ProductCarousel({
               />
             ) : (
               <img
-                src={images[i]}
+                src={optimizedImage(images[i], { width: 800, quality: 75 })}
+                srcSet={optimizedSrcSet(images[i], 800, 75)}
+                sizes="(min-width: 768px) 600px, 100vw"
+                width={800}
+                height={800}
                 alt={`${alt} ${i + 1}`}
+                decoding="async"
                 className="w-full h-full object-contain"
                 draggable={false}
               />
@@ -100,8 +106,14 @@ export function ProductCarousel({
                   />
                 ) : (
                   <img
-                    src={src}
+                    src={optimizedImage(src, { width: 800, quality: 75 })}
+                    srcSet={optimizedSrcSet(src, 800, 75)}
+                    sizes="(min-width: 768px) 600px, 100vw"
+                    width={800}
+                    height={800}
                     alt={`${alt} ${idx + 1}`}
+                    loading={idx === 0 ? "eager" : "lazy"}
+                    decoding="async"
                     className="w-full h-full object-contain"
                     draggable={false}
                   />
@@ -174,7 +186,17 @@ export function ProductCarousel({
                   </span>
                 </>
               ) : (
-                <img src={src} alt={`${alt} miniatura ${idx + 1}`} className="w-full h-full object-cover" />
+                <img
+                  src={optimizedImage(src, { width: 128, quality: 65 })}
+                  srcSet={optimizedSrcSet(src, 128, 65)}
+                  width={64}
+                  height={64}
+                  loading="lazy"
+                  decoding="async"
+                  alt={`${alt} miniatura ${idx + 1}`}
+                  className="w-full h-full object-cover"
+                />
+
               )}
             </button>
           ))}

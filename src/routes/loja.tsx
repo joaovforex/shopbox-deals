@@ -6,6 +6,7 @@ import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { ProductCard } from "@/components/ProductCard";
 import { MegaOffersCarousel } from "@/components/MegaOffersCarousel";
 import { pageProductsQuery, productImages, PRODUCTS_PAGE_SIZE, usedCategoriesQuery } from "@/lib/products";
+import { optimizedImage } from "@/lib/image-url";
 import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
 import { brl } from "@/lib/format";
 import { Search, X, ChevronLeft, ChevronRight, Tag, LayoutGrid, ChevronDown, SlidersHorizontal } from "lucide-react";
@@ -144,7 +145,12 @@ function Loja() {
   };
 
   const preloadImgs = useMemo(
-    () => products.slice(0, 3).map((p) => productImages(p)[0]).filter(Boolean) as string[],
+    () =>
+      products
+        .slice(0, 3)
+        .map((p) => productImages(p)[0])
+        .filter(Boolean)
+        .map((src) => optimizedImage(src as string, { width: 480, quality: 70 })) as string[],
     [products],
   );
 
@@ -340,7 +346,12 @@ function Loja() {
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
               {products.map((p, i) => (
-                <ProductCard key={p.id} product={p as any} priority={i < 3} />
+                <div
+                  key={p.id}
+                  className={i < 4 ? undefined : "[content-visibility:auto] [contain-intrinsic-size:360px]"}
+                >
+                  <ProductCard product={p as any} priority={i < 3} />
+                </div>
               ))}
             </div>
 

@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Zap, Tag, ShoppingBag } from "lucide-react";
 import { brl, discountPct } from "@/lib/format";
 import type { Product } from "@/lib/products";
+import { optimizedImage, optimizedSrcSet } from "@/lib/image-url";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function DiscountCard({ product, index }: { product: Product; index: number }) {
@@ -12,7 +13,7 @@ function DiscountCard({ product, index }: { product: Product; index: number }) {
 
   return (
     <div
-      className="snap-start snap-mandatory flex-shrink-0 w-[210px] sm:w-[240px]"
+      className="snap-start snap-mandatory flex-shrink-0 w-[210px] sm:w-[240px] [content-visibility:auto] [contain-intrinsic-size:320px]"
       style={{ animationDelay: `${index * 0.08}s` }}
     >
       <div className="group relative flex flex-col bg-card rounded-2xl overflow-hidden border border-border hover:border-primary transition-all duration-300 hover:shadow-deal hover:-translate-y-1">
@@ -27,9 +28,14 @@ function DiscountCard({ product, index }: { product: Product; index: number }) {
                 />
               )}
               <img
-                src={product.image_url}
+                src={optimizedImage(product.image_url, { width: 360, quality: 70 })}
+                srcSet={optimizedSrcSet(product.image_url, 360, 70)}
+                sizes="(min-width: 640px) 240px, 210px"
+                width={360}
+                height={270}
                 alt={product.name}
                 loading="lazy"
+                decoding="async"
                 onLoad={() => setLoaded(true)}
                 onError={() => setErrored(true)}
                 className={`w-full h-full object-cover group-hover:scale-110 transition-all duration-500 ${loaded ? "opacity-100" : "opacity-0"}`}
