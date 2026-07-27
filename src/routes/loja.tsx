@@ -346,7 +346,12 @@ function Loja() {
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
               {products.map((p, i) => (
-                <ProductCard key={p.id} product={p as any} priority={i < 3} />
+                <div
+                  key={p.id}
+                  className={i < 4 ? undefined : "[content-visibility:auto] [contain-intrinsic-size:360px]"}
+                >
+                  <ProductCard product={p as any} priority={i < 3} />
+                </div>
               ))}
             </div>
 
