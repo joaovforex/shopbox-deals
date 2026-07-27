@@ -159,6 +159,8 @@ export function MegaOffersCarousel({ products }: { products: ProductCardData[] }
 
 function MegaCard({ p, off }: { p: ProductCardData; off: number }) {
   const cover = productImages(p)[0];
+  const optimizedSrc = cover ? optimizedImage(cover, { width: 300, quality: 65 }) : "";
+  const srcSet = cover ? optimizedSrcSet(cover, 300, 65) : undefined;
   const [loaded, setLoaded] = useState(false);
   const [errored, setErrored] = useState(false);
   return (
@@ -166,7 +168,7 @@ function MegaCard({ p, off }: { p: ProductCardData; off: number }) {
       data-mega-card
       to="/produto/$id"
       params={{ id: p.id }}
-      className="snap-start flex-shrink-0 w-[170px] sm:w-[200px] bg-card rounded-xl border border-border hover:border-deal transition-all overflow-hidden group active:scale-[0.98]"
+      className="snap-start flex-shrink-0 w-[170px] sm:w-[200px] bg-card rounded-xl border border-border hover:border-deal transition-all overflow-hidden group active:scale-[0.98] [content-visibility:auto] [contain-intrinsic-size:260px]"
     >
       <div className="aspect-square bg-muted relative overflow-hidden">
         {cover && !errored ? (
@@ -178,7 +180,11 @@ function MegaCard({ p, off }: { p: ProductCardData; off: number }) {
               />
             )}
             <img
-              src={cover}
+              src={optimizedSrc}
+              srcSet={srcSet}
+              sizes="(min-width: 640px) 200px, 170px"
+              width={300}
+              height={300}
               alt={p.name}
               loading="lazy"
               decoding="async"
