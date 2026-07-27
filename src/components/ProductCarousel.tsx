@@ -186,7 +186,17 @@ export function ProductCarousel({
                   </span>
                 </>
               ) : (
-                <img src={src} alt={`${alt} miniatura ${idx + 1}`} className="w-full h-full object-cover" />
+                <img
+                  src={optimizedImage(src, { width: 128, quality: 65 })}
+                  srcSet={optimizedSrcSet(src, 128, 65)}
+                  width={64}
+                  height={64}
+                  loading="lazy"
+                  decoding="async"
+                  alt={`${alt} miniatura ${idx + 1}`}
+                  className="w-full h-full object-cover"
+                />
+
               )}
             </button>
           ))}
