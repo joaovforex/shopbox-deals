@@ -71,8 +71,13 @@ export function ProductCarousel({
               />
             ) : (
               <img
-                src={images[i]}
+                src={optimizedImage(images[i], { width: 800, quality: 75 })}
+                srcSet={optimizedSrcSet(images[i], 800, 75)}
+                sizes="(min-width: 768px) 600px, 100vw"
+                width={800}
+                height={800}
                 alt={`${alt} ${i + 1}`}
+                decoding="async"
                 className="w-full h-full object-contain"
                 draggable={false}
               />
