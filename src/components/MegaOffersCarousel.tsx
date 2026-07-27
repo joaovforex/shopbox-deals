@@ -30,9 +30,10 @@ export function MegaOffersCarousel({ products }: { products: ProductCardData[] }
 
   if (mega.length === 0) return null;
 
-  // Só duplica a lista para o efeito de loop quando há itens suficientes;
-  // com poucos itens, repetir cria a sensação de "produto duplicado".
-  const items = mega.length >= 6 ? [...mega, ...mega] : mega;
+  // Limita a base para reduzir memória no iOS, e só duplica quando há itens
+  // suficientes para o loop ficar contínuo.
+  const base = mega.slice(0, 20);
+  const items = base.length >= 6 ? [...base, ...base] : base;
 
   const stepWidth = () => {
     const el = scrollRef.current;
