@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { ChevronLeft, ChevronRight, Zap, Tag, ShoppingBag } from "lucide-react";
 import { brl, discountPct } from "@/lib/format";
 import type { Product } from "@/lib/products";
+import { optimizedImage, optimizedSrcSet } from "@/lib/image-url";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function DiscountCard({ product, index }: { product: Product; index: number }) {
