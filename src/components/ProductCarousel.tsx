@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, X, ZoomIn, Play } from "lucide-react";
 import { isVideoUrl } from "@/lib/products";
+import { optimizedImage, optimizedSrcSet } from "@/lib/image-url";
 
 export function ProductCarousel({
   images,
