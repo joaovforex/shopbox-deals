@@ -145,7 +145,12 @@ function Loja() {
   };
 
   const preloadImgs = useMemo(
-    () => products.slice(0, 3).map((p) => productImages(p)[0]).filter(Boolean) as string[],
+    () =>
+      products
+        .slice(0, 3)
+        .map((p) => productImages(p)[0])
+        .filter(Boolean)
+        .map((src) => optimizedImage(src as string, { width: 480, quality: 70 })) as string[],
     [products],
   );
 
