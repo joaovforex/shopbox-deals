@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Flame, Zap } from "lucide-react";
 import { brl, discountPct } from "@/lib/format";
 import type { ProductCard as ProductCardData } from "@/lib/products";
 import { productImages } from "@/lib/products";
+import { optimizedImage, optimizedSrcSet } from "@/lib/image-url";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const MIN_OFF = 30;
