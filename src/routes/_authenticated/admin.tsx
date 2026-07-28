@@ -13,6 +13,7 @@ import { brl, discountPct, postDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ProductForm, PRODUCT_FORM_DRAFT_KEY as DRAFT_KEY } from "@/components/ProductForm";
 import { BulkShareDialog } from "@/components/BulkShareDialog";
+import { AdminSkeleton } from "@/components/admin/AdminSkeleton";
 
 
 
