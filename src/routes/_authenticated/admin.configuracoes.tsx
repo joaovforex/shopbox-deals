@@ -32,6 +32,7 @@ function SettingsPage() {
   const [ratePct, setRatePct] = useState<string>("");
   const [desktopUrl, setDesktopUrl] = useState<string>("");
   const [mobileUrl, setMobileUrl] = useState<string>("");
+  const [storeAddress, setStoreAddress] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [uploadingDesk, setUploadingDesk] = useState(false);
   const [uploadingMob, setUploadingMob] = useState(false);
@@ -43,6 +44,7 @@ function SettingsPage() {
     setRatePct(String(Math.round((data.cashback_rate ?? 0.05) * 10000) / 100));
     setDesktopUrl(data.banner_desktop_url ?? "");
     setMobileUrl(data.banner_mobile_url ?? "");
+    setStoreAddress(data.store_address ?? "");
   }, [data]);
 
   async function uploadImage(file: File, kind: "desktop" | "mobile"): Promise<string | null> {
@@ -118,6 +120,7 @@ function SettingsPage() {
         cashback_rate: Math.round(rateNum * 100) / 10000, // 5 => 0.05
         banner_desktop_url: desktopUrl || null,
         banner_mobile_url: mobileUrl || null,
+        store_address: storeAddress.trim(),
       })
       .eq("id", 1);
     setSaving(false);
@@ -208,8 +211,27 @@ function SettingsPage() {
           onChange={onPickMobile}
         />
 
+        {/* Endereço físico */}
+        <section className="bg-card border-2 border-border rounded-lg p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <ImageIcon className="h-5 w-5 text-primary" />
+            <h2 className="display text-xl">Endereço da loja</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-3">
+            Fonte única do endereço físico usado no rodapé, FAQ, botão de mapa e recibos.
+          </p>
+          <input
+            type="text"
+            value={storeAddress}
+            onChange={(e) => setStoreAddress(e.target.value)}
+            placeholder="Rua, número — Bairro, Cidade / UF"
+            className="w-full bg-background border-2 border-border rounded-md px-3 py-2 text-sm"
+          />
+        </section>
+
         {/* Desconto em massa */}
         <MassDiscountSection currentPct={Number(data?.global_discount_percent ?? 0)} onDone={() => qc.invalidateQueries({ queryKey: ["site_settings"] })} />
+
 
         <div className="sticky bottom-4 z-10">
           <button

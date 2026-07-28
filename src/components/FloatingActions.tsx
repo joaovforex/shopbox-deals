@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useRouterState } from "@tanstack/react-router";
 import { Instagram, MapPin, MessageCircle, ChevronUp, X, Users } from "lucide-react";
+import { useSiteSettings } from "@/lib/site-settings";
 
 const WHATSAPP_MESSAGE = "Preciso de ajuda com a loja online.";
 const INSTAGRAM_URL = "https://www.instagram.com/shopbox.colombo/";
-const MAPS_ADDRESS = "Rua Abel Scuissiato, 2996";
+// Endereço padrão sincronizado com src/lib/whatsapp.ts — o valor real vem de site_settings.store_address.
+const DEFAULT_MAPS_ADDRESS = "Rua Emílio Gleber, 1118 — Atuba, Colombo / PR";
 const GROUP_URL = "https://shopboxonline.com/grupowhatsapp";
 
 const CONTACTS = [
@@ -29,6 +31,9 @@ export function FloatingActions() {
   const path = router.location.pathname;
   const [whatsappOpen, setWhatsappOpen] = useState(false);
 
+  const { data: settings } = useSiteSettings();
+  const mapsAddress = settings?.store_address?.trim() || DEFAULT_MAPS_ADDRESS;
+
   // Não exibe em rotas de admin, pedidos autenticados, auth ou reset
   if (
     path.startsWith("/admin") ||
@@ -40,7 +45,7 @@ export function FloatingActions() {
     return null;
   }
 
-  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(MAPS_ADDRESS)}`;
+  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsAddress)}`;
 
   return (
     <div className="fixed bottom-20 right-4 z-50 flex flex-col gap-3 items-end md:bottom-8 md:right-8">

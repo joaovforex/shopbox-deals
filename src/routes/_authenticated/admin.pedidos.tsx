@@ -12,6 +12,8 @@ import type { DateRange } from "react-day-picker";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
 import { ExchangeVoucherModal } from "@/components/ExchangeVoucherModal";
+import { DeleteOrderDialog } from "@/components/admin/DeleteOrderDialog";
+import { AdminSkeleton } from "@/components/admin/AdminSkeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { isAdmin, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
@@ -20,6 +22,10 @@ import { refundOrder } from "@/lib/refunds.functions";
 import { createExchangeVoucher } from "@/lib/exchange-vouchers.functions";
 import { listAllCustomers } from "@/lib/customers.functions";
 import { getPosChargesMetrics } from "@/lib/caixa-qr.functions";
+import { logAudit } from "@/lib/audit";
+import { maskCpf, maskEmail, maskPhone, formatCpfFull, formatPhoneFull } from "@/lib/mask";
+import { Eye, EyeOff } from "lucide-react";
+
 
 
 export const Route = createFileRoute("/_authenticated/admin/pedidos")({
@@ -89,6 +95,8 @@ function OrdersPanel() {
   const [showFilters, setShowFilters] = useState(false);
   const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
   const [voucherTarget, setVoucherTarget] = useState<OrderRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<OrderRow | null>(null);
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const refundFn = useServerFn(refundOrder);
   const voucherFn = useServerFn(createExchangeVoucher);
   const listCustomersFn = useServerFn(listAllCustomers);
@@ -369,21 +377,42 @@ function OrdersPanel() {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   }
 
-  async function deleteOrder(id: string) {
-    if (!confirm("Excluir este pedido? Esta ação não pode ser desfeita.")) return;
+  async function deleteOrder(target: OrderRow) {
     setBusy(true);
     try {
-      const { error: e1 } = await supabase.from("order_items").delete().eq("order_id", id);
+      const { error: e1 } = await supabase.from("order_items").delete().eq("order_id", target.id);
       if (e1) throw e1;
-      const { error: e2 } = await supabase.from("orders").delete().eq("id", id);
+      const { error: e2 } = await supabase.from("orders").delete().eq("id", target.id);
       if (e2) throw e2;
+      await logAudit({
+        action: "order.delete",
+        entity: "order",
+        entity_id: target.id,
+        details: {
+          customer_name: target.customer_name,
+          total: target.total,
+          status: target.status,
+          payment_method: target.payment_method,
+        },
+      });
       toast.success("Pedido excluído");
+      setDeleteTarget(null);
       qc.invalidateQueries({ queryKey: ["admin-orders"] });
-    } catch (err: any) {
-      toast.error("Falha ao excluir: " + (err?.message ?? "erro"));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "erro";
+      toast.error("Falha ao excluir: " + msg);
     } finally {
       setBusy(false);
     }
+  }
+
+  function toggleReveal(key: string) {
+    setRevealed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   }
 
   async function wipeAll() {
@@ -397,6 +426,7 @@ function OrdersPanel() {
       if (e1) throw e1;
       const { error: e2 } = await supabase.from("orders").delete().not("id", "is", null);
       if (e2) throw e2;
+      await logAudit({ action: "orders.wipe_all", entity: "orders", entity_id: null });
       toast.success("Todos os pedidos foram excluídos");
       setWipeOpen(false);
       setWipeConfirm("");
@@ -834,10 +864,35 @@ function OrdersPanel() {
                         </td>
                         <td className="p-3 text-xs">{new Date(o.created_at).toLocaleString("pt-BR")}</td>
                         <td className="p-3">{o.customer_name}</td>
-                        <td className="p-3 text-xs font-mono">{formatCpf(o.customer_cpf)}</td>
+                        <td className="p-3 text-xs font-mono">
+                          <RevealField
+                            value={o.customer_cpf}
+                            reveal={revealed.has(`cpf:${o.id}`)}
+                            onToggle={() => toggleReveal(`cpf:${o.id}`)}
+                            masked={maskCpf(o.customer_cpf)}
+                            full={formatCpfFull(o.customer_cpf)}
+                          />
+                        </td>
                         <td className="p-3 text-xs">
-                          {o.customer_phone && <div>{formatPhone(o.customer_phone)}</div>}
-                          {o.customer_email && <div className="text-muted-foreground">{o.customer_email}</div>}
+                          {o.customer_phone && (
+                            <RevealField
+                              value={o.customer_phone}
+                              reveal={revealed.has(`ph:${o.id}`)}
+                              onToggle={() => toggleReveal(`ph:${o.id}`)}
+                              masked={maskPhone(o.customer_phone)}
+                              full={formatPhoneFull(o.customer_phone)}
+                            />
+                          )}
+                          {o.customer_email && (
+                            <RevealField
+                              className="text-muted-foreground"
+                              value={o.customer_email}
+                              reveal={revealed.has(`em:${o.id}`)}
+                              onToggle={() => toggleReveal(`em:${o.id}`)}
+                              masked={maskEmail(o.customer_email)}
+                              full={o.customer_email}
+                            />
+                          )}
                         </td>
                         <td className="p-3 text-xs uppercase">
                           <span className={`px-2 py-0.5 rounded font-bold ${o.delivery_method === "pickup" ? "bg-accent/20 text-accent" : "bg-primary/15 text-primary"}`}>
@@ -853,7 +908,7 @@ function OrdersPanel() {
                                 onClick={() => setRefundTarget(o)}
                                 disabled={busy}
                                 title="Estornar via Mercado Pago"
-                                className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 px-2 py-1 rounded disabled:opacity-50 mr-1"
+                                className="min-h-9 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 px-2 py-1 rounded disabled:opacity-50 mr-1"
                               >
                                 <Undo2 className="h-3.5 w-3.5" /> Estornar
                               </button>
@@ -865,10 +920,10 @@ function OrdersPanel() {
                             )}
 
                             <button
-                              onClick={() => deleteOrder(o.id)}
+                              onClick={() => setDeleteTarget(o)}
                               disabled={busy}
-                              title="Excluir pedido"
-                              className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-destructive hover:bg-destructive/10 px-2 py-1 rounded disabled:opacity-50"
+                              title="Excluir pedido (Super Admin)"
+                              className="min-h-9 inline-flex items-center gap-1 text-xs font-black uppercase tracking-wider text-destructive-foreground bg-destructive hover:opacity-90 px-2 py-1 rounded disabled:opacity-50"
                             >
                               <Trash2 className="h-3.5 w-3.5" /> Excluir
                             </button>
@@ -879,6 +934,7 @@ function OrdersPanel() {
                   </tbody>
                 </table>
               </div>
+
 
               {/* Mobile cards */}
               <ul className="md:hidden divide-y divide-border">
@@ -892,11 +948,45 @@ function OrdersPanel() {
                     </div>
                     <div className="text-sm font-semibold break-words">{o.customer_name}</div>
                     {o.customer_cpf && (
-                      <div className="text-[11px] font-mono text-muted-foreground">CPF: {formatCpf(o.customer_cpf)}</div>
+                      <div className="text-[11px] font-mono text-muted-foreground">
+                        CPF:{" "}
+                        <RevealField
+                          value={o.customer_cpf}
+                          reveal={revealed.has(`cpf:${o.id}`)}
+                          onToggle={() => toggleReveal(`cpf:${o.id}`)}
+                          masked={maskCpf(o.customer_cpf)}
+                          full={formatCpfFull(o.customer_cpf)}
+                          inline
+                        />
+                      </div>
                     )}
                     <div className="text-xs text-muted-foreground space-y-0.5">
-                      {o.customer_phone && <div>📱 {formatPhone(o.customer_phone)}</div>}
-                      {o.customer_email && <div className="break-all">✉️ {o.customer_email}</div>}
+                      {o.customer_phone && (
+                        <div>
+                          📱{" "}
+                          <RevealField
+                            value={o.customer_phone}
+                            reveal={revealed.has(`ph:${o.id}`)}
+                            onToggle={() => toggleReveal(`ph:${o.id}`)}
+                            masked={maskPhone(o.customer_phone)}
+                            full={formatPhoneFull(o.customer_phone)}
+                            inline
+                          />
+                        </div>
+                      )}
+                      {o.customer_email && (
+                        <div className="break-all">
+                          ✉️{" "}
+                          <RevealField
+                            value={o.customer_email}
+                            reveal={revealed.has(`em:${o.id}`)}
+                            onToggle={() => toggleReveal(`em:${o.id}`)}
+                            masked={maskEmail(o.customer_email)}
+                            full={o.customer_email}
+                            inline
+                          />
+                        </div>
+                      )}
                       <div>🕒 {new Date(o.created_at).toLocaleString("pt-BR")}</div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -914,7 +1004,7 @@ function OrdersPanel() {
                         <button
                           onClick={() => setRefundTarget(o)}
                           disabled={busy}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 border border-amber-500/40 px-2 py-1 rounded disabled:opacity-50"
+                          className="min-h-11 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 border border-amber-500/40 px-3 py-2 rounded disabled:opacity-50"
                         >
                           <Undo2 className="h-3 w-3" /> Estornar
                         </button>
@@ -923,21 +1013,22 @@ function OrdersPanel() {
                         <button
                           onClick={() => setVoucherTarget(o)}
                           disabled={busy}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 border border-emerald-500/40 px-2 py-1 rounded disabled:opacity-50"
+                          className="min-h-11 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 border border-emerald-500/40 px-3 py-2 rounded disabled:opacity-50"
                         >
                           <Gift className="h-3 w-3" /> Vale-Troca
                         </button>
                       )}
                       {superAdmin && (
                         <button
-                          onClick={() => deleteOrder(o.id)}
+                          onClick={() => setDeleteTarget(o)}
                           disabled={busy}
-                          className="ml-auto inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-destructive border border-destructive/40 px-2 py-1 rounded disabled:opacity-50"
+                          className="min-h-11 ml-auto inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider bg-destructive text-destructive-foreground px-3 py-2 rounded disabled:opacity-50"
                         >
                           <Trash2 className="h-3 w-3" /> Excluir
                         </button>
                       )}
                     </div>
+
                   </li>
                 ))}
               </ul>
@@ -1052,22 +1143,52 @@ function OrdersPanel() {
           }}
         />
       )}
+      {deleteTarget && (
+        <DeleteOrderDialog
+          orderId={deleteTarget.id}
+          busy={busy}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={() => deleteOrder(deleteTarget)}
+        />
+      )}
     </Shell>
   );
 }
 
-function formatPhone(d: string) {
-  const s = d.replace(/\D/g, "");
-  if (s.length === 11) return `(${s.slice(0, 2)}) ${s.slice(2, 7)}-${s.slice(7)}`;
-  if (s.length === 10) return `(${s.slice(0, 2)}) ${s.slice(2, 6)}-${s.slice(6)}`;
-  return d;
+function RevealField({
+  value,
+  masked,
+  full,
+  reveal,
+  onToggle,
+  className,
+  inline,
+}: {
+  value: string | null | undefined;
+  masked: string;
+  full: string;
+  reveal: boolean;
+  onToggle: () => void;
+  className?: string;
+  inline?: boolean;
+}) {
+  if (!value) return <span className={className}>—</span>;
+  return (
+    <span className={cn("inline-flex items-center gap-1", className)}>
+      <span className={inline ? "" : "select-all"}>{reveal ? full : masked}</span>
+      <button
+        type="button"
+        onClick={onToggle}
+        title={reveal ? "Ocultar" : "Revelar"}
+        aria-label={reveal ? "Ocultar dado" : "Revelar dado"}
+        className="text-muted-foreground hover:text-foreground p-0.5 rounded"
+      >
+        {reveal ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+      </button>
+    </span>
+  );
 }
 
-function formatCpf(c: string | null) {
-  if (!c) return "—";
-  const d = c.replace(/\D/g, "").padStart(11, "0").slice(0, 11);
-  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
-}
 
 function generateInsight(
   ranking: { name: string; qty: number; revenue: number }[],

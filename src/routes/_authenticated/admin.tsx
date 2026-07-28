@@ -13,6 +13,7 @@ import { brl, discountPct, postDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ProductForm, PRODUCT_FORM_DRAFT_KEY as DRAFT_KEY } from "@/components/ProductForm";
 import { BulkShareDialog } from "@/components/BulkShareDialog";
+import { AdminSkeleton } from "@/components/admin/AdminSkeleton";
 
 
 
@@ -547,12 +548,16 @@ function AdminPage() {
             || (p.sku ?? "").toLowerCase().includes(t);
           const filtered = t ? byCat.filter(match) : byCat;
           if (products.length === 0) {
+            if (isFetchingProducts) {
+              return <AdminSkeleton variant="cards" rows={8} />;
+            }
             return (
               <div className="text-center py-20 bg-card rounded-lg border border-border">
                 <p className="text-muted-foreground">Nenhum produto ainda. Clique em "Novo produto" para começar.</p>
               </div>
             );
           }
+
           if (filtered.length === 0) {
             return (
               <div className="text-center py-20 bg-card rounded-lg border border-border">

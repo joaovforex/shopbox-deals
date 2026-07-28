@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json
+          entity: string
+          entity_id: string | null
+          id: string
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json
+          entity: string
+          entity_id?: string | null
+          id?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json
+          entity?: string
+          entity_id?: string | null
+          id?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
       admin_notifications: {
         Row: {
           body: string | null
@@ -1336,6 +1369,7 @@ export type Database = {
           cashback_rate: number
           global_discount_percent: number
           id: number
+          store_address: string
           updated_at: string
           updated_by: string | null
         }
@@ -1345,6 +1379,7 @@ export type Database = {
           cashback_rate?: number
           global_discount_percent?: number
           id?: number
+          store_address?: string
           updated_at?: string
           updated_by?: string | null
         }
@@ -1354,6 +1389,7 @@ export type Database = {
           cashback_rate?: number
           global_discount_percent?: number
           id?: number
+          store_address?: string
           updated_at?: string
           updated_by?: string | null
         }
