@@ -95,6 +95,8 @@ function OrdersPanel() {
   const [showFilters, setShowFilters] = useState(false);
   const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
   const [voucherTarget, setVoucherTarget] = useState<OrderRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<OrderRow | null>(null);
+  const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const refundFn = useServerFn(refundOrder);
   const voucherFn = useServerFn(createExchangeVoucher);
   const listCustomersFn = useServerFn(listAllCustomers);
