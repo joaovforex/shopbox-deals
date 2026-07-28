@@ -31,6 +31,9 @@ export function FloatingActions() {
   const path = router.location.pathname;
   const [whatsappOpen, setWhatsappOpen] = useState(false);
 
+  const { data: settings } = useSiteSettings();
+  const mapsAddress = settings?.store_address?.trim() || DEFAULT_MAPS_ADDRESS;
+
   // Não exibe em rotas de admin, pedidos autenticados, auth ou reset
   if (
     path.startsWith("/admin") ||
@@ -42,7 +45,7 @@ export function FloatingActions() {
     return null;
   }
 
-  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(MAPS_ADDRESS)}`;
+  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsAddress)}`;
 
   return (
     <div className="fixed bottom-20 right-4 z-50 flex flex-col gap-3 items-end md:bottom-8 md:right-8">
