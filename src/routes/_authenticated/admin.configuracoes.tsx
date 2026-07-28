@@ -211,8 +211,27 @@ function SettingsPage() {
           onChange={onPickMobile}
         />
 
+        {/* Endereço físico */}
+        <section className="bg-card border-2 border-border rounded-lg p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <ImageIcon className="h-5 w-5 text-primary" />
+            <h2 className="display text-xl">Endereço da loja</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-3">
+            Fonte única do endereço físico usado no rodapé, FAQ, botão de mapa e recibos.
+          </p>
+          <input
+            type="text"
+            value={storeAddress}
+            onChange={(e) => setStoreAddress(e.target.value)}
+            placeholder="Rua, número — Bairro, Cidade / UF"
+            className="w-full bg-background border-2 border-border rounded-md px-3 py-2 text-sm"
+          />
+        </section>
+
         {/* Desconto em massa */}
         <MassDiscountSection currentPct={Number(data?.global_discount_percent ?? 0)} onDone={() => qc.invalidateQueries({ queryKey: ["site_settings"] })} />
+
 
         <div className="sticky bottom-4 z-10">
           <button
