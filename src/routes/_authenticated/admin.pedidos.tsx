@@ -377,21 +377,42 @@ function OrdersPanel() {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   }
 
-  async function deleteOrder(id: string) {
-    if (!confirm("Excluir este pedido? Esta ação não pode ser desfeita.")) return;
+  async function deleteOrder(target: OrderRow) {
     setBusy(true);
     try {
-      const { error: e1 } = await supabase.from("order_items").delete().eq("order_id", id);
+      const { error: e1 } = await supabase.from("order_items").delete().eq("order_id", target.id);
       if (e1) throw e1;
-      const { error: e2 } = await supabase.from("orders").delete().eq("id", id);
+      const { error: e2 } = await supabase.from("orders").delete().eq("id", target.id);
       if (e2) throw e2;
+      await logAudit({
+        action: "order.delete",
+        entity: "order",
+        entity_id: target.id,
+        details: {
+          customer_name: target.customer_name,
+          total: target.total,
+          status: target.status,
+          payment_method: target.payment_method,
+        },
+      });
       toast.success("Pedido excluído");
+      setDeleteTarget(null);
       qc.invalidateQueries({ queryKey: ["admin-orders"] });
-    } catch (err: any) {
-      toast.error("Falha ao excluir: " + (err?.message ?? "erro"));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "erro";
+      toast.error("Falha ao excluir: " + msg);
     } finally {
       setBusy(false);
     }
+  }
+
+  function toggleReveal(key: string) {
+    setRevealed((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   }
 
   async function wipeAll() {
