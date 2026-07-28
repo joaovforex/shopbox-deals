@@ -12,6 +12,8 @@ import type { DateRange } from "react-day-picker";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
 import { ExchangeVoucherModal } from "@/components/ExchangeVoucherModal";
+import { DeleteOrderDialog } from "@/components/admin/DeleteOrderDialog";
+import { AdminSkeleton } from "@/components/admin/AdminSkeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { isAdmin, isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
@@ -20,6 +22,10 @@ import { refundOrder } from "@/lib/refunds.functions";
 import { createExchangeVoucher } from "@/lib/exchange-vouchers.functions";
 import { listAllCustomers } from "@/lib/customers.functions";
 import { getPosChargesMetrics } from "@/lib/caixa-qr.functions";
+import { logAudit } from "@/lib/audit";
+import { maskCpf, maskEmail, maskPhone, formatCpfFull, formatPhoneFull } from "@/lib/mask";
+import { Eye, EyeOff } from "lucide-react";
+
 
 
 export const Route = createFileRoute("/_authenticated/admin/pedidos")({
