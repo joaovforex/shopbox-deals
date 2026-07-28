@@ -426,6 +426,7 @@ function OrdersPanel() {
       if (e1) throw e1;
       const { error: e2 } = await supabase.from("orders").delete().not("id", "is", null);
       if (e2) throw e2;
+      await logAudit({ action: "orders.wipe_all", entity: "orders", entity_id: null });
       toast.success("Todos os pedidos foram excluídos");
       setWipeOpen(false);
       setWipeConfirm("");
