@@ -120,7 +120,7 @@ function SettingsPage() {
         cashback_rate: Math.round(rateNum * 100) / 10000, // 5 => 0.05
         banner_desktop_url: desktopUrl || null,
         banner_mobile_url: mobileUrl || null,
-        store_address: storeAddress.trim() || null,
+        store_address: storeAddress.trim(),
       })
       .eq("id", 1);
     setSaving(false);
