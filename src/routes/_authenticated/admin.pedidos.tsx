@@ -863,10 +863,35 @@ function OrdersPanel() {
                         </td>
                         <td className="p-3 text-xs">{new Date(o.created_at).toLocaleString("pt-BR")}</td>
                         <td className="p-3">{o.customer_name}</td>
-                        <td className="p-3 text-xs font-mono">{formatCpf(o.customer_cpf)}</td>
+                        <td className="p-3 text-xs font-mono">
+                          <RevealField
+                            value={o.customer_cpf}
+                            reveal={revealed.has(`cpf:${o.id}`)}
+                            onToggle={() => toggleReveal(`cpf:${o.id}`)}
+                            masked={maskCpf(o.customer_cpf)}
+                            full={formatCpfFull(o.customer_cpf)}
+                          />
+                        </td>
                         <td className="p-3 text-xs">
-                          {o.customer_phone && <div>{formatPhone(o.customer_phone)}</div>}
-                          {o.customer_email && <div className="text-muted-foreground">{o.customer_email}</div>}
+                          {o.customer_phone && (
+                            <RevealField
+                              value={o.customer_phone}
+                              reveal={revealed.has(`ph:${o.id}`)}
+                              onToggle={() => toggleReveal(`ph:${o.id}`)}
+                              masked={maskPhone(o.customer_phone)}
+                              full={formatPhoneFull(o.customer_phone)}
+                            />
+                          )}
+                          {o.customer_email && (
+                            <RevealField
+                              className="text-muted-foreground"
+                              value={o.customer_email}
+                              reveal={revealed.has(`em:${o.id}`)}
+                              onToggle={() => toggleReveal(`em:${o.id}`)}
+                              masked={maskEmail(o.customer_email)}
+                              full={o.customer_email}
+                            />
+                          )}
                         </td>
                         <td className="p-3 text-xs uppercase">
                           <span className={`px-2 py-0.5 rounded font-bold ${o.delivery_method === "pickup" ? "bg-accent/20 text-accent" : "bg-primary/15 text-primary"}`}>
@@ -882,7 +907,7 @@ function OrdersPanel() {
                                 onClick={() => setRefundTarget(o)}
                                 disabled={busy}
                                 title="Estornar via Mercado Pago"
-                                className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 px-2 py-1 rounded disabled:opacity-50 mr-1"
+                                className="min-h-9 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 px-2 py-1 rounded disabled:opacity-50 mr-1"
                               >
                                 <Undo2 className="h-3.5 w-3.5" /> Estornar
                               </button>
@@ -894,10 +919,10 @@ function OrdersPanel() {
                             )}
 
                             <button
-                              onClick={() => deleteOrder(o.id)}
+                              onClick={() => setDeleteTarget(o)}
                               disabled={busy}
-                              title="Excluir pedido"
-                              className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-destructive hover:bg-destructive/10 px-2 py-1 rounded disabled:opacity-50"
+                              title="Excluir pedido (Super Admin)"
+                              className="min-h-9 inline-flex items-center gap-1 text-xs font-black uppercase tracking-wider text-destructive-foreground bg-destructive hover:opacity-90 px-2 py-1 rounded disabled:opacity-50"
                             >
                               <Trash2 className="h-3.5 w-3.5" /> Excluir
                             </button>
@@ -908,6 +933,7 @@ function OrdersPanel() {
                   </tbody>
                 </table>
               </div>
+
 
               {/* Mobile cards */}
               <ul className="md:hidden divide-y divide-border">
