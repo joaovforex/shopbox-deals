@@ -1142,22 +1142,52 @@ function OrdersPanel() {
           }}
         />
       )}
+      {deleteTarget && (
+        <DeleteOrderDialog
+          orderId={deleteTarget.id}
+          busy={busy}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={() => deleteOrder(deleteTarget)}
+        />
+      )}
     </Shell>
   );
 }
 
-function formatPhone(d: string) {
-  const s = d.replace(/\D/g, "");
-  if (s.length === 11) return `(${s.slice(0, 2)}) ${s.slice(2, 7)}-${s.slice(7)}`;
-  if (s.length === 10) return `(${s.slice(0, 2)}) ${s.slice(2, 6)}-${s.slice(6)}`;
-  return d;
+function RevealField({
+  value,
+  masked,
+  full,
+  reveal,
+  onToggle,
+  className,
+  inline,
+}: {
+  value: string | null | undefined;
+  masked: string;
+  full: string;
+  reveal: boolean;
+  onToggle: () => void;
+  className?: string;
+  inline?: boolean;
+}) {
+  if (!value) return <span className={className}>—</span>;
+  return (
+    <span className={cn("inline-flex items-center gap-1", className)}>
+      <span className={inline ? "" : "select-all"}>{reveal ? full : masked}</span>
+      <button
+        type="button"
+        onClick={onToggle}
+        title={reveal ? "Ocultar" : "Revelar"}
+        aria-label={reveal ? "Ocultar dado" : "Revelar dado"}
+        className="text-muted-foreground hover:text-foreground p-0.5 rounded"
+      >
+        {reveal ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+      </button>
+    </span>
+  );
 }
 
-function formatCpf(c: string | null) {
-  if (!c) return "—";
-  const d = c.replace(/\D/g, "").padStart(11, "0").slice(0, 11);
-  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
-}
 
 function generateInsight(
   ranking: { name: string; qty: number; revenue: number }[],
