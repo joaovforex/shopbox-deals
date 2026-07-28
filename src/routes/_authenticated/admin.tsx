@@ -547,12 +547,16 @@ function AdminPage() {
             || (p.sku ?? "").toLowerCase().includes(t);
           const filtered = t ? byCat.filter(match) : byCat;
           if (products.length === 0) {
+            if (isFetchingProducts) {
+              return <AdminSkeleton variant="cards" count={8} />;
+            }
             return (
               <div className="text-center py-20 bg-card rounded-lg border border-border">
                 <p className="text-muted-foreground">Nenhum produto ainda. Clique em "Novo produto" para começar.</p>
               </div>
             );
           }
+
           if (filtered.length === 0) {
             return (
               <div className="text-center py-20 bg-card rounded-lg border border-border">
