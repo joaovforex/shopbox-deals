@@ -549,7 +549,7 @@ function AdminPage() {
           const filtered = t ? byCat.filter(match) : byCat;
           if (products.length === 0) {
             if (isFetchingProducts) {
-              return <AdminSkeleton variant="cards" count={8} />;
+              return <AdminSkeleton variant="cards" rows={8} />;
             }
             return (
               <div className="text-center py-20 bg-card rounded-lg border border-border">
