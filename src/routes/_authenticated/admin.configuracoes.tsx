@@ -32,6 +32,7 @@ function SettingsPage() {
   const [ratePct, setRatePct] = useState<string>("");
   const [desktopUrl, setDesktopUrl] = useState<string>("");
   const [mobileUrl, setMobileUrl] = useState<string>("");
+  const [storeAddress, setStoreAddress] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [uploadingDesk, setUploadingDesk] = useState(false);
   const [uploadingMob, setUploadingMob] = useState(false);
@@ -43,6 +44,7 @@ function SettingsPage() {
     setRatePct(String(Math.round((data.cashback_rate ?? 0.05) * 10000) / 100));
     setDesktopUrl(data.banner_desktop_url ?? "");
     setMobileUrl(data.banner_mobile_url ?? "");
+    setStoreAddress(data.store_address ?? "");
   }, [data]);
 
   async function uploadImage(file: File, kind: "desktop" | "mobile"): Promise<string | null> {
