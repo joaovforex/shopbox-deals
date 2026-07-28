@@ -947,11 +947,45 @@ function OrdersPanel() {
                     </div>
                     <div className="text-sm font-semibold break-words">{o.customer_name}</div>
                     {o.customer_cpf && (
-                      <div className="text-[11px] font-mono text-muted-foreground">CPF: {formatCpf(o.customer_cpf)}</div>
+                      <div className="text-[11px] font-mono text-muted-foreground">
+                        CPF:{" "}
+                        <RevealField
+                          value={o.customer_cpf}
+                          reveal={revealed.has(`cpf:${o.id}`)}
+                          onToggle={() => toggleReveal(`cpf:${o.id}`)}
+                          masked={maskCpf(o.customer_cpf)}
+                          full={formatCpfFull(o.customer_cpf)}
+                          inline
+                        />
+                      </div>
                     )}
                     <div className="text-xs text-muted-foreground space-y-0.5">
-                      {o.customer_phone && <div>📱 {formatPhone(o.customer_phone)}</div>}
-                      {o.customer_email && <div className="break-all">✉️ {o.customer_email}</div>}
+                      {o.customer_phone && (
+                        <div>
+                          📱{" "}
+                          <RevealField
+                            value={o.customer_phone}
+                            reveal={revealed.has(`ph:${o.id}`)}
+                            onToggle={() => toggleReveal(`ph:${o.id}`)}
+                            masked={maskPhone(o.customer_phone)}
+                            full={formatPhoneFull(o.customer_phone)}
+                            inline
+                          />
+                        </div>
+                      )}
+                      {o.customer_email && (
+                        <div className="break-all">
+                          ✉️{" "}
+                          <RevealField
+                            value={o.customer_email}
+                            reveal={revealed.has(`em:${o.id}`)}
+                            onToggle={() => toggleReveal(`em:${o.id}`)}
+                            masked={maskEmail(o.customer_email)}
+                            full={o.customer_email}
+                            inline
+                          />
+                        </div>
+                      )}
                       <div>🕒 {new Date(o.created_at).toLocaleString("pt-BR")}</div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -969,7 +1003,7 @@ function OrdersPanel() {
                         <button
                           onClick={() => setRefundTarget(o)}
                           disabled={busy}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 border border-amber-500/40 px-2 py-1 rounded disabled:opacity-50"
+                          className="min-h-11 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 border border-amber-500/40 px-3 py-2 rounded disabled:opacity-50"
                         >
                           <Undo2 className="h-3 w-3" /> Estornar
                         </button>
@@ -978,21 +1012,22 @@ function OrdersPanel() {
                         <button
                           onClick={() => setVoucherTarget(o)}
                           disabled={busy}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 border border-emerald-500/40 px-2 py-1 rounded disabled:opacity-50"
+                          className="min-h-11 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 border border-emerald-500/40 px-3 py-2 rounded disabled:opacity-50"
                         >
                           <Gift className="h-3 w-3" /> Vale-Troca
                         </button>
                       )}
                       {superAdmin && (
                         <button
-                          onClick={() => deleteOrder(o.id)}
+                          onClick={() => setDeleteTarget(o)}
                           disabled={busy}
-                          className="ml-auto inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-destructive border border-destructive/40 px-2 py-1 rounded disabled:opacity-50"
+                          className="min-h-11 ml-auto inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider bg-destructive text-destructive-foreground px-3 py-2 rounded disabled:opacity-50"
                         >
                           <Trash2 className="h-3 w-3" /> Excluir
                         </button>
                       )}
                     </div>
+
                   </li>
                 ))}
               </ul>
