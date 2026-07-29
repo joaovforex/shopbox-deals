@@ -82,7 +82,7 @@ async function processCieloNotification(p: Record<string, unknown>): Promise<voi
   // Formato Link POST form-data
   const checkoutOrderNumber = s(p.checkout_cielo_order_number).trim();
   const orderNumber = s(p.order_number).trim();
-  const paymentStatus = s(p.payment_status).trim();
+  void s(p.payment_status); // ignorado: nunca confiar no status do corpo — sempre reconsultamos.
 
   // Teste de URL / ping: payload vazio → só respondemos 200.
   if (
