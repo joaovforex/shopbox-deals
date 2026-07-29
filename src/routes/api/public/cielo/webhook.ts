@@ -256,11 +256,26 @@ async function applyStatusToOrder(
       p_mp_payment_id: paymentId || orderId,
     });
     if (error) console.error("[cielo:webhook] confirm_order_paid error", error);
+    else {
+      // Registro de auditoria — confirmação após reconsulta oficial na Cielo.
+      await admin
+        .from("admin_audit_log")
+        .insert({
+          user_id: null,
+          user_name: "cielo-webhook",
+          action: "confirm_order_paid",
+          entity: "order",
+          entity_id: orderId,
+          details: { source: "cielo_webhook", cielo_payment_id: paymentId || null, snapshot },
+        })
+        .then(() => undefined, () => undefined);
+    }
   } else if (action === "cancelled") {
     const { error } = await admin.from("orders").update({ status: "cancelled" }).eq("id", orderId);
     if (error) console.error("[cielo:webhook] cancel update error", error);
   }
 }
+
 
 
 function normalizePaymentType(t: string | undefined): string | null {
@@ -273,39 +288,3 @@ function normalizePaymentType(t: string | undefined): string | null {
   return s;
 }
 
-function normalizeLinkPaymentType(t: number): string | null {
-  // Cielo Link payment_method_type: 1 credit, 2 debit, 3 boleto, 6 pix (aprox.)
-  switch (t) {
-    case 1:
-      return "credit_card";
-    case 2:
-      return "debit_card";
-    case 3:
-      return "boleto";
-    case 6:
-      return "pix";
-    default:
-      return null;
-  }
-}
-
-function mapLinkStatus(status: number): "paid" | "cancelled" | "pending" | "noop" {
-  // Cielo Link payment_status codes (docs.cielo.com.br/link/reference/status-codigos)
-  // 1 Pendente, 2 Pago, 3 Negada, 4 Expirada, 5 Cancelada, 6 Não finalizada,
-  // 7 Autorizada, 8 Chargeback
-  switch (status) {
-    case 2:
-    case 7:
-      return "paid";
-    case 3:
-    case 4:
-    case 5:
-    case 6:
-    case 8:
-      return "cancelled";
-    case 1:
-      return "pending";
-    default:
-      return "noop";
-  }
-}
