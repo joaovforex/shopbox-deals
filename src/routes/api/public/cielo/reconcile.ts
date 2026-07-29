@@ -1,29 +1,31 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { safeCompare } from "@/lib/safe-compare.server";
+import { enforceCronIpAllowlist } from "@/lib/ip-allowlist.server";
 
 // Cron endpoint — reconcilia pedidos com pagamento Cielo pendente.
 // Chamado por pg_cron via pg_net a cada 10 minutos.
-// Autenticação: header apikey (Supabase publishable key). O prefixo
-// /api/public/* já dispensa auth de plataforma, mas checamos a apikey
-// para não expor um endpoint totalmente aberto.
-//
-// Como funciona: para cada pedido "pending" Cielo criado nas últimas 48h,
-// consultamos a Cielo pelo order_number (nosso próprio order.id) via
-// /v2/merchantOrderNumber/{order_number} → obtemos o checkoutOrderNumber
-// mais recente → consultamos os detalhes em /v2/orders/{checkoutOrderNumber}
-// → aplicamos o status ao pedido local.
-
+// Autenticação: x-cron-secret (safeCompare) + IP allowlist.
 export const Route = createFileRoute("/api/public/cielo/reconcile")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const providedKey = request.headers.get("apikey") ?? "";
-        const expectedKey = process.env.SUPABASE_PUBLISHABLE_KEY ?? "";
-        if (!expectedKey || providedKey !== expectedKey) {
+        const provided = request.headers.get("x-cron-secret") ?? "";
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const { data: secretRow } = await supabaseAdmin
+          .from("app_secrets" as never)
+          .select("value")
+          .eq("name", "cron_secret")
+          .maybeSingle();
+        const expected = (secretRow as { value?: string } | null)?.value ?? "";
+        if (!expected || !safeCompare(provided, expected)) {
           return new Response("unauthorized", { status: 401 });
         }
 
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const gate = await enforceCronIpAllowlist(request, "cielo-reconcile");
+        if (!gate.ok) return gate.response;
+
         const { getOrderByOrderNumber, mapCieloStatus } = await import("@/lib/cielo.server");
+
 
         const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
         const { data: candidates, error } = await supabaseAdmin

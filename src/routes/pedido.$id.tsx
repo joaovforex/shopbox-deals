@@ -151,12 +151,9 @@ function OrderPage() {
               </div>
               <div className="text-sm flex-1">
                 <p className="font-bold text-foreground mb-1">Entrega em casa</p>
-                {order?.shipping_street && (
+                {order?.shipping_city && (
                   <p className="text-foreground font-semibold">
-                    {order.shipping_street}, {order.shipping_number}
-                    {order.shipping_complement ? ` — ${order.shipping_complement}` : ""}
-                    {order.shipping_district ? `, ${order.shipping_district}` : ""}
-                    {order.shipping_city ? ` — ${order.shipping_city}/${order.shipping_state ?? "PR"}` : ""}
+                    {order.shipping_city}/{order.shipping_state ?? "PR"}
                   </p>
                 )}
                 {meStatus && (
@@ -169,8 +166,12 @@ function OrderPage() {
                     ⏱ Sua entrega chega em até <strong>2 dias úteis</strong>. Acompanhe o status em Meus Pedidos.
                   </p>
                 )}
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Endereço completo disponível em <Link to="/meus-pedidos" className="underline">Meus Pedidos</Link>.
+                </p>
               </div>
             </div>
+
           ) : (
             <div className={`rounded-xl border-2 p-5 mb-6 flex gap-4 ${isReady ? "border-primary bg-primary/5" : "border-border bg-card"}`}>
               <div className={`shrink-0 h-11 w-11 rounded-full flex items-center justify-center ${isReady ? "bg-primary text-primary-foreground" : "bg-primary/15 text-primary"}`}>

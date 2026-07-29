@@ -82,7 +82,7 @@ async function processCieloNotification(p: Record<string, unknown>): Promise<voi
   // Formato Link POST form-data
   const checkoutOrderNumber = s(p.checkout_cielo_order_number).trim();
   const orderNumber = s(p.order_number).trim();
-  const paymentStatus = s(p.payment_status).trim();
+  void s(p.payment_status); // ignorado: nunca confiar no status do corpo — sempre reconsultamos.
 
   // Teste de URL / ping: payload vazio → só respondemos 200.
   if (
@@ -128,48 +128,69 @@ async function processCieloNotification(p: Record<string, unknown>): Promise<voi
 
 
   // === Caso 2: Link de Pagamento (JSON com URL) ===
+  // NUNCA confiamos no payload — sempre reconsultamos a Cielo pela ordem oficial.
   if (linkUrl && merchantOrderNumber) {
-    // Consulta a URL retornada pela Cielo para obter payment_status.
-    let data: Record<string, unknown> | null = null;
-    try {
-      const res = await fetch(linkUrl, { method: "GET" });
-      if (res.ok) data = (await res.json()) as Record<string, unknown>;
-    } catch (err) {
-      console.error("[cielo:webhook] falha ao consultar Url Cielo Link", err);
+    const { getOrderByOrderNumber, mapCieloStatus } = await import("@/lib/cielo.server");
+    const cielo = await getOrderByOrderNumber(merchantOrderNumber).catch(() => null);
+    if (!cielo) {
+      console.warn("[cielo:webhook] Case 2: falha ao reconsultar Cielo", merchantOrderNumber);
+      return;
     }
-    const status = Number(data?.payment_status ?? 0);
-    const localOrderId = s(data?.order_number || merchantOrderNumber);
-    const action = mapLinkStatus(status);
-    if (!localOrderId) return;
-    await applyStatusToOrder(supabaseAdmin, localOrderId, action, s(data?.checkout_cielo_order_number), {
-      cielo_status: `link_${status}`,
-      cielo_tid: s(data?.tid) || null,
-      cielo_authorization_code: s(data?.authorization_code) || null,
-      cielo_return_code: null,
-      cielo_return_message: null,
-      cielo_installments: Number(data?.payment_installments ?? 0) || null,
-      cielo_payment_method: normalizeLinkPaymentType(Number(data?.payment_method_type ?? 0)),
-    });
+    const map = mapCieloStatus(cielo.status);
+    await applyStatusToOrder(
+      supabaseAdmin,
+      merchantOrderNumber,
+      map.order_action,
+      cielo.checkoutOrderNumber ?? "",
+      {
+        cielo_status: map.cielo_status,
+        cielo_tid: cielo.tid ?? null,
+        cielo_authorization_code: cielo.authorizationCode ?? null,
+        cielo_return_code: cielo.returnCode ?? null,
+        cielo_return_message: cielo.returnMessage ?? null,
+        cielo_installments: cielo.installments ?? null,
+        cielo_payment_method: normalizePaymentType(cielo.paymentType),
+      },
+    );
     return;
   }
 
   // === Caso 3: Link de Pagamento (POST form-data) ===
+  // NUNCA confiamos no payment_status do corpo — sempre reconsultamos a Cielo.
   if (orderNumber || checkoutOrderNumber) {
-    const status = Number(paymentStatus || 0);
-    const action = mapLinkStatus(status);
+    const { getOrder, getOrderByOrderNumber, mapCieloStatus } = await import("@/lib/cielo.server");
     const localOrderId = orderNumber || checkoutOrderNumber;
-    await applyStatusToOrder(supabaseAdmin, localOrderId, action, checkoutOrderNumber, {
-      cielo_status: `link_${status}`,
-      cielo_tid: null,
-      cielo_authorization_code: s(p.authorization_code) || null,
-      cielo_return_code: null,
-      cielo_return_message: null,
-      cielo_installments: null,
-      cielo_payment_method: null,
-    });
+    let cielo = null as Awaited<ReturnType<typeof getOrder>>;
+    if (checkoutOrderNumber) {
+      cielo = await getOrder(checkoutOrderNumber).catch(() => null);
+    }
+    if (!cielo && localOrderId) {
+      cielo = await getOrderByOrderNumber(localOrderId).catch(() => null);
+    }
+    if (!cielo) {
+      console.warn("[cielo:webhook] Case 3: falha ao reconsultar Cielo", { localOrderId, checkoutOrderNumber });
+      return;
+    }
+    const map = mapCieloStatus(cielo.status);
+    await applyStatusToOrder(
+      supabaseAdmin,
+      localOrderId,
+      map.order_action,
+      cielo.checkoutOrderNumber ?? checkoutOrderNumber,
+      {
+        cielo_status: map.cielo_status,
+        cielo_tid: cielo.tid ?? null,
+        cielo_authorization_code: cielo.authorizationCode ?? null,
+        cielo_return_code: cielo.returnCode ?? null,
+        cielo_return_message: cielo.returnMessage ?? null,
+        cielo_installments: cielo.installments ?? null,
+        cielo_payment_method: normalizePaymentType(cielo.paymentType),
+      },
+    );
     return;
   }
 }
+
 
 async function resolveOrderUuid(admin: any, candidate: string): Promise<string | null> {
   const raw = (candidate ?? "").trim();
@@ -235,11 +256,26 @@ async function applyStatusToOrder(
       p_mp_payment_id: paymentId || orderId,
     });
     if (error) console.error("[cielo:webhook] confirm_order_paid error", error);
+    else {
+      // Registro de auditoria — confirmação após reconsulta oficial na Cielo.
+      await admin
+        .from("admin_audit_log")
+        .insert({
+          user_id: null,
+          user_name: "cielo-webhook",
+          action: "confirm_order_paid",
+          entity: "order",
+          entity_id: orderId,
+          details: { source: "cielo_webhook", cielo_payment_id: paymentId || null, snapshot },
+        })
+        .then(() => undefined, () => undefined);
+    }
   } else if (action === "cancelled") {
     const { error } = await admin.from("orders").update({ status: "cancelled" }).eq("id", orderId);
     if (error) console.error("[cielo:webhook] cancel update error", error);
   }
 }
+
 
 
 function normalizePaymentType(t: string | undefined): string | null {
@@ -252,39 +288,3 @@ function normalizePaymentType(t: string | undefined): string | null {
   return s;
 }
 
-function normalizeLinkPaymentType(t: number): string | null {
-  // Cielo Link payment_method_type: 1 credit, 2 debit, 3 boleto, 6 pix (aprox.)
-  switch (t) {
-    case 1:
-      return "credit_card";
-    case 2:
-      return "debit_card";
-    case 3:
-      return "boleto";
-    case 6:
-      return "pix";
-    default:
-      return null;
-  }
-}
-
-function mapLinkStatus(status: number): "paid" | "cancelled" | "pending" | "noop" {
-  // Cielo Link payment_status codes (docs.cielo.com.br/link/reference/status-codigos)
-  // 1 Pendente, 2 Pago, 3 Negada, 4 Expirada, 5 Cancelada, 6 Não finalizada,
-  // 7 Autorizada, 8 Chargeback
-  switch (status) {
-    case 2:
-    case 7:
-      return "paid";
-    case 3:
-    case 4:
-    case 5:
-    case 6:
-    case 8:
-      return "cancelled";
-    case 1:
-      return "pending";
-    default:
-      return "noop";
-  }
-}
