@@ -12,6 +12,9 @@ import {
   Users,
   Settings,
   Link2,
+  Activity,
+  ScrollText,
+
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RoleSummary } from "@/lib/products";

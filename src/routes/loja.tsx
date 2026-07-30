@@ -358,6 +358,73 @@ function Loja() {
               </div>
             )}
           </div>
+
+          {(availableBrands.length > 0 || availableSizes.length > 0) && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setBrandOpen((v) => !v)}
+                aria-expanded={brandOpen}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-card border border-border text-sm font-medium hover:bg-secondary transition-colors"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Marca / Numeração
+                <ChevronDown className={`h-4 w-4 transition-transform ${brandOpen ? "rotate-180" : ""}`} />
+              </button>
+              {brandOpen && (
+                <div className="mt-3 p-3 rounded-md bg-card border border-border space-y-3">
+                  {availableBrands.length > 0 && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Marca</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => navigate({ to: "/loja", search: { ...baseSearch, brand: undefined } })}
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-colors ${!brandParam ? "bg-foreground text-background border-foreground" : "bg-background border-border hover:border-foreground"}`}
+                        >
+                          Todas
+                        </button>
+                        {availableBrands.map((b) => (
+                          <button
+                            key={b}
+                            type="button"
+                            onClick={() => navigate({ to: "/loja", search: { ...baseSearch, brand: b } })}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-colors ${brandParam === b ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-foreground"}`}
+                          >
+                            {b}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {availableSizes.length > 0 && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Numeração / Tamanho</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => navigate({ to: "/loja", search: { ...baseSearch, size: undefined } })}
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-colors ${!sizeParam ? "bg-foreground text-background border-foreground" : "bg-background border-border hover:border-foreground"}`}
+                        >
+                          Todas
+                        </button>
+                        {availableSizes.map((sz) => (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => navigate({ to: "/loja", search: { ...baseSearch, size: sz } })}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-colors ${sizeParam === sz ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-foreground"}`}
+                          >
+                            {sz}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mb-4 sm:mb-6">
