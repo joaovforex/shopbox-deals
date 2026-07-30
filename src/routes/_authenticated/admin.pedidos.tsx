@@ -778,13 +778,13 @@ function OrdersPanel() {
             {/* Search & Filters */}
             <div className="space-y-2">
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-                <div className="relative">
+                <div className="relative min-w-0">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
                     type="text"
                     value={searchCpf}
                     onChange={(e) => setSearchCpf(e.target.value)}
-                    placeholder="Buscar por nome ou CPF..."
+                    placeholder="Buscar por nome, e-mail, telefone, CPF ou nº do pedido..."
                     className="w-full pl-9 pr-8 py-2 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                   {searchCpf && (
@@ -830,15 +830,22 @@ function OrdersPanel() {
                     <option value="pix">Pix</option>
                     <option value="card">Cartão</option>
                   </select>
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="all">Todos os status</option>
-                    <option value="paid">Pago</option>
-                    <option value="cancelled">Cancelado</option>
-                  </select>
+                  <div className="flex flex-wrap gap-1.5 col-span-1 sm:col-span-2 lg:col-span-4">
+                    {STATUS_FILTER_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setFilterStatus(opt.value)}
+                        className={`min-h-9 px-3 py-1.5 rounded-full border text-xs font-bold uppercase tracking-wider shrink-0 ${
+                          filterStatus === opt.value
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "border-border text-muted-foreground hover:text-foreground hover:border-primary/50"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                   <select
                     value={filterCategory}
                     onChange={(e) => setFilterCategory(e.target.value)}
@@ -857,7 +864,7 @@ function OrdersPanel() {
             <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
           ) : stats.orders.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">
-              {searchCpf || filterDelivery !== "all" || filterPayment !== "all" || filterStatus !== "all"
+              {searchCpf || filterDelivery !== "all" || filterPayment !== "all" || filterStatus !== "paid"
                 ? "Nenhum pedido encontrado com os filtros aplicados."
                 : "Nenhum pedido neste período."}
             </div>

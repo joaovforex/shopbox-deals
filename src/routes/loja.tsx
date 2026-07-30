@@ -94,8 +94,10 @@ function Loja() {
       ...(qParam ? { q: qParam } : {}),
       ...(min ? { min } : {}),
       ...(max ? { max } : {}),
+      ...(brandParam ? { brand: brandParam } : {}),
+      ...(sizeParam ? { size: sizeParam } : {}),
     }),
-    [cat, qParam, min, max],
+    [cat, qParam, min, max, brandParam, sizeParam],
   );
 
   useEffect(() => {
@@ -124,8 +126,40 @@ function Loja() {
     pageProductsQuery({ search: qParam, category: cat, minPrice: min, maxPrice: max, page }),
   );
 
-  const products = data.items;
-  const total = data.total;
+  const productsRaw = data.items;
+
+  // O RPC list_products_paged não retorna brand/size, então buscamos esses
+  // dois campos à parte (só para os itens da página atual) quando algum
+  // filtro de marca/numeração estiver ativo.
+  const pageIds = useMemo(() => productsRaw.map((p) => p.id), [productsRaw]);
+  const needsBrandSize = Boolean(brandParam || sizeParam);
+  const { data: brandSizeMap } = useQuery({
+    queryKey: ["loja", "brand-size-map", pageIds.join(",")],
+    queryFn: async () => {
+      if (pageIds.length === 0) return {} as Record<string, { brand: string | null; size: string | null }>;
+      const { data: rows, error } = await supabase
+        .from("products")
+        .select("id,brand,size")
+        .in("id", pageIds);
+      if (error) return {} as Record<string, { brand: string | null; size: string | null }>;
+      const map: Record<string, { brand: string | null; size: string | null }> = {};
+      for (const r of rows ?? []) map[r.id] = { brand: r.brand, size: r.size };
+      return map;
+    },
+    enabled: needsBrandSize && pageIds.length > 0,
+    staleTime: 60_000,
+  });
+
+  const products = useMemo(() => {
+    if (!needsBrandSize) return productsRaw;
+    return productsRaw.filter((p) => {
+      const info = brandSizeMap?.[p.id];
+      if (brandParam && (info?.brand ?? "") !== brandParam) return false;
+      if (sizeParam && (info?.size ?? "") !== sizeParam) return false;
+      return true;
+    });
+  }, [productsRaw, brandSizeMap, needsBrandSize, brandParam, sizeParam]);
+  const total = needsBrandSize ? products.length : data.total;
   const totalPages = Math.max(1, Math.ceil(total / PRODUCTS_PAGE_SIZE));
 
   useEffect(() => {
@@ -193,7 +227,7 @@ function Loja() {
     return range;
   }, [page, totalPages]);
 
-  const hasFilter = Boolean(qParam || cat || min || max);
+  const hasFilter = Boolean(qParam || cat || min || max || brandParam || sizeParam);
   const priceLabel = min && max ? `${brl(min)}–${brl(max)}` : max ? `Até ${brl(max)}` : min ? `A partir de ${brl(min)}` : null;
 
   return (
@@ -240,6 +274,26 @@ function Loja() {
               >
                 <Tag className="h-3.5 w-3.5" />
                 {priceLabel}
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {brandParam && (
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/loja", search: { ...baseSearch, brand: undefined } })}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider"
+              >
+                {brandParam}
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {sizeParam && (
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/loja", search: { ...baseSearch, size: undefined } })}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider"
+              >
+                Tam. {sizeParam}
                 <X className="h-3.5 w-3.5" />
               </button>
             )}

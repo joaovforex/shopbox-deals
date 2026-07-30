@@ -41,6 +41,7 @@ import { Route as AuthenticatedAdminExpedicaoRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminEquipeRouteImport } from './routes/_authenticated/admin.equipe'
 import { Route as AuthenticatedAdminConfiguracoesRouteImport } from './routes/_authenticated/admin.configuracoes'
 import { Route as AuthenticatedAdminCaixaQrRouteImport } from './routes/_authenticated/admin.caixa-qr'
+import { Route as AuthenticatedAdminAuditoriaRouteImport } from './routes/_authenticated/admin.auditoria'
 import { Route as AuthenticatedAdminAgendadorCanalRouteImport } from './routes/_authenticated/admin.agendador-canal'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp.webhook'
@@ -220,6 +221,12 @@ const AuthenticatedAdminCaixaQrRoute =
     path: '/caixa-qr',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminAuditoriaRoute =
+  AuthenticatedAdminAuditoriaRouteImport.update({
+    id: '/auditoria',
+    path: '/auditoria',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminAgendadorCanalRoute =
   AuthenticatedAdminAgendadorCanalRouteImport.update({
     id: '/agendador-canal',
@@ -287,6 +294,7 @@ export interface FileRoutesByFullPath {
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
   '/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
+  '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/caixa-qr': typeof AuthenticatedAdminCaixaQrRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/admin/equipe': typeof AuthenticatedAdminEquipeRoute
@@ -328,6 +336,7 @@ export interface FileRoutesByTo {
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
   '/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
+  '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/caixa-qr': typeof AuthenticatedAdminCaixaQrRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/admin/equipe': typeof AuthenticatedAdminEquipeRoute
@@ -371,6 +380,7 @@ export interface FileRoutesById {
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
   '/_authenticated/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
+  '/_authenticated/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/_authenticated/admin/caixa-qr': typeof AuthenticatedAdminCaixaQrRoute
   '/_authenticated/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/_authenticated/admin/equipe': typeof AuthenticatedAdminEquipeRoute
@@ -414,6 +424,7 @@ export interface FileRouteTypes {
     | '/pedido/$id'
     | '/produto/$id'
     | '/admin/agendador-canal'
+    | '/admin/auditoria'
     | '/admin/caixa-qr'
     | '/admin/configuracoes'
     | '/admin/equipe'
@@ -455,6 +466,7 @@ export interface FileRouteTypes {
     | '/pedido/$id'
     | '/produto/$id'
     | '/admin/agendador-canal'
+    | '/admin/auditoria'
     | '/admin/caixa-qr'
     | '/admin/configuracoes'
     | '/admin/equipe'
@@ -497,6 +509,7 @@ export interface FileRouteTypes {
     | '/pedido/$id'
     | '/produto/$id'
     | '/_authenticated/admin/agendador-canal'
+    | '/_authenticated/admin/auditoria'
     | '/_authenticated/admin/caixa-qr'
     | '/_authenticated/admin/configuracoes'
     | '/_authenticated/admin/equipe'
@@ -772,6 +785,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminCaixaQrRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/auditoria': {
+      id: '/_authenticated/admin/auditoria'
+      path: '/auditoria'
+      fullPath: '/admin/auditoria'
+      preLoaderRoute: typeof AuthenticatedAdminAuditoriaRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/agendador-canal': {
       id: '/_authenticated/admin/agendador-canal'
       path: '/agendador-canal'
@@ -833,6 +853,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAgendadorCanalRoute: typeof AuthenticatedAdminAgendadorCanalRoute
+  AuthenticatedAdminAuditoriaRoute: typeof AuthenticatedAdminAuditoriaRoute
   AuthenticatedAdminCaixaQrRoute: typeof AuthenticatedAdminCaixaQrRoute
   AuthenticatedAdminConfiguracoesRoute: typeof AuthenticatedAdminConfiguracoesRoute
   AuthenticatedAdminEquipeRoute: typeof AuthenticatedAdminEquipeRoute
@@ -847,6 +868,7 @@ interface AuthenticatedAdminRouteChildren {
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAgendadorCanalRoute: AuthenticatedAdminAgendadorCanalRoute,
+  AuthenticatedAdminAuditoriaRoute: AuthenticatedAdminAuditoriaRoute,
   AuthenticatedAdminCaixaQrRoute: AuthenticatedAdminCaixaQrRoute,
   AuthenticatedAdminConfiguracoesRoute: AuthenticatedAdminConfiguracoesRoute,
   AuthenticatedAdminEquipeRoute: AuthenticatedAdminEquipeRoute,
