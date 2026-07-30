@@ -62,15 +62,24 @@ function AdminPage() {
   const totalProducts = pagedData?.pages?.[0]?.total ?? products.length;
   const loadedCount = products.length;
 
-  // Auto-carrega todas as páginas em background para que busca, aba "Esgotados"
-  // e ações em massa ("Ocultar todos os esgotados") operem sobre o catálogo
-  // completo, e não apenas sobre a primeira página de 100 produtos.
-  useEffect(() => {
-    if (!canManageProducts || isChildRoute) return;
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+  // Carregamento SOB DEMANDA: nunca puxamos os ~1.600 produtos de uma vez.
+  // O admin carrega lotes de 100 ("Carregar mais") ou pede o catálogo inteiro
+  // explicitamente quando precisa de busca/ações em massa globais.
+  const [loadingAll, setLoadingAll] = useState(false);
+  const loadAll = async () => {
+    setLoadingAll(true);
+    try {
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const r = await fetchNextPage();
+        const last = r.data?.pages?.[r.data.pages.length - 1];
+        if (!last?.nextOffset) break;
+      }
+    } finally {
+      setLoadingAll(false);
     }
-  }, [canManageProducts, isChildRoute, hasNextPage, isFetchingNextPage, fetchNextPage, loadedCount]);
+  };
+
 
 
   const [editing, setEditing] = useState<Product | null>(null);
