@@ -9,9 +9,10 @@ import { pageProductsQuery, productImages, PRODUCTS_PAGE_SIZE, usedCategoriesQue
 import { optimizedImage } from "@/lib/image-url";
 import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
 import { brl } from "@/lib/format";
+import { supabase } from "@/integrations/supabase/client";
 import { Search, X, ChevronLeft, ChevronRight, Tag, LayoutGrid, ChevronDown, SlidersHorizontal } from "lucide-react";
 
-type LojaSearch = { cat?: string; q?: string; focus?: number; min?: number; max?: number; page?: number };
+type LojaSearch = { cat?: string; q?: string; focus?: number; min?: number; max?: number; page?: number; brand?: string; size?: string };
 
 export const Route = createFileRoute("/loja")({
   validateSearch: (search: Record<string, unknown>): LojaSearch => ({
@@ -21,6 +22,8 @@ export const Route = createFileRoute("/loja")({
     min: typeof search.min === "number" ? search.min : (typeof search.min === "string" && search.min ? Number(search.min) || undefined : undefined),
     max: typeof search.max === "number" ? search.max : (typeof search.max === "string" && search.max ? Number(search.max) || undefined : undefined),
     page: typeof search.page === "number" ? search.page : (typeof search.page === "string" && search.page ? Number(search.page) || undefined : undefined),
+    brand: typeof search.brand === "string" ? search.brand : undefined,
+    size: typeof search.size === "string" ? search.size : undefined,
   }),
   loaderDeps: ({ search }) => ({ cat: search.cat, q: search.q, min: search.min, max: search.max, page: search.page ?? 1 }),
   head: () => ({
@@ -51,7 +54,7 @@ function useDebounced<T>(value: T, ms = 300): T {
 }
 
 function Loja() {
-  const { cat, q: qParam, focus, min, max, page: pageParam } = Route.useSearch();
+  const { cat, q: qParam, focus, min, max, page: pageParam, brand: brandParam, size: sizeParam } = Route.useSearch();
   const page = pageParam && pageParam > 0 ? pageParam : 1;
   const navigate = useNavigate();
   const [q, setQ] = useState(qParam ?? "");
@@ -61,6 +64,28 @@ function Loja() {
   const [minInput, setMinInput] = useState<string>(min ? String(min) : "");
   const [maxInput, setMaxInput] = useState<string>(max ? String(max) : "");
   const { data: categories = [] } = useQuery(usedCategoriesQuery());
+  const [brandOpen, setBrandOpen] = useState(false);
+  const { data: filterOptions } = useQuery({
+    queryKey: ["loja", "brand-size-options"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("brand,size")
+        .eq("active", true)
+        .limit(5000);
+      if (error) return { brands: [] as string[], sizes: [] as string[] };
+      const brands = Array.from(
+        new Set((data ?? []).map((r) => (r.brand ?? "").trim()).filter(Boolean)),
+      ).sort();
+      const sizes = Array.from(
+        new Set((data ?? []).map((r) => (r.size ?? "").trim()).filter(Boolean)),
+      ).sort();
+      return { brands, sizes };
+    },
+    staleTime: 5 * 60_000,
+  });
+  const availableBrands = filterOptions?.brands ?? [];
+  const availableSizes = filterOptions?.sizes ?? [];
   useRealtimeProducts();
 
   const baseSearch = useMemo(

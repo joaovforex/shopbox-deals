@@ -457,6 +457,20 @@ export function ProductForm({
           </div>
         </div>
 
+        <p className="text-[11px] text-muted-foreground -mt-1">
+          {CATEGORY_NAMING_HINTS[category] ?? DEFAULT_NAMING_HINT}
+        </p>
+
+        <div className="grid sm:grid-cols-2 gap-3">
+          <Input label="Marca" value={brand} onChange={setBrand} placeholder="opcional" />
+          <Input
+            label="Numeração / Tamanho"
+            value={size}
+            onChange={setSize}
+            placeholder="ex.: 34, 35, 36 ou P/M/G"
+          />
+        </div>
+
         <div>
           <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Descrição</label>
           <textarea

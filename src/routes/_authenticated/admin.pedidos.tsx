@@ -35,6 +35,25 @@ export const Route = createFileRoute("/_authenticated/admin/pedidos")({
 
 type Period = "day" | "week" | "month" | "all";
 
+type StatusFilter = "all" | "paid" | "fulfillment" | "delivered" | "refunded" | "cancelled";
+
+const STATUS_FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "Todos" },
+  { value: "paid", label: "Pago" },
+  { value: "fulfillment", label: "Separado/Retirada" },
+  { value: "delivered", label: "Entregue" },
+  { value: "refunded", label: "Estornado" },
+  { value: "cancelled", label: "Cancelado/Arquivado" },
+];
+
+function orderStatusGroup(o: OrderRow): Exclude<StatusFilter, "all"> {
+  if (o.status !== "paid") return "cancelled";
+  if (o.refund_status || o.refunded_at) return "refunded";
+  if (o.fulfillment_status === "completed") return "delivered";
+  if (o.fulfillment_status === "preparing" || o.fulfillment_status === "ready" || o.fulfillment_status === "shipped") return "fulfillment";
+  return "paid";
+}
+
 type OrderRow = {
   id: string;
   created_at: string;
@@ -50,6 +69,8 @@ type OrderRow = {
   mp_payment_id: string | null;
   refund_status: string | null;
   refunded_amount: number | null;
+  fulfillment_status: string | null;
+  refunded_at: string | null;
 };
 type ItemRow = {
   id: string;
@@ -90,7 +111,7 @@ function OrdersPanel() {
   const [searchCpf, setSearchCpf] = useState("");
   const [filterDelivery, setFilterDelivery] = useState<"all" | "delivery" | "pickup">("all");
   const [filterPayment, setFilterPayment] = useState<"all" | "pix" | "card">("all");
-  const [filterStatus, setFilterStatus] = useState<"all" | "paid" | "cancelled">("all");
+  const [filterStatus, setFilterStatus] = useState<StatusFilter>("paid");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
@@ -155,7 +176,6 @@ function OrdersPanel() {
       let q = supabase
         .from("orders")
         .select("*")
-        .eq("status", "paid")
         .order("created_at", { ascending: false });
       if (since) q = q.gte("created_at", since.toISOString());
       if (dateFrom) q = q.gte("created_at", new Date(dateFrom + "T00:00:00").toISOString());
@@ -195,8 +215,13 @@ function OrdersPanel() {
       const digits = term.replace(/\D/g, "");
       orders = orders.filter((o) => {
         const matchName = (o.customer_name ?? "").toLowerCase().includes(term);
+        const matchEmail = (o.customer_email ?? "").toLowerCase().includes(term);
         const matchCpf = digits.length > 0 && (o.customer_cpf ?? "").replace(/\D/g, "").includes(digits);
-        return matchName || matchCpf;
+        const matchPhone = digits.length > 0 && (o.customer_phone ?? "").replace(/\D/g, "").includes(digits);
+        const idFull = o.id.toLowerCase();
+        const idShort = o.id.slice(0, 8).toLowerCase();
+        const matchId = idFull.includes(term) || idShort.includes(term.replace(/^#/, ""));
+        return matchName || matchEmail || matchCpf || matchPhone || matchId;
       });
     }
     if (filterDelivery !== "all") {
@@ -206,7 +231,7 @@ function OrdersPanel() {
       orders = orders.filter((o) => o.payment_method === filterPayment);
     }
     if (filterStatus !== "all") {
-      orders = orders.filter((o) => o.status === filterStatus);
+      orders = orders.filter((o) => orderStatusGroup(o) === filterStatus);
     }
 
     // Filtro por categoria: mantém pedidos que tenham ao menos um item da categoria
