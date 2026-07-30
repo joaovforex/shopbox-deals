@@ -248,6 +248,14 @@ export function ProductForm({
       toast.error("CEST deve ter 7 dígitos (ou deixe em branco)");
       return;
     }
+    const missing: string[] = [];
+    if (images.length === 0) missing.push("foto");
+    if (!price.trim()) missing.push("preço");
+    if (!description.trim()) missing.push("descrição");
+    if (!size.trim()) missing.push("numeração/tamanho");
+    if (missing.length > 0) {
+      toast.warning(`Produto será salvo, mas falta: ${missing.join(", ")}.`);
+    }
     setBusy(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -296,6 +304,8 @@ export function ProductForm({
         images,
         active,
         color_variants: cleanVariants.length > 0 ? cleanVariants : [],
+        brand: brand.trim() || null,
+        size: size.trim() || null,
         ncm: ncmDigits || null,
         cest: cestDigits || null,
         unidade_comercial: (unidadeComercial.trim() || "UN").toUpperCase().slice(0, 6),
