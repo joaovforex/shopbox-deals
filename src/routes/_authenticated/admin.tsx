@@ -627,7 +627,19 @@ function AdminPage() {
                     </button>
                   )}
                   <div className="h-16 w-16 rounded bg-muted overflow-hidden shrink-0">
-                    {p.image_url && <img src={p.image_url} alt="" className="w-full h-full object-cover" />}
+                    {p.image_url && (
+                      <img
+                        src={optimizedImage(p.image_url, { width: 128, quality: 65 })}
+                        srcSet={optimizedSrcSet(p.image_url, 128, 65)}
+                        width={64}
+                        height={64}
+                        loading="lazy"
+                        decoding="async"
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold truncate">{p.name}</div>
