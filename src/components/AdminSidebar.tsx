@@ -86,10 +86,11 @@ export function AdminSidebar({ roles }: { roles: RoleSummary }) {
                 <Link
                   to={it.to}
                   className={cn(
-                    "flex flex-col items-center gap-0.5 px-3 py-2 rounded-md text-[10px] font-medium uppercase tracking-wider min-w-[60px]",
+                    "flex flex-col items-center justify-center gap-0.5 px-3 py-2 min-h-[56px] rounded-md text-[10px] font-medium uppercase tracking-wider min-w-[64px]",
                     active ? "bg-secondary text-foreground" : "text-muted-foreground",
                   )}
                 >
+
                   <Icon className={cn("h-5 w-5", active ? it.color : "text-current")} />
                   <span>{it.label}</span>
                 </Link>
