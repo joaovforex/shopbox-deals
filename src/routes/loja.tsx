@@ -9,9 +9,10 @@ import { pageProductsQuery, productImages, PRODUCTS_PAGE_SIZE, usedCategoriesQue
 import { optimizedImage } from "@/lib/image-url";
 import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
 import { brl } from "@/lib/format";
+import { supabase } from "@/integrations/supabase/client";
 import { Search, X, ChevronLeft, ChevronRight, Tag, LayoutGrid, ChevronDown, SlidersHorizontal } from "lucide-react";
 
-type LojaSearch = { cat?: string; q?: string; focus?: number; min?: number; max?: number; page?: number };
+type LojaSearch = { cat?: string; q?: string; focus?: number; min?: number; max?: number; page?: number; brand?: string; size?: string };
 
 export const Route = createFileRoute("/loja")({
   validateSearch: (search: Record<string, unknown>): LojaSearch => ({
@@ -21,6 +22,8 @@ export const Route = createFileRoute("/loja")({
     min: typeof search.min === "number" ? search.min : (typeof search.min === "string" && search.min ? Number(search.min) || undefined : undefined),
     max: typeof search.max === "number" ? search.max : (typeof search.max === "string" && search.max ? Number(search.max) || undefined : undefined),
     page: typeof search.page === "number" ? search.page : (typeof search.page === "string" && search.page ? Number(search.page) || undefined : undefined),
+    brand: typeof search.brand === "string" ? search.brand : undefined,
+    size: typeof search.size === "string" ? search.size : undefined,
   }),
   loaderDeps: ({ search }) => ({ cat: search.cat, q: search.q, min: search.min, max: search.max, page: search.page ?? 1 }),
   head: () => ({
@@ -51,7 +54,7 @@ function useDebounced<T>(value: T, ms = 300): T {
 }
 
 function Loja() {
-  const { cat, q: qParam, focus, min, max, page: pageParam } = Route.useSearch();
+  const { cat, q: qParam, focus, min, max, page: pageParam, brand: brandParam, size: sizeParam } = Route.useSearch();
   const page = pageParam && pageParam > 0 ? pageParam : 1;
   const navigate = useNavigate();
   const [q, setQ] = useState(qParam ?? "");
@@ -61,6 +64,28 @@ function Loja() {
   const [minInput, setMinInput] = useState<string>(min ? String(min) : "");
   const [maxInput, setMaxInput] = useState<string>(max ? String(max) : "");
   const { data: categories = [] } = useQuery(usedCategoriesQuery());
+  const [brandOpen, setBrandOpen] = useState(false);
+  const { data: filterOptions } = useQuery({
+    queryKey: ["loja", "brand-size-options"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("brand,size")
+        .eq("active", true)
+        .limit(5000);
+      if (error) return { brands: [] as string[], sizes: [] as string[] };
+      const brands = Array.from(
+        new Set((data ?? []).map((r) => (r.brand ?? "").trim()).filter(Boolean)),
+      ).sort();
+      const sizes = Array.from(
+        new Set((data ?? []).map((r) => (r.size ?? "").trim()).filter(Boolean)),
+      ).sort();
+      return { brands, sizes };
+    },
+    staleTime: 5 * 60_000,
+  });
+  const availableBrands = filterOptions?.brands ?? [];
+  const availableSizes = filterOptions?.sizes ?? [];
   useRealtimeProducts();
 
   const baseSearch = useMemo(
@@ -69,8 +94,10 @@ function Loja() {
       ...(qParam ? { q: qParam } : {}),
       ...(min ? { min } : {}),
       ...(max ? { max } : {}),
+      ...(brandParam ? { brand: brandParam } : {}),
+      ...(sizeParam ? { size: sizeParam } : {}),
     }),
-    [cat, qParam, min, max],
+    [cat, qParam, min, max, brandParam, sizeParam],
   );
 
   useEffect(() => {
@@ -99,8 +126,40 @@ function Loja() {
     pageProductsQuery({ search: qParam, category: cat, minPrice: min, maxPrice: max, page }),
   );
 
-  const products = data.items;
-  const total = data.total;
+  const productsRaw = data.items;
+
+  // O RPC list_products_paged não retorna brand/size, então buscamos esses
+  // dois campos à parte (só para os itens da página atual) quando algum
+  // filtro de marca/numeração estiver ativo.
+  const pageIds = useMemo(() => productsRaw.map((p) => p.id), [productsRaw]);
+  const needsBrandSize = Boolean(brandParam || sizeParam);
+  const { data: brandSizeMap } = useQuery({
+    queryKey: ["loja", "brand-size-map", pageIds.join(",")],
+    queryFn: async () => {
+      if (pageIds.length === 0) return {} as Record<string, { brand: string | null; size: string | null }>;
+      const { data: rows, error } = await supabase
+        .from("products")
+        .select("id,brand,size")
+        .in("id", pageIds);
+      if (error) return {} as Record<string, { brand: string | null; size: string | null }>;
+      const map: Record<string, { brand: string | null; size: string | null }> = {};
+      for (const r of rows ?? []) map[r.id] = { brand: r.brand, size: r.size };
+      return map;
+    },
+    enabled: needsBrandSize && pageIds.length > 0,
+    staleTime: 60_000,
+  });
+
+  const products = useMemo(() => {
+    if (!needsBrandSize) return productsRaw;
+    return productsRaw.filter((p) => {
+      const info = brandSizeMap?.[p.id];
+      if (brandParam && (info?.brand ?? "") !== brandParam) return false;
+      if (sizeParam && (info?.size ?? "") !== sizeParam) return false;
+      return true;
+    });
+  }, [productsRaw, brandSizeMap, needsBrandSize, brandParam, sizeParam]);
+  const total = needsBrandSize ? products.length : data.total;
   const totalPages = Math.max(1, Math.ceil(total / PRODUCTS_PAGE_SIZE));
 
   useEffect(() => {
@@ -168,7 +227,7 @@ function Loja() {
     return range;
   }, [page, totalPages]);
 
-  const hasFilter = Boolean(qParam || cat || min || max);
+  const hasFilter = Boolean(qParam || cat || min || max || brandParam || sizeParam);
   const priceLabel = min && max ? `${brl(min)}–${brl(max)}` : max ? `Até ${brl(max)}` : min ? `A partir de ${brl(min)}` : null;
 
   return (
@@ -215,6 +274,26 @@ function Loja() {
               >
                 <Tag className="h-3.5 w-3.5" />
                 {priceLabel}
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {brandParam && (
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/loja", search: { ...baseSearch, brand: undefined } })}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider"
+              >
+                {brandParam}
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {sizeParam && (
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/loja", search: { ...baseSearch, size: undefined } })}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-primary text-primary-foreground text-xs font-bold uppercase tracking-wider"
+              >
+                Tam. {sizeParam}
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
@@ -279,6 +358,73 @@ function Loja() {
               </div>
             )}
           </div>
+
+          {(availableBrands.length > 0 || availableSizes.length > 0) && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setBrandOpen((v) => !v)}
+                aria-expanded={brandOpen}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-card border border-border text-sm font-medium hover:bg-secondary transition-colors"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+                Marca / Numeração
+                <ChevronDown className={`h-4 w-4 transition-transform ${brandOpen ? "rotate-180" : ""}`} />
+              </button>
+              {brandOpen && (
+                <div className="mt-3 p-3 rounded-md bg-card border border-border space-y-3">
+                  {availableBrands.length > 0 && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Marca</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => navigate({ to: "/loja", search: { ...baseSearch, brand: undefined } })}
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-colors ${!brandParam ? "bg-foreground text-background border-foreground" : "bg-background border-border hover:border-foreground"}`}
+                        >
+                          Todas
+                        </button>
+                        {availableBrands.map((b) => (
+                          <button
+                            key={b}
+                            type="button"
+                            onClick={() => navigate({ to: "/loja", search: { ...baseSearch, brand: b } })}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-colors ${brandParam === b ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-foreground"}`}
+                          >
+                            {b}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {availableSizes.length > 0 && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Numeração / Tamanho</p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => navigate({ to: "/loja", search: { ...baseSearch, size: undefined } })}
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-colors ${!sizeParam ? "bg-foreground text-background border-foreground" : "bg-background border-border hover:border-foreground"}`}
+                        >
+                          Todas
+                        </button>
+                        {availableSizes.map((sz) => (
+                          <button
+                            key={sz}
+                            type="button"
+                            onClick={() => navigate({ to: "/loja", search: { ...baseSearch, size: sz } })}
+                            className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border transition-colors ${sizeParam === sz ? "bg-primary text-primary-foreground border-primary" : "bg-background border-border hover:border-foreground"}`}
+                          >
+                            {sz}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mb-4 sm:mb-6">

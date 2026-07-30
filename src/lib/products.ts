@@ -22,6 +22,8 @@ export type Product = {
   sku: string;
   created_at: string;
   color_variants?: ColorVariant[] | null;
+  brand?: string | null;
+  size?: string | null;
 };
 
 /** Versão enxuta usada na listagem (sem description). */
@@ -37,6 +39,8 @@ export type ProductCard = {
   sku: string;
   created_at: string;
   color_variants?: ColorVariant[] | null;
+  brand?: string | null;
+  size?: string | null;
 };
 
 
@@ -119,7 +123,7 @@ export const PRODUCTS_PAGE_SIZE = 50;
 type PagedRow = ProductCard & { total_count: number };
 type PagedResult = { items: ProductCard[]; total: number; nextOffset: number | null };
 
-const CATALOG_PRODUCT_COLUMNS = "id,name,price,original_price,category,image_url,images,stock,sku,created_at,color_variants";
+const CATALOG_PRODUCT_COLUMNS = "id,name,price,original_price,category,image_url,images,stock,sku,created_at,color_variants,brand,size";
 
 function isCatalogFetchTransient(error: unknown): boolean {
   const maybe = error as { code?: string; message?: string } | null;

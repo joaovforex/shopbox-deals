@@ -33,6 +33,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as ApiPublicReconcileOrdersRouteImport } from './routes/api/public/reconcile-orders'
 import { Route as AuthenticatedAdminVendaManualRouteImport } from './routes/_authenticated/admin.venda-manual'
 import { Route as AuthenticatedAdminValeTrocaRouteImport } from './routes/_authenticated/admin.vale-troca'
+import { Route as AuthenticatedAdminSaudeRouteImport } from './routes/_authenticated/admin.saude'
 import { Route as AuthenticatedAdminReembolsosRouteImport } from './routes/_authenticated/admin.reembolsos'
 import { Route as AuthenticatedAdminPedidosRouteImport } from './routes/_authenticated/admin.pedidos'
 import { Route as AuthenticatedAdminLinksRouteImport } from './routes/_authenticated/admin.links'
@@ -41,6 +42,7 @@ import { Route as AuthenticatedAdminExpedicaoRouteImport } from './routes/_authe
 import { Route as AuthenticatedAdminEquipeRouteImport } from './routes/_authenticated/admin.equipe'
 import { Route as AuthenticatedAdminConfiguracoesRouteImport } from './routes/_authenticated/admin.configuracoes'
 import { Route as AuthenticatedAdminCaixaQrRouteImport } from './routes/_authenticated/admin.caixa-qr'
+import { Route as AuthenticatedAdminAuditoriaRouteImport } from './routes/_authenticated/admin.auditoria'
 import { Route as AuthenticatedAdminAgendadorCanalRouteImport } from './routes/_authenticated/admin.agendador-canal'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp.webhook'
@@ -173,6 +175,11 @@ const AuthenticatedAdminValeTrocaRoute =
     path: '/vale-troca',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminSaudeRoute = AuthenticatedAdminSaudeRouteImport.update({
+  id: '/saude',
+  path: '/saude',
+  getParentRoute: () => AuthenticatedAdminRoute,
+} as any)
 const AuthenticatedAdminReembolsosRoute =
   AuthenticatedAdminReembolsosRouteImport.update({
     id: '/reembolsos',
@@ -218,6 +225,12 @@ const AuthenticatedAdminCaixaQrRoute =
   AuthenticatedAdminCaixaQrRouteImport.update({
     id: '/caixa-qr',
     path: '/caixa-qr',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminAuditoriaRoute =
+  AuthenticatedAdminAuditoriaRouteImport.update({
+    id: '/auditoria',
+    path: '/auditoria',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAdminAgendadorCanalRoute =
@@ -287,6 +300,7 @@ export interface FileRoutesByFullPath {
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
   '/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
+  '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/caixa-qr': typeof AuthenticatedAdminCaixaQrRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/admin/equipe': typeof AuthenticatedAdminEquipeRoute
@@ -295,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/admin/links': typeof AuthenticatedAdminLinksRoute
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
+  '/admin/saude': typeof AuthenticatedAdminSaudeRoute
   '/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
@@ -328,6 +343,7 @@ export interface FileRoutesByTo {
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
   '/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
+  '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/caixa-qr': typeof AuthenticatedAdminCaixaQrRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/admin/equipe': typeof AuthenticatedAdminEquipeRoute
@@ -336,6 +352,7 @@ export interface FileRoutesByTo {
   '/admin/links': typeof AuthenticatedAdminLinksRoute
   '/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
+  '/admin/saude': typeof AuthenticatedAdminSaudeRoute
   '/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
@@ -371,6 +388,7 @@ export interface FileRoutesById {
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
   '/_authenticated/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
+  '/_authenticated/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/_authenticated/admin/caixa-qr': typeof AuthenticatedAdminCaixaQrRoute
   '/_authenticated/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/_authenticated/admin/equipe': typeof AuthenticatedAdminEquipeRoute
@@ -379,6 +397,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/links': typeof AuthenticatedAdminLinksRoute
   '/_authenticated/admin/pedidos': typeof AuthenticatedAdminPedidosRoute
   '/_authenticated/admin/reembolsos': typeof AuthenticatedAdminReembolsosRoute
+  '/_authenticated/admin/saude': typeof AuthenticatedAdminSaudeRoute
   '/_authenticated/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/_authenticated/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
@@ -414,6 +433,7 @@ export interface FileRouteTypes {
     | '/pedido/$id'
     | '/produto/$id'
     | '/admin/agendador-canal'
+    | '/admin/auditoria'
     | '/admin/caixa-qr'
     | '/admin/configuracoes'
     | '/admin/equipe'
@@ -422,6 +442,7 @@ export interface FileRouteTypes {
     | '/admin/links'
     | '/admin/pedidos'
     | '/admin/reembolsos'
+    | '/admin/saude'
     | '/admin/vale-troca'
     | '/admin/venda-manual'
     | '/api/public/reconcile-orders'
@@ -455,6 +476,7 @@ export interface FileRouteTypes {
     | '/pedido/$id'
     | '/produto/$id'
     | '/admin/agendador-canal'
+    | '/admin/auditoria'
     | '/admin/caixa-qr'
     | '/admin/configuracoes'
     | '/admin/equipe'
@@ -463,6 +485,7 @@ export interface FileRouteTypes {
     | '/admin/links'
     | '/admin/pedidos'
     | '/admin/reembolsos'
+    | '/admin/saude'
     | '/admin/vale-troca'
     | '/admin/venda-manual'
     | '/api/public/reconcile-orders'
@@ -497,6 +520,7 @@ export interface FileRouteTypes {
     | '/pedido/$id'
     | '/produto/$id'
     | '/_authenticated/admin/agendador-canal'
+    | '/_authenticated/admin/auditoria'
     | '/_authenticated/admin/caixa-qr'
     | '/_authenticated/admin/configuracoes'
     | '/_authenticated/admin/equipe'
@@ -505,6 +529,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/links'
     | '/_authenticated/admin/pedidos'
     | '/_authenticated/admin/reembolsos'
+    | '/_authenticated/admin/saude'
     | '/_authenticated/admin/vale-troca'
     | '/_authenticated/admin/venda-manual'
     | '/api/public/reconcile-orders'
@@ -716,6 +741,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminValeTrocaRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/saude': {
+      id: '/_authenticated/admin/saude'
+      path: '/saude'
+      fullPath: '/admin/saude'
+      preLoaderRoute: typeof AuthenticatedAdminSaudeRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/reembolsos': {
       id: '/_authenticated/admin/reembolsos'
       path: '/reembolsos'
@@ -770,6 +802,13 @@ declare module '@tanstack/react-router' {
       path: '/caixa-qr'
       fullPath: '/admin/caixa-qr'
       preLoaderRoute: typeof AuthenticatedAdminCaixaQrRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/auditoria': {
+      id: '/_authenticated/admin/auditoria'
+      path: '/auditoria'
+      fullPath: '/admin/auditoria'
+      preLoaderRoute: typeof AuthenticatedAdminAuditoriaRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/agendador-canal': {
@@ -833,6 +872,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAgendadorCanalRoute: typeof AuthenticatedAdminAgendadorCanalRoute
+  AuthenticatedAdminAuditoriaRoute: typeof AuthenticatedAdminAuditoriaRoute
   AuthenticatedAdminCaixaQrRoute: typeof AuthenticatedAdminCaixaQrRoute
   AuthenticatedAdminConfiguracoesRoute: typeof AuthenticatedAdminConfiguracoesRoute
   AuthenticatedAdminEquipeRoute: typeof AuthenticatedAdminEquipeRoute
@@ -841,12 +881,14 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminLinksRoute: typeof AuthenticatedAdminLinksRoute
   AuthenticatedAdminPedidosRoute: typeof AuthenticatedAdminPedidosRoute
   AuthenticatedAdminReembolsosRoute: typeof AuthenticatedAdminReembolsosRoute
+  AuthenticatedAdminSaudeRoute: typeof AuthenticatedAdminSaudeRoute
   AuthenticatedAdminValeTrocaRoute: typeof AuthenticatedAdminValeTrocaRoute
   AuthenticatedAdminVendaManualRoute: typeof AuthenticatedAdminVendaManualRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAgendadorCanalRoute: AuthenticatedAdminAgendadorCanalRoute,
+  AuthenticatedAdminAuditoriaRoute: AuthenticatedAdminAuditoriaRoute,
   AuthenticatedAdminCaixaQrRoute: AuthenticatedAdminCaixaQrRoute,
   AuthenticatedAdminConfiguracoesRoute: AuthenticatedAdminConfiguracoesRoute,
   AuthenticatedAdminEquipeRoute: AuthenticatedAdminEquipeRoute,
@@ -855,6 +897,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminLinksRoute: AuthenticatedAdminLinksRoute,
   AuthenticatedAdminPedidosRoute: AuthenticatedAdminPedidosRoute,
   AuthenticatedAdminReembolsosRoute: AuthenticatedAdminReembolsosRoute,
+  AuthenticatedAdminSaudeRoute: AuthenticatedAdminSaudeRoute,
   AuthenticatedAdminValeTrocaRoute: AuthenticatedAdminValeTrocaRoute,
   AuthenticatedAdminVendaManualRoute: AuthenticatedAdminVendaManualRoute,
 }

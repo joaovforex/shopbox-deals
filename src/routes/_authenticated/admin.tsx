@@ -14,6 +14,9 @@ import { cn } from "@/lib/utils";
 import { ProductForm, PRODUCT_FORM_DRAFT_KEY as DRAFT_KEY } from "@/components/ProductForm";
 import { BulkShareDialog } from "@/components/BulkShareDialog";
 import { AdminSkeleton } from "@/components/admin/AdminSkeleton";
+import { BulkProductActions } from "@/components/admin/BulkProductActions";
+import { optimizedImage, optimizedSrcSet } from "@/lib/image-url";
+
 
 
 
@@ -62,15 +65,24 @@ function AdminPage() {
   const totalProducts = pagedData?.pages?.[0]?.total ?? products.length;
   const loadedCount = products.length;
 
-  // Auto-carrega todas as páginas em background para que busca, aba "Esgotados"
-  // e ações em massa ("Ocultar todos os esgotados") operem sobre o catálogo
-  // completo, e não apenas sobre a primeira página de 100 produtos.
-  useEffect(() => {
-    if (!canManageProducts || isChildRoute) return;
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
+  // Carregamento SOB DEMANDA: nunca puxamos os ~1.600 produtos de uma vez.
+  // O admin carrega lotes de 100 ("Carregar mais") ou pede o catálogo inteiro
+  // explicitamente quando precisa de busca/ações em massa globais.
+  const [loadingAll, setLoadingAll] = useState(false);
+  const loadAll = async () => {
+    setLoadingAll(true);
+    try {
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const r = await fetchNextPage();
+        const last = r.data?.pages?.[r.data.pages.length - 1];
+        if (!last?.nextOffset) break;
+      }
+    } finally {
+      setLoadingAll(false);
     }
-  }, [canManageProducts, isChildRoute, hasNextPage, isFetchingNextPage, fetchNextPage, loadedCount]);
+  };
+
 
 
   const [editing, setEditing] = useState<Product | null>(null);
@@ -534,6 +546,37 @@ function AdminPage() {
             })()}
           </span>
         </div>
+
+        {hasNextPage && (
+          <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
+            <span className="min-w-0">
+              Carregados {loadedCount} de {totalProducts}. Busca, abas e ações em massa consideram apenas o que está
+              carregado.
+            </span>
+            <button
+              type="button"
+              onClick={loadAll}
+              disabled={loadingAll}
+              className="ml-auto inline-flex items-center gap-1.5 min-h-11 px-3 rounded-md border border-border bg-card font-bold uppercase tracking-wider hover:bg-secondary disabled:opacity-50"
+            >
+              {loadingAll ? "Carregando..." : "Carregar catálogo inteiro"}
+            </button>
+          </div>
+        )}
+
+        {selectMode && (
+          <BulkProductActions
+            selectedIds={Array.from(selected)}
+            products={products}
+            categories={Array.from(new Set(products.map((p) => p.category).filter((c): c is string => !!c))).sort((a, b) => a.localeCompare(b, "pt-BR"))}
+            onDone={() => {
+              setSelected(new Set());
+              refetch();
+              qc.invalidateQueries({ queryKey: ["products"] });
+            }}
+          />
+        )}
+
         {(() => {
           const t = search.trim().toLowerCase();
           const byTab = tab === "esgotados"
@@ -615,7 +658,19 @@ function AdminPage() {
                     </button>
                   )}
                   <div className="h-16 w-16 rounded bg-muted overflow-hidden shrink-0">
-                    {p.image_url && <img src={p.image_url} alt="" className="w-full h-full object-cover" />}
+                    {p.image_url && (
+                      <img
+                        src={optimizedImage(p.image_url, { width: 128, quality: 65 })}
+                        srcSet={optimizedSrcSet(p.image_url, 128, 65)}
+                        width={64}
+                        height={64}
+                        loading="lazy"
+                        decoding="async"
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold truncate">{p.name}</div>
@@ -697,7 +752,19 @@ function AdminPage() {
                     <td className="p-3">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded bg-muted overflow-hidden flex-shrink-0">
-                          {p.image_url && <img src={p.image_url} alt="" className="w-full h-full object-cover" />}
+                          {p.image_url && (
+                            <img
+                              src={optimizedImage(p.image_url, { width: 96, quality: 65 })}
+                              srcSet={optimizedSrcSet(p.image_url, 96, 65)}
+                              width={48}
+                              height={48}
+                              loading="lazy"
+                              decoding="async"
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+
                         </div>
                         <div>
                           <div className="font-semibold">{p.name}</div>

@@ -35,6 +35,25 @@ export const Route = createFileRoute("/_authenticated/admin/pedidos")({
 
 type Period = "day" | "week" | "month" | "all";
 
+type StatusFilter = "all" | "paid" | "fulfillment" | "delivered" | "refunded" | "cancelled";
+
+const STATUS_FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "Todos" },
+  { value: "paid", label: "Pago" },
+  { value: "fulfillment", label: "Separado/Retirada" },
+  { value: "delivered", label: "Entregue" },
+  { value: "refunded", label: "Estornado" },
+  { value: "cancelled", label: "Cancelado/Arquivado" },
+];
+
+function orderStatusGroup(o: OrderRow): Exclude<StatusFilter, "all"> {
+  if (o.status !== "paid") return "cancelled";
+  if (o.refund_status || o.refunded_at) return "refunded";
+  if (o.fulfillment_status === "completed") return "delivered";
+  if (o.fulfillment_status === "preparing" || o.fulfillment_status === "ready" || o.fulfillment_status === "shipped") return "fulfillment";
+  return "paid";
+}
+
 type OrderRow = {
   id: string;
   created_at: string;
@@ -50,6 +69,8 @@ type OrderRow = {
   mp_payment_id: string | null;
   refund_status: string | null;
   refunded_amount: number | null;
+  fulfillment_status: string | null;
+  refunded_at: string | null;
 };
 type ItemRow = {
   id: string;
@@ -90,7 +111,7 @@ function OrdersPanel() {
   const [searchCpf, setSearchCpf] = useState("");
   const [filterDelivery, setFilterDelivery] = useState<"all" | "delivery" | "pickup">("all");
   const [filterPayment, setFilterPayment] = useState<"all" | "pix" | "card">("all");
-  const [filterStatus, setFilterStatus] = useState<"all" | "paid" | "cancelled">("all");
+  const [filterStatus, setFilterStatus] = useState<StatusFilter>("paid");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
   const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
@@ -155,7 +176,6 @@ function OrdersPanel() {
       let q = supabase
         .from("orders")
         .select("*")
-        .eq("status", "paid")
         .order("created_at", { ascending: false });
       if (since) q = q.gte("created_at", since.toISOString());
       if (dateFrom) q = q.gte("created_at", new Date(dateFrom + "T00:00:00").toISOString());
@@ -195,8 +215,13 @@ function OrdersPanel() {
       const digits = term.replace(/\D/g, "");
       orders = orders.filter((o) => {
         const matchName = (o.customer_name ?? "").toLowerCase().includes(term);
+        const matchEmail = (o.customer_email ?? "").toLowerCase().includes(term);
         const matchCpf = digits.length > 0 && (o.customer_cpf ?? "").replace(/\D/g, "").includes(digits);
-        return matchName || matchCpf;
+        const matchPhone = digits.length > 0 && (o.customer_phone ?? "").replace(/\D/g, "").includes(digits);
+        const idFull = o.id.toLowerCase();
+        const idShort = o.id.slice(0, 8).toLowerCase();
+        const matchId = idFull.includes(term) || idShort.includes(term.replace(/^#/, ""));
+        return matchName || matchEmail || matchCpf || matchPhone || matchId;
       });
     }
     if (filterDelivery !== "all") {
@@ -206,7 +231,7 @@ function OrdersPanel() {
       orders = orders.filter((o) => o.payment_method === filterPayment);
     }
     if (filterStatus !== "all") {
-      orders = orders.filter((o) => o.status === filterStatus);
+      orders = orders.filter((o) => orderStatusGroup(o) === filterStatus);
     }
 
     // Filtro por categoria: mantém pedidos que tenham ao menos um item da categoria
@@ -753,13 +778,13 @@ function OrdersPanel() {
             {/* Search & Filters */}
             <div className="space-y-2">
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-                <div className="relative">
+                <div className="relative min-w-0">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
                     type="text"
                     value={searchCpf}
                     onChange={(e) => setSearchCpf(e.target.value)}
-                    placeholder="Buscar por nome ou CPF..."
+                    placeholder="Buscar por nome, e-mail, telefone, CPF ou nº do pedido..."
                     className="w-full pl-9 pr-8 py-2 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                   {searchCpf && (
@@ -805,15 +830,22 @@ function OrdersPanel() {
                     <option value="pix">Pix</option>
                     <option value="card">Cartão</option>
                   </select>
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                  >
-                    <option value="all">Todos os status</option>
-                    <option value="paid">Pago</option>
-                    <option value="cancelled">Cancelado</option>
-                  </select>
+                  <div className="flex flex-wrap gap-1.5 col-span-1 sm:col-span-2 lg:col-span-4">
+                    {STATUS_FILTER_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setFilterStatus(opt.value)}
+                        className={`min-h-9 px-3 py-1.5 rounded-full border text-xs font-bold uppercase tracking-wider shrink-0 ${
+                          filterStatus === opt.value
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "border-border text-muted-foreground hover:text-foreground hover:border-primary/50"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                   <select
                     value={filterCategory}
                     onChange={(e) => setFilterCategory(e.target.value)}
@@ -832,7 +864,7 @@ function OrdersPanel() {
             <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
           ) : stats.orders.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">
-              {searchCpf || filterDelivery !== "all" || filterPayment !== "all" || filterStatus !== "all"
+              {searchCpf || filterDelivery !== "all" || filterPayment !== "all" || filterStatus !== "paid"
                 ? "Nenhum pedido encontrado com os filtros aplicados."
                 : "Nenhum pedido neste período."}
             </div>

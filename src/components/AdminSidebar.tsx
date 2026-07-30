@@ -12,6 +12,9 @@ import {
   Users,
   Settings,
   Link2,
+  Activity,
+  ScrollText,
+
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { RoleSummary } from "@/lib/products";
@@ -36,8 +39,11 @@ const ITEMS: Item[] = [
   { to: "/admin/agendador-canal", label: "Canal", icon: Radio, color: "text-fuchsia-600", show: (r) => r.isSuperAdmin },
   { to: "/admin/links", label: "Links curtos", icon: Link2, color: "text-teal-600", show: (r) => r.isSuperAdmin },
   { to: "/admin/equipe", label: "Equipe", icon: Users, color: "text-cyan-600", show: (r) => r.isSuperAdmin },
+  { to: "/admin/saude", label: "Saúde", icon: Activity, color: "text-lime-600", show: (r) => r.isSuperAdmin },
+  { to: "/admin/auditoria", label: "Auditoria", icon: ScrollText, color: "text-violet-600", show: (r) => r.isSuperAdmin },
   { to: "/admin/configuracoes", label: "Configurações", icon: Settings, color: "text-slate-600", show: (r) => r.isSuperAdmin },
 ];
+
 
 export function AdminSidebar({ roles }: { roles: RoleSummary }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -80,10 +86,11 @@ export function AdminSidebar({ roles }: { roles: RoleSummary }) {
                 <Link
                   to={it.to}
                   className={cn(
-                    "flex flex-col items-center gap-0.5 px-3 py-2 rounded-md text-[10px] font-medium uppercase tracking-wider min-w-[60px]",
+                    "flex flex-col items-center justify-center gap-0.5 px-3 py-2 min-h-[56px] rounded-md text-[10px] font-medium uppercase tracking-wider min-w-[64px]",
                     active ? "bg-secondary text-foreground" : "text-muted-foreground",
                   )}
                 >
+
                   <Icon className={cn("h-5 w-5", active ? it.color : "text-current")} />
                   <span>{it.label}</span>
                 </Link>

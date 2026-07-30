@@ -1128,6 +1128,7 @@ export type Database = {
       products: {
         Row: {
           active: boolean
+          brand: string | null
           category: string | null
           cest: string | null
           cfop: string | null
@@ -1148,6 +1149,7 @@ export type Database = {
           original_price: number | null
           peso_liquido: number | null
           price: number
+          size: string | null
           sku: string
           stock: number
           unidade_comercial: string
@@ -1155,6 +1157,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          brand?: string | null
           category?: string | null
           cest?: string | null
           cfop?: string | null
@@ -1175,6 +1178,7 @@ export type Database = {
           original_price?: number | null
           peso_liquido?: number | null
           price: number
+          size?: string | null
           sku?: string
           stock?: number
           unidade_comercial?: string
@@ -1182,6 +1186,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          brand?: string | null
           category?: string | null
           cest?: string | null
           cfop?: string | null
@@ -1202,6 +1207,7 @@ export type Database = {
           original_price?: number | null
           peso_liquido?: number | null
           price?: number
+          size?: string | null
           sku?: string
           stock?: number
           unidade_comercial?: string
@@ -1466,11 +1472,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_apply_discount_to_products: {
+        Args: { p_ids: string[]; p_pct: number }
+        Returns: number
+      }
       admin_can_manage_products: {
         Args: { _user_id: string }
         Returns: boolean
       }
       admin_delete_products: { Args: { p_ids: string[] }; Returns: number }
+      admin_replace_in_product_names: {
+        Args: { p_find: string; p_ids: string[]; p_replace: string }
+        Returns: number
+      }
       admin_search_team_candidates: {
         Args: { p_term: string }
         Returns: {
@@ -1482,6 +1496,18 @@ export type Database = {
       admin_set_products_active: {
         Args: { p_active: boolean; p_ids: string[] }
         Returns: number
+      }
+      admin_set_products_category: {
+        Args: { p_category: string; p_ids: string[] }
+        Returns: number
+      }
+      admin_set_products_stock: {
+        Args: { p_ids: string[]; p_mode: string; p_value: number }
+        Returns: number
+      }
+      admin_update_product_fields: {
+        Args: { p_fields: Json; p_id: string }
+        Returns: boolean
       }
       apply_cashback_to_order: {
         Args: { p_amount: number; p_order_id: string }
