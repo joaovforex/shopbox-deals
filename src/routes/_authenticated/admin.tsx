@@ -721,7 +721,19 @@ function AdminPage() {
                     <td className="p-3">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded bg-muted overflow-hidden flex-shrink-0">
-                          {p.image_url && <img src={p.image_url} alt="" className="w-full h-full object-cover" />}
+                          {p.image_url && (
+                            <img
+                              src={optimizedImage(p.image_url, { width: 96, quality: 65 })}
+                              srcSet={optimizedSrcSet(p.image_url, 96, 65)}
+                              width={48}
+                              height={48}
+                              loading="lazy"
+                              decoding="async"
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+
                         </div>
                         <div>
                           <div className="font-semibold">{p.name}</div>
