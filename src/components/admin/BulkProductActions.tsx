@@ -48,7 +48,8 @@ export function BulkProductActions({
 
   const run = async (
     label: string,
-    fn: () => Promise<{ data: unknown; error: { message: string } | null }>,
+    fn: () => PromiseLike<{ data: unknown; error: { message: string } | null }>,
+
     audit: { action: string; details: Record<string, unknown> },
   ) => {
     setBusy(true);
