@@ -6,6 +6,22 @@ import { isVideoUrl, uploadProductImage, UPLOAD_CONCURRENCY, type ColorVariant, 
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import { suggestFromNcm } from "@/lib/ncm-suggestions";
 
+const CATEGORY_NAMING_HINTS: Record<string, string> = {
+  "Calçados": "Sugestão: Modelo + Marca + Cor + Numeração",
+  "Roupas": "Sugestão: Peça + Marca + Cor + Tamanho",
+  "Moda e Acessórios": "Sugestão: Item + Marca + Cor + Tamanho (se aplicável)",
+  "Celulares": "Sugestão: Marca + Modelo + Armazenamento + Cor",
+  "Notebooks": "Sugestão: Marca + Modelo + Processador + RAM/Armazenamento",
+  "Eletrônicos": "Sugestão: Marca + Modelo + Principais especificações",
+  "Eletrodomésticos": "Sugestão: Marca + Modelo + Capacidade/Voltagem",
+  "Brinquedos": "Sugestão: Nome do brinquedo + Marca + Faixa etária",
+  "Bebês": "Sugestão: Item + Marca + Tamanho/Idade indicada",
+  "Cosméticos e Perfumes": "Sugestão: Produto + Marca + Volume/ml",
+  "Pet": "Sugestão: Item + Marca + Porte/Tamanho do animal",
+  "Capinhas e Acessórios": "Sugestão: Modelo do aparelho + Tipo de capinha + Cor",
+};
+const DEFAULT_NAMING_HINT = "Sugestão: Produto + Marca + Característica principal (cor, tamanho etc.)";
+
 const DRAFT_KEY = "shopbox:product-form-draft";
 
 type Draft = {
@@ -23,6 +39,8 @@ type Draft = {
   cest?: string;
   unidadeComercial?: string;
   origem?: string;
+  brand?: string;
+  size?: string;
 };
 
 function loadDraft(productId: string | null): Draft | null {
@@ -63,6 +81,8 @@ export function ProductForm({
   const [colorVariants, setColorVariants] = useState<ColorVariant[]>(
     draft?.colorVariants ?? (product?.color_variants ?? []),
   );
+  const [brand, setBrand] = useState(draft?.brand ?? product?.brand ?? "");
+  const [size, setSize] = useState(draft?.size ?? product?.size ?? "");
   const p = product as (Product & { ncm?: string | null; cest?: string | null; unidade_comercial?: string | null; origem?: number | null }) | null;
   const [ncm, setNcm] = useState<string>(draft?.ncm ?? (p?.ncm ?? ""));
   const [cest, setCest] = useState<string>(draft?.cest ?? (p?.cest ?? ""));
@@ -97,10 +117,10 @@ export function ProductForm({
     const d: Draft = {
       productId: product?.id ?? null,
       name, description, price, originalPrice, category, stock, images, active, colorVariants,
-      ncm, cest, unidadeComercial, origem,
+      ncm, cest, unidadeComercial, origem, brand, size,
     };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch {}
-  }, [product?.id, name, description, price, originalPrice, category, stock, images, active, colorVariants, ncm, cest, unidadeComercial, origem]);
+  }, [product?.id, name, description, price, originalPrice, category, stock, images, active, colorVariants, ncm, cest, unidadeComercial, origem, brand, size]);
 
   const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} };
 
