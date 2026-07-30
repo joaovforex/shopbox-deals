@@ -39,8 +39,11 @@ const ITEMS: Item[] = [
   { to: "/admin/agendador-canal", label: "Canal", icon: Radio, color: "text-fuchsia-600", show: (r) => r.isSuperAdmin },
   { to: "/admin/links", label: "Links curtos", icon: Link2, color: "text-teal-600", show: (r) => r.isSuperAdmin },
   { to: "/admin/equipe", label: "Equipe", icon: Users, color: "text-cyan-600", show: (r) => r.isSuperAdmin },
+  { to: "/admin/saude", label: "Saúde", icon: Activity, color: "text-lime-600", show: (r) => r.isSuperAdmin },
+  { to: "/admin/auditoria", label: "Auditoria", icon: ScrollText, color: "text-violet-600", show: (r) => r.isSuperAdmin },
   { to: "/admin/configuracoes", label: "Configurações", icon: Settings, color: "text-slate-600", show: (r) => r.isSuperAdmin },
 ];
+
 
 export function AdminSidebar({ roles }: { roles: RoleSummary }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
