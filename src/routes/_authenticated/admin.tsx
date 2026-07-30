@@ -546,6 +546,37 @@ function AdminPage() {
             })()}
           </span>
         </div>
+
+        {hasNextPage && (
+          <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
+            <span className="min-w-0">
+              Carregados {loadedCount} de {totalProducts}. Busca, abas e ações em massa consideram apenas o que está
+              carregado.
+            </span>
+            <button
+              type="button"
+              onClick={loadAll}
+              disabled={loadingAll}
+              className="ml-auto inline-flex items-center gap-1.5 min-h-11 px-3 rounded-md border border-border bg-card font-bold uppercase tracking-wider hover:bg-secondary disabled:opacity-50"
+            >
+              {loadingAll ? "Carregando..." : "Carregar catálogo inteiro"}
+            </button>
+          </div>
+        )}
+
+        {selectMode && (
+          <BulkProductActions
+            selectedIds={Array.from(selected)}
+            products={products}
+            categories={Array.from(new Set(products.map((p) => p.category).filter((c): c is string => !!c))).sort((a, b) => a.localeCompare(b, "pt-BR"))}
+            onDone={() => {
+              setSelected(new Set());
+              refetch();
+              qc.invalidateQueries({ queryKey: ["products"] });
+            }}
+          />
+        )}
+
         {(() => {
           const t = search.trim().toLowerCase();
           const byTab = tab === "esgotados"
