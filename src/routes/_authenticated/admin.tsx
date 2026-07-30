@@ -14,6 +14,9 @@ import { cn } from "@/lib/utils";
 import { ProductForm, PRODUCT_FORM_DRAFT_KEY as DRAFT_KEY } from "@/components/ProductForm";
 import { BulkShareDialog } from "@/components/BulkShareDialog";
 import { AdminSkeleton } from "@/components/admin/AdminSkeleton";
+import { BulkProductActions } from "@/components/admin/BulkProductActions";
+import { optimizedImage, optimizedSrcSet } from "@/lib/image-url";
+
 
 
 
