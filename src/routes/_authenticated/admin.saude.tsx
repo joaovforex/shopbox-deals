@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getRoleSummary, type RoleSummary } from "@/lib/products";
 import { AdminSkeleton } from "@/components/admin/AdminSkeleton";
 import { brl } from "@/lib/format";
+import { fetchCashbackOutstanding } from "@/lib/admin-metrics";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin/saude")({
@@ -58,13 +59,14 @@ async function loadHealth() {
     supabase.from("cielo_refund_queue").select("id,status,last_error,updated_at", { count: "exact" }).in("status", ["pending", "retrying", "failed"]).order("updated_at", { ascending: false }).limit(5),
     supabase.from("orders").select("id,nfe_status,nfe_rejection_message,created_at", { count: "exact" }).in("nfe_status", ["erro", "rejeitado", "error"]).order("created_at", { ascending: false }).limit(5),
     supabase.from("orders").select("cielo_last_check_at").not("cielo_last_check_at", "is", null).order("cielo_last_check_at", { ascending: false }).limit(1),
-    supabase.from("cashback_entries").select("amount,consumed").is("expired_at", null),
+    fetchCashbackOutstanding(),
     supabase.from("admin_audit_log").select("id,created_at", { count: "exact" }).ilike("action", "%unauthorized%").gte("created_at", since24h),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending").gte("created_at", since24h),
   ]);
 
-  const entries = (cashback.data ?? []) as Array<{ amount: number; consumed: number }>;
-  const cashbackBalance = entries.reduce((acc, e) => acc + Math.max(0, Number(e.amount) - Number(e.consumed)), 0);
+  // Agregado no banco (RPC) — a leitura anterior parava no teto de 1000 linhas.
+  const cashbackBalance = cashback.balance;
+  const cashbackEntries = cashback.entries;
 
   return {
     lastWebhookAt: (lastWebhook.data?.[0] as { processed_at?: string } | undefined)?.processed_at ?? null,
@@ -75,7 +77,7 @@ async function loadHealth() {
     nfeSamples: (nfeErrors.data ?? []) as Array<{ id: string; nfe_status: string | null; nfe_rejection_message: string | null }>,
     lastReconcileAt: (lastReconcile.data?.[0] as { cielo_last_check_at?: string } | undefined)?.cielo_last_check_at ?? null,
     cashbackBalance,
-    cashbackEntries: entries.length,
+    cashbackEntries,
     unauthorized24h: unauthorized.count ?? 0,
     pendingOrders24h: pendingOrders.count ?? 0,
   };
