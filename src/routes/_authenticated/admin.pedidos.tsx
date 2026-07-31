@@ -15,7 +15,15 @@ import { ExchangeVoucherModal } from "@/components/ExchangeVoucherModal";
 import { DeleteOrderDialog } from "@/components/admin/DeleteOrderDialog";
 import { AdminSkeleton } from "@/components/admin/AdminSkeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { isAdmin, isSuperAdmin } from "@/lib/products";
+import { isAdmin, isSuperAdmin, clearRolesCache } from "@/lib/products";
+import {
+  fetchOrderMetrics,
+  fetchOrdersPage,
+  fetchCatalogValue,
+  AdminMetricsError,
+  type OrderMetrics,
+  type AdminOrderRow,
+} from "@/lib/admin-metrics";
 import { brl } from "@/lib/format";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import { refundOrder } from "@/lib/refunds.functions";
