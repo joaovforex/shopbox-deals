@@ -506,6 +506,15 @@ function OrdersPanel() {
       </section>
 
       <section className="container mx-auto px-4 py-6 flex-1 space-y-6">
+        {errorMessage && (
+          <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div className="min-w-0 text-sm">
+              <p className="font-bold text-destructive">Não foi possível carregar as métricas</p>
+              <p className="text-muted-foreground break-words">{errorMessage}</p>
+            </div>
+          </div>
+        )}
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Kpi icon={<ShoppingBag className="h-5 w-5" />} label="Pedidos" value={String(stats.ordersCount)} />
