@@ -176,133 +176,86 @@ function OrdersPanel() {
   const hasCustomRange = !!(dateFrom || dateTo);
   const effectivePeriod: Period = searchCpf.trim() || hasCustomRange ? "all" : period;
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin-orders", effectivePeriod, dateFrom, dateTo],
+  // Intervalo efetivo (ISO) aplicado tanto nas métricas quanto na listagem.
+  const range = useMemo(() => {
+    if (dateFrom || dateTo) {
+      return {
+        from: dateFrom ? new Date(dateFrom + "T00:00:00").toISOString() : null,
+        to: dateTo ? new Date(dateTo + "T23:59:59").toISOString() : null,
+      };
+    }
+    const since = startOf(effectivePeriod);
+    return { from: since ? since.toISOString() : null, to: null };
+  }, [dateFrom, dateTo, effectivePeriod]);
+
+  const filters = {
+    from: range.from,
+    to: range.to,
+    delivery: filterDelivery === "all" ? null : filterDelivery,
+    payment: filterPayment === "all" ? null : filterPayment,
+    category: filterCategory === "all" ? null : filterCategory,
+  };
+
+  // MÉTRICAS: calculadas no banco (RPC). Nunca dependem do teto de 1000 linhas.
+  const metricsQuery = useQuery({
+    queryKey: ["admin-order-metrics", filters],
     enabled: admin === true,
-    queryFn: async () => {
-      const since = startOf(effectivePeriod);
-      let q = supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (since) q = q.gte("created_at", since.toISOString());
-      if (dateFrom) q = q.gte("created_at", new Date(dateFrom + "T00:00:00").toISOString());
-      if (dateTo) q = q.lte("created_at", new Date(dateTo + "T23:59:59").toISOString());
-      const { data: orders, error } = await q;
-      if (error) throw error;
-      const ids = (orders ?? []).map((o) => o.id);
-      let items: ItemRow[] = [];
-      // Chunk .in() to avoid URL length limits (~8KB) when there are many orders.
-      const CHUNK = 100;
-      for (let i = 0; i < ids.length; i += CHUNK) {
-        const slice = ids.slice(i, i + CHUNK);
-        const { data: it, error: ie } = await supabase.from("order_items").select("*").in("order_id", slice);
-        if (ie) throw ie;
-        items = items.concat((it ?? []) as ItemRow[]);
-      }
-      const productIds = Array.from(new Set(items.map((i) => i.product_id).filter(Boolean)));
-      let categories = new Map<string, string>();
-      for (let i = 0; i < productIds.length; i += CHUNK) {
-        const slice = productIds.slice(i, i + CHUNK);
-        const { data: prods, error: pe } = await supabase.from("products").select("id, category").in("id", slice);
-        if (pe) throw pe;
-        for (const p of prods ?? []) categories.set(p.id as string, (p.category as string) ?? "Sem categoria");
-      }
-      return { orders: (orders ?? []) as OrderRow[], items, categories };
-    },
+    queryFn: () => fetchOrderMetrics(filters),
+    staleTime: 30_000,
   });
 
-  const stats = useMemo(() => {
-    let orders = data?.orders ?? [];
-    const allItems = data?.items ?? [];
-    const categoriesMap = data?.categories ?? new Map<string, string>();
+  // LISTA: paginada no banco, com contagem real total.
+  const ordersQuery = useQuery({
+    queryKey: ["admin-orders", filters, debouncedSearch, filterStatus, page],
+    enabled: admin === true,
+    queryFn: () =>
+      fetchOrdersPage({
+        ...filters,
+        search: debouncedSearch,
+        status: filterStatus === "all" ? null : filterStatus,
+        limit: PAGE_SIZE,
+        offset: page * PAGE_SIZE,
+      }),
+    placeholderData: (prev) => prev,
+    staleTime: 15_000,
+  });
 
-    // Apply filters
-    if (searchCpf.trim()) {
-      const term = searchCpf.trim().toLowerCase();
-      const digits = term.replace(/\D/g, "");
-      orders = orders.filter((o) => {
-        const matchName = (o.customer_name ?? "").toLowerCase().includes(term);
-        const matchEmail = (o.customer_email ?? "").toLowerCase().includes(term);
-        const matchCpf = digits.length > 0 && (o.customer_cpf ?? "").replace(/\D/g, "").includes(digits);
-        const matchPhone = digits.length > 0 && (o.customer_phone ?? "").replace(/\D/g, "").includes(digits);
-        const idFull = o.id.toLowerCase();
-        const idShort = o.id.slice(0, 8).toLowerCase();
-        const matchId = idFull.includes(term) || idShort.includes(term.replace(/^#/, ""));
-        return matchName || matchEmail || matchCpf || matchPhone || matchId;
-      });
+  const metrics: OrderMetrics | undefined = metricsQuery.data;
+  const orders: AdminOrderRow[] = ordersQuery.data?.rows ?? [];
+  const ordersTotal = ordersQuery.data?.total ?? 0;
+  const isLoading = ordersQuery.isLoading;
+  const metricsLoading = metricsQuery.isLoading;
+
+  const loadError = (metricsQuery.error ?? ordersQuery.error) as Error | undefined;
+  const errorMessage = loadError
+    ? loadError instanceof AdminMetricsError
+      ? loadError.message
+      : `Erro ao carregar métricas: ${loadError.message}`
+    : null;
+
+  // Revalida o papel sempre que a permissão falhar — evita cache velho de cargos.
+  useEffect(() => {
+    if (loadError instanceof AdminMetricsError && loadError.kind !== "unknown") {
+      clearRolesCache();
+      isAdmin().then(setAdmin);
+      isSuperAdmin().then(setSuperAdmin);
     }
-    if (filterDelivery !== "all") {
-      orders = orders.filter((o) => o.delivery_method === filterDelivery);
-    }
-    if (filterPayment !== "all") {
-      orders = orders.filter((o) => o.payment_method === filterPayment);
-    }
-    if (filterStatus !== "all") {
-      orders = orders.filter((o) => orderStatusGroup(o) === filterStatus);
-    }
+  }, [loadError]);
 
-    // Filtro por categoria: mantém pedidos que tenham ao menos um item da categoria
-    if (filterCategory !== "all") {
-      const orderIdsInCat = new Set(
-        allItems
-          .filter((i) => (categoriesMap.get(i.product_id) ?? "Sem categoria") === filterCategory)
-          .map((i) => i.order_id),
-      );
-      orders = orders.filter((o) => orderIdsInCat.has(o.id));
-    }
-
-    // Métricas de venda consideram APENAS pedidos pagos (ignora pendentes/cancelados)
-    const paidOrderIds = new Set(orders.filter((o) => o.status === "paid").map((o) => o.id));
-    let items = allItems.filter((i) => paidOrderIds.has(i.order_id));
-    if (filterCategory !== "all") {
-      items = items.filter((i) => (categoriesMap.get(i.product_id) ?? "Sem categoria") === filterCategory);
-    }
-
-    const productsRevenue = items.reduce((s, i) => s + Number(i.unit_price) * Number(i.quantity), 0);
-    // Frete só entra na receita quando NÃO há filtro de categoria: um pedido
-    // pode ter itens de múltiplas categorias, e somar o frete inteiro em uma
-    // única categoria distorceria a comparação entre categorias.
-    const shippingRevenue = filterCategory !== "all"
-      ? 0
-      : orders
-          .filter((o) => o.status === "paid")
-          .reduce((s, o) => s + Number((o as { delivery_fee?: number }).delivery_fee ?? 0), 0);
-    const revenue = productsRevenue + shippingRevenue;
-
-    const unitsSold = items.reduce((s, i) => s + Number(i.quantity), 0);
-
-    const byProduct = new Map<string, { name: string; qty: number; revenue: number }>();
-    for (const it of items) {
-      const cur = byProduct.get(it.product_id) ?? { name: it.product_name, qty: 0, revenue: 0 };
-      cur.qty += Number(it.quantity);
-      cur.revenue += Number(it.unit_price) * Number(it.quantity);
-      byProduct.set(it.product_id, cur);
-    }
-    const ranking = [...byProduct.entries()]
-      .map(([id, v]) => ({ id, ...v }))
-      .sort((a, b) => b.qty - a.qty);
-
-    // Ranking por categoria
-    const byCategory = new Map<string, { qty: number; revenue: number }>();
-    for (const it of items) {
-      const cat = categoriesMap.get(it.product_id) ?? "Sem categoria";
-      const cur = byCategory.get(cat) ?? { qty: 0, revenue: 0 };
-      cur.qty += Number(it.quantity);
-      cur.revenue += Number(it.unit_price) * Number(it.quantity);
-      byCategory.set(cat, cur);
-    }
-    const categoryRanking = [...byCategory.entries()]
-      .map(([name, v]) => ({ name, ...v }))
-      .sort((a, b) => b.revenue - a.revenue);
-
-    // Breakdown de entrega considera somente pedidos pagos para as métricas
-    const paidOrders = orders.filter((o) => o.status === "paid");
-    const deliveryCount = paidOrders.filter((o) => o.delivery_method === "delivery").length;
-    const pickupCount = paidOrders.filter((o) => o.delivery_method === "pickup").length;
-
-    return { orders, items, revenue, unitsSold, ranking, categoryRanking, deliveryCount, pickupCount };
-  }, [data, searchCpf, filterDelivery, filterPayment, filterStatus, filterCategory]);
+  const stats = useMemo(
+    () => ({
+      ordersCount: metrics?.orders_count ?? 0,
+      revenue: metrics?.revenue ?? 0,
+      unitsSold: metrics?.units_sold ?? 0,
+      avgTicket: metrics?.avg_ticket ?? 0,
+      ranking: metrics?.product_ranking ?? [],
+      categoryRanking: metrics?.category_ranking ?? [],
+      byPayment: metrics?.by_payment ?? [],
+      deliveryCount: metrics?.delivery_count ?? 0,
+      pickupCount: metrics?.pickup_count ?? 0,
+    }),
+    [metrics],
+  );
 
   const insight = useMemo(() => generateInsight(stats.ranking, stats.orders.length, period), [stats, period]);
 
