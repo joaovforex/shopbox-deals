@@ -1011,6 +1011,30 @@ function OrdersPanel() {
               </ul>
             </>
           )}
+
+          {ordersTotal > PAGE_SIZE && (
+            <div className="flex items-center justify-between gap-2 border-t border-border px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0 || ordersQuery.isFetching}
+                className="min-h-11 px-4 rounded border border-border text-xs font-bold uppercase tracking-wider disabled:opacity-40 hover:bg-secondary"
+              >
+                Anterior
+              </button>
+              <span className="text-xs text-muted-foreground">
+                {page * PAGE_SIZE + 1}–{Math.min(ordersTotal, (page + 1) * PAGE_SIZE)} de {ordersTotal}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={(page + 1) * PAGE_SIZE >= ordersTotal || ordersQuery.isFetching}
+                className="min-h-11 px-4 rounded border border-border text-xs font-bold uppercase tracking-wider disabled:opacity-40 hover:bg-secondary"
+              >
+                Próxima
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Danger zone */}
