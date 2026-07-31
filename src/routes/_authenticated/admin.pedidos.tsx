@@ -137,6 +137,18 @@ function OrdersPanel() {
   const [exportingCustomers, setExportingCustomers] = useState(false);
   const qc = useQueryClient();
 
+  // Debounce da busca (a busca acontece no banco, com PII real, mesmo mascarada na tela).
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchCpf.trim()), 350);
+    return () => clearTimeout(t);
+  }, [searchCpf]);
+
+  // Qualquer mudança de filtro/busca volta para a primeira página.
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearch, filterStatus, filterDelivery, filterPayment, filterCategory, period, dateFrom, dateTo]);
+
+
   const posMetrics = useQuery({
     queryKey: ["pos-charges", "metrics"],
     queryFn: () => posMetricsFn(),
