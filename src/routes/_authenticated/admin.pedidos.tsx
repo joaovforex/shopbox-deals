@@ -1245,38 +1245,10 @@ function generateInsight(
 
 
 function CatalogValueCard() {
+  // Agregado no banco (RPC) — sem o teto de 1000 linhas do PostgREST.
   const { data, isLoading } = useQuery({
     queryKey: ["catalog-value"],
-    queryFn: async () => {
-      // Pagina para além do limite implícito de 1000 do PostgREST
-      const PAGE = 1000;
-      let totalRetail = 0;
-      let totalOriginal = 0;
-      let totalUnits = 0;
-      let activeCount = 0;
-      let outOfStockCount = 0;
-      for (let from = 0; ; from += PAGE) {
-        const { data: rows, error } = await supabase
-          .from("products")
-          .select("price, original_price, stock")
-          .eq("active", true)
-          .range(from, from + PAGE - 1);
-        if (error) throw error;
-        const list = rows ?? [];
-        for (const r of list) {
-          const price = Number(r.price ?? 0);
-          const original = Number(r.original_price ?? price);
-          const stock = Number(r.stock ?? 0);
-          activeCount += 1;
-          if (stock <= 0) outOfStockCount += 1;
-          totalUnits += Math.max(0, stock);
-          totalRetail += price * Math.max(0, stock);
-          totalOriginal += original * Math.max(0, stock);
-        }
-        if (list.length < PAGE) break;
-      }
-      return { totalRetail, totalOriginal, totalUnits, activeCount, outOfStockCount };
-    },
+    queryFn: fetchCatalogValue,
     staleTime: 5 * 60_000,
   });
 
@@ -1297,10 +1269,10 @@ function CatalogValueCard() {
         <div className="text-sm text-muted-foreground">Calculando…</div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Kpi icon={<DollarSign className="h-5 w-5" />} label="Valor total (venda)" value={brl(data.totalRetail)} accent />
-          <Kpi icon={<TrendingUp className="h-5 w-5" />} label="Valor s/ desconto" value={brl(data.totalOriginal)} />
-          <Kpi icon={<Package className="h-5 w-5" />} label="Unidades em estoque" value={String(data.totalUnits)} />
-          <Kpi icon={<ShoppingBag className="h-5 w-5" />} label="Produtos ativos" value={`${data.activeCount}${data.outOfStockCount ? ` · ${data.outOfStockCount} s/ estoque` : ""}`} />
+          <Kpi icon={<DollarSign className="h-5 w-5" />} label="Valor total (venda)" value={brl(data.total_retail)} accent />
+          <Kpi icon={<TrendingUp className="h-5 w-5" />} label="Valor s/ desconto" value={brl(data.total_original)} />
+          <Kpi icon={<Package className="h-5 w-5" />} label="Unidades em estoque" value={String(data.total_units)} />
+          <Kpi icon={<ShoppingBag className="h-5 w-5" />} label="Produtos ativos" value={`${data.active_count}${data.out_of_stock_count ? ` · ${data.out_of_stock_count} s/ estoque` : ""}`} />
         </div>
       )}
     </div>
