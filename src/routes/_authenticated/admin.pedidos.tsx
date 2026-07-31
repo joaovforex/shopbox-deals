@@ -122,6 +122,8 @@ function OrdersPanel() {
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("paid");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(0);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
   const [voucherTarget, setVoucherTarget] = useState<OrderRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<OrderRow | null>(null);
