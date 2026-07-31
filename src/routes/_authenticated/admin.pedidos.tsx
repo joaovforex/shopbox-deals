@@ -15,7 +15,15 @@ import { ExchangeVoucherModal } from "@/components/ExchangeVoucherModal";
 import { DeleteOrderDialog } from "@/components/admin/DeleteOrderDialog";
 import { AdminSkeleton } from "@/components/admin/AdminSkeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { isAdmin, isSuperAdmin } from "@/lib/products";
+import { isAdmin, isSuperAdmin, clearRolesCache } from "@/lib/products";
+import {
+  fetchOrderMetrics,
+  fetchOrdersPage,
+  fetchCatalogValue,
+  AdminMetricsError,
+  type OrderMetrics,
+  type AdminOrderRow,
+} from "@/lib/admin-metrics";
 import { brl } from "@/lib/format";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import { refundOrder } from "@/lib/refunds.functions";
@@ -34,6 +42,8 @@ export const Route = createFileRoute("/_authenticated/admin/pedidos")({
 });
 
 type Period = "day" | "week" | "month" | "all";
+
+const PAGE_SIZE = 50;
 
 type StatusFilter = "all" | "paid" | "fulfillment" | "delivered" | "refunded" | "cancelled";
 
@@ -114,6 +124,8 @@ function OrdersPanel() {
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("paid");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(0);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
   const [voucherTarget, setVoucherTarget] = useState<OrderRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<OrderRow | null>(null);
@@ -124,6 +136,18 @@ function OrdersPanel() {
   const posMetricsFn = useServerFn(getPosChargesMetrics);
   const [exportingCustomers, setExportingCustomers] = useState(false);
   const qc = useQueryClient();
+
+  // Debounce da busca (a busca acontece no banco, com PII real, mesmo mascarada na tela).
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchCpf.trim()), 350);
+    return () => clearTimeout(t);
+  }, [searchCpf]);
+
+  // Qualquer mudança de filtro/busca volta para a primeira página.
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearch, filterStatus, filterDelivery, filterPayment, filterCategory, period, dateFrom, dateTo]);
+
 
   const posMetrics = useQuery({
     queryKey: ["pos-charges", "metrics"],
@@ -168,135 +192,88 @@ function OrdersPanel() {
   const hasCustomRange = !!(dateFrom || dateTo);
   const effectivePeriod: Period = searchCpf.trim() || hasCustomRange ? "all" : period;
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["admin-orders", effectivePeriod, dateFrom, dateTo],
+  // Intervalo efetivo (ISO) aplicado tanto nas métricas quanto na listagem.
+  const range = useMemo(() => {
+    if (dateFrom || dateTo) {
+      return {
+        from: dateFrom ? new Date(dateFrom + "T00:00:00").toISOString() : null,
+        to: dateTo ? new Date(dateTo + "T23:59:59").toISOString() : null,
+      };
+    }
+    const since = startOf(effectivePeriod);
+    return { from: since ? since.toISOString() : null, to: null };
+  }, [dateFrom, dateTo, effectivePeriod]);
+
+  const filters = {
+    from: range.from,
+    to: range.to,
+    delivery: filterDelivery === "all" ? null : filterDelivery,
+    payment: filterPayment === "all" ? null : filterPayment,
+    category: filterCategory === "all" ? null : filterCategory,
+  };
+
+  // MÉTRICAS: calculadas no banco (RPC). Nunca dependem do teto de 1000 linhas.
+  const metricsQuery = useQuery({
+    queryKey: ["admin-order-metrics", filters],
     enabled: admin === true,
-    queryFn: async () => {
-      const since = startOf(effectivePeriod);
-      let q = supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (since) q = q.gte("created_at", since.toISOString());
-      if (dateFrom) q = q.gte("created_at", new Date(dateFrom + "T00:00:00").toISOString());
-      if (dateTo) q = q.lte("created_at", new Date(dateTo + "T23:59:59").toISOString());
-      const { data: orders, error } = await q;
-      if (error) throw error;
-      const ids = (orders ?? []).map((o) => o.id);
-      let items: ItemRow[] = [];
-      // Chunk .in() to avoid URL length limits (~8KB) when there are many orders.
-      const CHUNK = 100;
-      for (let i = 0; i < ids.length; i += CHUNK) {
-        const slice = ids.slice(i, i + CHUNK);
-        const { data: it, error: ie } = await supabase.from("order_items").select("*").in("order_id", slice);
-        if (ie) throw ie;
-        items = items.concat((it ?? []) as ItemRow[]);
-      }
-      const productIds = Array.from(new Set(items.map((i) => i.product_id).filter(Boolean)));
-      let categories = new Map<string, string>();
-      for (let i = 0; i < productIds.length; i += CHUNK) {
-        const slice = productIds.slice(i, i + CHUNK);
-        const { data: prods, error: pe } = await supabase.from("products").select("id, category").in("id", slice);
-        if (pe) throw pe;
-        for (const p of prods ?? []) categories.set(p.id as string, (p.category as string) ?? "Sem categoria");
-      }
-      return { orders: (orders ?? []) as OrderRow[], items, categories };
-    },
+    queryFn: () => fetchOrderMetrics(filters),
+    staleTime: 30_000,
   });
 
-  const stats = useMemo(() => {
-    let orders = data?.orders ?? [];
-    const allItems = data?.items ?? [];
-    const categoriesMap = data?.categories ?? new Map<string, string>();
+  // LISTA: paginada no banco, com contagem real total.
+  const ordersQuery = useQuery({
+    queryKey: ["admin-orders", filters, debouncedSearch, filterStatus, page],
+    enabled: admin === true,
+    queryFn: () =>
+      fetchOrdersPage({
+        ...filters,
+        search: debouncedSearch,
+        status: filterStatus === "all" ? null : filterStatus,
+        limit: PAGE_SIZE,
+        offset: page * PAGE_SIZE,
+      }),
+    placeholderData: (prev) => prev,
+    staleTime: 15_000,
+  });
 
-    // Apply filters
-    if (searchCpf.trim()) {
-      const term = searchCpf.trim().toLowerCase();
-      const digits = term.replace(/\D/g, "");
-      orders = orders.filter((o) => {
-        const matchName = (o.customer_name ?? "").toLowerCase().includes(term);
-        const matchEmail = (o.customer_email ?? "").toLowerCase().includes(term);
-        const matchCpf = digits.length > 0 && (o.customer_cpf ?? "").replace(/\D/g, "").includes(digits);
-        const matchPhone = digits.length > 0 && (o.customer_phone ?? "").replace(/\D/g, "").includes(digits);
-        const idFull = o.id.toLowerCase();
-        const idShort = o.id.slice(0, 8).toLowerCase();
-        const matchId = idFull.includes(term) || idShort.includes(term.replace(/^#/, ""));
-        return matchName || matchEmail || matchCpf || matchPhone || matchId;
-      });
+  const metrics: OrderMetrics | undefined = metricsQuery.data;
+  const orders: AdminOrderRow[] = ordersQuery.data?.rows ?? [];
+  const ordersTotal = ordersQuery.data?.total ?? 0;
+  const isLoading = ordersQuery.isLoading;
+  const metricsLoading = metricsQuery.isLoading;
+
+  const loadError = (metricsQuery.error ?? ordersQuery.error) as Error | undefined;
+  const errorMessage = loadError
+    ? loadError instanceof AdminMetricsError
+      ? loadError.message
+      : `Erro ao carregar métricas: ${loadError.message}`
+    : null;
+
+  // Revalida o papel sempre que a permissão falhar — evita cache velho de cargos.
+  useEffect(() => {
+    if (loadError instanceof AdminMetricsError && loadError.kind !== "unknown") {
+      clearRolesCache();
+      isAdmin().then(setAdmin);
+      isSuperAdmin().then(setSuperAdmin);
     }
-    if (filterDelivery !== "all") {
-      orders = orders.filter((o) => o.delivery_method === filterDelivery);
-    }
-    if (filterPayment !== "all") {
-      orders = orders.filter((o) => o.payment_method === filterPayment);
-    }
-    if (filterStatus !== "all") {
-      orders = orders.filter((o) => orderStatusGroup(o) === filterStatus);
-    }
+  }, [loadError]);
 
-    // Filtro por categoria: mantém pedidos que tenham ao menos um item da categoria
-    if (filterCategory !== "all") {
-      const orderIdsInCat = new Set(
-        allItems
-          .filter((i) => (categoriesMap.get(i.product_id) ?? "Sem categoria") === filterCategory)
-          .map((i) => i.order_id),
-      );
-      orders = orders.filter((o) => orderIdsInCat.has(o.id));
-    }
+  const stats = useMemo(
+    () => ({
+      ordersCount: metrics?.orders_count ?? 0,
+      revenue: metrics?.revenue ?? 0,
+      unitsSold: metrics?.units_sold ?? 0,
+      avgTicket: metrics?.avg_ticket ?? 0,
+      ranking: metrics?.product_ranking ?? [],
+      categoryRanking: metrics?.category_ranking ?? [],
+      byPayment: metrics?.by_payment ?? [],
+      deliveryCount: metrics?.delivery_count ?? 0,
+      pickupCount: metrics?.pickup_count ?? 0,
+    }),
+    [metrics],
+  );
 
-    // Métricas de venda consideram APENAS pedidos pagos (ignora pendentes/cancelados)
-    const paidOrderIds = new Set(orders.filter((o) => o.status === "paid").map((o) => o.id));
-    let items = allItems.filter((i) => paidOrderIds.has(i.order_id));
-    if (filterCategory !== "all") {
-      items = items.filter((i) => (categoriesMap.get(i.product_id) ?? "Sem categoria") === filterCategory);
-    }
-
-    const productsRevenue = items.reduce((s, i) => s + Number(i.unit_price) * Number(i.quantity), 0);
-    // Frete só entra na receita quando NÃO há filtro de categoria: um pedido
-    // pode ter itens de múltiplas categorias, e somar o frete inteiro em uma
-    // única categoria distorceria a comparação entre categorias.
-    const shippingRevenue = filterCategory !== "all"
-      ? 0
-      : orders
-          .filter((o) => o.status === "paid")
-          .reduce((s, o) => s + Number((o as { delivery_fee?: number }).delivery_fee ?? 0), 0);
-    const revenue = productsRevenue + shippingRevenue;
-
-    const unitsSold = items.reduce((s, i) => s + Number(i.quantity), 0);
-
-    const byProduct = new Map<string, { name: string; qty: number; revenue: number }>();
-    for (const it of items) {
-      const cur = byProduct.get(it.product_id) ?? { name: it.product_name, qty: 0, revenue: 0 };
-      cur.qty += Number(it.quantity);
-      cur.revenue += Number(it.unit_price) * Number(it.quantity);
-      byProduct.set(it.product_id, cur);
-    }
-    const ranking = [...byProduct.entries()]
-      .map(([id, v]) => ({ id, ...v }))
-      .sort((a, b) => b.qty - a.qty);
-
-    // Ranking por categoria
-    const byCategory = new Map<string, { qty: number; revenue: number }>();
-    for (const it of items) {
-      const cat = categoriesMap.get(it.product_id) ?? "Sem categoria";
-      const cur = byCategory.get(cat) ?? { qty: 0, revenue: 0 };
-      cur.qty += Number(it.quantity);
-      cur.revenue += Number(it.unit_price) * Number(it.quantity);
-      byCategory.set(cat, cur);
-    }
-    const categoryRanking = [...byCategory.entries()]
-      .map(([name, v]) => ({ name, ...v }))
-      .sort((a, b) => b.revenue - a.revenue);
-
-    // Breakdown de entrega considera somente pedidos pagos para as métricas
-    const paidOrders = orders.filter((o) => o.status === "paid");
-    const deliveryCount = paidOrders.filter((o) => o.delivery_method === "delivery").length;
-    const pickupCount = paidOrders.filter((o) => o.delivery_method === "pickup").length;
-
-    return { orders, items, revenue, unitsSold, ranking, categoryRanking, deliveryCount, pickupCount };
-  }, [data, searchCpf, filterDelivery, filterPayment, filterStatus, filterCategory]);
-
-  const insight = useMemo(() => generateInsight(stats.ranking, stats.orders.length, period), [stats, period]);
+  const insight = useMemo(() => generateInsight(stats.ranking, stats.ordersCount, period), [stats, period]);
 
   const periodLabel = (() => {
     if (hasCustomRange) {
@@ -315,7 +292,7 @@ function OrdersPanel() {
     lines.push(`📊 *RELATÓRIO SHOPBOX*`);
     lines.push(`🗓️ ${periodLabel}`);
     lines.push("");
-    lines.push(`🧾 ${stats.orders.length} pedidos · 📦 ${stats.unitsSold} itens · 💰 ${brl(stats.revenue)}`);
+    lines.push(`🧾 ${stats.ordersCount} pedidos · 📦 ${stats.unitsSold} itens · 💰 ${brl(stats.revenue)}`);
     lines.push(`🛵 Entrega: ${stats.deliveryCount} · 🏪 Retirada: ${stats.pickupCount}`);
     lines.push("");
     lines.push(`*VENDAS POR CATEGORIA*`);
@@ -338,55 +315,35 @@ function OrdersPanel() {
     return lines.join("\n");
   }
 
-  function buildCategoryReport(catName?: string): string {
+  /**
+   * Relatório por categoria: agregado NO BANCO (RPC), sem teto de 1000 linhas.
+   * Quando a categoria pedida é a mesma do filtro atual, reutiliza as métricas já carregadas.
+   */
+  async function shareCategoryReport(catName?: string) {
     const cat = catName ?? filterCategory;
+    let m = metrics;
+    if (catName && catName !== filterCategory) {
+      try {
+        m = await fetchOrderMetrics({ ...filters, category: cat });
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Erro ao gerar relatório");
+        return;
+      }
+    }
     const lines: string[] = [];
     lines.push(`📊 *RELATÓRIO · ${cat.toUpperCase()}*`);
     lines.push(`🗓️ ${periodLabel}`);
     lines.push("");
-
-    // Se for chamada com categoria específica (independente do filtro), recalcula a partir do data bruto
-    if (catName && catName !== filterCategory) {
-      const allOrders = data?.orders ?? [];
-      const allItems = data?.items ?? [];
-      const cats = data?.categories ?? new Map<string, string>();
-      const paidIds = new Set(allOrders.filter((o) => o.status === "paid").map((o) => o.id));
-      const items = allItems.filter(
-        (i) => paidIds.has(i.order_id) && (cats.get(i.product_id) ?? "Sem categoria") === cat,
-      );
-      const orderIds = new Set(items.map((i) => i.order_id));
-      const revenue = items.reduce((s, i) => s + Number(i.unit_price) * Number(i.quantity), 0);
-      const units = items.reduce((s, i) => s + Number(i.quantity), 0);
-      const byProd = new Map<string, { name: string; qty: number; revenue: number }>();
-      for (const it of items) {
-        const cur = byProd.get(it.product_id) ?? { name: it.product_name, qty: 0, revenue: 0 };
-        cur.qty += Number(it.quantity);
-        cur.revenue += Number(it.unit_price) * Number(it.quantity);
-        byProd.set(it.product_id, cur);
-      }
-      const rank = [...byProd.values()].sort((a, b) => b.qty - a.qty);
-      lines.push(`🧾 ${orderIds.size} pedidos · 📦 ${units} itens · 💰 ${brl(revenue)}`);
-      lines.push("");
-      lines.push(`*ITENS VENDIDOS · ${cat.toUpperCase()}*`);
-      if (rank.length === 0) {
-        lines.push("— nenhum item vendido —");
-      } else {
-        for (const r of rank) lines.push(`• ${r.name} — ${r.qty}x · ${brl(r.revenue)}`);
-      }
-      return lines.join("\n");
-    }
-
-    lines.push(`🧾 ${stats.orders.length} pedidos · 📦 ${stats.unitsSold} itens · 💰 ${brl(stats.revenue)}`);
+    lines.push(`🧾 ${m?.orders_count ?? 0} pedidos · 📦 ${m?.units_sold ?? 0} itens · 💰 ${brl(m?.revenue ?? 0)}`);
     lines.push("");
     lines.push(`*ITENS VENDIDOS · ${cat.toUpperCase()}*`);
-    if (stats.ranking.length === 0) {
+    const rank = m?.product_ranking ?? [];
+    if (rank.length === 0) {
       lines.push("— nenhum item vendido —");
     } else {
-      for (const r of stats.ranking) {
-        lines.push(`• ${r.name} — ${r.qty}x · ${brl(r.revenue)}`);
-      }
+      for (const r of rank) lines.push(`• ${r.name} — ${r.qty}x · ${brl(r.revenue)}`);
     }
-    return lines.join("\n");
+    await shareReport(lines.join("\n"), `Relatório · ${cat} · ${periodLabel}`);
   }
 
 
@@ -549,12 +506,21 @@ function OrdersPanel() {
       </section>
 
       <section className="container mx-auto px-4 py-6 flex-1 space-y-6">
+        {errorMessage && (
+          <div className="flex items-start gap-3 rounded-lg border border-destructive/40 bg-destructive/10 p-4">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div className="min-w-0 text-sm">
+              <p className="font-bold text-destructive">Não foi possível carregar as métricas</p>
+              <p className="text-muted-foreground break-words">{errorMessage}</p>
+            </div>
+          </div>
+        )}
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Kpi icon={<ShoppingBag className="h-5 w-5" />} label="Pedidos" value={String(stats.orders.length)} />
+          <Kpi icon={<ShoppingBag className="h-5 w-5" />} label="Pedidos" value={String(stats.ordersCount)} />
           <Kpi icon={<DollarSign className="h-5 w-5" />} label="Receita" value={brl(stats.revenue)} accent />
           <Kpi icon={<Package className="h-5 w-5" />} label="Itens vendidos" value={String(stats.unitsSold)} />
-          <Kpi icon={<TrendingUp className="h-5 w-5" />} label="Ticket médio" value={stats.orders.length ? brl(stats.revenue / stats.orders.length) : brl(0)} />
+          <Kpi icon={<TrendingUp className="h-5 w-5" />} label="Ticket médio" value={brl(stats.avgTicket)} />
         </div>
 
         {/* Valor do catálogo publicado no site */}
@@ -636,14 +602,14 @@ function OrdersPanel() {
                   <p className="text-xs text-muted-foreground">{stats.unitsSold} itens · {brl(stats.revenue)} · {periodLabel}</p>
                 </div>
                 <button
-                  onClick={() => shareReport(buildCategoryReport(), `Relatório · ${filterCategory}`)}
+                  onClick={() => shareCategoryReport()}
                   className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-3 py-1.5 rounded hover:opacity-90"
                   title="Exportar relatório desta categoria"
                 >
                   <Share2 className="h-3.5 w-3.5" /> WhatsApp
                 </button>
               </div>
-              {isLoading ? (
+              {metricsLoading ? (
                 <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
               ) : stats.ranking.length === 0 ? (
                 <div className="p-6 text-sm text-muted-foreground">Nenhum produto vendido nesta categoria.</div>
@@ -681,9 +647,9 @@ function OrdersPanel() {
               </div>
             </div>
             <div className="text-xs text-muted-foreground">
-              {stats.orders.length === 0
-                ? "Sem pedidos no período."
-                : `${Math.round((stats.deliveryCount / Math.max(1, stats.orders.length)) * 100)}% dos pedidos pedem entrega.`}
+              {stats.ordersCount === 0
+                ? "Sem pedidos pagos no período."
+                : `${Math.round((stats.deliveryCount / Math.max(1, stats.ordersCount)) * 100)}% dos pedidos pedem entrega.`}
           </div>
         </div>
 
@@ -718,7 +684,7 @@ function OrdersPanel() {
             </div>
 
           </div>
-          {isLoading ? (
+          {metricsLoading ? (
             <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
           ) : stats.categoryRanking.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">Sem vendas no período.</div>
@@ -747,7 +713,7 @@ function OrdersPanel() {
                             Ver itens
                           </button>
                           <button
-                            onClick={() => shareReport(buildCategoryReport(c.name), `Relatório · ${c.name} · ${periodLabel}`)}
+                            onClick={() => shareCategoryReport(c.name)}
                             className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-2 py-1 rounded hover:opacity-90"
                             title={`Exportar relatório de ${c.name} (${periodLabel}) para WhatsApp`}
                           >
@@ -772,7 +738,7 @@ function OrdersPanel() {
           <div className="px-4 py-3 border-b border-border bg-secondary flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
               <h2 className="display text-lg">Pedidos</h2>
-              <span className="text-xs text-muted-foreground">{stats.orders.length} no período</span>
+              <span className="text-xs text-muted-foreground">{ordersTotal} no período{ordersTotal > PAGE_SIZE ? ` · página ${page + 1} de ${Math.ceil(ordersTotal / PAGE_SIZE)}` : ""}</span>
             </div>
 
             {/* Search & Filters */}
@@ -862,7 +828,7 @@ function OrdersPanel() {
           </div>
           {isLoading ? (
             <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
-          ) : stats.orders.length === 0 ? (
+          ) : orders.length === 0 ? (
             <div className="p-6 text-sm text-muted-foreground">
               {searchCpf || filterDelivery !== "all" || filterPayment !== "all" || filterStatus !== "paid"
                 ? "Nenhum pedido encontrado com os filtros aplicados."
@@ -887,7 +853,7 @@ function OrdersPanel() {
                     </tr>
                   </thead>
                   <tbody>
-                    {stats.orders.map((o) => (
+                    {orders.map((o) => (
                       <tr key={o.id} className="border-t border-border hover:bg-secondary/40">
                         <td className="p-3 font-mono text-xs">
                           <Link to="/pedido/$id" params={{ id: o.id }} className="text-primary hover:underline">
@@ -970,7 +936,7 @@ function OrdersPanel() {
 
               {/* Mobile cards */}
               <ul className="md:hidden divide-y divide-border">
-                {stats.orders.map((o) => (
+                {orders.map((o) => (
                   <li key={o.id} className="p-4 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <Link to="/pedido/$id" params={{ id: o.id }} className="font-mono text-xs text-primary font-bold">
@@ -1065,6 +1031,30 @@ function OrdersPanel() {
                 ))}
               </ul>
             </>
+          )}
+
+          {ordersTotal > PAGE_SIZE && (
+            <div className="flex items-center justify-between gap-2 border-t border-border px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+                disabled={page === 0 || ordersQuery.isFetching}
+                className="min-h-11 px-4 rounded border border-border text-xs font-bold uppercase tracking-wider disabled:opacity-40 hover:bg-secondary"
+              >
+                Anterior
+              </button>
+              <span className="text-xs text-muted-foreground">
+                {page * PAGE_SIZE + 1}–{Math.min(ordersTotal, (page + 1) * PAGE_SIZE)} de {ordersTotal}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={(page + 1) * PAGE_SIZE >= ordersTotal || ordersQuery.isFetching}
+                className="min-h-11 px-4 rounded border border-border text-xs font-bold uppercase tracking-wider disabled:opacity-40 hover:bg-secondary"
+              >
+                Próxima
+              </button>
+            </div>
           )}
         </div>
 
@@ -1264,38 +1254,10 @@ function generateInsight(
 
 
 function CatalogValueCard() {
+  // Agregado no banco (RPC) — sem o teto de 1000 linhas do PostgREST.
   const { data, isLoading } = useQuery({
     queryKey: ["catalog-value"],
-    queryFn: async () => {
-      // Pagina para além do limite implícito de 1000 do PostgREST
-      const PAGE = 1000;
-      let totalRetail = 0;
-      let totalOriginal = 0;
-      let totalUnits = 0;
-      let activeCount = 0;
-      let outOfStockCount = 0;
-      for (let from = 0; ; from += PAGE) {
-        const { data: rows, error } = await supabase
-          .from("products")
-          .select("price, original_price, stock")
-          .eq("active", true)
-          .range(from, from + PAGE - 1);
-        if (error) throw error;
-        const list = rows ?? [];
-        for (const r of list) {
-          const price = Number(r.price ?? 0);
-          const original = Number(r.original_price ?? price);
-          const stock = Number(r.stock ?? 0);
-          activeCount += 1;
-          if (stock <= 0) outOfStockCount += 1;
-          totalUnits += Math.max(0, stock);
-          totalRetail += price * Math.max(0, stock);
-          totalOriginal += original * Math.max(0, stock);
-        }
-        if (list.length < PAGE) break;
-      }
-      return { totalRetail, totalOriginal, totalUnits, activeCount, outOfStockCount };
-    },
+    queryFn: fetchCatalogValue,
     staleTime: 5 * 60_000,
   });
 
@@ -1316,10 +1278,10 @@ function CatalogValueCard() {
         <div className="text-sm text-muted-foreground">Calculando…</div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Kpi icon={<DollarSign className="h-5 w-5" />} label="Valor total (venda)" value={brl(data.totalRetail)} accent />
-          <Kpi icon={<TrendingUp className="h-5 w-5" />} label="Valor s/ desconto" value={brl(data.totalOriginal)} />
-          <Kpi icon={<Package className="h-5 w-5" />} label="Unidades em estoque" value={String(data.totalUnits)} />
-          <Kpi icon={<ShoppingBag className="h-5 w-5" />} label="Produtos ativos" value={`${data.activeCount}${data.outOfStockCount ? ` · ${data.outOfStockCount} s/ estoque` : ""}`} />
+          <Kpi icon={<DollarSign className="h-5 w-5" />} label="Valor total (venda)" value={brl(data.total_retail)} accent />
+          <Kpi icon={<TrendingUp className="h-5 w-5" />} label="Valor s/ desconto" value={brl(data.total_original)} />
+          <Kpi icon={<Package className="h-5 w-5" />} label="Unidades em estoque" value={String(data.total_units)} />
+          <Kpi icon={<ShoppingBag className="h-5 w-5" />} label="Produtos ativos" value={`${data.active_count}${data.out_of_stock_count ? ` · ${data.out_of_stock_count} s/ estoque` : ""}`} />
         </div>
       )}
     </div>

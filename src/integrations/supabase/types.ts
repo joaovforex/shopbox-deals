@@ -1480,7 +1480,53 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      admin_can_view_reports: { Args: { _user_id: string }; Returns: boolean }
+      admin_cashback_outstanding: { Args: never; Returns: Json }
+      admin_catalog_value: { Args: never; Returns: Json }
       admin_delete_products: { Args: { p_ids: string[] }; Returns: number }
+      admin_order_metrics: {
+        Args: {
+          p_category?: string
+          p_delivery?: string
+          p_from?: string
+          p_payment?: string
+          p_to?: string
+        }
+        Returns: Json
+      }
+      admin_orders_page: {
+        Args: {
+          p_category?: string
+          p_delivery?: string
+          p_from?: string
+          p_limit?: number
+          p_offset?: number
+          p_payment?: string
+          p_search?: string
+          p_status?: string
+          p_to?: string
+        }
+        Returns: {
+          created_at: string
+          customer_cpf: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          delivery_fee: number
+          delivery_method: string
+          fulfillment_status: string
+          id: string
+          mp_payment_id: string
+          payment_method: string
+          refund_status: string
+          refunded_amount: number
+          refunded_at: string
+          shipping_address: string
+          status: string
+          total: number
+          total_count: number
+        }[]
+      }
       admin_replace_in_product_names: {
         Args: { p_find: string; p_ids: string[]; p_replace: string }
         Returns: number
