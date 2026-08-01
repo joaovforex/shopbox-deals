@@ -6,13 +6,20 @@ import { ArrowLeft, Plus, Minus, Trash2, Search, Copy, ExternalLink, Crown } fro
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { getRoleSummary, type RoleSummary } from "@/lib/products";
-import { createManualSale } from "@/lib/manual-sale.functions";
+import { createManualSale, type ManualPaymentMethod } from "@/lib/manual-sale.functions";
 import { brl } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/admin/venda-manual")({
   head: () => ({ meta: [{ title: "Venda manual · shopbox" }] }),
   component: ManualSalePage,
 });
+
+const PAYMENT_OPTIONS: Array<{ value: ManualPaymentMethod; label: string }> = [
+  { value: "mercadopago", label: "Mercado Pago" },
+  { value: "pix", label: "Pix" },
+  { value: "card", label: "Cartão" },
+  { value: "dinheiro", label: "Dinheiro" },
+];
 
 type ProductRow = {
   id: string;
@@ -43,8 +50,9 @@ function ManualSalePage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [delivery, setDelivery] = useState<"pickup" | "delivery">("pickup");
+  const [payment, setPayment] = useState<ManualPaymentMethod>("mercadopago");
   const [generating, setGenerating] = useState(false);
-  const [result, setResult] = useState<{ orderId: string; initPoint: string } | null>(null);
+  const [result, setResult] = useState<{ orderId: string; initPoint: string | null } | null>(null);
 
   const submit = useServerFn(createManualSale);
 
@@ -133,11 +141,12 @@ function ManualSalePage() {
           customer_name: customerName.trim(),
           customer_phone: phoneDigits,
           delivery_method: delivery,
+          payment_method: payment,
           items: cart.map((l) => ({ product_id: l.product_id, quantity: l.quantity, color: l.color })),
         },
       });
       setResult({ orderId: r.orderId, initPoint: r.initPoint });
-      toast.success("Cobrança gerada!");
+      toast.success(payment === "dinheiro" ? "Venda em dinheiro registrada!" : "Cobrança gerada!");
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao gerar cobrança");
     } finally {
@@ -326,43 +335,75 @@ function ManualSalePage() {
                   >Entrega</button>
                 </div>
               </div>
+              <div>
+                <label className="block text-xs font-bold mb-1">Forma de pagamento</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {PAYMENT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setPayment(opt.value)}
+                      className={`px-3 py-2 rounded border text-xs font-bold uppercase ${payment === opt.value ? "bg-primary text-primary-foreground border-primary" : "border-border"}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <button
                 onClick={generateLink}
                 disabled={generating || cart.length === 0}
                 className="w-full bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal disabled:opacity-50"
               >
-                {generating ? "Gerando..." : "Gerar cobrança Mercado Pago"}
+                {generating
+                  ? "Registrando..."
+                  : payment === "dinheiro"
+                    ? "Registrar venda em dinheiro"
+                    : "Gerar cobrança"}
               </button>
               <p className="text-[11px] text-muted-foreground">
-                O estoque é reservado e o pedido entra como pendente. Quando o cliente pagar, ele entra automaticamente em Expedição.
+                {payment === "dinheiro"
+                  ? "Venda no balcão: o pedido já entra como PAGO e o estoque é baixado na hora."
+                  : "O estoque é reservado e o pedido entra como pendente. Quando o cliente pagar, ele entra automaticamente em Expedição."}
               </p>
             </div>
           ) : (
             <div className="bg-card border-2 border-primary rounded-lg p-4 space-y-3">
-              <h2 className="font-black uppercase text-sm tracking-wider text-primary">Cobrança pronta</h2>
-              <p className="text-xs text-muted-foreground">
-                Envie este link ao cliente. Ele pode pagar via Pix ou cartão.
-              </p>
-              <div className="bg-muted rounded p-2 text-xs break-all">{result.initPoint}</div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(result.initPoint);
-                    toast.success("Link copiado");
-                  }}
-                  className="inline-flex items-center justify-center gap-1 bg-primary text-primary-foreground px-3 py-2 rounded text-xs font-bold uppercase"
-                >
-                  <Copy className="h-3 w-3" /> Copiar
-                </button>
-                <a
-                  href={result.initPoint}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-1 border border-border px-3 py-2 rounded text-xs font-bold uppercase"
-                >
-                  <ExternalLink className="h-3 w-3" /> Abrir
-                </a>
-              </div>
+              <h2 className="font-black uppercase text-sm tracking-wider text-primary">
+                {result.initPoint ? "Cobrança pronta" : "Venda registrada"}
+              </h2>
+              {result.initPoint ? (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    Envie este link ao cliente. Ele pode pagar via Pix ou cartão.
+                  </p>
+                  <div className="bg-muted rounded p-2 text-xs break-all">{result.initPoint}</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(result.initPoint ?? "");
+                        toast.success("Link copiado");
+                      }}
+                      className="inline-flex items-center justify-center gap-1 bg-primary text-primary-foreground px-3 py-2 rounded text-xs font-bold uppercase"
+                    >
+                      <Copy className="h-3 w-3" /> Copiar
+                    </button>
+                    <a
+                      href={result.initPoint}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-1 border border-border px-3 py-2 rounded text-xs font-bold uppercase"
+                    >
+                      <ExternalLink className="h-3 w-3" /> Abrir
+                    </a>
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Pagamento em dinheiro recebido no balcão. O pedido já está marcado como PAGO.
+                </p>
+              )}
+
               <Link
                 to="/pedido/$id"
                 params={{ id: result.orderId }}

@@ -1628,17 +1628,30 @@ export type Database = {
             }
             Returns: string
           }
-      create_manual_order: {
-        Args: {
-          p_customer_cpf?: string
-          p_customer_email?: string
-          p_customer_name: string
-          p_customer_phone: string
-          p_delivery_method: string
-          p_items: Json
-        }
-        Returns: string
-      }
+      create_manual_order:
+        | {
+            Args: {
+              p_customer_cpf?: string
+              p_customer_email?: string
+              p_customer_name: string
+              p_customer_phone: string
+              p_delivery_method: string
+              p_items: Json
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_customer_cpf?: string
+              p_customer_email?: string
+              p_customer_name: string
+              p_customer_phone: string
+              p_delivery_method: string
+              p_items: Json
+              p_payment_method?: string
+            }
+            Returns: string
+          }
       create_pending_order: {
         Args: {
           p_customer_cpf: string
