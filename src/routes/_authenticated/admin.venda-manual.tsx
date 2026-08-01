@@ -6,7 +6,7 @@ import { ArrowLeft, Plus, Minus, Trash2, Search, Copy, ExternalLink, Crown } fro
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { getRoleSummary, type RoleSummary } from "@/lib/products";
-import { createManualSale } from "@/lib/manual-sale.functions";
+import { createManualSale, type ManualPaymentMethod } from "@/lib/manual-sale.functions";
 import { brl } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/admin/venda-manual")({
