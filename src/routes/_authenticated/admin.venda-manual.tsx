@@ -134,11 +134,12 @@ function ManualSalePage() {
           customer_name: customerName.trim(),
           customer_phone: phoneDigits,
           delivery_method: delivery,
+          payment_method: payment,
           items: cart.map((l) => ({ product_id: l.product_id, quantity: l.quantity, color: l.color })),
         },
       });
       setResult({ orderId: r.orderId, initPoint: r.initPoint });
-      toast.success("Cobrança gerada!");
+      toast.success(payment === "dinheiro" ? "Venda em dinheiro registrada!" : "Cobrança gerada!");
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao gerar cobrança");
     } finally {
