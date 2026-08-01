@@ -43,8 +43,9 @@ function ManualSalePage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [delivery, setDelivery] = useState<"pickup" | "delivery">("pickup");
+  const [payment, setPayment] = useState<ManualPaymentMethod>("mercadopago");
   const [generating, setGenerating] = useState(false);
-  const [result, setResult] = useState<{ orderId: string; initPoint: string } | null>(null);
+  const [result, setResult] = useState<{ orderId: string; initPoint: string | null } | null>(null);
 
   const submit = useServerFn(createManualSale);
 
