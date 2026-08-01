@@ -4,10 +4,14 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type CartItemInput = { product_id: string; quantity: number; color?: string | null };
 
+export const MANUAL_PAYMENT_METHODS = ["mercadopago", "cielo", "pix", "card", "dinheiro"] as const;
+export type ManualPaymentMethod = (typeof MANUAL_PAYMENT_METHODS)[number];
+
 type CreateManualSaleInput = {
   customer_name: string;
   customer_phone: string;
   delivery_method: "pickup" | "delivery";
+  payment_method?: ManualPaymentMethod;
   items: CartItemInput[];
 };
 
