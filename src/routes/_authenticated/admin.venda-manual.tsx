@@ -14,6 +14,13 @@ export const Route = createFileRoute("/_authenticated/admin/venda-manual")({
   component: ManualSalePage,
 });
 
+const PAYMENT_OPTIONS: Array<{ value: ManualPaymentMethod; label: string }> = [
+  { value: "mercadopago", label: "Mercado Pago" },
+  { value: "pix", label: "Pix" },
+  { value: "card", label: "Cartão" },
+  { value: "dinheiro", label: "Dinheiro" },
+];
+
 type ProductRow = {
   id: string;
   name: string;
