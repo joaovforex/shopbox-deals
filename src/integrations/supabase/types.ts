@@ -1733,6 +1733,15 @@ export type Database = {
           category: string
         }[]
       }
+      log_admin_action: {
+        Args: {
+          p_action: string
+          p_details?: Json
+          p_entity: string
+          p_entity_id?: string
+        }
+        Returns: undefined
+      }
       mark_label_event: {
         Args: { p_event: string; p_order_id: string }
         Returns: undefined
