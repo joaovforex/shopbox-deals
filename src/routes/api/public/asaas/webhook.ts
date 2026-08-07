@@ -44,6 +44,8 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
           const reference = payment?.externalReference ?? "";
           const paymentId = payment?.id ?? "";
           const paymentLinkId = payment?.paymentLink ?? "";
+          let isPaid = false;
+          let isCancel = false;
 
           // Fallback seguro: se o token não bater, confirmamos o evento
           // diretamente na API do Asaas antes de processar. Isso mantém a
@@ -63,6 +65,18 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
                 return new Response("unauthorized", { status: 401 });
               }
               if (payment) payment.status = remote.status ?? payment.status;
+              // No caminho de fallback, a requisição pode ser forjada; o status
+              // remoto da Asaas é a única fonte confiável.
+              const remoteStatus = remote.status ?? "";
+              isPaid = ["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"].includes(remoteStatus);
+              isCancel = [
+                "REFUNDED",
+                "REFUND_REQUESTED",
+                "CHARGEBACK_REQUESTED",
+                "CHARGEBACK_DISPUTE",
+                "OVERDUE",
+                "DELETED",
+              ].includes(remoteStatus);
               console.info("[asaas:webhook] token mismatch — verified via API", {
                 paymentId,
                 status: remote.status,
@@ -77,9 +91,10 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
             return new Response("ok", { status: 200 });
           }
 
-
-          const isPaid = PAID_EVENTS.has(event);
-          const isCancel = CANCEL_EVENTS.has(event);
+          if (tokenOk) {
+            isPaid = PAID_EVENTS.has(event);
+            isCancel = CANCEL_EVENTS.has(event);
+          }
 
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
