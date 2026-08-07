@@ -21,9 +21,21 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
             console.error("[asaas:webhook] missing ASAAS_WEBHOOK_TOKEN");
             return new Response("config", { status: 500 });
           }
-          const token = request.headers.get("asaas-access-token") ?? "";
+          const token =
+            request.headers.get("asaas-access-token") ??
+            request.headers.get("asaas_access_token") ??
+            request.headers.get("access-token") ??
+            request.headers.get("access_token") ??
+            "";
           if (!safeCompare(token, expected)) {
-            console.warn("[asaas:webhook] invalid token");
+            // Diagnóstico sem expor segredos: apenas nomes de headers e tamanhos.
+            console.warn("[asaas:webhook] invalid token", {
+              received_len: token.length,
+              expected_len: expected.length,
+              auth_headers: [...request.headers.keys()].filter((h) =>
+                /token|auth|asaas/i.test(h),
+              ),
+            });
             return new Response("unauthorized", { status: 401 });
           }
 
