@@ -51,6 +51,7 @@ import { Route as ApiPublicHooksCieloRefundRetryRouteImport } from './routes/api
 import { Route as ApiPublicCieloWebhookRouteImport } from './routes/api/public/cielo/webhook'
 import { Route as ApiPublicCieloReconcileRouteImport } from './routes/api/public/cielo/reconcile'
 import { Route as ApiPublicCashbackExpireRouteImport } from './routes/api/public/cashback/expire'
+import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas/webhook'
 
 const TrocasEGarantiaRoute = TrocasEGarantiaRouteImport.update({
   id: '/trocas-e-garantia',
@@ -277,6 +278,11 @@ const ApiPublicCashbackExpireRoute = ApiPublicCashbackExpireRouteImport.update({
   path: '/api/public/cashback/expire',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAsaasWebhookRoute = ApiPublicAsaasWebhookRouteImport.update({
+  id: '/api/public/asaas/webhook',
+  path: '/api/public/asaas/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -313,6 +319,7 @@ export interface FileRoutesByFullPath {
   '/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
+  '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
   '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
   '/api/public/cielo/webhook': typeof ApiPublicCieloWebhookRoute
@@ -356,6 +363,7 @@ export interface FileRoutesByTo {
   '/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
+  '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
   '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
   '/api/public/cielo/webhook': typeof ApiPublicCieloWebhookRoute
@@ -401,6 +409,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/_authenticated/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
+  '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
   '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
   '/api/public/cielo/webhook': typeof ApiPublicCieloWebhookRoute
@@ -446,6 +455,7 @@ export interface FileRouteTypes {
     | '/admin/vale-troca'
     | '/admin/venda-manual'
     | '/api/public/reconcile-orders'
+    | '/api/public/asaas/webhook'
     | '/api/public/cashback/expire'
     | '/api/public/cielo/reconcile'
     | '/api/public/cielo/webhook'
@@ -489,6 +499,7 @@ export interface FileRouteTypes {
     | '/admin/vale-troca'
     | '/admin/venda-manual'
     | '/api/public/reconcile-orders'
+    | '/api/public/asaas/webhook'
     | '/api/public/cashback/expire'
     | '/api/public/cielo/reconcile'
     | '/api/public/cielo/webhook'
@@ -533,6 +544,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/vale-troca'
     | '/_authenticated/admin/venda-manual'
     | '/api/public/reconcile-orders'
+    | '/api/public/asaas/webhook'
     | '/api/public/cashback/expire'
     | '/api/public/cielo/reconcile'
     | '/api/public/cielo/webhook'
@@ -562,6 +574,7 @@ export interface RootRouteChildren {
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
   ApiPublicReconcileOrdersRoute: typeof ApiPublicReconcileOrdersRoute
+  ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicCashbackExpireRoute: typeof ApiPublicCashbackExpireRoute
   ApiPublicCieloReconcileRoute: typeof ApiPublicCieloReconcileRoute
   ApiPublicCieloWebhookRoute: typeof ApiPublicCieloWebhookRoute
@@ -867,6 +880,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCashbackExpireRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/asaas/webhook': {
+      id: '/api/public/asaas/webhook'
+      path: '/api/public/asaas/webhook'
+      fullPath: '/api/public/asaas/webhook'
+      preLoaderRoute: typeof ApiPublicAsaasWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -940,6 +960,7 @@ const rootRouteChildren: RootRouteChildren = {
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
   ApiPublicReconcileOrdersRoute: ApiPublicReconcileOrdersRoute,
+  ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicCashbackExpireRoute: ApiPublicCashbackExpireRoute,
   ApiPublicCieloReconcileRoute: ApiPublicCieloReconcileRoute,
   ApiPublicCieloWebhookRoute: ApiPublicCieloWebhookRoute,
@@ -951,13 +972,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

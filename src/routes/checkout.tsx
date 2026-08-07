@@ -9,6 +9,7 @@ import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
 import { createMpPreference } from "@/lib/mercadopago.functions";
+import { createAsaasPayment } from "@/lib/asaas.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { calculateCashback } from "@/lib/cashback-config";
 import { useSiteSettings } from "@/lib/site-settings";
@@ -82,6 +83,7 @@ function CheckoutPage() {
   const [busy, setBusy] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const createCheckout = useServerFn(createMpPreference);
+  const createAsaasCheckout = useServerFn(createAsaasPayment);
   const fetchCashback = useServerFn(getMyCashback);
   const { data: settings } = useSiteSettings();
   const cashbackRate = settings?.cashback_rate ?? 0.05;
@@ -281,7 +283,9 @@ function CheckoutPage() {
 
     setBusy(true);
     try {
-      const res = await createCheckout({
+      const provider = settings?.payment_provider ?? "mercadopago";
+      const startCheckout = provider === "asaas" ? createAsaasCheckout : createCheckout;
+      const res = await startCheckout({
         data: {
           customer_name: name.trim(),
           customer_email: email.trim(),
