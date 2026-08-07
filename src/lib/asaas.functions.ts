@@ -104,13 +104,22 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
       const existing = (pendingOrders ?? [])[0] as
         | { id: string; mp_init_point: string | null; asaas_invoice_url: string | null }
         | undefined;
-      if (existing) {
+      const link = existing?.asaas_invoice_url ?? existing?.mp_init_point ?? null;
+      if (existing && link) {
         const err = new Error(
           "Você já tem um checkout em andamento para um destes produtos. Finalize ou aguarde 5 minutos antes de tentar novamente.",
         ) as Error & { existing_order_id?: string; existing_init_point?: string | null };
         err.existing_order_id = existing.id;
-        err.existing_init_point = existing.asaas_invoice_url ?? existing.mp_init_point ?? null;
+        err.existing_init_point = link;
         throw err;
+      }
+      if (existing) {
+        // Pedido pendente órfão (falha antes de gerar o link) — cancela e devolve estoque
+        await supabaseAdmin
+          .from("orders")
+          .update({ status: "cancelled", cancellation_reason: "checkout_incompleto" } as never)
+          .eq("id", existing.id)
+          .eq("status", "pending");
       }
     }
 
