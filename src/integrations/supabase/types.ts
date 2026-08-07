@@ -1287,14 +1287,18 @@ export type Database = {
       refunds: {
         Row: {
           amount: number
+          cancelled_at: string | null
+          confirmed_at: string | null
           created_at: string
           customer_cpf: string | null
           customer_email: string | null
           customer_name: string | null
           customer_phone: string | null
+          failure_reason: string | null
           id: string
           is_full: boolean
           items: Json
+          last_checked_at: string | null
           mp_payment_id: string | null
           mp_refund_id: string | null
           operator_id: string | null
@@ -1303,18 +1307,26 @@ export type Database = {
           order_id: string
           order_total: number | null
           payment_method: string | null
+          provider: string
+          provider_payment_id: string | null
+          provider_status: string | null
           reason: string
+          status: string
         }
         Insert: {
           amount: number
+          cancelled_at?: string | null
+          confirmed_at?: string | null
           created_at?: string
           customer_cpf?: string | null
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          failure_reason?: string | null
           id?: string
           is_full?: boolean
           items?: Json
+          last_checked_at?: string | null
           mp_payment_id?: string | null
           mp_refund_id?: string | null
           operator_id?: string | null
@@ -1323,18 +1335,26 @@ export type Database = {
           order_id: string
           order_total?: number | null
           payment_method?: string | null
+          provider?: string
+          provider_payment_id?: string | null
+          provider_status?: string | null
           reason: string
+          status?: string
         }
         Update: {
           amount?: number
+          cancelled_at?: string | null
+          confirmed_at?: string | null
           created_at?: string
           customer_cpf?: string | null
           customer_email?: string | null
           customer_name?: string | null
           customer_phone?: string | null
+          failure_reason?: string | null
           id?: string
           is_full?: boolean
           items?: Json
+          last_checked_at?: string | null
           mp_payment_id?: string | null
           mp_refund_id?: string | null
           operator_id?: string | null
@@ -1343,7 +1363,11 @@ export type Database = {
           order_id?: string
           order_total?: number | null
           payment_method?: string | null
+          provider?: string
+          provider_payment_id?: string | null
+          provider_status?: string | null
           reason?: string
+          status?: string
         }
         Relationships: []
       }
