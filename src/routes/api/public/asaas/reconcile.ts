@@ -56,10 +56,18 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
         const summary = { scanned: orders?.length ?? 0, recovered: 0, stillOpen: 0, errors: 0 };
 
         for (const row of orders ?? []) {
-          const o = row as { id: string; asaas_payment_id: string | null };
+          const o = row as {
+            id: string;
+            status: string;
+            cancellation_reason: string | null;
+            asaas_payment_id: string | null;
+          };
+          // Cancelados só são recuperáveis quando a expiração automática cancelou.
+          if (o.status === "cancelled" && o.cancellation_reason !== "expired") {
+            summary.stillOpen++;
+            continue;
+          }
           try {
-            let paymentId = o.asaas_payment_id ?? "";
-            let status = "";
             if (paymentId) {
               const p = await getPayment(paymentId);
               status = p.status;
