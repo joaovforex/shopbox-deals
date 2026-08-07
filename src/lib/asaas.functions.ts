@@ -36,6 +36,23 @@ function originFromRequest(): string {
   return `${proto}://${host}`;
 }
 
+// A Asaas rejeita callbacks que não sejam URLs públicas https (ex.: localhost em dev).
+function isPublicHttpsOrigin(origin: string): boolean {
+  try {
+    const u = new URL(origin);
+    if (u.protocol !== "https:") return false;
+    const h = u.hostname;
+    if (h === "localhost" || h === "127.0.0.1" || h === "::1") return false;
+    if (!h.includes(".")) return false;
+    if (/\.local$/i.test(h)) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+
+
 export const createAsaasPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: CreateAsaasInput) => {
@@ -243,7 +260,7 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
         value: grandTotal,
         externalReference: orderId as string,
         description,
-        successUrl: `${origin}/pedido/${orderId}`,
+        ...(isPublicHttpsOrigin(origin) ? { successUrl: `${origin}/pedido/${orderId}` } : {}),
       });
 
       await supabaseAdmin
