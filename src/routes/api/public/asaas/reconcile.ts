@@ -41,9 +41,9 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
         const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
         const { data: orders, error } = await supabaseAdmin
           .from("orders")
-          .select("id, status, asaas_payment_id")
+          .select("id, status, cancellation_reason, asaas_payment_id")
           .eq("payment_provider", "asaas")
-          .eq("status", "pending")
+          .in("status", ["pending", "cancelled"])
           .gte("created_at", sinceIso)
           .order("created_at", { ascending: false })
           .limit(200);
