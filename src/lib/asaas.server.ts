@@ -19,18 +19,15 @@ function apiKey(): string {
 
 async function asaasFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${baseUrl()}${path.startsWith("/") ? path : `/${path}`}`;
+  const headers = new Headers(init?.headers as HeadersInit | undefined);
+  headers.set("Content-Type", "application/json");
+  headers.set("access_token", apiKey());
+  // A Asaas exige User-Agent em todas as requisições.
+  headers.set("User-Agent", "Shopbox");
+  headers.set("user-agent", "Shopbox");
   let res: Response;
   try {
-    res = await fetch(url, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        // A Asaas exige User-Agent em todas as requisições.
-        "User-Agent": "Shopbox/1.0 (+https://shopboxonline.com)",
-        access_token: apiKey(),
-        ...(init?.headers as Record<string, string> | undefined),
-      },
-    });
+    res = await fetch(url, { ...init, headers });
   } catch (err) {
     console.error("[asaas] network error", path, err);
     throw new Error("Falha de comunicação com a Asaas");
