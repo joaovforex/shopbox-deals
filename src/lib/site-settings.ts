@@ -7,6 +7,7 @@ export type SiteSettings = {
   banner_mobile_url: string | null;
   global_discount_percent: number;
   store_address: string;
+  payment_provider: string;
   updated_at: string | null;
 };
 
@@ -18,13 +19,15 @@ const DEFAULTS: SiteSettings = {
   banner_mobile_url: null,
   global_discount_percent: 0,
   store_address: DEFAULT_STORE_ADDRESS,
+  payment_provider: "mercadopago",
   updated_at: null,
 };
+
 
 export async function fetchSiteSettings(): Promise<SiteSettings> {
   const { data, error } = await supabase
     .from("site_settings")
-    .select("cashback_rate, banner_desktop_url, banner_mobile_url, global_discount_percent, store_address, updated_at")
+    .select("cashback_rate, banner_desktop_url, banner_mobile_url, global_discount_percent, store_address, payment_provider, updated_at")
     .eq("id", 1)
     .maybeSingle();
   if (error) throw error;
@@ -36,9 +39,11 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
     banner_mobile_url: (d.banner_mobile_url as string | null) ?? null,
     global_discount_percent: Number(d.global_discount_percent ?? 0),
     store_address: ((d.store_address as string | null) ?? DEFAULT_STORE_ADDRESS).trim() || DEFAULT_STORE_ADDRESS,
+    payment_provider: ((d.payment_provider as string | null) ?? "mercadopago") || "mercadopago",
     updated_at: (d.updated_at as string | null) ?? null,
   };
 }
+
 
 
 export function useSiteSettings() {

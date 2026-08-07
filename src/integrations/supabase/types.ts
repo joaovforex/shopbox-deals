@@ -736,6 +736,10 @@ export type Database = {
       }
       orders: {
         Row: {
+          asaas_customer_id: string | null
+          asaas_invoice_url: string | null
+          asaas_payment_id: string | null
+          asaas_status: string | null
           cancellation_reason: string | null
           cashback_earned: number
           cashback_granted_at: string | null
@@ -824,6 +828,10 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          asaas_customer_id?: string | null
+          asaas_invoice_url?: string | null
+          asaas_payment_id?: string | null
+          asaas_status?: string | null
           cancellation_reason?: string | null
           cashback_earned?: number
           cashback_granted_at?: string | null
@@ -912,6 +920,10 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          asaas_customer_id?: string | null
+          asaas_invoice_url?: string | null
+          asaas_payment_id?: string | null
+          asaas_status?: string | null
           cancellation_reason?: string | null
           cashback_earned?: number
           cashback_granted_at?: string | null
@@ -1378,6 +1390,7 @@ export type Database = {
           cashback_rate: number
           global_discount_percent: number
           id: number
+          payment_provider: string
           store_address: string
           updated_at: string
           updated_by: string | null
@@ -1388,6 +1401,7 @@ export type Database = {
           cashback_rate?: number
           global_discount_percent?: number
           id?: number
+          payment_provider?: string
           store_address?: string
           updated_at?: string
           updated_by?: string | null
@@ -1398,6 +1412,7 @@ export type Database = {
           cashback_rate?: number
           global_discount_percent?: number
           id?: number
+          payment_provider?: string
           store_address?: string
           updated_at?: string
           updated_by?: string | null
