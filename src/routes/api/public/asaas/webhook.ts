@@ -164,8 +164,21 @@ async function handleOrder(
     })
     .eq("id", orderId);
 
-  const { data: current } = await admin.from("orders").select("status").eq("id", orderId).maybeSingle();
-  if (!current || current.status === "paid" || current.status === "cancelled") return;
+  const { data: current } = await admin
+    .from("orders")
+    .select("status, cancellation_reason")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!current || current.status === "paid") return;
+  // Pedido cancelado por expiração automática pode ser "ressuscitado" quando
+  // o pagamento confirma logo depois.
+  if (
+    current.status === "cancelled" &&
+    !(isPaid && (current.cancellation_reason === "expired" || !current.cancellation_reason))
+  ) {
+    return;
+  }
+
 
   if (isPaid) {
     const { data: result, error } = await admin.rpc("confirm_order_paid", {
