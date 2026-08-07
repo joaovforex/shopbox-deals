@@ -317,7 +317,7 @@ function CheckoutPage() {
           </Link>
           <h1 className="display text-3xl md:text-4xl">Finalizar compra</h1>
           <div className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
-            Pagamento seguro via Asaas · Pix, cartão ou boleto
+            Pagamento 100% seguro · Pix, cartão ou boleto
           </div>
         </div>
       </section>
@@ -448,9 +448,9 @@ function CheckoutPage() {
 
           <Section title="Pagamento">
             <div className="bg-secondary rounded-md p-4 text-sm space-y-2">
-              <p className="font-semibold">Você será redirecionado ao checkout da Asaas</p>
+              <p className="font-semibold">Você será redirecionado para concluir o pagamento com segurança</p>
               <p className="text-muted-foreground">
-                Pague com cartão de crédito em até 7x sem juros, débito ou Pix — você escolhe a forma de pagamento na próxima etapa. Ambiente seguro processado pela Asaas.
+                Pague com cartão de crédito em até 7x sem juros, débito ou Pix — você escolhe a forma de pagamento na próxima etapa. Ambiente de pagamento seguro.
               </p>
               <p className="text-xs text-muted-foreground">
                 O pedido fica reservado por alguns minutos enquanto aguardamos a confirmação do pagamento.
