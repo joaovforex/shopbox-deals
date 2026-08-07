@@ -44,6 +44,8 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
           const reference = payment?.externalReference ?? "";
           const paymentId = payment?.id ?? "";
           const paymentLinkId = payment?.paymentLink ?? "";
+          let isPaid = false;
+          let isCancel = false;
 
           // Fallback seguro: se o token não bater, confirmamos o evento
           // diretamente na API do Asaas antes de processar. Isso mantém a
@@ -89,9 +91,10 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
             return new Response("ok", { status: 200 });
           }
 
-
-          const isPaid = PAID_EVENTS.has(event);
-          const isCancel = CANCEL_EVENTS.has(event);
+          if (tokenOk) {
+            isPaid = PAID_EVENTS.has(event);
+            isCancel = CANCEL_EVENTS.has(event);
+          }
 
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
