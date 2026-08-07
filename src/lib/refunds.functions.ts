@@ -168,15 +168,28 @@ export const refundOrder = createServerFn({ method: "POST" })
     }));
 
     let providerRefundId = "";
+    // A devolução Pix na Asaas é ASSÍNCRONA: ela nasce PENDING/AWAITING_* e
+    // pode ser CANCELADA depois pelo banco do cliente. Só "DONE" é dinheiro
+    // devolvido. Guardamos o status real para nunca mais dar um estorno
+    // cancelado como concluído.
+    let refundStatus: "pending" | "confirmed" | "cancelled" | "manual" = "manual";
+    let providerStatus: string | null = null;
     if (useAsaasApi) {
       try {
-        const { refundPayment } = await import("@/lib/asaas.server");
+        const { refundPayment, mapRefundStatus } = await import("@/lib/asaas.server");
         const refund = await refundPayment(
           asaasPaymentId as string,
           isFull ? undefined : data.amount,
           data.reason,
         );
         providerRefundId = refund.id;
+        providerStatus = refund.status;
+        refundStatus = mapRefundStatus(refund.status);
+        if (refundStatus === "cancelled") {
+          throw new Error(
+            "A Asaas recusou/cancelou a devolução imediatamente. Faça o Pix manual para o cliente.",
+          );
+        }
       } catch (err) {
         const rawMsg = err instanceof Error ? err.message : "Falha no estorno";
         console.error("[refund] Asaas API error", {
@@ -194,6 +207,7 @@ export const refundOrder = createServerFn({ method: "POST" })
       // Pedido antigo (Mercado Pago / Cielo): registra reembolso manual.
       // O operador devolve o dinheiro por fora (Pix/transferência).
       providerRefundId = `manual-${provider}-${Date.now()}`;
+      refundStatus = "manual";
       console.log("[refund] manual legacy refund", {
         orderId: order.id, provider, amount: data.amount, operator: operatorName,
       });
@@ -208,6 +222,12 @@ export const refundOrder = createServerFn({ method: "POST" })
       order_id: order.id,
       mp_payment_id: order.mp_payment_id,
       mp_refund_id: mpRefundId,
+      provider,
+      provider_payment_id: asaasPaymentId ?? order.mp_payment_id ?? null,
+      provider_status: providerStatus,
+      status: refundStatus,
+      confirmed_at: refundStatus === "confirmed" || refundStatus === "manual" ? new Date().toISOString() : null,
+      last_checked_at: new Date().toISOString(),
       amount: data.amount,
       is_full: isFull,
       reason: data.reason,
