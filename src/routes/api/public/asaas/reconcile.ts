@@ -41,9 +41,9 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
         const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
         const { data: orders, error } = await supabaseAdmin
           .from("orders")
-          .select("id, status, asaas_payment_id")
+          .select("id, status, cancellation_reason, asaas_payment_id")
           .eq("payment_provider", "asaas")
-          .eq("status", "pending")
+          .in("status", ["pending", "cancelled"])
           .gte("created_at", sinceIso)
           .order("created_at", { ascending: false })
           .limit(200);
@@ -56,7 +56,17 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
         const summary = { scanned: orders?.length ?? 0, recovered: 0, stillOpen: 0, errors: 0 };
 
         for (const row of orders ?? []) {
-          const o = row as { id: string; asaas_payment_id: string | null };
+          const o = row as {
+            id: string;
+            status: string;
+            cancellation_reason: string | null;
+            asaas_payment_id: string | null;
+          };
+          // Cancelados só são recuperáveis quando a expiração automática cancelou.
+          if (o.status === "cancelled" && o.cancellation_reason !== "expired") {
+            summary.stillOpen++;
+            continue;
+          }
           try {
             let paymentId = o.asaas_payment_id ?? "";
             let status = "";
