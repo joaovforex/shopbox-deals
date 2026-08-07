@@ -168,15 +168,28 @@ export const refundOrder = createServerFn({ method: "POST" })
     }));
 
     let providerRefundId = "";
+    // A devolução Pix na Asaas é ASSÍNCRONA: ela nasce PENDING/AWAITING_* e
+    // pode ser CANCELADA depois pelo banco do cliente. Só "DONE" é dinheiro
+    // devolvido. Guardamos o status real para nunca mais dar um estorno
+    // cancelado como concluído.
+    let refundStatus: "pending" | "confirmed" | "cancelled" | "manual" = "manual";
+    let providerStatus: string | null = null;
     if (useAsaasApi) {
       try {
-        const { refundPayment } = await import("@/lib/asaas.server");
+        const { refundPayment, mapRefundStatus } = await import("@/lib/asaas.server");
         const refund = await refundPayment(
           asaasPaymentId as string,
           isFull ? undefined : data.amount,
           data.reason,
         );
         providerRefundId = refund.id;
+        providerStatus = refund.status;
+        refundStatus = mapRefundStatus(refund.status);
+        if (refundStatus === "cancelled") {
+          throw new Error(
+            "A Asaas recusou/cancelou a devolução imediatamente. Faça o Pix manual para o cliente.",
+          );
+        }
       } catch (err) {
         const rawMsg = err instanceof Error ? err.message : "Falha no estorno";
         console.error("[refund] Asaas API error", {
@@ -194,6 +207,7 @@ export const refundOrder = createServerFn({ method: "POST" })
       // Pedido antigo (Mercado Pago / Cielo): registra reembolso manual.
       // O operador devolve o dinheiro por fora (Pix/transferência).
       providerRefundId = `manual-${provider}-${Date.now()}`;
+      refundStatus = "manual";
       console.log("[refund] manual legacy refund", {
         orderId: order.id, provider, amount: data.amount, operator: operatorName,
       });
@@ -208,6 +222,12 @@ export const refundOrder = createServerFn({ method: "POST" })
       order_id: order.id,
       mp_payment_id: order.mp_payment_id,
       mp_refund_id: mpRefundId,
+      provider,
+      provider_payment_id: asaasPaymentId ?? order.mp_payment_id ?? null,
+      provider_status: providerStatus,
+      status: refundStatus,
+      confirmed_at: refundStatus === "confirmed" || refundStatus === "manual" ? new Date().toISOString() : null,
+      last_checked_at: new Date().toISOString(),
       amount: data.amount,
       is_full: isFull,
       reason: data.reason,
@@ -292,6 +312,12 @@ export type RefundHistoryRow = {
   items: { name: string; color: string | null; quantity: number; unitPrice: number }[];
   operator_name: string | null;
   created_at: string;
+  status: string;
+  provider_status: string | null;
+  provider_payment_id: string | null;
+  failure_reason: string | null;
+  confirmed_at: string | null;
+  cancelled_at: string | null;
 };
 
 export const listRefunds = createServerFn({ method: "GET" })
@@ -324,7 +350,76 @@ export const listRefunds = createServerFn({ method: "GET" })
       items: Array.isArray(r.items) ? r.items : [],
       operator_name: r.operator_name,
       created_at: r.created_at,
+      status: r.status ?? "confirmed",
+      provider_status: r.provider_status ?? null,
+      provider_payment_id: r.provider_payment_id ?? null,
+      failure_reason: r.failure_reason ?? null,
+      confirmed_at: r.confirmed_at ?? null,
+      cancelled_at: r.cancelled_at ?? null,
     }));
+  });
+
+// ============================================================
+// Acompanhamento do estado real do estorno na Asaas
+// ============================================================
+
+/** Reconsulta a Asaas e atualiza o status dos reembolsos ainda pendentes. */
+export const syncRefundStatuses = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: isSuper } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isSuper) throw new Error("Apenas SUPERADMIN pode sincronizar reembolsos");
+    const { syncPendingRefunds } = await import("@/lib/refund-sync.server");
+    return await syncPendingRefunds();
+  });
+
+/** Reenvia um estorno que a Asaas cancelou (dinheiro voltou para o saldo). */
+export const resendRefund = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { refundId: string }) => {
+    if (!data?.refundId || typeof data.refundId !== "string") throw new Error("ID inválido");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: isSuper } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isSuper) throw new Error("Apenas SUPERADMIN pode reenviar estorno");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row } = await supabaseAdmin
+      .from("refunds")
+      .select("id,amount,is_full,reason,status,provider_payment_id")
+      .eq("id", data.refundId)
+      .maybeSingle();
+    const r = row as {
+      id: string; amount: number; is_full: boolean; reason: string;
+      status: string; provider_payment_id: string | null;
+    } | null;
+    if (!r) throw new Error("Reembolso não encontrado");
+    if (r.status === "confirmed") throw new Error("Este estorno já foi concluído");
+    if (!r.provider_payment_id) throw new Error("Estorno sem cobrança na Asaas — faça o Pix manual");
+
+    const { refundPayment, mapRefundStatus } = await import("@/lib/asaas.server");
+    const refund = await refundPayment(
+      r.provider_payment_id,
+      r.is_full ? undefined : Number(r.amount),
+      `Reenvio de estorno: ${r.reason}`.slice(0, 255),
+    );
+    const status = mapRefundStatus(refund.status);
+    await supabaseAdmin
+      .from("refunds")
+      .update({
+        mp_refund_id: refund.id,
+        provider_status: refund.status,
+        status,
+        failure_reason: null,
+        cancelled_at: null,
+        confirmed_at: status === "confirmed" ? new Date().toISOString() : null,
+        last_checked_at: new Date().toISOString(),
+      } as never)
+      .eq("id", r.id);
+    return { ok: true, status, providerStatus: refund.status };
   });
 
 // ============================================================

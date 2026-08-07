@@ -119,8 +119,18 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
           }
         }
 
-        console.info("[asaas:reconcile] done", summary);
-        return Response.json({ ok: true, summary });
+        // Rede de segurança dos ESTORNOS: a devolução Pix pode ser cancelada
+        // pelo banco do cliente depois de criada.
+        let refunds = null;
+        try {
+          const { syncPendingRefunds } = await import("@/lib/refund-sync.server");
+          refunds = await syncPendingRefunds();
+        } catch (err) {
+          console.error("[asaas:reconcile] refund sync error", err);
+        }
+
+        console.info("[asaas:reconcile] done", summary, refunds);
+        return Response.json({ ok: true, summary, refunds });
       },
     },
   },

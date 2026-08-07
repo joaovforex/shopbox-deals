@@ -6,7 +6,7 @@ import { ArrowLeft, Undo2, Printer, Search, X, AlertTriangle, CheckCircle2, Shie
 import { Header, Footer } from "@/components/Header";
 import { isSuperAdmin } from "@/lib/products";
 import { brl } from "@/lib/format";
-import { listRefunds, getRefundConsistency, reinstateOrderAsPaid, listCieloRefundQueue, retryCieloRefundNow, type RefundHistoryRow } from "@/lib/refunds.functions";
+import { listRefunds, getRefundConsistency, reinstateOrderAsPaid, listCieloRefundQueue, retryCieloRefundNow, syncRefundStatuses, resendRefund, type RefundHistoryRow } from "@/lib/refunds.functions";
 import { Clock, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -30,6 +30,10 @@ function RefundsPage() {
   const qc = useQueryClient();
   const [reinstatingId, setReinstatingId] = useState<string | null>(null);
   const [retryingQueueId, setRetryingQueueId] = useState<string | null>(null);
+  const syncStatuses = useServerFn(syncRefundStatuses);
+  const resend = useServerFn(resendRefund);
+  const [syncing, setSyncing] = useState(false);
+  const [resendingId, setResendingId] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<string | null>(null);
   const [confirmText, setConfirmText] = useState("");
   const [feedback, setFeedback] = useState<{ orderId: string; kind: "ok" | "err"; msg: string } | null>(null);
@@ -86,6 +90,32 @@ function RefundsPage() {
     }
   };
 
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      await syncStatuses({});
+      await qc.invalidateQueries({ queryKey: ["admin-refunds"] });
+    } catch (e) {
+      alert("Falha ao sincronizar: " + (e as Error).message);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleResend = async (r: RefundHistoryRow) => {
+    if (!confirm(`Reenviar o estorno de ${brl(Number(r.amount))} para ${r.customer_name ?? "o cliente"}?`)) return;
+    setResendingId(r.id);
+    try {
+      const res = await resend({ data: { refundId: r.id } });
+      await qc.invalidateQueries({ queryKey: ["admin-refunds"] });
+      alert(res.status === "confirmed" ? "Estorno concluído." : "Estorno reenviado — aguardando confirmação do banco.");
+    } catch (e) {
+      alert("Falha ao reenviar: " + (e as Error).message);
+    } finally {
+      setResendingId(null);
+    }
+  };
+
   const verificationByOrder = useMemo(() => {
     const m = new Map<string, NonNullable<typeof consistency>["verifications"][number]>();
     for (const v of consistency?.verifications ?? []) m.set(v.orderId, v);
@@ -114,6 +144,8 @@ function RefundsPage() {
     return {
       count: list.length,
       sum: list.reduce((s, r) => s + Number(r.amount), 0),
+      pending: list.filter((r) => r.status === "pending").length,
+      cancelled: list.filter((r) => r.status === "cancelled").length,
     };
   }, [data]);
 
@@ -158,6 +190,29 @@ function RefundsPage() {
         <div className="grid grid-cols-2 gap-3">
           <Kpi label="Reembolsos" value={String(totals.count)} />
           <Kpi label="Valor total estornado" value={brl(totals.sum)} accent />
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-xs text-muted-foreground">
+            {totals.pending > 0 && (
+              <span className="mr-3 text-amber-700 dark:text-amber-400 font-bold">
+                {totals.pending} aguardando confirmação do banco
+              </span>
+            )}
+            {totals.cancelled > 0 && (
+              <span className="text-destructive font-bold">
+                {totals.cancelled} cancelado(s) pelo banco — cliente NÃO recebeu
+              </span>
+            )}
+          </div>
+          <button
+            onClick={handleSync}
+            disabled={syncing}
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-secondary hover:bg-secondary/70 px-3 py-2 rounded disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Verificando..." : "Verificar estornos na Asaas"}
+          </button>
         </div>
 
         {consistency && consistency.inconsistent.length > 0 && (
@@ -408,11 +463,23 @@ function RefundsPage() {
                       </div>
                     </div>
 
+                    <RefundStatusBadge r={r} />
+
                     <VerificationBadge v={verificationByOrder.get(r.order_id)} />
 
 
 
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-2">
+                      {(r.status === "cancelled" || r.status === "pending") && r.provider_payment_id && (
+                        <button
+                          onClick={() => handleResend(r)}
+                          disabled={resendingId === r.id}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-destructive text-destructive-foreground hover:opacity-90 px-3 py-2 rounded disabled:opacity-50"
+                        >
+                          <RefreshCw className={`h-3.5 w-3.5 ${resendingId === r.id ? "animate-spin" : ""}`} />
+                          {resendingId === r.id ? "Reenviando..." : "Reenviar estorno"}
+                        </button>
+                      )}
                       <button
                         onClick={() => reprint(r)}
                         className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-primary text-primary-foreground hover:opacity-90 px-3 py-2 rounded"
@@ -440,6 +507,35 @@ function Kpi({ label, value, accent }: { label: string; value: string; accent?: 
     >
       <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{label}</div>
       <div className={`display text-2xl mt-1 ${accent ? "text-amber-700 dark:text-amber-400" : ""}`}>{value}</div>
+    </div>
+  );
+}
+
+function RefundStatusBadge({ r }: { r: RefundHistoryRow }) {
+  if (r.status === "confirmed" || r.status === "manual") {
+    return (
+      <div className="text-[11px] text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded px-2 py-1">
+        <CheckCircle2 className="h-3.5 w-3.5" />
+        {r.status === "manual" ? "Devolução manual registrada" : "Dinheiro devolvido ao cliente (confirmado)"}
+      </div>
+    );
+  }
+  if (r.status === "pending") {
+    return (
+      <div className="text-[11px] text-amber-700 dark:text-amber-400 flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 rounded px-2 py-1">
+        <Clock className="h-3.5 w-3.5" />
+        Devolução enviada — aguardando confirmação do banco
+        {r.provider_status && <span className="opacity-70">({r.provider_status})</span>}
+      </div>
+    );
+  }
+  return (
+    <div className="text-[11px] text-destructive flex items-start gap-1.5 bg-destructive/10 border border-destructive/40 rounded px-2 py-1">
+      <ShieldAlert className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+      <span>
+        <strong>Estorno CANCELADO pelo banco — o cliente não recebeu.</strong>{" "}
+        {r.failure_reason ?? ""} Reenvie o estorno ou faça o Pix manual.
+      </span>
     </div>
   );
 }

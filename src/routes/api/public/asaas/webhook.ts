@@ -9,6 +9,12 @@ const CANCEL_EVENTS = new Set([
   "PAYMENT_CHARGEBACK",
   "PAYMENT_REFUND_REQUESTED",
 ]);
+const REFUND_EVENTS = new Set([
+  "PAYMENT_REFUNDED",
+  "PAYMENT_REFUND_IN_PROGRESS",
+  "PAYMENT_REFUND_CANCELLED",
+  "PAYMENT_REFUND_FAILED",
+]);
 
 export const Route = createFileRoute("/api/public/asaas/webhook")({
   server: {
@@ -96,7 +102,21 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
             isCancel = CANCEL_EVENTS.has(event);
           }
 
+          // === Eventos de ESTORNO ===
+          // A devolução Pix é assíncrona e pode ser CANCELADA pelo banco do
+          // cliente depois de criada. Refletimos isso no histórico para nunca
+          // dar como concluído um estorno que não chegou ao cliente.
+          if (REFUND_EVENTS.has(event) && paymentId) {
+            try {
+              const { applyRefundWebhookEvent } = await import("@/lib/refund-sync.server");
+              await applyRefundWebhookEvent(paymentId, event);
+            } catch (err) {
+              console.error("[asaas:webhook] refund event error", err);
+            }
+          }
+
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
 
           // === Caixa QR / venda manual via link de pagamento ===
           if (paymentLinkId) {

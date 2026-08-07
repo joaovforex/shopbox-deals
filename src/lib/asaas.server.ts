@@ -198,3 +198,33 @@ export async function refundPayment(
   return { id: String(refund?.id ?? res?.id ?? paymentId), status: String(refund?.status ?? res?.status ?? "REFUNDED") };
 }
 
+
+export type AsaasRefund = {
+  status: string;
+  value: number;
+  dateCreated?: string | null;
+  description?: string | null;
+  effectiveDate?: string | null;
+  transactionReceiptUrl?: string | null;
+};
+
+/**
+ * Lista os estornos de uma cobrança. A Asaas cria a devolução Pix de forma
+ * ASSÍNCRONA (PENDING / AWAITING_*), e ela pode ser CANCELLED depois pelo
+ * banco do cliente. Só `DONE` significa dinheiro devolvido de fato.
+ */
+export async function listPaymentRefunds(paymentId: string): Promise<AsaasRefund[]> {
+  const res = await asaasFetch<{ refunds?: AsaasRefund[] }>(
+    `/payments/${encodeURIComponent(paymentId)}`,
+    { method: "GET" },
+  );
+  return res?.refunds ?? [];
+}
+
+/** Traduz o status do estorno da Asaas para o status interno do refund. */
+export function mapRefundStatus(providerStatus: string): "pending" | "confirmed" | "cancelled" {
+  const s = (providerStatus || "").toUpperCase();
+  if (s === "DONE" || s === "REFUNDED" || s === "CONFIRMED") return "confirmed";
+  if (s === "CANCELLED" || s === "CANCELED" || s === "FAILED" || s === "REFUND_CANCELLED") return "cancelled";
+  return "pending";
+}
