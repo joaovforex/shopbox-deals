@@ -253,6 +253,15 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
       };
     }
 
+    // Valor mínimo aceito pelo gateway: R$ 5,00.
+    if (grandTotal > 0 && grandTotal < 5) {
+      if (cashbackUsed > 0) {
+        await supabaseAdmin.rpc("refund_cashback_for_order" as never, { p_order_id: orderId as string } as never);
+      }
+      await supabaseAdmin.from("orders").update({ status: "cancelled" } as never).eq("id", orderId as string);
+      throw new Error("O valor mínimo para pagamento é R$ 5,00. Adicione mais itens ao carrinho.");
+    }
+
     // 3) Cliente + cobrança na Asaas
     try {
       const customerId = await findOrCreateCustomer({
