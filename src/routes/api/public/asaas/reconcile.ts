@@ -68,6 +68,8 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
             continue;
           }
           try {
+            let paymentId = o.asaas_payment_id ?? "";
+            let status = "";
             if (paymentId) {
               const p = await getPayment(paymentId);
               status = p.status;
