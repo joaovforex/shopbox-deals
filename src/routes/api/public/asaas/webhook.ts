@@ -9,6 +9,12 @@ const CANCEL_EVENTS = new Set([
   "PAYMENT_CHARGEBACK",
   "PAYMENT_REFUND_REQUESTED",
 ]);
+const REFUND_EVENTS = new Set([
+  "PAYMENT_REFUNDED",
+  "PAYMENT_REFUND_IN_PROGRESS",
+  "PAYMENT_REFUND_CANCELLED",
+  "PAYMENT_REFUND_FAILED",
+]);
 
 export const Route = createFileRoute("/api/public/asaas/webhook")({
   server: {
