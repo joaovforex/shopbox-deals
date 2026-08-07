@@ -25,6 +25,8 @@ async function asaasFetch<T>(path: string, init?: RequestInit): Promise<T> {
       ...init,
       headers: {
         "Content-Type": "application/json",
+        // A Asaas exige User-Agent em todas as requisições.
+        "User-Agent": "Shopbox/1.0 (+https://shopboxonline.com)",
         access_token: apiKey(),
         ...(init?.headers as Record<string, string> | undefined),
       },
