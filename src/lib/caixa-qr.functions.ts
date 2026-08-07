@@ -1,16 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type CaixaItem = { title: string; unit_price: number; quantity: number };
 type Input = { items: CaixaItem[]; note?: string | null };
 
-function originFromRequest(): string {
-  const req = getRequest();
-  const proto = req.headers.get("x-forwarded-proto") ?? "https";
-  const host = req.headers.get("host") ?? "localhost";
-  return `${proto}://${host}`;
-}
 
 async function ensureStaff(context: { supabase: any; userId: string }): Promise<void> {
   const roles = ["admin", "manager", "catalog", "fulfillment", "cashier"] as const;
@@ -52,10 +45,8 @@ export const createCaixaQrPayment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureStaff(context);
 
-    const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-    if (!accessToken) throw new Error("Mercado Pago não configurado");
+    if (!process.env.ASAAS_API_KEY) throw new Error("Asaas não configurado");
 
-    const origin = originFromRequest();
     const total = data.items.reduce((a, i) => a + i.unit_price * i.quantity, 0);
 
     // Nome do operador para histórico
@@ -69,7 +60,7 @@ export const createCaixaQrPayment = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Cria o registro da cobrança primeiro para termos o id como external_reference
+    // Cria o registro da cobrança primeiro para termos o id de correlação
     const { data: charge, error: insErr } = await supabaseAdmin
       .from("pos_charges")
       .insert({
@@ -87,63 +78,38 @@ export const createCaixaQrPayment = createServerFn({ method: "POST" })
       throw new Error("Falha ao registrar cobrança");
     }
     const chargeId = (charge as { id: string }).id;
-    const externalReference = `pos:${chargeId}`;
 
-    const preferenceBody = {
-      items: data.items.map((it) => ({
-        title: it.title,
-        quantity: it.quantity,
-        unit_price: it.unit_price,
-        currency_id: "BRL",
-      })),
-      back_urls: {
-        success: `${origin}/redirecionando`,
-        pending: `${origin}/redirecionando`,
-        failure: `${origin}/redirecionando`,
-      },
-      statement_descriptor: "SHOPBOX",
-      external_reference: externalReference,
-      metadata: {
-        source: "caixa_qr",
-        pos_charge_id: chargeId,
-        cashier_user_id: context.userId,
-        note: data.note ?? "",
-      },
-    };
+    try {
+      const { createPaymentLink } = await import("@/lib/asaas.server");
+      const link = await createPaymentLink({
+        name: `Caixa shopbox ${chargeId.slice(0, 8).toUpperCase()}`,
+        value: total,
+        description: data.items.map((i) => `${i.quantity}x ${i.title}`).join(" | "),
+      });
 
-    const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(preferenceBody),
-    });
-
-    if (!mpRes.ok) {
-      const errText = await mpRes.text();
-      console.error("[caixa-qr] mp preference error", mpRes.status, errText);
+      // O id do link é a chave de correlação usada pelo webhook da Asaas.
       await supabaseAdmin
         .from("pos_charges")
-        .update({ status: "failed", mp_status_detail: errText.slice(0, 500) } as never)
+        .update({ mp_preference_id: link.id } as never)
         .eq("id", chargeId);
-      throw new Error("Falha ao gerar cobrança no Mercado Pago");
+
+      return {
+        chargeId,
+        preferenceId: link.id,
+        initPoint: link.url,
+        total,
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Falha ao gerar cobrança na Asaas";
+      console.error("[caixa-qr] asaas payment link error", msg);
+      await supabaseAdmin
+        .from("pos_charges")
+        .update({ status: "failed", mp_status_detail: msg.slice(0, 500) } as never)
+        .eq("id", chargeId);
+      throw new Error(msg);
     }
-
-    const pref = (await mpRes.json()) as { id: string; init_point: string };
-
-    await supabaseAdmin
-      .from("pos_charges")
-      .update({ mp_preference_id: pref.id } as never)
-      .eq("id", chargeId);
-
-    return {
-      chargeId,
-      preferenceId: pref.id,
-      initPoint: pref.init_point,
-      total,
-    };
   });
+
 
 export const getPosChargeStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

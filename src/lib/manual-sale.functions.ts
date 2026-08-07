@@ -4,7 +4,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type CartItemInput = { product_id: string; quantity: number; color?: string | null };
 
-export const MANUAL_PAYMENT_METHODS = ["mercadopago", "cielo", "pix", "card", "dinheiro"] as const;
+export const MANUAL_PAYMENT_METHODS = ["asaas", "pix", "card", "dinheiro"] as const;
 export type ManualPaymentMethod = (typeof MANUAL_PAYMENT_METHODS)[number];
 
 type CreateManualSaleInput = {
@@ -30,7 +30,7 @@ export const createManualSale = createServerFn({ method: "POST" })
     const phone = (data.customer_phone ?? "").replace(/\D/g, "");
     if (!/^[0-9]{10,11}$/.test(phone)) throw new Error("Telefone inválido");
     if (!["pickup", "delivery"].includes(data.delivery_method)) throw new Error("Entrega inválida");
-    const pm = (data.payment_method ?? "mercadopago") as ManualPaymentMethod;
+    const pm = (data.payment_method ?? "asaas") as ManualPaymentMethod;
     if (!MANUAL_PAYMENT_METHODS.includes(pm)) throw new Error("Forma de pagamento inválida");
     if (!Array.isArray(data.items) || data.items.length === 0) throw new Error("Carrinho vazio");
     if (data.items.length > 50) throw new Error("Carrinho muito grande");
@@ -52,8 +52,7 @@ export const createManualSale = createServerFn({ method: "POST" })
 
     const isCash = data.payment_method === "dinheiro";
 
-    const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-    if (!isCash && !accessToken) throw new Error("Mercado Pago não configurado");
+    if (!isCash && !process.env.ASAAS_API_KEY) throw new Error("Asaas não configurado");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -78,73 +77,48 @@ export const createManualSale = createServerFn({ method: "POST" })
       };
     }
 
-    // Marca como Mercado Pago
+    // Marca como Asaas
     await supabaseAdmin
       .from("orders")
-      .update({ payment_provider: "mercadopago" } as never)
+      .update({ payment_provider: "asaas" } as never)
       .eq("id", orderId as string);
 
+    const { data: orderRow } = await supabaseAdmin
+      .from("orders")
+      .select("total")
+      .eq("id", orderId as string)
+      .maybeSingle();
+    const total = Number((orderRow as { total?: number } | null)?.total ?? 0);
+    if (!(total > 0)) throw new Error("Pedido sem valor a cobrar");
 
-    const { data: orderItems, error: itemsErr } = await supabaseAdmin
-      .from("order_items")
-      .select("product_name, unit_price, quantity")
-      .eq("order_id", orderId as string);
-    if (itemsErr || !orderItems) throw new Error("Falha ao carregar itens");
+    void originFromRequest();
 
-    const origin = originFromRequest();
+    try {
+      const { createPaymentLink } = await import("@/lib/asaas.server");
+      const link = await createPaymentLink({
+        name: `Venda shopbox ${(orderId as string).slice(0, 8).toUpperCase()}`,
+        value: total,
+        description: `Venda manual para ${data.customer_name.trim()}`,
+        maxInstallmentCount: 7,
+      });
 
-    const preferenceBody = {
-      items: orderItems.map((it) => ({
-        title: String(it.product_name).slice(0, 200),
-        quantity: Number(it.quantity),
-        unit_price: Number(it.unit_price),
-        currency_id: "BRL",
-      })),
-      payer: {
-        name: data.customer_name.trim(),
-        phone: { area_code: data.customer_phone.slice(0, 2), number: data.customer_phone.slice(2) },
-      },
-      external_reference: orderId as string,
-      back_urls: {
-        success: `${origin}/pedido/${orderId}`,
-        failure: `${origin}/pedido/${orderId}`,
-        pending: `${origin}/pedido/${orderId}`,
-      },
-      auto_return: "approved",
-      notification_url: `${origin}/api/public/mp/webhook`,
-      payment_methods: {
-        installments: 7,
-      },
-      statement_descriptor: "SHOPBOX",
-    };
+      await supabaseAdmin
+        .from("orders")
+        .update({
+          mp_preference_id: link.id,
+          mp_init_point: link.url,
+          asaas_invoice_url: link.url,
+        } as never)
+        .eq("id", orderId as string);
 
-    const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(preferenceBody),
-    });
-    if (!mpRes.ok) {
-      const errText = await mpRes.text();
-      console.error("[manual-sale] mp preference error", mpRes.status, errText);
+      return {
+        orderId: orderId as string,
+        initPoint: link.url,
+        preferenceId: link.id,
+      };
+    } catch (err) {
+      console.error("[manual-sale] asaas payment link error", err);
       await supabaseAdmin.from("orders").update({ status: "cancelled" }).eq("id", orderId as string);
-      throw new Error("Falha ao gerar cobrança no Mercado Pago");
+      throw new Error(err instanceof Error ? err.message : "Falha ao gerar cobrança na Asaas");
     }
-    const pref = (await mpRes.json()) as { id: string; init_point: string };
-
-    await supabaseAdmin
-      .from("orders")
-      .update({
-        mp_preference_id: pref.id,
-        mp_init_point: pref.init_point,
-      } as never)
-      .eq("id", orderId as string);
-
-    return {
-      orderId: orderId as string,
-      initPoint: pref.init_point,
-      preferenceId: pref.id,
-    };
   });

@@ -46,7 +46,7 @@ function TermsPage() {
           <section>
             <h2 className="text-lg font-bold text-primary mb-2">3. Pedidos e pagamento</h2>
             <p>
-              Os pagamentos são processados pelo Mercado Pago, aceitando Pix, cartão de crédito e parcelamento.
+              Os pagamentos são processados pela Asaas, aceitando Pix, cartão de crédito e parcelamento.
               O pedido só é confirmado após aprovação do pagamento. Preços e disponibilidade podem sofrer
               alterações sem aviso prévio.
             </p>

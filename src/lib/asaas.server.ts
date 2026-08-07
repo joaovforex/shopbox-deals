@@ -139,3 +139,62 @@ export async function getPayment(id: string): Promise<{
 }> {
   return asaasFetch(`/payments/${encodeURIComponent(id)}`, { method: "GET" });
 }
+
+/** Lista cobranças por externalReference (reconciliação sem paymentId salvo). */
+export async function listPaymentsByReference(externalReference: string): Promise<
+  Array<{ id: string; status: string; value?: number; invoiceUrl?: string | null }>
+> {
+  const res = await asaasFetch<{ data?: Array<{ id: string; status: string; value?: number; invoiceUrl?: string | null }> }>(
+    `/payments?externalReference=${encodeURIComponent(externalReference)}&limit=20`,
+    { method: "GET" },
+  );
+  return res?.data ?? [];
+}
+
+export type PaymentLink = { id: string; url: string };
+
+/**
+ * Cria um link de pagamento avulso (sem cliente cadastrado) — usado no caixa
+ * (QR code) e na conversão retirada → entrega.
+ */
+export async function createPaymentLink(input: {
+  name: string;
+  value: number;
+  description?: string;
+  billingType?: "UNDEFINED" | "PIX" | "CREDIT_CARD" | "BOLETO";
+  maxInstallmentCount?: number;
+}): Promise<PaymentLink> {
+  const link = await asaasFetch<PaymentLink>("/paymentLinks", {
+    method: "POST",
+    body: JSON.stringify({
+      name: input.name.slice(0, 100),
+      description: input.description?.slice(0, 500) || undefined,
+      billingType: input.billingType ?? "UNDEFINED",
+      chargeType: "DETACHED",
+      value: Number(input.value.toFixed(2)),
+      dueDateLimitDays: 1,
+      notificationEnabled: false,
+      ...(input.maxInstallmentCount ? { maxInstallmentCount: input.maxInstallmentCount } : {}),
+    }),
+  });
+  if (!link?.id || !link?.url) throw new Error("Asaas não retornou o link de pagamento");
+  return { id: link.id, url: link.url };
+}
+
+/** Estorna uma cobrança (total quando `value` é omitido). */
+export async function refundPayment(
+  paymentId: string,
+  value?: number,
+  description?: string,
+): Promise<{ id: string; status: string }> {
+  const body: Record<string, unknown> = {};
+  if (value != null) body.value = Number(value.toFixed(2));
+  if (description) body.description = description.slice(0, 255);
+  const res = await asaasFetch<{ id?: string; status?: string; refunds?: Array<{ id?: string; status?: string }> }>(
+    `/payments/${encodeURIComponent(paymentId)}/refund`,
+    { method: "POST", body: JSON.stringify(body) },
+  );
+  const refund = res?.refunds?.[res.refunds.length - 1];
+  return { id: String(refund?.id ?? res?.id ?? paymentId), status: String(refund?.status ?? res?.status ?? "REFUNDED") };
+}
+

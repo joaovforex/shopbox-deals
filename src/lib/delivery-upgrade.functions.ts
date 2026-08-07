@@ -34,6 +34,22 @@ function originFromRequest(): string {
   return `${proto}://${host}`;
 }
 
+// A Asaas rejeita callbacks que não sejam URLs públicas https (ex.: localhost em dev).
+function isPublicHttpsOrigin(origin: string): boolean {
+  try {
+    const u = new URL(origin);
+    if (u.protocol !== "https:") return false;
+    const h = u.hostname;
+    if (h === "localhost" || h === "127.0.0.1" || h === "::1") return false;
+    if (!h.includes(".")) return false;
+    if (/\.local$/i.test(h)) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+
 export const createDeliveryUpgrade = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: CreateUpgradeInput) => {
@@ -51,8 +67,8 @@ export const createDeliveryUpgrade = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data, context }) => {
-    const accessToken = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-    if (!accessToken) throw new Error("Mercado Pago não configurado");
+    if (!process.env.ASAAS_API_KEY) throw new Error("Asaas não configurado");
+
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -114,75 +130,49 @@ export const createDeliveryUpgrade = createServerFn({ method: "POST" })
       upgradeId = (ins as { id: string }).id;
     }
 
-    // 3) Cria preferência MP (Pix) para o frete
+    // 3) Cria a cobrança do frete na Asaas
     const origin = originFromRequest();
-    const nameParts = String(order.customer_name ?? "").trim().split(/\s+/);
-    const firstName = nameParts[0] ?? "Cliente";
-    const lastName = nameParts.slice(1).join(" ") || firstName;
-    const phoneDigits = String(order.customer_phone ?? "").replace(/\D/g, "");
     const cpfDigits = String(order.customer_cpf ?? "").replace(/\D/g, "");
+    const title = `Frete - Conversão do pedido ${data.order_id.slice(0, 8).toUpperCase()} para entrega`;
 
-    const preferenceBody = {
-      external_reference: `upgrade:${upgradeId}`,
-      items: [{
-        id: upgradeId,
-        title: `Frete - Conversão do pedido ${data.order_id.slice(0, 8).toUpperCase()} para entrega`,
-        quantity: 1,
-        unit_price: DELIVERY_UPGRADE_FEE,
-        currency_id: "BRL",
-      }],
-      payer: {
-        name: firstName,
-        surname: lastName,
-        email: order.customer_email ?? undefined,
-        ...(phoneDigits ? { phone: { area_code: phoneDigits.slice(0, 2), number: phoneDigits.slice(2) } } : {}),
-        ...(cpfDigits ? { identification: { type: "CPF", number: cpfDigits } } : {}),
-        address: {
-          zip_code: shippingRow.shipping_zip,
-          street_name: shippingRow.shipping_street,
-          street_number: shippingRow.shipping_number,
-          neighborhood: shippingRow.shipping_district ?? "",
-          city: shippingRow.shipping_city,
-          federal_unit: shippingRow.shipping_state,
-        },
-      },
-      payment_methods: {
-        excluded_payment_types: [{ id: "credit_card" }, { id: "debit_card" }, { id: "ticket" }, { id: "atm" }],
-        default_payment_method_id: "pix",
-        default_installments: 1,
-      },
-      back_urls: {
-        success: `${origin}/pedido/${data.order_id}`,
-        pending: `${origin}/pedido/${data.order_id}`,
-        failure: `${origin}/pedido/${data.order_id}`,
-      },
-      auto_return: "approved",
-      notification_url: `${origin}/api/public/mp/webhook`,
-      statement_descriptor: "SHOPBOX",
-      metadata: { upgrade_id: upgradeId, order_id: data.order_id, user_id: context.userId },
-    };
+    const { findOrCreateCustomer, createPayment, createPaymentLink } = await import("@/lib/asaas.server");
 
-    const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(preferenceBody),
-    });
-    if (!mpRes.ok) {
-      const errText = await mpRes.text();
-      console.error("[delivery-upgrade] mp preference error", mpRes.status, errText);
-      throw new Error("Falha ao iniciar pagamento do frete");
+    let chargeId: string;
+    let initPoint: string;
+    try {
+      if (cpfDigits.length === 11) {
+        const customerId = await findOrCreateCustomer({
+          name: String(order.customer_name ?? "Cliente"),
+          cpfCnpj: cpfDigits,
+          email: order.customer_email,
+          mobilePhone: order.customer_phone,
+        });
+        const payment = await createPayment({
+          customerId,
+          value: DELIVERY_UPGRADE_FEE,
+          externalReference: `upgrade:${upgradeId}`,
+          description: title,
+          ...(isPublicHttpsOrigin(origin) ? { successUrl: `${origin}/pedido/${data.order_id}` } : {}),
+        });
+        chargeId = payment.id;
+        initPoint = payment.invoiceUrl;
+      } else {
+        const link = await createPaymentLink({ name: title.slice(0, 100), value: DELIVERY_UPGRADE_FEE });
+        chargeId = link.id;
+        initPoint = link.url;
+      }
+    } catch (err) {
+      console.error("[delivery-upgrade] asaas error", err);
+      throw new Error(err instanceof Error ? err.message : "Falha ao iniciar pagamento do frete");
     }
-    const pref = (await mpRes.json()) as { id: string; init_point: string };
 
     await supabaseAdmin
       .from("delivery_upgrades")
-      .update({ mp_preference_id: pref.id, mp_init_point: pref.init_point } as never)
+      .update({ mp_preference_id: chargeId, mp_init_point: initPoint } as never)
       .eq("id", upgradeId);
 
-    return { upgradeId, initPoint: pref.init_point };
+    return { upgradeId, initPoint };
+
   });
 
 export const cancelDeliveryUpgrade = createServerFn({ method: "POST" })

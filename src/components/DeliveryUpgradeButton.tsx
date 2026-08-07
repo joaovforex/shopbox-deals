@@ -7,7 +7,7 @@ import { createDeliveryUpgrade } from "@/lib/delivery-upgrade.functions";
 
 /**
  * Botão + modal para converter um pedido de RETIRADA para ENTREGA
- * pagando R$10 de frete via Pix (Mercado Pago).
+ * pagando R$10 de frete via Pix (Asaas).
  *
  * Exibido apenas quando o pedido está pago, ainda é retirada, e não foi
  * concluído/retirado.

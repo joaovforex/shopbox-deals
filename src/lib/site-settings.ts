@@ -19,7 +19,7 @@ const DEFAULTS: SiteSettings = {
   banner_mobile_url: null,
   global_discount_percent: 0,
   store_address: DEFAULT_STORE_ADDRESS,
-  payment_provider: "mercadopago",
+  payment_provider: "asaas",
   updated_at: null,
 };
 
@@ -39,7 +39,7 @@ export async function fetchSiteSettings(): Promise<SiteSettings> {
     banner_mobile_url: (d.banner_mobile_url as string | null) ?? null,
     global_discount_percent: Number(d.global_discount_percent ?? 0),
     store_address: ((d.store_address as string | null) ?? DEFAULT_STORE_ADDRESS).trim() || DEFAULT_STORE_ADDRESS,
-    payment_provider: ((d.payment_provider as string | null) ?? "mercadopago") || "mercadopago",
+    payment_provider: ((d.payment_provider as string | null) ?? "asaas") || "asaas",
     updated_at: (d.updated_at as string | null) ?? null,
   };
 }

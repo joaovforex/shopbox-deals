@@ -63,7 +63,7 @@ export const refundOrder = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: order, error: oerr } = await supabaseAdmin
       .from("orders")
-      .select("id,status,total,mp_payment_id,cielo_payment_id,payment_provider,refund_status,customer_name,customer_phone,customer_email,customer_cpf,payment_method,created_at")
+      .select("id,status,total,mp_payment_id,cielo_payment_id,asaas_payment_id,payment_provider,refund_status,customer_name,customer_phone,customer_email,customer_cpf,payment_method,created_at")
       .eq("id", data.orderId)
       .maybeSingle();
     if (oerr) throw new Error("Falha ao buscar pedido");
@@ -73,32 +73,19 @@ export const refundOrder = createServerFn({ method: "POST" })
       throw new Error("Pedido já reembolsado");
     }
 
-    const provider = (order as { payment_provider?: string }).payment_provider ?? "mercadopago";
-    const cieloPaymentId = (order as { cielo_payment_id?: string | null }).cielo_payment_id;
+    const provider = (order as { payment_provider?: string }).payment_provider ?? "asaas";
+    const asaasPaymentId = (order as { asaas_payment_id?: string | null }).asaas_payment_id;
 
-    // Cielo foi descontinuada como gateway ativo. Para pedidos antigos da Cielo
-    // aceitamos duas rotas:
-    //  1) Se o pedido já foi migrado/atualizado com mp_payment_id, estorna via MP.
-    //  2) Caso contrário, registra o reembolso como MANUAL (sem chamada de gateway):
-    //     o operador devolve o dinheiro externamente (PIX/transferência) e o
-    //     sistema apenas grava o histórico e libera o pedido.
-    const isCieloManual = provider === "cielo" && !order.mp_payment_id;
-    const useMpApi = provider === "mercadopago" || (provider === "cielo" && !!order.mp_payment_id);
+    // A Asaas é o único gateway ativo. Pedidos antigos (Mercado Pago / Cielo)
+    // são reembolsados MANUALMENTE: o operador devolve o dinheiro por fora
+    // (Pix/transferência) e o sistema grava o histórico.
+    const useAsaasApi = !!asaasPaymentId;
+    const isManualLegacy = !useAsaasApi;
 
-    if (useMpApi && !order.mp_payment_id) {
-      throw new Error("Pedido sem pagamento Mercado Pago associado — estorne manualmente");
-    }
-    if (!useMpApi && !isCieloManual && provider !== "cielo") {
-      throw new Error(`Provedor de pagamento desconhecido: ${provider}`);
+    if (useAsaasApi && !process.env.ASAAS_API_KEY) {
+      throw new Error("Asaas não configurado");
     }
 
-    // Token MP só é necessário quando vamos chamar a API do MP
-    const token = process.env.MERCADO_PAGO_ACCESS_TOKEN;
-    if (useMpApi && !token) {
-      throw new Error("MERCADO_PAGO_ACCESS_TOKEN não configurado");
-    }
-    // Suprime aviso de variável não utilizada quando não caímos na fila Cielo
-    void cieloPaymentId;
 
     // ============================================================
     // BLINDAGEM ANTI-REEMBOLSO-NO-CLIENTE-ERRADO
@@ -181,43 +168,37 @@ export const refundOrder = createServerFn({ method: "POST" })
     }));
 
     let providerRefundId = "";
-    if (useMpApi) {
-      const idempotencyKey = `refund-${order.id}-${Date.now()}`;
-      const mpRes = await fetch(`https://api.mercadopago.com/v1/payments/${order.mp_payment_id}/refunds`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "X-Idempotency-Key": idempotencyKey,
-        },
-        body: isFull ? JSON.stringify({}) : JSON.stringify({ amount: data.amount }),
-      });
-      const mpJson: any = await mpRes.json().catch(() => ({}));
-      if (!mpRes.ok) {
-        const rawMsg = mpJson?.message || mpJson?.error || `Mercado Pago retornou ${mpRes.status}`;
-        const code = mpJson?.error || mpJson?.cause?.[0]?.code;
-        console.error("[refund] MP API error", { orderId: order.id, mpPaymentId: order.mp_payment_id, status: mpRes.status, rawMsg, mpJson });
-        // Traduz o erro mais comum: pagamento não encontrado na conta MP atual.
-        // Isso acontece quando o pedido guarda um mp_payment_id de outra conta
-        // (ex.: sandbox → produção, ou pedidos antigos de outra integração).
-        if (code === "payment_not_found" || /not.?found/i.test(rawMsg)) {
+    if (useAsaasApi) {
+      try {
+        const { refundPayment } = await import("@/lib/asaas.server");
+        const refund = await refundPayment(
+          asaasPaymentId as string,
+          isFull ? undefined : data.amount,
+          data.reason,
+        );
+        providerRefundId = refund.id;
+      } catch (err) {
+        const rawMsg = err instanceof Error ? err.message : "Falha no estorno";
+        console.error("[refund] Asaas API error", {
+          orderId: order.id, asaasPaymentId, rawMsg,
+        });
+        if (/not.?found|não encontrad/i.test(rawMsg)) {
           throw new Error(
-            `Pagamento ${order.mp_payment_id} não existe na sua conta Mercado Pago atual. ` +
-            `Isso costuma acontecer com pedidos antigos ou de outra conta MP. ` +
-            `Faça o estorno manualmente via PIX pelo app do Mercado Pago e depois use "Reembolso manual" no admin.`,
+            `A cobrança ${asaasPaymentId} não foi encontrada na sua conta Asaas. ` +
+            `Faça o estorno manualmente via Pix e depois use "Reembolso manual" no admin.`,
           );
         }
         throw new Error(`Falha no estorno: ${rawMsg}`);
       }
-      providerRefundId = String(mpJson?.id ?? "");
-    } else if (isCieloManual) {
-      // Cielo descontinuada: registra reembolso manual. Operador devolve o
-      // dinheiro por fora (PIX/transferência) — sistema apenas grava histórico.
-      providerRefundId = `manual-cielo-${Date.now()}`;
-      console.log("[refund] manual cielo refund", {
-        orderId: order.id, amount: data.amount, operator: operatorName,
+    } else if (isManualLegacy) {
+      // Pedido antigo (Mercado Pago / Cielo): registra reembolso manual.
+      // O operador devolve o dinheiro por fora (Pix/transferência).
+      providerRefundId = `manual-${provider}-${Date.now()}`;
+      console.log("[refund] manual legacy refund", {
+        orderId: order.id, provider, amount: data.amount, operator: operatorName,
       });
     }
+
 
     const mpRefundId = providerRefundId;
 
