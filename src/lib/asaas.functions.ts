@@ -260,7 +260,7 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
         value: grandTotal,
         externalReference: orderId as string,
         description,
-        successUrl: `${origin}/pedido/${orderId}`,
+        ...(isPublicHttpsOrigin(origin) ? { successUrl: `${origin}/pedido/${orderId}` } : {}),
       });
 
       await supabaseAdmin
