@@ -30,7 +30,6 @@ import { Route as EtiquetaIdRouteImport } from './routes/etiqueta.$id'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedMeusPedidosRouteImport } from './routes/_authenticated/meus-pedidos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as ApiPublicReconcileOrdersRouteImport } from './routes/api/public/reconcile-orders'
 import { Route as AuthenticatedAdminVendaManualRouteImport } from './routes/_authenticated/admin.venda-manual'
 import { Route as AuthenticatedAdminValeTrocaRouteImport } from './routes/_authenticated/admin.vale-troca'
 import { Route as AuthenticatedAdminSaudeRouteImport } from './routes/_authenticated/admin.saude'
@@ -45,13 +44,11 @@ import { Route as AuthenticatedAdminCaixaQrRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminAuditoriaRouteImport } from './routes/_authenticated/admin.auditoria'
 import { Route as AuthenticatedAdminAgendadorCanalRouteImport } from './routes/_authenticated/admin.agendador-canal'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
-import { Route as ApiPublicMpWebhookRouteImport } from './routes/api/public/mp.webhook'
 import { Route as ApiPublicMaisentregasPollRouteImport } from './routes/api/public/maisentregas/poll'
 import { Route as ApiPublicHooksCieloRefundRetryRouteImport } from './routes/api/public/hooks/cielo-refund-retry'
-import { Route as ApiPublicCieloWebhookRouteImport } from './routes/api/public/cielo/webhook'
-import { Route as ApiPublicCieloReconcileRouteImport } from './routes/api/public/cielo/reconcile'
 import { Route as ApiPublicCashbackExpireRouteImport } from './routes/api/public/cashback/expire'
 import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas/webhook'
+import { Route as ApiPublicAsaasReconcileRouteImport } from './routes/api/public/asaas/reconcile'
 
 const TrocasEGarantiaRoute = TrocasEGarantiaRouteImport.update({
   id: '/trocas-e-garantia',
@@ -158,12 +155,6 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiPublicReconcileOrdersRoute =
-  ApiPublicReconcileOrdersRouteImport.update({
-    id: '/api/public/reconcile-orders',
-    path: '/api/public/reconcile-orders',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const AuthenticatedAdminVendaManualRoute =
   AuthenticatedAdminVendaManualRouteImport.update({
     id: '/venda-manual',
@@ -246,11 +237,6 @@ const LovableEmailQueueProcessRoute =
     path: '/lovable/email/queue/process',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicMpWebhookRoute = ApiPublicMpWebhookRouteImport.update({
-  id: '/api/public/mp/webhook',
-  path: '/api/public/mp/webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicMaisentregasPollRoute =
   ApiPublicMaisentregasPollRouteImport.update({
     id: '/api/public/maisentregas/poll',
@@ -263,16 +249,6 @@ const ApiPublicHooksCieloRefundRetryRoute =
     path: '/api/public/hooks/cielo-refund-retry',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicCieloWebhookRoute = ApiPublicCieloWebhookRouteImport.update({
-  id: '/api/public/cielo/webhook',
-  path: '/api/public/cielo/webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicCieloReconcileRoute = ApiPublicCieloReconcileRouteImport.update({
-  id: '/api/public/cielo/reconcile',
-  path: '/api/public/cielo/reconcile',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicCashbackExpireRoute = ApiPublicCashbackExpireRouteImport.update({
   id: '/api/public/cashback/expire',
   path: '/api/public/cashback/expire',
@@ -281,6 +257,11 @@ const ApiPublicCashbackExpireRoute = ApiPublicCashbackExpireRouteImport.update({
 const ApiPublicAsaasWebhookRoute = ApiPublicAsaasWebhookRouteImport.update({
   id: '/api/public/asaas/webhook',
   path: '/api/public/asaas/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicAsaasReconcileRoute = ApiPublicAsaasReconcileRouteImport.update({
+  id: '/api/public/asaas/reconcile',
+  path: '/api/public/asaas/reconcile',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -318,14 +299,11 @@ export interface FileRoutesByFullPath {
   '/admin/saude': typeof AuthenticatedAdminSaudeRoute
   '/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
-  '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
+  '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
   '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
-  '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
-  '/api/public/cielo/webhook': typeof ApiPublicCieloWebhookRoute
   '/api/public/hooks/cielo-refund-retry': typeof ApiPublicHooksCieloRefundRetryRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
-  '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
@@ -362,14 +340,11 @@ export interface FileRoutesByTo {
   '/admin/saude': typeof AuthenticatedAdminSaudeRoute
   '/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
-  '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
+  '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
   '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
-  '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
-  '/api/public/cielo/webhook': typeof ApiPublicCieloWebhookRoute
   '/api/public/hooks/cielo-refund-retry': typeof ApiPublicHooksCieloRefundRetryRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
-  '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
@@ -408,14 +383,11 @@ export interface FileRoutesById {
   '/_authenticated/admin/saude': typeof AuthenticatedAdminSaudeRoute
   '/_authenticated/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/_authenticated/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
-  '/api/public/reconcile-orders': typeof ApiPublicReconcileOrdersRoute
+  '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
   '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
-  '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
-  '/api/public/cielo/webhook': typeof ApiPublicCieloWebhookRoute
   '/api/public/hooks/cielo-refund-retry': typeof ApiPublicHooksCieloRefundRetryRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
-  '/api/public/mp/webhook': typeof ApiPublicMpWebhookRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
@@ -454,14 +426,11 @@ export interface FileRouteTypes {
     | '/admin/saude'
     | '/admin/vale-troca'
     | '/admin/venda-manual'
-    | '/api/public/reconcile-orders'
+    | '/api/public/asaas/reconcile'
     | '/api/public/asaas/webhook'
     | '/api/public/cashback/expire'
-    | '/api/public/cielo/reconcile'
-    | '/api/public/cielo/webhook'
     | '/api/public/hooks/cielo-refund-retry'
     | '/api/public/maisentregas/poll'
-    | '/api/public/mp/webhook'
     | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -498,14 +467,11 @@ export interface FileRouteTypes {
     | '/admin/saude'
     | '/admin/vale-troca'
     | '/admin/venda-manual'
-    | '/api/public/reconcile-orders'
+    | '/api/public/asaas/reconcile'
     | '/api/public/asaas/webhook'
     | '/api/public/cashback/expire'
-    | '/api/public/cielo/reconcile'
-    | '/api/public/cielo/webhook'
     | '/api/public/hooks/cielo-refund-retry'
     | '/api/public/maisentregas/poll'
-    | '/api/public/mp/webhook'
     | '/lovable/email/queue/process'
   id:
     | '__root__'
@@ -543,14 +509,11 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/saude'
     | '/_authenticated/admin/vale-troca'
     | '/_authenticated/admin/venda-manual'
-    | '/api/public/reconcile-orders'
+    | '/api/public/asaas/reconcile'
     | '/api/public/asaas/webhook'
     | '/api/public/cashback/expire'
-    | '/api/public/cielo/reconcile'
-    | '/api/public/cielo/webhook'
     | '/api/public/hooks/cielo-refund-retry'
     | '/api/public/maisentregas/poll'
-    | '/api/public/mp/webhook'
     | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
@@ -573,14 +536,11 @@ export interface RootRouteChildren {
   EtiquetaQrcodeRoute: typeof EtiquetaQrcodeRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
-  ApiPublicReconcileOrdersRoute: typeof ApiPublicReconcileOrdersRoute
+  ApiPublicAsaasReconcileRoute: typeof ApiPublicAsaasReconcileRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicCashbackExpireRoute: typeof ApiPublicCashbackExpireRoute
-  ApiPublicCieloReconcileRoute: typeof ApiPublicCieloReconcileRoute
-  ApiPublicCieloWebhookRoute: typeof ApiPublicCieloWebhookRoute
   ApiPublicHooksCieloRefundRetryRoute: typeof ApiPublicHooksCieloRefundRetryRoute
   ApiPublicMaisentregasPollRoute: typeof ApiPublicMaisentregasPollRoute
-  ApiPublicMpWebhookRoute: typeof ApiPublicMpWebhookRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
@@ -733,13 +693,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/reconcile-orders': {
-      id: '/api/public/reconcile-orders'
-      path: '/api/public/reconcile-orders'
-      fullPath: '/api/public/reconcile-orders'
-      preLoaderRoute: typeof ApiPublicReconcileOrdersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_authenticated/admin/venda-manual': {
       id: '/_authenticated/admin/venda-manual'
       path: '/venda-manual'
@@ -838,13 +791,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/mp/webhook': {
-      id: '/api/public/mp/webhook'
-      path: '/api/public/mp/webhook'
-      fullPath: '/api/public/mp/webhook'
-      preLoaderRoute: typeof ApiPublicMpWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/maisentregas/poll': {
       id: '/api/public/maisentregas/poll'
       path: '/api/public/maisentregas/poll'
@@ -859,20 +805,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksCieloRefundRetryRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/cielo/webhook': {
-      id: '/api/public/cielo/webhook'
-      path: '/api/public/cielo/webhook'
-      fullPath: '/api/public/cielo/webhook'
-      preLoaderRoute: typeof ApiPublicCieloWebhookRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/cielo/reconcile': {
-      id: '/api/public/cielo/reconcile'
-      path: '/api/public/cielo/reconcile'
-      fullPath: '/api/public/cielo/reconcile'
-      preLoaderRoute: typeof ApiPublicCieloReconcileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/cashback/expire': {
       id: '/api/public/cashback/expire'
       path: '/api/public/cashback/expire'
@@ -885,6 +817,13 @@ declare module '@tanstack/react-router' {
       path: '/api/public/asaas/webhook'
       fullPath: '/api/public/asaas/webhook'
       preLoaderRoute: typeof ApiPublicAsaasWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/asaas/reconcile': {
+      id: '/api/public/asaas/reconcile'
+      path: '/api/public/asaas/reconcile'
+      fullPath: '/api/public/asaas/reconcile'
+      preLoaderRoute: typeof ApiPublicAsaasReconcileRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -959,26 +898,13 @@ const rootRouteChildren: RootRouteChildren = {
   EtiquetaQrcodeRoute: EtiquetaQrcodeRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
-  ApiPublicReconcileOrdersRoute: ApiPublicReconcileOrdersRoute,
+  ApiPublicAsaasReconcileRoute: ApiPublicAsaasReconcileRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicCashbackExpireRoute: ApiPublicCashbackExpireRoute,
-  ApiPublicCieloReconcileRoute: ApiPublicCieloReconcileRoute,
-  ApiPublicCieloWebhookRoute: ApiPublicCieloWebhookRoute,
   ApiPublicHooksCieloRefundRetryRoute: ApiPublicHooksCieloRefundRetryRoute,
   ApiPublicMaisentregasPollRoute: ApiPublicMaisentregasPollRoute,
-  ApiPublicMpWebhookRoute: ApiPublicMpWebhookRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

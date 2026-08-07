@@ -277,7 +277,7 @@ export function RefundModal({ orderId, busy, onClose, onConfirm }: RefundModalPr
                   <p className="font-bold text-amber-700 dark:text-amber-400">⚠️ Atenção</p>
                   <label className="flex items-start gap-2 cursor-pointer">
                     <input type="checkbox" checked={ack1} onChange={(e) => setAck1(e.target.checked)} className="mt-0.5" />
-                    <span>O estorno será enviado ao Mercado Pago e <b>não pode ser desfeito</b>.</span>
+                    <span>O estorno será enviado à Asaas e <b>não pode ser desfeito</b>.</span>
                   </label>
                   <label className="flex items-start gap-2 cursor-pointer">
                     <input type="checkbox" checked={ack2} onChange={(e) => setAck2(e.target.checked)} className="mt-0.5" />

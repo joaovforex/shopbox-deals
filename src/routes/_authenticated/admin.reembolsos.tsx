@@ -149,7 +149,7 @@ function RefundsPage() {
           </div>
           <h1 className="display text-3xl md:text-4xl">Reembolsos</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Lista completa de estornos emitidos via Mercado Pago. Reimprima o comprovante a qualquer momento.
+            Lista completa de estornos emitidos via Asaas. Reimprima o comprovante a qualquer momento.
           </p>
         </div>
       </section>
@@ -168,7 +168,7 @@ function RefundsPage() {
             </div>
             <p className="text-xs text-muted-foreground">
               Pedidos marcados como <strong>cancelled</strong> com pagamento <strong>approved</strong> no
-              Mercado Pago mas <strong>sem registro em refunds</strong>. Se o cliente foi de fato debitado,
+              gateway mas <strong>sem registro em refunds</strong>. Se o cliente foi de fato debitado,
               use <strong>"Confirmar pagamento e enviar p/ expedição"</strong>. Se não, emita o estorno.
             </p>
             <ul className="text-xs divide-y divide-destructive/20">
@@ -226,7 +226,7 @@ function RefundsPage() {
                         >
                           <div className="font-bold uppercase tracking-wider">↩ Emitir reembolso</div>
                           <div className="opacity-90 mt-0.5 normal-case font-normal">
-                            Estorna o valor no Mercado Pago e devolve para o cliente.
+                            Estorna o valor na Asaas e devolve para o cliente.
                           </div>
                         </Link>
                       </div>

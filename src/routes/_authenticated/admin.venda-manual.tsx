@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/admin/venda-manual")({
 });
 
 const PAYMENT_OPTIONS: Array<{ value: ManualPaymentMethod; label: string }> = [
-  { value: "mercadopago", label: "Mercado Pago" },
+  { value: "asaas", label: "Asaas (Pix/cartão/boleto)" },
   { value: "pix", label: "Pix" },
   { value: "card", label: "Cartão" },
   { value: "dinheiro", label: "Dinheiro" },
@@ -50,7 +50,7 @@ function ManualSalePage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [delivery, setDelivery] = useState<"pickup" | "delivery">("pickup");
-  const [payment, setPayment] = useState<ManualPaymentMethod>("mercadopago");
+  const [payment, setPayment] = useState<ManualPaymentMethod>("asaas");
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<{ orderId: string; initPoint: string | null } | null>(null);
 
@@ -183,7 +183,7 @@ function ManualSalePage() {
             </div>
             <h1 className="display text-3xl">Venda manual</h1>
             <p className="text-sm text-muted-foreground">
-              Monte o pedido presencial, gere a cobrança Mercado Pago e envie o link/Pix ao cliente.
+              Monte o pedido presencial, gere a cobrança na Asaas e envie o link/Pix ao cliente.
             </p>
           </div>
           <Link

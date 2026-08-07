@@ -293,3 +293,66 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
       throw new Error(err instanceof Error ? err.message : "Falha ao iniciar pagamento");
     }
   });
+
+/**
+ * Retoma o pagamento de um pedido pendente: devolve o link da Asaas já
+ * existente ou cria uma nova cobrança para o mesmo pedido.
+ */
+export const resumeAsaasPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { orderId: string }) => {
+    if (!data?.orderId || !/^[0-9a-f-]{36}$/i.test(data.orderId)) throw new Error("Pedido inválido");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    if (!process.env.ASAAS_API_KEY) throw new Error("Asaas não configurado");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: order, error } = await supabaseAdmin
+      .from("orders")
+      .select("id,user_id,status,total,customer_name,customer_email,customer_phone,customer_cpf,asaas_invoice_url,asaas_customer_id")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!order) throw new Error("Pedido não encontrado");
+    if (order.user_id && order.user_id !== context.userId) throw new Error("Sem permissão");
+    if (order.status !== "pending") throw new Error("Este pedido não está mais aguardando pagamento");
+
+    if (order.asaas_invoice_url) {
+      return { orderId: order.id, initPoint: order.asaas_invoice_url as string };
+    }
+
+    const total = Number(order.total ?? 0);
+    if (!(total > 0)) throw new Error("Pedido sem valor a pagar");
+
+    const { findOrCreateCustomer, createPayment } = await import("@/lib/asaas.server");
+    const customerId =
+      (order.asaas_customer_id as string | null) ??
+      (await findOrCreateCustomer({
+        name: String(order.customer_name ?? "Cliente"),
+        cpfCnpj: String(order.customer_cpf ?? ""),
+        email: order.customer_email,
+        mobilePhone: order.customer_phone,
+      }));
+
+    const origin = originFromRequest();
+    const payment = await createPayment({
+      customerId,
+      value: total,
+      externalReference: order.id,
+      description: `Pedido shopbox ${order.id.slice(0, 8).toUpperCase()}`,
+      ...(isPublicHttpsOrigin(origin) ? { successUrl: `${origin}/pedido/${order.id}` } : {}),
+    });
+
+    await supabaseAdmin
+      .from("orders")
+      .update({
+        asaas_customer_id: customerId,
+        asaas_payment_id: payment.id,
+        asaas_invoice_url: payment.invoiceUrl,
+        asaas_status: payment.status,
+      } as never)
+      .eq("id", order.id);
+
+    return { orderId: order.id, initPoint: payment.invoiceUrl };
+  });

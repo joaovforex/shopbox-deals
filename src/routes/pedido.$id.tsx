@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Package, Store, Clock, ArrowRight, Sparkles, Truck, AlertTriangle, CreditCard } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { getPublicOrder } from "@/lib/orders.functions";
-import { resumePendingPayment } from "@/lib/mercadopago.functions";
+import { resumeAsaasPayment } from "@/lib/asaas.functions";
 import { brl } from "@/lib/format";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
 import { mpStatusDetailMessage } from "@/lib/cpf";
@@ -46,7 +46,7 @@ function OrderPage() {
   const isDone = isDelivered || (isPaid && !isDelivery && fulfillment === "completed");
   const isPreparing = isPaid && !isDelivery && (fulfillment === "pending" || fulfillment === "preparing");
 
-  // Detalhe da rejeição do Mercado Pago (mostrado quando o pedido ainda pode pagar)
+  // Detalhe da rejeição do provedor de pagamento (mostrado quando o pedido ainda pode pagar)
   const mpStatus = (order as { mp_payment_status?: string | null } | undefined)?.mp_payment_status ?? null;
   const mpDetail = (order as { mp_status_detail?: string | null } | undefined)?.mp_status_detail ?? null;
   const showRejection = isPending && mpStatus && mpStatus !== "approved" && mpStatus !== "pending" && mpStatus !== "in_process";
@@ -84,9 +84,9 @@ function OrderPage() {
             </h1>
             <p className="text-muted-foreground">
               {isCancelled
-                ? "Não recebemos a confirmação do Mercado Pago."
+                ? "Não recebemos a confirmação do pagamento."
                 : isPending
-                  ? "Assim que o Mercado Pago confirmar, atualizamos esta página automaticamente."
+                  ? "Assim que a Asaas confirmar, atualizamos esta página automaticamente."
                   : isDone
                     ? "Obrigado pela compra! 💚"
                     : isDelivery
@@ -252,7 +252,7 @@ function OrderPage() {
 
 function RetryPaymentButton({ orderId }: { orderId: string }) {
   const [loading, setLoading] = useState(false);
-  const resume = useServerFn(resumePendingPayment);
+  const resume = useServerFn(resumeAsaasPayment);
   const onClick = async () => {
     setLoading(true);
     try {

@@ -41,7 +41,7 @@ function PrivacyPage() {
             <ul className="list-disc pl-5 space-y-1">
               <li><strong>Cadastro:</strong> nome completo, e-mail e WhatsApp.</li>
               <li><strong>Checkout:</strong> CPF e endereço completo, exigidos exclusivamente para emissão de nota fiscal e entrega.</li>
-              <li><strong>Pagamento:</strong> processado pelo Mercado Pago; não armazenamos dados de cartão.</li>
+              <li><strong>Pagamento:</strong> processado pela Asaas; não armazenamos dados de cartão.</li>
               <li><strong>Navegação:</strong> cookies essenciais para carrinho, sessão e melhoria da experiência.</li>
             </ul>
           </section>
@@ -58,7 +58,7 @@ function PrivacyPage() {
           <section>
             <h2 className="text-lg font-bold text-primary mb-2">4. Compartilhamento</h2>
             <p>
-              Compartilhamos dados estritamente necessários com: Mercado Pago (pagamentos), transportadoras
+              Compartilhamos dados estritamente necessários com: Asaas (pagamentos), transportadoras
               e Mais Entregas (logística), e provedor de infraestrutura em nuvem para hospedagem segura.
             </p>
           </section>

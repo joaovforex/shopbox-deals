@@ -8,7 +8,6 @@ import { Header, Footer } from "@/components/Header";
 import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
-import { createMpPreference } from "@/lib/mercadopago.functions";
 import { createAsaasPayment } from "@/lib/asaas.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { calculateCashback } from "@/lib/cashback-config";
@@ -82,8 +81,7 @@ function CheckoutPage() {
   const { items, total, clear } = useCart();
   const [busy, setBusy] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
-  const createCheckout = useServerFn(createMpPreference);
-  const createAsaasCheckout = useServerFn(createAsaasPayment);
+  const createCheckout = useServerFn(createAsaasPayment);
   const fetchCashback = useServerFn(getMyCashback);
   const { data: settings } = useSiteSettings();
   const cashbackRate = settings?.cashback_rate ?? 0.05;
@@ -283,9 +281,7 @@ function CheckoutPage() {
 
     setBusy(true);
     try {
-      const provider = settings?.payment_provider ?? "mercadopago";
-      const startCheckout = provider === "asaas" ? createAsaasCheckout : createCheckout;
-      const res = await startCheckout({
+      const res = await createCheckout({
         data: {
           customer_name: name.trim(),
           customer_email: email.trim(),
@@ -321,7 +317,7 @@ function CheckoutPage() {
           </Link>
           <h1 className="display text-3xl md:text-4xl">Finalizar compra</h1>
           <div className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
-            Pagamento seguro via Mercado Pago
+            Pagamento seguro via Asaas · Pix, cartão ou boleto
           </div>
         </div>
       </section>
@@ -452,9 +448,9 @@ function CheckoutPage() {
 
           <Section title="Pagamento">
             <div className="bg-secondary rounded-md p-4 text-sm space-y-2">
-              <p className="font-semibold">Você será redirecionado ao checkout do Mercado Pago</p>
+              <p className="font-semibold">Você será redirecionado ao checkout da Asaas</p>
               <p className="text-muted-foreground">
-                Pague com cartão de crédito em até 7x sem juros, débito ou Pix — você escolhe a forma de pagamento na próxima etapa. Ambiente seguro processado pelo Mercado Pago.
+                Pague com cartão de crédito em até 7x sem juros, débito ou Pix — você escolhe a forma de pagamento na próxima etapa. Ambiente seguro processado pela Asaas.
               </p>
               <p className="text-xs text-muted-foreground">
                 O pedido fica reservado por alguns minutos enquanto aguardamos a confirmação do pagamento.
@@ -541,7 +537,7 @@ function CheckoutPage() {
             );
           })()}
           <p className="text-[11px] text-muted-foreground text-center">
-            Ao confirmar você aceita os termos da loja. Pagamento processado pelo Mercado Pago.
+            Ao confirmar você aceita os termos da loja. Pagamento processado pela Asaas.
           </p>
         </aside>
       </form>
