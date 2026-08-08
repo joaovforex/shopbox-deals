@@ -129,8 +129,36 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
           console.error("[asaas:reconcile] refund sync error", err);
         }
 
-        console.info("[asaas:reconcile] done", summary, refunds);
-        return Response.json({ ok: true, summary, refunds });
+        // Auto-cura da fila de webhooks: a Asaas "interrompe" o envio após
+        // uma sequência de falhas (ex.: token divergente). Enquanto estiver
+        // interrompida, a confirmação só chega pela reconciliação — atrasando
+        // o pedido em minutos. Reativamos automaticamente.
+        let webhook: unknown = null;
+        try {
+          const key = process.env.ASAAS_API_KEY!;
+          const res = await fetch("https://api.asaas.com/v3/webhooks", {
+            headers: { access_token: key },
+          });
+          const list = (await res.json()) as {
+            data?: Array<{ id: string; interrupted?: boolean; enabled?: boolean }>;
+          };
+          for (const hook of list.data ?? []) {
+            if (hook.interrupted || hook.enabled === false) {
+              await fetch(`https://api.asaas.com/v3/webhooks/${hook.id}`, {
+                method: "PUT",
+                headers: { access_token: key, "Content-Type": "application/json" },
+                body: JSON.stringify({ interrupted: false, enabled: true }),
+              });
+              console.warn("[asaas:reconcile] webhook queue reactivated", hook.id);
+              webhook = { reactivated: hook.id };
+            }
+          }
+        } catch (err) {
+          console.error("[asaas:reconcile] webhook health check error", err);
+        }
+
+        console.info("[asaas:reconcile] done", summary, refunds, webhook);
+        return Response.json({ ok: true, summary, refunds, webhook });
       },
     },
   },
