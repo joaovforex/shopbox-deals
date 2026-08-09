@@ -525,6 +525,33 @@ function OrdersPanel() {
           <Kpi icon={<TrendingUp className="h-5 w-5" />} label="Ticket médio" value={brl(stats.avgTicket)} />
         </div>
 
+        {/* Composição da receita — bate com o extrato do provedor de pagamento */}
+        <div className="bg-card border border-border rounded-lg p-5">
+          <h3 className="display text-lg leading-tight">Como a receita foi paga</h3>
+          <p className="text-[11px] text-muted-foreground mb-4">
+            A “Receita” soma o preço cheio dos produtos + frete. Parte disso é paga com crédito da loja
+            (cashback) e não entra no extrato do provedor de pagamento.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="rounded-md border border-border p-4">
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Receita total</div>
+              <div className="display text-2xl mt-1">{brl(stats.revenue)}</div>
+            </div>
+            <div className="rounded-md border border-border p-4">
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Pago com cashback</div>
+              <div className="display text-2xl mt-1 text-muted-foreground">− {brl(stats.cashbackUsed)}</div>
+            </div>
+            <div className="rounded-md border border-primary/60 bg-primary/5 p-4">
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Pago em dinheiro/gateway</div>
+              <div className="display text-2xl mt-1 text-primary">{brl(stats.cashCollected)}</div>
+              <div className="text-[11px] text-muted-foreground mt-1">
+                Valor bruto cobrado dos clientes — é o que deve bater com o provedor (antes das taxas).
+              </div>
+            </div>
+          </div>
+        </div>
+
+
         {/* Valor do catálogo publicado no site */}
         <CatalogValueCard />
 
