@@ -73,6 +73,8 @@ const EMPTY_METRICS: OrderMetrics = {
   revenue: 0,
   products_revenue: 0,
   shipping_revenue: 0,
+  cashback_used_total: 0,
+  cash_collected: 0,
   avg_ticket: 0,
   delivery_count: 0,
   pickup_count: 0,
