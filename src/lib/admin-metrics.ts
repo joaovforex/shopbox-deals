@@ -23,6 +23,8 @@ export type OrderMetrics = {
   revenue: number;
   products_revenue: number;
   shipping_revenue: number;
+  cashback_used_total: number;
+  cash_collected: number;
   avg_ticket: number;
   delivery_count: number;
   pickup_count: number;
@@ -71,6 +73,8 @@ const EMPTY_METRICS: OrderMetrics = {
   revenue: 0,
   products_revenue: 0,
   shipping_revenue: 0,
+  cashback_used_total: 0,
+  cash_collected: 0,
   avg_ticket: 0,
   delivery_count: 0,
   pickup_count: 0,
@@ -98,6 +102,8 @@ export async function fetchOrderMetrics(f: MetricsFilters): Promise<OrderMetrics
     revenue: Number(raw.revenue ?? 0),
     products_revenue: Number(raw.products_revenue ?? 0),
     shipping_revenue: Number(raw.shipping_revenue ?? 0),
+    cashback_used_total: Number(raw.cashback_used_total ?? 0),
+    cash_collected: Number(raw.cash_collected ?? 0),
     avg_ticket: Number(raw.avg_ticket ?? 0),
     delivery_count: Number(raw.delivery_count ?? 0),
     pickup_count: Number(raw.pickup_count ?? 0),
