@@ -23,6 +23,8 @@ export type OrderMetrics = {
   revenue: number;
   products_revenue: number;
   shipping_revenue: number;
+  cashback_used_total: number;
+  cash_collected: number;
   avg_ticket: number;
   delivery_count: number;
   pickup_count: number;
