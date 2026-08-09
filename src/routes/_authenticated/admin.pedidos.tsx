@@ -269,6 +269,8 @@ function OrdersPanel() {
       byPayment: metrics?.by_payment ?? [],
       deliveryCount: metrics?.delivery_count ?? 0,
       pickupCount: metrics?.pickup_count ?? 0,
+      cashbackUsed: metrics?.cashback_used_total ?? 0,
+      cashCollected: metrics?.cash_collected ?? 0,
     }),
     [metrics],
   );
