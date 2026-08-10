@@ -279,13 +279,20 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
 
       const description = `Pedido shopbox ${(orderId as string).slice(0, 8).toUpperCase()} (${orderItems.length} ${orderItems.length === 1 ? "item" : "itens"})`;
 
+      const installments = Math.max(
+        1,
+        Math.min(Math.floor(Number(data.installments ?? 1)) || 1, maxInstallmentsFor(grandTotal)),
+      );
+
       const payment = await createPayment({
         customerId,
         value: grandTotal,
         externalReference: orderId as string,
         description,
+        ...(installments > 1 ? { installmentCount: installments } : {}),
         ...(isPublicHttpsOrigin(origin) ? { successUrl: `${origin}/pedido/${orderId}` } : {}),
       });
+
 
       await supabaseAdmin
         .from("orders")
