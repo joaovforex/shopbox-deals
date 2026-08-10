@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isValidCpf } from "@/lib/cpf";
+import { maxInstallmentsFor } from "@/lib/installments";
+
 
 type CartItemInput = { product_id: string; quantity: number; color?: string | null };
 
@@ -27,7 +29,11 @@ type CreateAsaasInput = {
   items: CartItemInput[];
   save_profile?: boolean;
   use_cashback?: number;
+  /** Parcelas no cartão de crédito (1 = à vista / cliente escolhe Pix ou boleto). */
+  installments?: number;
 };
+
+
 
 function originFromRequest(): string {
   const req = getRequest();
@@ -273,13 +279,20 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
 
       const description = `Pedido shopbox ${(orderId as string).slice(0, 8).toUpperCase()} (${orderItems.length} ${orderItems.length === 1 ? "item" : "itens"})`;
 
+      const installments = Math.max(
+        1,
+        Math.min(Math.floor(Number(data.installments ?? 1)) || 1, maxInstallmentsFor(grandTotal)),
+      );
+
       const payment = await createPayment({
         customerId,
         value: grandTotal,
         externalReference: orderId as string,
         description,
+        ...(installments > 1 ? { installmentCount: installments } : {}),
         ...(isPublicHttpsOrigin(origin) ? { successUrl: `${origin}/pedido/${orderId}` } : {}),
       });
+
 
       await supabaseAdmin
         .from("orders")
