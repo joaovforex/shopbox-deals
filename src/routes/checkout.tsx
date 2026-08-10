@@ -447,16 +447,50 @@ function CheckoutPage() {
           </Section>
 
           <Section title="Pagamento">
-            <div className="bg-secondary rounded-md p-4 text-sm space-y-2">
-              <p className="font-semibold">Você será redirecionado para concluir o pagamento com segurança</p>
-              <p className="text-muted-foreground">
-                Pague com cartão de crédito em até 7x sem juros, débito ou Pix — você escolhe a forma de pagamento na próxima etapa. Ambiente de pagamento seguro.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                O pedido fica reservado por alguns minutos enquanto aguardamos a confirmação do pagamento.
-              </p>
-            </div>
+            {(() => {
+              const shippingFee = delivery === "delivery" ? 12 : 0;
+              const cashbackApply = useCashback ? Math.min(cashbackBalance, total) : 0;
+              const grandTotal = Math.max(0, total - cashbackApply) + shippingFee;
+              const maxN = maxInstallmentsFor(grandTotal);
+              return (
+                <div className="bg-secondary rounded-md p-4 text-sm space-y-3">
+                  <p className="font-semibold">Você será redirecionado para concluir o pagamento com segurança</p>
+                  {maxN > 1 ? (
+                    <label className="block">
+                      <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                        Parcelamento no cartão
+                      </span>
+                      <select
+                        value={String(Math.min(installments, maxN))}
+                        onChange={(e) => setInstallments(Number(e.target.value))}
+                        className="w-full bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary mt-1"
+                      >
+                        <option value="1">À vista — Pix, cartão ou boleto ({brl(grandTotal)})</option>
+                        {Array.from({ length: maxN - 1 }, (_, i) => i + 2).map((n) => (
+                          <option key={n} value={n}>
+                            {n}x de {brl(grandTotal / n)} no cartão de crédito
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      Pague com Pix, cartão de crédito, débito ou boleto na próxima etapa.
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    {Math.min(installments, maxN) > 1
+                      ? "Ao parcelar, o pagamento é feito com cartão de crédito na próxima etapa."
+                      : "Escolhendo à vista, você seleciona Pix, cartão ou boleto na próxima etapa."}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    O pedido fica reservado por alguns minutos enquanto aguardamos a confirmação do pagamento.
+                  </p>
+                </div>
+              );
+            })()}
           </Section>
+
         </div>
 
         
