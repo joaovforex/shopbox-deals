@@ -12,6 +12,8 @@ import { createAsaasPayment } from "@/lib/asaas.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { calculateCashback } from "@/lib/cashback-config";
 import { useSiteSettings } from "@/lib/site-settings";
+import { maxInstallmentsFor } from "@/lib/installments";
+
 
 
 export const Route = createFileRoute("/checkout")({
@@ -89,6 +91,8 @@ function CheckoutPage() {
   const [cashbackBalance, setCashbackBalance] = useState(0);
   const [cashbackExpiry, setCashbackExpiry] = useState<{ amount: number; expiresAt: string } | null>(null);
   const [useCashback, setUseCashback] = useState(false);
+  const [installments, setInstallments] = useState(1);
+
 
   const user = useAuthUser();
   const navigate = useNavigate();
