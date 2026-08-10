@@ -107,6 +107,9 @@ function AuthPage() {
       }
 
       if (password.length < 6) throw new Error("A senha precisa ter pelo menos 6 caracteres");
+      if (mode === "signup" && password.length < 8)
+        throw new Error("Por segurança, a senha do cadastro precisa ter pelo menos 8 caracteres");
+
 
       if (mode === "signup") {
         if (fullName.trim().length < 3) throw new Error("Informe seu nome completo");
