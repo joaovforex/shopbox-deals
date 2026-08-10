@@ -92,6 +92,8 @@ export type CreatePaymentInput = {
   /** yyyy-mm-dd; default = hoje + 1 dia */
   dueDate?: string;
   successUrl?: string;
+  /** Nº de parcelas no cartão de crédito (>1 força billingType CREDIT_CARD). */
+  installmentCount?: number;
 };
 
 export type AsaasPayment = {
@@ -105,16 +107,27 @@ function tomorrowIso(): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Cria a cobrança com billingType UNDEFINED (cliente escolhe Pix/cartão/boleto). */
+/**
+ * Cria a cobrança. Sem parcelamento usa billingType UNDEFINED (cliente escolhe
+ * Pix/cartão/boleto). Com `installmentCount > 1` a cobrança é criada como
+ * cartão de crédito parcelado (`totalValue` dividido em N parcelas).
+ */
 export async function createPayment(input: CreatePaymentInput): Promise<AsaasPayment> {
+  const installments = Math.max(1, Math.floor(input.installmentCount ?? 1));
+  const total = Number(input.value.toFixed(2));
   const body: Record<string, unknown> = {
     customer: input.customerId,
-    billingType: "UNDEFINED",
-    value: Number(input.value.toFixed(2)),
+    billingType: installments > 1 ? "CREDIT_CARD" : "UNDEFINED",
     dueDate: input.dueDate ?? tomorrowIso(),
     externalReference: input.externalReference,
     description: input.description.slice(0, 500),
   };
+  if (installments > 1) {
+    body.installmentCount = installments;
+    body.totalValue = total;
+  } else {
+    body.value = total;
+  }
   if (input.successUrl) {
     body.callback = { successUrl: input.successUrl, autoRedirect: true };
   }
@@ -128,6 +141,7 @@ export async function createPayment(input: CreatePaymentInput): Promise<AsaasPay
   }
   return { id: payment.id, invoiceUrl: payment.invoiceUrl, status: payment.status };
 }
+
 
 /** Consulta uma cobrança (usado em reconciliação). */
 export async function getPayment(id: string): Promise<{
