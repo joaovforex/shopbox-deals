@@ -166,9 +166,18 @@ function AuthPage() {
         msg = "E-mail ou senha incorretos.";
       } else if (lower.includes("email not confirmed")) {
         msg = "Confirme seu e-mail antes de entrar.";
+      } else if (lower.includes("weak_password") || lower.includes("known to be weak") || lower.includes("pwned")) {
+        msg = "Essa senha é muito comum e já apareceu em vazamentos. Crie outra com 8+ caracteres, misturando letras maiúsculas, minúsculas, números e um símbolo.";
+      } else if (lower.includes("password should be") || lower.includes("password is too short")) {
+        msg = "Senha muito curta. Use pelo menos 8 caracteres.";
+      } else if (lower.includes("email address") && lower.includes("invalid")) {
+        msg = "E-mail inválido ou não aceito. Use um e-mail real (Gmail, Outlook, etc.).";
+      } else if (lower.includes("signups not allowed") || lower.includes("signup is disabled")) {
+        msg = "Cadastros estão temporariamente desativados. Fale com o suporte.";
       } else if (lower.includes("rate") && lower.includes("limit")) {
         msg = "Muitas tentativas. Aguarde e tente novamente.";
       }
+
       toast.error(msg);
     } finally {
       setBusy(false);
