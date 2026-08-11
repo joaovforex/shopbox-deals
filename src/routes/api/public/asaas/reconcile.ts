@@ -38,7 +38,23 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
 
         const { getPayment, listPaymentsByReference } = await import("@/lib/asaas.server");
 
+        // Pedidos não aprovados precisam ser cancelados para devolver
+        // cashback e estoque ao cliente. Sem isso o saldo fica "preso"
+        // num pedido pendente que nunca será pago.
+        let expired = 0;
+        try {
+          const { data: expiredCount, error: expireErr } = await supabaseAdmin.rpc(
+            "expire_stale_pending_orders" as never,
+            { p_minutes: 30 } as never,
+          );
+          if (expireErr) console.error("[asaas:reconcile] expire error", expireErr);
+          else expired = Number(expiredCount ?? 0);
+        } catch (err) {
+          console.error("[asaas:reconcile] expire unexpected", err);
+        }
+
         const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
         const { data: orders, error } = await supabaseAdmin
           .from("orders")
           .select("id, status, cancellation_reason, asaas_payment_id")
@@ -53,7 +69,7 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
         }
 
         const PAID = new Set(["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"]);
-        const summary = { scanned: orders?.length ?? 0, recovered: 0, stillOpen: 0, errors: 0 };
+        const summary = { scanned: orders?.length ?? 0, expired, recovered: 0, stillOpen: 0, errors: 0 };
 
         for (const row of orders ?? []) {
           const o = row as {
