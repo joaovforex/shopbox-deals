@@ -79,6 +79,7 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
             status: string;
             cancellation_reason: string | null;
             asaas_payment_id: string | null;
+            mp_preference_id: string | null;
           };
           // Cancelados só são recuperáveis quando a expiração automática cancelou.
           if (o.status === "cancelled" && o.cancellation_reason !== "expired") {
