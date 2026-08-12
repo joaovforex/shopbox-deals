@@ -165,6 +165,21 @@ export async function listPaymentsByReference(externalReference: string): Promis
   return res?.data ?? [];
 }
 
+/**
+ * Lista cobranças geradas por um link de pagamento (venda manual / caixa QR).
+ * Links avulsos NÃO carregam externalReference, então esta é a única forma de
+ * reconciliar esses pedidos quando o webhook falha.
+ */
+export async function listPaymentsByPaymentLink(paymentLinkId: string): Promise<
+  Array<{ id: string; status: string; value?: number; invoiceUrl?: string | null }>
+> {
+  const res = await asaasFetch<{ data?: Array<{ id: string; status: string; value?: number; invoiceUrl?: string | null }> }>(
+    `/payments?paymentLink=${encodeURIComponent(paymentLinkId)}&limit=20`,
+    { method: "GET" },
+  );
+  return res?.data ?? [];
+}
+
 export type PaymentLink = { id: string; url: string };
 
 /**
