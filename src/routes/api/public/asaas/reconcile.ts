@@ -94,7 +94,13 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
               status = p.status;
             } else {
               const list = await listPaymentsByReference(o.id);
-              const paid = list.find((p) => PAID.has(p.status));
+              let paid = list.find((p) => PAID.has(p.status));
+              // Vendas manuais / caixa usam link de pagamento avulso, que não
+              // carrega externalReference. Nesse caso reconciliamos pelo link.
+              if (!paid && o.mp_preference_id) {
+                const byLink = await listPaymentsByPaymentLink(o.mp_preference_id);
+                paid = byLink.find((p) => PAID.has(p.status));
+              }
               if (paid) {
                 paymentId = paid.id;
                 status = paid.status;
