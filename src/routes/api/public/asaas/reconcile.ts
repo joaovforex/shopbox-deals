@@ -36,7 +36,9 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
           return new Response("config", { status: 500 });
         }
 
-        const { getPayment, listPaymentsByReference } = await import("@/lib/asaas.server");
+        const { getPayment, listPaymentsByReference, listPaymentsByPaymentLink } = await import(
+          "@/lib/asaas.server"
+        );
 
         // Pedidos não aprovados precisam ser cancelados para devolver
         // cashback e estoque ao cliente. Sem isso o saldo fica "preso"
@@ -57,7 +59,7 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
 
         const { data: orders, error } = await supabaseAdmin
           .from("orders")
-          .select("id, status, cancellation_reason, asaas_payment_id")
+          .select("id, status, cancellation_reason, asaas_payment_id, mp_preference_id")
           .eq("payment_provider", "asaas")
           .in("status", ["pending", "cancelled"])
           .gte("created_at", sinceIso)
@@ -77,6 +79,7 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
             status: string;
             cancellation_reason: string | null;
             asaas_payment_id: string | null;
+            mp_preference_id: string | null;
           };
           // Cancelados só são recuperáveis quando a expiração automática cancelou.
           if (o.status === "cancelled" && o.cancellation_reason !== "expired") {
@@ -91,7 +94,13 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
               status = p.status;
             } else {
               const list = await listPaymentsByReference(o.id);
-              const paid = list.find((p) => PAID.has(p.status));
+              let paid = list.find((p) => PAID.has(p.status));
+              // Vendas manuais / caixa usam link de pagamento avulso, que não
+              // carrega externalReference. Nesse caso reconciliamos pelo link.
+              if (!paid && o.mp_preference_id) {
+                const byLink = await listPaymentsByPaymentLink(o.mp_preference_id);
+                paid = byLink.find((p) => PAID.has(p.status));
+              }
               if (paid) {
                 paymentId = paid.id;
                 status = paid.status;
