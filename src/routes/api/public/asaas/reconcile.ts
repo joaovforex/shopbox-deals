@@ -36,7 +36,9 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
           return new Response("config", { status: 500 });
         }
 
-        const { getPayment, listPaymentsByReference } = await import("@/lib/asaas.server");
+        const { getPayment, listPaymentsByReference, listPaymentsByPaymentLink } = await import(
+          "@/lib/asaas.server"
+        );
 
         // Pedidos não aprovados precisam ser cancelados para devolver
         // cashback e estoque ao cliente. Sem isso o saldo fica "preso"
