@@ -95,7 +95,9 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
             let status = "";
             if (paymentId) {
               const p = await getPayment(paymentId);
-              status = p.status;
+              // Confere também o valor: se o id salvo não pertencer a este
+              // pedido (match errado anterior), não confirmamos.
+              status = valueMatches(p.value) ? p.status : "";
             } else {
               const list = await listPaymentsByReference(o.id);
               let paid = list.find((p) => PAID.has(p.status) && valueMatches(p.value));
