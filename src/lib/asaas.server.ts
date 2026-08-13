@@ -158,11 +158,16 @@ export async function getPayment(id: string): Promise<{
 export async function listPaymentsByReference(externalReference: string): Promise<
   Array<{ id: string; status: string; value?: number; invoiceUrl?: string | null }>
 > {
-  const res = await asaasFetch<{ data?: Array<{ id: string; status: string; value?: number; invoiceUrl?: string | null }> }>(
-    `/payments?externalReference=${encodeURIComponent(externalReference)}&limit=20`,
+  const ref = (externalReference ?? "").trim();
+  if (!ref) return [];
+  const res = await asaasFetch<{ data?: Array<{ id: string; status: string; value?: number; invoiceUrl?: string | null; externalReference?: string | null }> }>(
+    `/payments?externalReference=${encodeURIComponent(ref)}&limit=20`,
     { method: "GET" },
   );
-  return res?.data ?? [];
+  // A API ignora filtros desconhecidos/sem resultado e devolve TODAS as
+  // cobranças da conta. Filtramos localmente para nunca casar o pagamento
+  // de outro cliente com este pedido.
+  return (res?.data ?? []).filter((p) => (p.externalReference ?? "") === ref);
 }
 
 /**
@@ -173,12 +178,18 @@ export async function listPaymentsByReference(externalReference: string): Promis
 export async function listPaymentsByPaymentLink(paymentLinkId: string): Promise<
   Array<{ id: string; status: string; value?: number; invoiceUrl?: string | null }>
 > {
-  const res = await asaasFetch<{ data?: Array<{ id: string; status: string; value?: number; invoiceUrl?: string | null }> }>(
-    `/payments?paymentLink=${encodeURIComponent(paymentLinkId)}&limit=20`,
+  const link = (paymentLinkId ?? "").trim();
+  if (!link) return [];
+  const res = await asaasFetch<{ data?: Array<{ id: string; status: string; value?: number; invoiceUrl?: string | null; paymentLink?: string | null }> }>(
+    `/payments?paymentLink=${encodeURIComponent(link)}&limit=100`,
     { method: "GET" },
   );
-  return res?.data ?? [];
+  // IMPORTANTE: a Asaas IGNORA o filtro `paymentLink` e retorna a conta
+  // inteira. Sem este filtro local, um pedido pendente seria confirmado com
+  // o pagamento de outro cliente.
+  return (res?.data ?? []).filter((p) => (p.paymentLink ?? "") === link);
 }
+
 
 export type PaymentLink = { id: string; url: string };
 
