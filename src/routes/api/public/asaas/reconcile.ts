@@ -59,7 +59,7 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
 
         const { data: orders, error } = await supabaseAdmin
           .from("orders")
-          .select("id, status, cancellation_reason, asaas_payment_id, mp_preference_id")
+          .select("id, status, total, cancellation_reason, asaas_payment_id, mp_preference_id")
           .eq("payment_provider", "asaas")
           .in("status", ["pending", "cancelled"])
           .gte("created_at", sinceIso)
