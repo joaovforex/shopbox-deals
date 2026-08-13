@@ -59,7 +59,7 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
 
         const { data: orders, error } = await supabaseAdmin
           .from("orders")
-          .select("id, status, cancellation_reason, asaas_payment_id, mp_preference_id")
+          .select("id, status, total, cancellation_reason, asaas_payment_id, mp_preference_id")
           .eq("payment_provider", "asaas")
           .in("status", ["pending", "cancelled"])
           .gte("created_at", sinceIso)
@@ -77,6 +77,7 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
           const o = row as {
             id: string;
             status: string;
+            total: number | null;
             cancellation_reason: string | null;
             asaas_payment_id: string | null;
             mp_preference_id: string | null;
@@ -86,6 +87,9 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
             summary.stillOpen++;
             continue;
           }
+          const expectedTotal = Number(o.total ?? 0);
+          const valueMatches = (v?: number) =>
+            v == null || !(expectedTotal > 0) || Math.abs(Number(v) - expectedTotal) < 0.02;
           try {
             let paymentId = o.asaas_payment_id ?? "";
             let status = "";
@@ -94,18 +98,19 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
               status = p.status;
             } else {
               const list = await listPaymentsByReference(o.id);
-              let paid = list.find((p) => PAID.has(p.status));
+              let paid = list.find((p) => PAID.has(p.status) && valueMatches(p.value));
               // Vendas manuais / caixa usam link de pagamento avulso, que não
               // carrega externalReference. Nesse caso reconciliamos pelo link.
               if (!paid && o.mp_preference_id) {
                 const byLink = await listPaymentsByPaymentLink(o.mp_preference_id);
-                paid = byLink.find((p) => PAID.has(p.status));
+                paid = byLink.find((p) => PAID.has(p.status) && valueMatches(p.value));
               }
               if (paid) {
                 paymentId = paid.id;
                 status = paid.status;
               }
             }
+
 
             if (!PAID.has(status)) {
               summary.stillOpen++;
