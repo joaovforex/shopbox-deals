@@ -146,6 +146,8 @@ async function fetchProductsPagedDirect(args: {
   stock?: "in_stock" | "out_of_stock";
   minPrice?: number;
   maxPrice?: number;
+  brand?: string;
+  size?: string;
   offset: number;
   limit: number;
 }): Promise<PagedResult> {
@@ -158,6 +160,8 @@ async function fetchProductsPagedDirect(args: {
   const term = args.search?.trim() ? cleanSearchTerm(args.search) : "";
   if (term) query = query.ilike("name", `%${term}%`);
   if (args.category) query = query.eq("category", args.category);
+  if (args.brand) query = query.eq("brand", args.brand);
+  if (args.size) query = query.eq("size", args.size);
   if (typeof args.minPrice === "number") query = query.gte("price", args.minPrice);
   if (typeof args.maxPrice === "number") query = query.lte("price", args.maxPrice);
   if (args.stock === "in_stock") query = query.gt("stock", 0);
@@ -178,16 +182,18 @@ export async function fetchProductsPaged(args: {
   stock?: "in_stock" | "out_of_stock";
   minPrice?: number;
   maxPrice?: number;
+  brand?: string;
+  size?: string;
   offset: number;
   limit: number;
 }): Promise<PagedResult> {
-  // O RPC list_products_paged não conhece o filtro de preço mínimo, então
-  // caímos direto na query quando ele estiver presente.
-  if (typeof args.minPrice === "number") {
+  // O RPC list_products_paged não conhece preço mínimo nem marca/numeração,
+  // então caímos direto na query (filtrada no servidor) nesses casos.
+  if (typeof args.minPrice === "number" || args.brand || args.size) {
     try {
       return await fetchProductsPagedDirect(args);
     } catch (err) {
-      console.error("Catalog direct query failed with minPrice; returning empty.", err);
+      console.error("Catalog direct query failed; returning empty.", err);
       return { items: [], total: 0, nextOffset: null };
     }
   }
@@ -200,6 +206,7 @@ export async function fetchProductsPaged(args: {
       ...(args.stock ? { p_stock_status: args.stock } : {}),
       ...(typeof args.maxPrice === "number" ? { p_max_price: args.maxPrice } : {}),
     });
+
     if (error) throw error;
     const rows = (data ?? []) as PagedRow[];
     const total = Number(rows[0]?.total_count ?? 0);
