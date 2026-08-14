@@ -245,9 +245,9 @@ export const pagedProductsQuery = (args: { search?: string; category?: string; s
   });
 
 /** Query para uma página específica (paginação numerada). */
-export const pageProductsQuery = (args: { search?: string; category?: string; stock?: "in_stock" | "out_of_stock"; minPrice?: number; maxPrice?: number; page: number }) =>
+export const pageProductsQuery = (args: { search?: string; category?: string; stock?: "in_stock" | "out_of_stock"; minPrice?: number; maxPrice?: number; brand?: string; size?: string; page: number }) =>
   queryOptions({
-    queryKey: ["products", "page", args.category ?? null, args.search ?? "", args.stock ?? "all", args.minPrice ?? null, args.maxPrice ?? null, args.page],
+    queryKey: ["products", "page", args.category ?? null, args.search ?? "", args.stock ?? "all", args.minPrice ?? null, args.maxPrice ?? null, args.brand ?? null, args.size ?? null, args.page],
     queryFn: () =>
       fetchProductsPaged({
         search: args.search,
@@ -255,9 +255,12 @@ export const pageProductsQuery = (args: { search?: string; category?: string; st
         stock: args.stock,
         minPrice: args.minPrice,
         maxPrice: args.maxPrice,
+        brand: args.brand,
+        size: args.size,
         offset: Math.max(0, (args.page - 1) * PRODUCTS_PAGE_SIZE),
         limit: PRODUCTS_PAGE_SIZE,
       }),
+
     staleTime: 60_000,
   });
 
