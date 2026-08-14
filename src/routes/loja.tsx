@@ -123,44 +123,23 @@ function Loja() {
   }, [focus, baseSearch, navigate]);
 
   const { data } = useSuspenseQuery(
-    pageProductsQuery({ search: qParam, category: cat, minPrice: min, maxPrice: max, page }),
+    pageProductsQuery({
+      search: qParam,
+      category: cat,
+      minPrice: min,
+      maxPrice: max,
+      brand: brandParam,
+      size: sizeParam,
+      page,
+    }),
   );
 
-  const productsRaw = data.items;
-
-  // O RPC list_products_paged não retorna brand/size, então buscamos esses
-  // dois campos à parte (só para os itens da página atual) quando algum
-  // filtro de marca/numeração estiver ativo.
-  const pageIds = useMemo(() => productsRaw.map((p) => p.id), [productsRaw]);
-  const needsBrandSize = Boolean(brandParam || sizeParam);
-  const { data: brandSizeMap } = useQuery({
-    queryKey: ["loja", "brand-size-map", pageIds.join(",")],
-    queryFn: async () => {
-      if (pageIds.length === 0) return {} as Record<string, { brand: string | null; size: string | null }>;
-      const { data: rows, error } = await supabase
-        .from("products")
-        .select("id,brand,size")
-        .in("id", pageIds);
-      if (error) return {} as Record<string, { brand: string | null; size: string | null }>;
-      const map: Record<string, { brand: string | null; size: string | null }> = {};
-      for (const r of rows ?? []) map[r.id] = { brand: r.brand, size: r.size };
-      return map;
-    },
-    enabled: needsBrandSize && pageIds.length > 0,
-    staleTime: 60_000,
-  });
-
-  const products = useMemo(() => {
-    if (!needsBrandSize) return productsRaw;
-    return productsRaw.filter((p) => {
-      const info = brandSizeMap?.[p.id];
-      if (brandParam && (info?.brand ?? "") !== brandParam) return false;
-      if (sizeParam && (info?.size ?? "") !== sizeParam) return false;
-      return true;
-    });
-  }, [productsRaw, brandSizeMap, needsBrandSize, brandParam, sizeParam]);
-  const total = needsBrandSize ? products.length : data.total;
+  // Marca/numeração são filtradas no servidor (query direta), então a página
+  // e o total já vêm corretos — sem filtro no cliente.
+  const products = data.items;
+  const total = data.total;
   const totalPages = Math.max(1, Math.ceil(total / PRODUCTS_PAGE_SIZE));
+
 
   useEffect(() => {
     if (page > totalPages) {

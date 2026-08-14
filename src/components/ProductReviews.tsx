@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Star } from "lucide-react";
@@ -36,6 +36,19 @@ export function ProductReviews({ productId }: { productId: string }) {
   const [hover, setHover] = useState<number>(0);
   const [comment, setComment] = useState<string>(own?.comment ?? "");
   const [saving, setSaving] = useState(false);
+
+  // A avaliação existente chega depois do primeiro render (query + sessão),
+  // então sincronizamos o formulário quando ela aparece — sem isso o campo
+  // fica vazio e o "Atualizar" apagaria a nota/comentário anteriores.
+  const ownId = own?.id ?? null;
+  const syncedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!ownId || syncedRef.current === ownId) return;
+    syncedRef.current = ownId;
+    setRating(own?.rating ?? 0);
+    setComment(own?.comment ?? "");
+  }, [ownId, own?.rating, own?.comment]);
+
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["reviews", productId] });
