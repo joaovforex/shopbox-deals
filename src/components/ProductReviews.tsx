@@ -37,6 +37,19 @@ export function ProductReviews({ productId }: { productId: string }) {
   const [comment, setComment] = useState<string>(own?.comment ?? "");
   const [saving, setSaving] = useState(false);
 
+  // A avaliação existente chega depois do primeiro render (query + sessão),
+  // então sincronizamos o formulário quando ela aparece — sem isso o campo
+  // fica vazio e o "Atualizar" apagaria a nota/comentário anteriores.
+  const ownId = own?.id ?? null;
+  const syncedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!ownId || syncedRef.current === ownId) return;
+    syncedRef.current = ownId;
+    setRating(own?.rating ?? 0);
+    setComment(own?.comment ?? "");
+  }, [ownId, own?.rating, own?.comment]);
+
+
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["reviews", productId] });
     qc.invalidateQueries({ queryKey: ["reviews-summary", productId] });
