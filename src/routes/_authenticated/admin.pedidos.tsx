@@ -221,17 +221,22 @@ function OrdersPanel() {
   });
 
   // LISTA: paginada no banco, com contagem real total.
+  // Ao buscar por nome/CPF/telefone/pedido, ignoramos também o filtro de status
+  // (além do período) — senão pedidos já entregues/estornados somem da busca e
+  // o operador não acha o pedido para emitir reembolso.
+  const searchStatus = debouncedSearch.trim() ? null : filterStatus === "all" ? null : filterStatus;
   const ordersQuery = useQuery({
-    queryKey: ["admin-orders", filters, debouncedSearch, filterStatus, page],
+    queryKey: ["admin-orders", filters, debouncedSearch, searchStatus, page],
     enabled: admin === true,
     queryFn: () =>
       fetchOrdersPage({
         ...filters,
         search: debouncedSearch,
-        status: filterStatus === "all" ? null : filterStatus,
+        status: searchStatus,
         limit: PAGE_SIZE,
         offset: page * PAGE_SIZE,
       }),
+
     placeholderData: (prev) => prev,
     staleTime: 15_000,
   });
@@ -801,7 +806,7 @@ function OrdersPanel() {
 
               {searchCpf.trim() && (
                 <div className="text-[11px] text-accent font-bold uppercase tracking-wider">
-                  Buscando em todos os pedidos (período ignorado)
+                  Buscando em todos os pedidos (período e status ignorados)
                 </div>
               )}
 
