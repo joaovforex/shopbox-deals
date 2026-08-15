@@ -806,7 +806,7 @@ function OrdersPanel() {
 
               {searchCpf.trim() && (
                 <div className="text-[11px] text-accent font-bold uppercase tracking-wider">
-                  Buscando em todos os pedidos (período ignorado)
+                  Buscando em todos os pedidos (período e status ignorados)
                 </div>
               )}
 
