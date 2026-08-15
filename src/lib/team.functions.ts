@@ -143,6 +143,15 @@ export const adminDeleteUser = createServerFn({ method: "POST" })
     if (data.user_id === context.userId) throw new Error("Você não pode excluir sua própria conta");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
-    if (error) throw new Error(error.message);
+    if (error) {
+      const msg = error.message ?? "";
+      if (/foreign key|violates|constraint|database error/i.test(msg)) {
+        throw new Error(
+          "Não foi possível excluir: a conta ainda está vinculada a registros do sistema (pedidos, estornos ou etiquetas). Remova o cargo dela ou fale com o suporte.",
+        );
+      }
+      throw new Error(msg || "Falha ao excluir usuário");
+    }
     return { ok: true };
   });
+
