@@ -267,7 +267,12 @@ export function ProductForm({
       toast.error("CEST deve ter 7 dígitos (ou deixe em branco)");
       return;
     }
+    if (!unidadeId) {
+      toast.error("Selecione a unidade (loja) do produto.");
+      return;
+    }
     const missing: string[] = [];
+
     if (images.length === 0) missing.push("foto");
     if (!price.trim()) missing.push("preço");
     if (!description.trim()) missing.push("descrição");
