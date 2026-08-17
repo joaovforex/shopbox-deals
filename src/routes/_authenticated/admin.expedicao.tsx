@@ -575,6 +575,27 @@ function FulfillmentPage() {
           </div>
 
 
+          {seesAll ? (
+            <div className="inline-flex items-center gap-2 bg-secondary rounded-md p-1 pl-3">
+              <Store className="h-3.5 w-3.5 text-muted-foreground" />
+              <select
+                value={unidadeFilter}
+                onChange={(e) => setUnidadeFilter(e.target.value)}
+                className="bg-transparent text-xs font-bold uppercase tracking-wider py-1.5 pr-2 focus:outline-none"
+              >
+                <option value="">Todas as unidades</option>
+                {unidades.map((u) => (
+                  <option key={u.id} value={u.id}>{u.nome}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 bg-secondary rounded-md px-3 py-2 text-xs font-bold uppercase tracking-wider">
+              <Store className="h-3.5 w-3.5 text-muted-foreground" />
+              {unidades.find((u) => u.id === scope?.unidadeId)?.nome ?? "Minha unidade"}
+            </div>
+          )}
+
           <div className="inline-flex items-center gap-1 bg-secondary rounded-md p-1">
             <Filter className="h-3.5 w-3.5 text-muted-foreground ml-2" />
             {(["all", "none", "generated", "printed"] as const).map((f) => (
