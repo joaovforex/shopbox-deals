@@ -102,6 +102,19 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
             isCancel = CANCEL_EVENTS.has(event);
           }
 
+          // === Análise de risco (cartão) ===
+          // Aguardando análise: só registra o status, mantém pendente.
+          // Reprovado: registra e cancela (se ainda pendente) para o cliente
+          // poder tentar de novo, de preferência via Pix.
+          if (event === "PAYMENT_AWAITING_RISK_ANALYSIS") {
+            isPaid = false;
+            isCancel = false;
+          } else if (event === "PAYMENT_REPROVED_BY_RISK_ANALYSIS") {
+            isPaid = false;
+            isCancel = true;
+          }
+
+
           // === Eventos de ESTORNO ===
           // A devolução Pix é assíncrona e pode ser CANCELADA pelo banco do
           // cliente depois de criada. Refletimos isso no histórico para nunca
