@@ -457,6 +457,22 @@ export function ProductForm({
           </div>
         </div>
 
+        <div>
+          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Unidade (loja)</label>
+          <select
+            value={unidadeId}
+            onChange={(e) => setUnidadeId(e.target.value)}
+            required
+            className="w-full bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary mt-1 h-10"
+          >
+            <option value="">Selecione a unidade...</option>
+            {unidades.map((u) => (
+              <option key={u.id} value={u.id}>{u.nome}</option>
+            ))}
+          </select>
+        </div>
+
+
         <p className="text-[11px] text-muted-foreground -mt-1">
           {CATEGORY_NAMING_HINTS[category] ?? DEFAULT_NAMING_HINT}
         </p>
