@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { isVideoUrl, uploadProductImage, UPLOAD_CONCURRENCY, type ColorVariant, type Product } from "@/lib/products";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import { suggestFromNcm } from "@/lib/ncm-suggestions";
+import { fetchUnidades, type Unidade } from "@/lib/unidades";
+
 
 const CATEGORY_NAMING_HINTS: Record<string, string> = {
   "Calçados": "Sugestão: Modelo + Marca + Cor + Numeração",
@@ -83,6 +85,23 @@ export function ProductForm({
   );
   const [brand, setBrand] = useState(draft?.brand ?? product?.brand ?? "");
   const [size, setSize] = useState(draft?.size ?? product?.size ?? "");
+  const [unidades, setUnidades] = useState<Unidade[]>([]);
+  const [unidadeId, setUnidadeId] = useState<string>(
+    (product as unknown as { unidade_id?: string | null } | null)?.unidade_id ?? "",
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchUnidades({ onlyActive: true })
+      .then((list) => {
+        if (cancelled) return;
+        setUnidades(list);
+        setUnidadeId((cur) => cur || list[0]?.id || "");
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   const p = product as (Product & { ncm?: string | null; cest?: string | null; unidade_comercial?: string | null; origem?: number | null }) | null;
   const [ncm, setNcm] = useState<string>(draft?.ncm ?? (p?.ncm ?? ""));
   const [cest, setCest] = useState<string>(draft?.cest ?? (p?.cest ?? ""));
@@ -248,7 +267,12 @@ export function ProductForm({
       toast.error("CEST deve ter 7 dígitos (ou deixe em branco)");
       return;
     }
+    if (!unidadeId) {
+      toast.error("Selecione a unidade (loja) do produto.");
+      return;
+    }
     const missing: string[] = [];
+
     if (images.length === 0) missing.push("foto");
     if (!price.trim()) missing.push("preço");
     if (!description.trim()) missing.push("descrição");
@@ -310,6 +334,8 @@ export function ProductForm({
         cest: cestDigits || null,
         unidade_comercial: (unidadeComercial.trim() || "UN").toUpperCase().slice(0, 6),
         origem: Number.isFinite(Number(origem)) ? Number(origem) : 0,
+        unidade_id: unidadeId,
+
         // Edição manual apaga o snapshot para futuros descontos em massa não reverterem o preço.
         mass_discount_snapshot_price: null,
         mass_discount_snapshot_original: null,
@@ -456,6 +482,22 @@ export function ProductForm({
             </select>
           </div>
         </div>
+
+        <div>
+          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Unidade (loja)</label>
+          <select
+            value={unidadeId}
+            onChange={(e) => setUnidadeId(e.target.value)}
+            required
+            className="w-full bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary mt-1 h-10"
+          >
+            <option value="">Selecione a unidade...</option>
+            {unidades.map((u) => (
+              <option key={u.id} value={u.id}>{u.nome}</option>
+            ))}
+          </select>
+        </div>
+
 
         <p className="text-[11px] text-muted-foreground -mt-1">
           {CATEGORY_NAMING_HINTS[category] ?? DEFAULT_NAMING_HINT}
