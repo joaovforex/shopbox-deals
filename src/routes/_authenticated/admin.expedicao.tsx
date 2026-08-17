@@ -197,25 +197,98 @@ function FulfillmentPage() {
     isSuperAdmin().then(setSuperAdmin);
   }, []);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["fulfillment-orders", tab, labelFilter],
+  // ---------------------------------------------------------------------
+  // Consultas paginadas/filtradas no banco. Nenhuma consulta de pedido pode
+  // ficar sem filtro nem sem limite explícito: a Data API corta em 1000 linhas
+  // silenciosamente, o que travava as abas quando a loja passou de 1000 pedidos.
+  // ---------------------------------------------------------------------
+
+  // Pedidos EM ABERTO (separação/retirada/entrega) + pedidos em fila de reembolso.
+  // Conjunto naturalmente pequeno, filtrado pelo estado real no banco.
+  const { data: openOrders, isLoading: openLoading } = useQuery({
+    queryKey: ["fulfillment-orders", "open"],
     enabled: allowed === true,
     queryFn: async () => {
       const { data: orders, error } = await supabase
         .from("orders")
         .select("*")
         .eq("status", "paid")
-        .order("created_at", { ascending: false });
+        .or(
+          `fulfillment_status.in.(${OPEN_FULFILLMENT_STATUSES.join(",")}),refund_status.in.(${REFUND_PENDING_STATUSES.join(",")})`,
+        )
+        .order("created_at", { ascending: false })
+        .limit(OPEN_HARD_LIMIT);
       if (error) throw error;
-      const orderList = (orders ?? []) as OrderRow[];
-      const ids = filterFulfillmentOrders(orderList, tab, labelFilter).map((o) => o.id);
-      let items: ItemRow[] = [];
-      if (ids.length) {
-        items = await fetchOrderItems(ids);
-      }
-      return { orders: orderList, items };
+      return (orders ?? []) as OrderRow[];
     },
   });
+
+  // Pedidos CONCLUÍDOS: janela recente paginada (carregar mais) + total real.
+  const [doneLimit, setDoneLimit] = useState(DONE_PAGE_SIZE);
+  const { data: doneData, isLoading: doneLoading, isFetching: doneFetching } = useQuery({
+    queryKey: ["fulfillment-orders", "done", doneLimit],
+    enabled: allowed === true && tab === "done",
+    placeholderData: (prev) => prev,
+    queryFn: async () => {
+      const { data: orders, error, count } = await supabase
+        .from("orders")
+        .select("*", { count: "exact" })
+        .eq("status", "paid")
+        .eq("fulfillment_status", "completed")
+        .order("created_at", { ascending: false })
+        .range(0, doneLimit - 1);
+      if (error) throw error;
+      return { rows: (orders ?? []) as OrderRow[], total: count ?? 0 };
+    },
+  });
+
+  // Contadores reais por aba (count exato no banco, sem trazer linhas).
+  const { data: tabCounts } = useQuery({
+    queryKey: ["fulfillment-orders", "counts"],
+    enabled: allowed === true,
+    refetchInterval: 60000,
+    queryFn: async () => {
+      const notRefunding = `refund_status.is.null,refund_status.not.in.(${REFUND_PENDING_STATUSES.join(",")})`;
+      const base = () => supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "paid");
+      const [sep, pick, del, done, ref] = await Promise.all([
+        base().in("fulfillment_status", ["pending", "preparing"]).or(notRefunding),
+        base().eq("delivery_method", "pickup").in("fulfillment_status", ["ready", "shipped"]).or(notRefunding),
+        base().eq("delivery_method", "delivery").in("fulfillment_status", ["ready", "shipped"]).or(notRefunding),
+        base().eq("fulfillment_status", "completed").or(notRefunding),
+        base().in("refund_status", REFUND_PENDING_STATUSES),
+      ]);
+      return {
+        separation: sep.count ?? 0,
+        pickup: pick.count ?? 0,
+        delivery: del.count ?? 0,
+        done: done.count ?? 0,
+        refunds: ref.count ?? 0,
+      };
+    },
+  });
+
+  // Pedidos que alimentam a aba atual (sem busca ativa).
+  const tabOrders = useMemo<OrderRow[]>(
+    () => (tab === "done" ? (doneData?.rows ?? []) : (openOrders ?? [])),
+    [tab, doneData, openOrders],
+  );
+  const isLoading = tab === "done" ? doneLoading : openLoading;
+
+  // Itens apenas dos pedidos exibidos na aba atual.
+  const visibleOrderIds = useMemo(
+    () => filterFulfillmentOrders(tabOrders, tab, labelFilter).map((o) => o.id),
+    [tabOrders, tab, labelFilter],
+  );
+  const { data: tabItems } = useQuery({
+    queryKey: ["fulfillment-orders", "items", visibleOrderIds],
+    enabled: allowed === true && visibleOrderIds.length > 0,
+    queryFn: () => fetchOrderItems(visibleOrderIds),
+  });
+  const data = useMemo(
+    () => ({ orders: tabOrders, items: tabItems ?? [] }),
+    [tabOrders, tabItems],
+  );
+
 
   // Pedidos não concluídos (pendentes/cancelados) que NÃO chegaram à expedição
   const { data: notifData } = useQuery({
