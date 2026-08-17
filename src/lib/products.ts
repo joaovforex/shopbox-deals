@@ -24,6 +24,7 @@ export type Product = {
   color_variants?: ColorVariant[] | null;
   brand?: string | null;
   size?: string | null;
+  unidade_id?: string | null;
 };
 
 /** Versão enxuta usada na listagem (sem description). */
