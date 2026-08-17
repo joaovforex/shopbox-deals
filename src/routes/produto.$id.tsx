@@ -268,6 +268,7 @@ function ProductPage() {
       price: product.price,
       image_url: productImages(product)[0] ?? null,
       variant_color: selectedColor,
+      unidade_id: product.unidade_id ?? null,
     }, qty);
     if (result === "ok") navigate({ to: "/checkout" });
   };
