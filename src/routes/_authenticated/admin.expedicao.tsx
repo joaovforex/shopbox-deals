@@ -486,10 +486,10 @@ function FulfillmentPage() {
       toast.error(e?.message || "Falha ao atualizar o pedido.");
       return false;
     }
-    qc.setQueryData(["fulfillment-orders"], (prev: any) => {
-      if (!prev?.orders) return prev;
-      return { ...prev, orders: prev.orders.map((x: OrderRow) => x.id === o.id ? { ...x, fulfillment_status: "completed", delivered_by_name: name } : x) };
-    });
+    qc.setQueryData(["fulfillment-orders", "open"], (prev: OrderRow[] | undefined) =>
+      prev ? prev.filter((x) => x.id !== o.id) : prev,
+    );
+
     toast.success(`Entrega de ${o.customer_name} confirmada por ${name}.`);
     qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
     return true;
