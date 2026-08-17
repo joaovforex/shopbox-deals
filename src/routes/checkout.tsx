@@ -435,7 +435,7 @@ function CheckoutPage() {
                   const unitAddress = u ? unidadeEndereco(u) : STORE_ADDRESS;
                   const unitHours = u?.horario_retirada ?? STORE_HOURS;
                   return (
-                    <div key={group.items.map((i) => cartItemKey(i)).join("-")} className="bg-secondary rounded-md p-4 text-sm">
+                    <div key={group.unidade?.id ?? "default"} className="bg-secondary rounded-md p-4 text-sm">
                       <p className="font-semibold">Retirar em: {unitName}</p>
                       <p className="text-muted-foreground mt-1">{unitAddress}</p>
                       <p className="text-muted-foreground">{unitHours}</p>
