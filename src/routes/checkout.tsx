@@ -344,6 +344,9 @@ function CheckoutPage() {
     }
   };
 
+  const unitGroups = groupCartItemsByUnidade(items, unidades);
+  const hasMultipleUnits = unitGroups.length > 1;
+
 
   return (
     <div className="min-h-screen flex flex-col">
