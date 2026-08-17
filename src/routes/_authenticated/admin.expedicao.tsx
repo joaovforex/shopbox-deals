@@ -918,7 +918,25 @@ function FulfillmentPage() {
             })}
           </div>
         )}
+
+        {!searchActive && tab === "done" && (
+          <div className="flex flex-col items-center gap-2 pt-2">
+            <div className="text-xs text-muted-foreground">
+              Mostrando {orders.length} de {doneData?.total ?? 0} pedidos entregues
+            </div>
+            {(doneData?.rows.length ?? 0) < (doneData?.total ?? 0) && (
+              <button
+                onClick={() => setDoneLimit((n) => n + DONE_PAGE_SIZE)}
+                disabled={doneFetching}
+                className="px-4 py-2 rounded bg-secondary text-xs font-bold uppercase tracking-wider hover:bg-secondary/80 disabled:opacity-60"
+              >
+                {doneFetching ? "Carregando…" : `Carregar mais ${DONE_PAGE_SIZE}`}
+              </button>
+            )}
+          </div>
+        )}
       </section>
+
       {refundTarget && (
         <RefundModal
           orderId={refundTarget.id}
