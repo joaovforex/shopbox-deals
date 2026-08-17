@@ -561,14 +561,26 @@ function CheckoutPage() {
         
         <aside className="bg-card border border-border rounded-lg p-5 h-fit lg:sticky lg:top-24 space-y-3">
           <h2 className="display text-xl">Resumo</h2>
-          <ul className="space-y-2 text-sm border-b border-border pb-3">
-            {items.map((i) => (
-              <li key={i.id} className="flex justify-between gap-2">
-                <span className="line-clamp-2">{i.quantity}x {i.name}</span>
-                <span className="font-semibold whitespace-nowrap">{brl(i.price * i.quantity)}</span>
-              </li>
+          <div className="space-y-3 text-sm border-b border-border pb-3">
+            {unitGroups.map((group) => (
+              <div key={group.items.map((i) => cartItemKey(i)).join("-")} className="space-y-1.5">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  {group.unidade?.nome ?? "Loja principal"}
+                </p>
+                <ul className="space-y-1">
+                  {group.items.map((i) => (
+                    <li key={cartItemKey(i)} className="flex justify-between gap-2">
+                      <span className="line-clamp-2">{i.quantity}x {i.name}</span>
+                      <span className="font-semibold whitespace-nowrap">{brl(i.price * i.quantity)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-muted-foreground text-right">
+                  Subtotal: {brl(group.subtotal)}
+                </p>
+              </div>
             ))}
-          </ul>
+          </div>
           {(() => {
             const shippingFee = delivery === "delivery" ? 12 : 0;
             const cashbackApply = useCashback ? Math.min(cashbackBalance, total) : 0;
