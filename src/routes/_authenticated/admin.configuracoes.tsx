@@ -2,12 +2,13 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, ImageIcon, Percent, Save, Upload, Trash2, ShieldAlert, Tag, RotateCcw, Check } from "lucide-react";
+import { ArrowLeft, ImageIcon, Percent, Save, Upload, Trash2, ShieldAlert, Tag, RotateCcw, Check, Store, Plus } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { isSuperAdmin } from "@/lib/products";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchSiteSettings, formatCashbackLabel } from "@/lib/site-settings";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
+import { fetchUnidades, saveUnidade, unidadeEndereco, type Unidade } from "@/lib/unidades";
 
 export const Route = createFileRoute("/_authenticated/admin/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações · Admin" }] }),
@@ -532,5 +533,157 @@ function MassDiscountSection({ currentPct, onDone }: { currentPct: number; onDon
         ⚠️ Ao "Restaurar", os preços originais salvos serão reaplicados. O desconto global do site só é zerado ao restaurar todos.
       </p>
     </section>
+  );
+}
+
+function UnidadesSection() {
+  const qc = useQueryClient();
+  const { data: unidades, isLoading } = useQuery({ queryKey: ["unidades", "admin"], queryFn: () => fetchUnidades() });
+  const [editing, setEditing] = useState<Unidade | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  const onDone = async () => {
+    setEditing(null);
+    setCreating(false);
+    await qc.invalidateQueries({ queryKey: ["unidades"] });
+  };
+
+  return (
+    <section className="bg-card border-2 border-border rounded-lg p-5">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2">
+          <Store className="h-5 w-5 text-primary" />
+          <h2 className="display text-xl">Unidades</h2>
+        </div>
+        <button
+          type="button"
+          onClick={() => { setCreating(true); setEditing(null); }}
+          className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-3 py-2 rounded-md hover:opacity-90 text-xs"
+        >
+          <Plus className="h-4 w-4" /> Nova unidade
+        </button>
+      </div>
+      <p className="text-sm text-muted-foreground mb-3">
+        Lojas físicas disponíveis para retirada. Os endereços são públicos; apenas admin e gerente podem editar.
+      </p>
+
+      {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
+
+      <div className="space-y-2">
+        {(unidades ?? []).map((u) => (
+          <div key={u.id} className="border-2 border-border rounded-md p-3 bg-background">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-black flex items-center gap-2">
+                  {u.nome}
+                  {!u.ativa && <span className="text-[10px] uppercase bg-muted px-1.5 py-0.5 rounded">inativa</span>}
+                </div>
+                <div className="text-xs text-muted-foreground truncate">
+                  {unidadeEndereco(u) || "Endereço não preenchido"}
+                </div>
+                {u.horario_retirada && <div className="text-[11px] text-muted-foreground">{u.horario_retirada}</div>}
+              </div>
+              <button
+                type="button"
+                onClick={() => { setEditing(u); setCreating(false); }}
+                className="text-xs font-black uppercase tracking-wider border border-border rounded-md px-3 py-1.5 hover:border-primary shrink-0"
+              >
+                Editar
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {(creating || editing) && (
+        <UnidadeForm
+          unidade={editing}
+          onCancel={() => { setEditing(null); setCreating(false); }}
+          onSaved={onDone}
+        />
+      )}
+    </section>
+  );
+}
+
+function UnidadeForm({ unidade, onCancel, onSaved }: { unidade: Unidade | null; onCancel: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    nome: unidade?.nome ?? "",
+    cep: unidade?.cep ?? "",
+    rua: unidade?.rua ?? "",
+    numero: unidade?.numero ?? "",
+    complemento: unidade?.complemento ?? "",
+    bairro: unidade?.bairro ?? "",
+    cidade: unidade?.cidade ?? "Curitiba",
+    estado: unidade?.estado ?? "PR",
+    horario_retirada: unidade?.horario_retirada ?? "",
+    ativa: unidade?.ativa ?? true,
+    ordem: String(unidade?.ordem ?? 0),
+  });
+  const [busy, setBusy] = useState(false);
+
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  async function submit() {
+    if (!form.nome.trim()) {
+      toast.error("Informe o nome da unidade");
+      return;
+    }
+    setBusy(true);
+    try {
+      await saveUnidade(unidade?.id ?? null, {
+        nome: form.nome.trim(),
+        cep: form.cep.trim() || null,
+        rua: form.rua.trim() || null,
+        numero: form.numero.trim() || null,
+        complemento: form.complemento.trim() || null,
+        bairro: form.bairro.trim() || null,
+        cidade: form.cidade.trim() || null,
+        estado: form.estado.trim() || null,
+        horario_retirada: form.horario_retirada.trim() || null,
+        ativa: form.ativa,
+        ordem: Number(form.ordem) || 0,
+      });
+      toast.success(unidade ? "Unidade atualizada" : "Unidade criada");
+      onSaved();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar unidade");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const field = "w-full bg-background border-2 border-border rounded-md px-3 py-2 text-sm";
+  const lbl = "text-[11px] font-bold uppercase tracking-wider text-muted-foreground";
+
+  return (
+    <div className="mt-4 border-2 border-primary rounded-md p-4 space-y-3">
+      <h3 className="display text-lg">{unidade ? `Editar ${unidade.nome}` : "Nova unidade"}</h3>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div><label className={lbl}>Nome</label><input className={field} value={form.nome} onChange={set("nome")} /></div>
+        <div><label className={lbl}>CEP</label><input className={field} value={form.cep} onChange={set("cep")} /></div>
+        <div><label className={lbl}>Rua</label><input className={field} value={form.rua} onChange={set("rua")} /></div>
+        <div><label className={lbl}>Número</label><input className={field} value={form.numero} onChange={set("numero")} /></div>
+        <div><label className={lbl}>Complemento</label><input className={field} value={form.complemento} onChange={set("complemento")} /></div>
+        <div><label className={lbl}>Bairro</label><input className={field} value={form.bairro} onChange={set("bairro")} /></div>
+        <div><label className={lbl}>Cidade</label><input className={field} value={form.cidade} onChange={set("cidade")} /></div>
+        <div><label className={lbl}>Estado</label><input className={field} value={form.estado} onChange={set("estado")} /></div>
+        <div className="sm:col-span-2"><label className={lbl}>Horário de retirada</label><input className={field} value={form.horario_retirada} onChange={set("horario_retirada")} /></div>
+        <div><label className={lbl}>Ordem</label><input type="number" className={field} value={form.ordem} onChange={set("ordem")} /></div>
+        <label className="flex items-end gap-2 text-sm pb-2">
+          <input type="checkbox" checked={form.ativa} onChange={(e) => setForm((f) => ({ ...f, ativa: e.target.checked }))} />
+          Unidade ativa
+        </label>
+      </div>
+      <div className="flex gap-2">
+        <button type="button" onClick={submit} disabled={busy} className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md hover:opacity-90 disabled:opacity-60 text-xs">
+          <Save className="h-4 w-4" /> {busy ? "Salvando…" : "Salvar unidade"}
+        </button>
+        <button type="button" onClick={onCancel} className="border border-border rounded-md px-4 py-2 text-xs font-black uppercase tracking-wider hover:border-destructive">
+          Cancelar
+        </button>
+      </div>
+    </div>
   );
 }
