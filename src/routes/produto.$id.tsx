@@ -249,6 +249,7 @@ function ProductPage() {
       price: product.price,
       image_url: product.image_url,
       variant_color: selectedColor,
+      unidade_id: product.unidade_id ?? null,
     }, qty);
     if (result === "ok") {
       toast.success(`Adicionado ao carrinho (${qty}x)${selectedColor ? ` · ${selectedColor}` : ""}`);
