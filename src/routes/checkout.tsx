@@ -563,7 +563,7 @@ function CheckoutPage() {
           <h2 className="display text-xl">Resumo</h2>
           <div className="space-y-3 text-sm border-b border-border pb-3">
             {unitGroups.map((group) => (
-              <div key={group.items.map((i) => cartItemKey(i)).join("-")} className="space-y-1.5">
+              <div key={group.unidade?.id ?? "default"} className="space-y-1.5">
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
                   {group.unidade?.nome ?? "Loja principal"}
                 </p>
