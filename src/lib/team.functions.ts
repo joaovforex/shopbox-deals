@@ -65,17 +65,29 @@ type InternalRole = (typeof INTERNAL_ROLES)[number];
 
 export const assignTeamRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { user_id: string; role: InternalRole }) => {
+  .inputValidator((input: { user_id: string; role: InternalRole; unidade_id?: string | null }) => {
     if (!input?.user_id) throw new Error("user_id obrigatório");
     if (!(INTERNAL_ROLES as readonly string[]).includes(input.role))
       throw new Error("Função inválida");
-    return input;
+    const unidade_id = input.unidade_id ? String(input.unidade_id) : null;
+    // Admin e gerente sempre abrangem todas as unidades.
+    const scoped = input.role === "admin" || input.role === "manager" ? null : unidade_id;
+    return { user_id: input.user_id, role: input.role, unidade_id: scoped };
   })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: existingUser, error: userError } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
     if (userError || !existingUser?.user) throw new Error("Usuário não encontrado");
+    if (data.unidade_id) {
+      const { data: uni, error: uniErr } = await supabaseAdmin
+        .from("unidades")
+        .select("id")
+        .eq("id", data.unidade_id)
+        .maybeSingle();
+      if (uniErr) throw new Error(uniErr.message);
+      if (!uni) throw new Error("Unidade inválida");
+    }
     // Troca dinâmica: remove todos os cargos internos anteriores antes de atribuir o novo.
     const { error: delErr } = await supabaseAdmin
       .from("user_roles")
@@ -86,6 +98,7 @@ export const assignTeamRole = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("user_roles").insert({
       user_id: data.user_id,
       role: data.role as never,
+      unidade_id: data.unidade_id,
     });
     if (error) {
       if (error.code === "23505") return { ok: false as const, reason: "duplicate" };
