@@ -270,11 +270,23 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
 
     // 3) Cliente + cobrança na Asaas
     try {
+      const ship = data.delivery_method === "delivery" ? data.shipping : null;
       const customerId = await findOrCreateCustomer({
         name: data.customer_name,
         cpfCnpj: data.customer_cpf,
         email: data.customer_email,
         mobilePhone: data.customer_phone,
+        ...(ship
+          ? {
+              postalCode: ship.zip,
+              address: ship.street,
+              addressNumber: String(ship.number ?? ""),
+              complement: ship.complement ?? null,
+              province: ship.district ?? null,
+              city: ship.city,
+              state: ship.state ?? null,
+            }
+          : {}),
       });
 
       const description = `Pedido shopbox ${(orderId as string).slice(0, 8).toUpperCase()} (${orderItems.length} ${orderItems.length === 1 ? "item" : "itens"})`;
@@ -355,6 +367,13 @@ export const resumeAsaasPayment = createServerFn({ method: "POST" })
         cpfCnpj: String(order.customer_cpf ?? ""),
         email: order.customer_email,
         mobilePhone: order.customer_phone,
+        postalCode: (order as { shipping_zip?: string | null }).shipping_zip ?? null,
+        address: (order as { shipping_street?: string | null }).shipping_street ?? null,
+        addressNumber: (order as { shipping_number?: string | null }).shipping_number ?? null,
+        complement: (order as { shipping_complement?: string | null }).shipping_complement ?? null,
+        province: (order as { shipping_district?: string | null }).shipping_district ?? null,
+        city: (order as { shipping_city?: string | null }).shipping_city ?? null,
+        state: (order as { shipping_state?: string | null }).shipping_state ?? null,
       }));
 
     const origin = originFromRequest();

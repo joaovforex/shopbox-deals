@@ -146,6 +146,13 @@ export const createDeliveryUpgrade = createServerFn({ method: "POST" })
           cpfCnpj: cpfDigits,
           email: order.customer_email,
           mobilePhone: order.customer_phone,
+          postalCode: shippingRow.shipping_zip,
+          address: shippingRow.shipping_street,
+          addressNumber: shippingRow.shipping_number,
+          complement: shippingRow.shipping_complement,
+          province: shippingRow.shipping_district,
+          city: shippingRow.shipping_city,
+          state: shippingRow.shipping_state,
         });
         const payment = await createPayment({
           customerId,
