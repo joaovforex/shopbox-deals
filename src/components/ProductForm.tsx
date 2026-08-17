@@ -83,6 +83,23 @@ export function ProductForm({
   );
   const [brand, setBrand] = useState(draft?.brand ?? product?.brand ?? "");
   const [size, setSize] = useState(draft?.size ?? product?.size ?? "");
+  const [unidades, setUnidades] = useState<Unidade[]>([]);
+  const [unidadeId, setUnidadeId] = useState<string>(
+    (product as unknown as { unidade_id?: string | null } | null)?.unidade_id ?? "",
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchUnidades({ onlyActive: true })
+      .then((list) => {
+        if (cancelled) return;
+        setUnidades(list);
+        setUnidadeId((cur) => cur || list[0]?.id || "");
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   const p = product as (Product & { ncm?: string | null; cest?: string | null; unidade_comercial?: string | null; origem?: number | null }) | null;
   const [ncm, setNcm] = useState<string>(draft?.ncm ?? (p?.ncm ?? ""));
   const [cest, setCest] = useState<string>(draft?.cest ?? (p?.cest ?? ""));
