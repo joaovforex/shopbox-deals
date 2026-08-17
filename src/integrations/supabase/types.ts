@@ -1168,6 +1168,7 @@ export type Database = {
           sku: string
           stock: number
           unidade_comercial: string
+          unidade_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1197,6 +1198,7 @@ export type Database = {
           sku?: string
           stock?: number
           unidade_comercial?: string
+          unidade_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1226,9 +1228,18 @@ export type Database = {
           sku?: string
           stock?: number
           unidade_comercial?: string
+          unidade_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -1485,6 +1496,57 @@ export type Database = {
           id?: string
           metadata?: Json | null
           reason?: string
+        }
+        Relationships: []
+      }
+      unidades: {
+        Row: {
+          ativa: boolean
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
+          created_at: string
+          estado: string | null
+          horario_retirada: string | null
+          id: string
+          nome: string
+          numero: string | null
+          ordem: number
+          rua: string | null
+          slug: string | null
+        }
+        Insert: {
+          ativa?: boolean
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          created_at?: string
+          estado?: string | null
+          horario_retirada?: string | null
+          id?: string
+          nome: string
+          numero?: string | null
+          ordem?: number
+          rua?: string | null
+          slug?: string | null
+        }
+        Update: {
+          ativa?: boolean
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
+          created_at?: string
+          estado?: string | null
+          horario_retirada?: string | null
+          id?: string
+          nome?: string
+          numero?: string | null
+          ordem?: number
+          rua?: string | null
+          slug?: string | null
         }
         Relationships: []
       }
