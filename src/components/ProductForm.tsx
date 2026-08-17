@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { isVideoUrl, uploadProductImage, UPLOAD_CONCURRENCY, type ColorVariant, type Product } from "@/lib/products";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import { suggestFromNcm } from "@/lib/ncm-suggestions";
+import { fetchUnidades, type Unidade } from "@/lib/unidades";
+
 
 const CATEGORY_NAMING_HINTS: Record<string, string> = {
   "Calçados": "Sugestão: Modelo + Marca + Cor + Numeração",
