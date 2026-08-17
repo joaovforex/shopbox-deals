@@ -90,6 +90,12 @@ function isDelayed(o: OrderRow) {
   return false;
 }
 
+const OPEN_FULFILLMENT_STATUSES = ["pending", "preparing", "ready", "shipped"];
+/** Teto explícito (bem acima do volume real de pedidos em aberto). */
+const OPEN_HARD_LIMIT = 2000;
+/** Tamanho do bloco de "carregar mais" na aba Entregues. */
+const DONE_PAGE_SIZE = 200;
+
 const REFUND_PENDING_STATUSES = ["queued", "processing", "refund_failed"];
 function isRefundPending(o: Pick<OrderRow, "refund_status">) {
   return !!o.refund_status && REFUND_PENDING_STATUSES.includes(o.refund_status);
@@ -197,25 +203,98 @@ function FulfillmentPage() {
     isSuperAdmin().then(setSuperAdmin);
   }, []);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["fulfillment-orders", tab, labelFilter],
+  // ---------------------------------------------------------------------
+  // Consultas paginadas/filtradas no banco. Nenhuma consulta de pedido pode
+  // ficar sem filtro nem sem limite explícito: a Data API corta em 1000 linhas
+  // silenciosamente, o que travava as abas quando a loja passou de 1000 pedidos.
+  // ---------------------------------------------------------------------
+
+  // Pedidos EM ABERTO (separação/retirada/entrega) + pedidos em fila de reembolso.
+  // Conjunto naturalmente pequeno, filtrado pelo estado real no banco.
+  const { data: openOrders, isLoading: openLoading } = useQuery({
+    queryKey: ["fulfillment-orders", "open"],
     enabled: allowed === true,
     queryFn: async () => {
       const { data: orders, error } = await supabase
         .from("orders")
         .select("*")
         .eq("status", "paid")
-        .order("created_at", { ascending: false });
+        .or(
+          `fulfillment_status.in.(${OPEN_FULFILLMENT_STATUSES.join(",")}),refund_status.in.(${REFUND_PENDING_STATUSES.join(",")})`,
+        )
+        .order("created_at", { ascending: false })
+        .limit(OPEN_HARD_LIMIT);
       if (error) throw error;
-      const orderList = (orders ?? []) as OrderRow[];
-      const ids = filterFulfillmentOrders(orderList, tab, labelFilter).map((o) => o.id);
-      let items: ItemRow[] = [];
-      if (ids.length) {
-        items = await fetchOrderItems(ids);
-      }
-      return { orders: orderList, items };
+      return (orders ?? []) as OrderRow[];
     },
   });
+
+  // Pedidos CONCLUÍDOS: janela recente paginada (carregar mais) + total real.
+  const [doneLimit, setDoneLimit] = useState(DONE_PAGE_SIZE);
+  const { data: doneData, isLoading: doneLoading, isFetching: doneFetching } = useQuery({
+    queryKey: ["fulfillment-orders", "done", doneLimit],
+    enabled: allowed === true && tab === "done",
+    placeholderData: (prev) => prev,
+    queryFn: async () => {
+      const { data: orders, error, count } = await supabase
+        .from("orders")
+        .select("*", { count: "exact" })
+        .eq("status", "paid")
+        .eq("fulfillment_status", "completed")
+        .order("created_at", { ascending: false })
+        .range(0, doneLimit - 1);
+      if (error) throw error;
+      return { rows: (orders ?? []) as OrderRow[], total: count ?? 0 };
+    },
+  });
+
+  // Contadores reais por aba (count exato no banco, sem trazer linhas).
+  const { data: tabCounts } = useQuery({
+    queryKey: ["fulfillment-orders", "counts"],
+    enabled: allowed === true,
+    refetchInterval: 60000,
+    queryFn: async () => {
+      const notRefunding = `refund_status.is.null,refund_status.not.in.(${REFUND_PENDING_STATUSES.join(",")})`;
+      const base = () => supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "paid");
+      const [sep, pick, del, done, ref] = await Promise.all([
+        base().in("fulfillment_status", ["pending", "preparing"]).or(notRefunding),
+        base().eq("delivery_method", "pickup").in("fulfillment_status", ["ready", "shipped"]).or(notRefunding),
+        base().eq("delivery_method", "delivery").in("fulfillment_status", ["ready", "shipped"]).or(notRefunding),
+        base().eq("fulfillment_status", "completed").or(notRefunding),
+        base().in("refund_status", REFUND_PENDING_STATUSES),
+      ]);
+      return {
+        separation: sep.count ?? 0,
+        pickup: pick.count ?? 0,
+        delivery: del.count ?? 0,
+        done: done.count ?? 0,
+        refunds: ref.count ?? 0,
+      };
+    },
+  });
+
+  // Pedidos que alimentam a aba atual (sem busca ativa).
+  const tabOrders = useMemo<OrderRow[]>(
+    () => (tab === "done" ? (doneData?.rows ?? []) : (openOrders ?? [])),
+    [tab, doneData, openOrders],
+  );
+  const isLoading = tab === "done" ? doneLoading : openLoading;
+
+  // Itens apenas dos pedidos exibidos na aba atual.
+  const visibleOrderIds = useMemo(
+    () => filterFulfillmentOrders(tabOrders, tab, labelFilter).map((o) => o.id),
+    [tabOrders, tab, labelFilter],
+  );
+  const { data: tabItems } = useQuery({
+    queryKey: ["fulfillment-orders", "items", visibleOrderIds],
+    enabled: allowed === true && visibleOrderIds.length > 0,
+    queryFn: () => fetchOrderItems(visibleOrderIds),
+  });
+  const data = useMemo(
+    () => ({ orders: tabOrders, items: tabItems ?? [] }),
+    [tabOrders, tabItems],
+  );
+
 
   // Pedidos não concluídos (pendentes/cancelados) que NÃO chegaram à expedição
   const { data: notifData } = useQuery({
@@ -407,10 +486,10 @@ function FulfillmentPage() {
       toast.error(e?.message || "Falha ao atualizar o pedido.");
       return false;
     }
-    qc.setQueryData(["fulfillment-orders"], (prev: any) => {
-      if (!prev?.orders) return prev;
-      return { ...prev, orders: prev.orders.map((x: OrderRow) => x.id === o.id ? { ...x, fulfillment_status: "completed", delivered_by_name: name } : x) };
-    });
+    qc.setQueryData(["fulfillment-orders", "open"], (prev: OrderRow[] | undefined) =>
+      prev ? prev.filter((x) => x.id !== o.id) : prev,
+    );
+
     toast.success(`Entrega de ${o.customer_name} confirmada por ${name}.`);
     qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
     return true;
@@ -543,7 +622,7 @@ function FulfillmentPage() {
 
         {!searchActive && (tab === "pickup" || tab === "delivery") && (
           <ScannerPanel
-            orders={(data?.orders ?? []).filter((o) => o.delivery_method === tab)}
+            orders={(openOrders ?? []).filter((o) => o.delivery_method === tab)}
             onMatch={(o) => setDeliverTarget(o)}
             mode={tab}
           />
@@ -553,26 +632,27 @@ function FulfillmentPage() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex bg-secondary rounded-md p-1">
             <TabBtn active={tab === "separation"} onClick={() => setTab("separation")} icon={<Hourglass className="h-4 w-4" />}>
-              Em separação ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "pending" || o.fulfillment_status === "preparing").length})
+              Em separação ({tabCounts?.separation ?? 0})
             </TabBtn>
             <TabBtn active={tab === "pickup"} onClick={() => setTab("pickup")} icon={<Store className="h-4 w-4" />}>
-              Retirada ({(data?.orders ?? []).filter((o) => o.delivery_method === "pickup" && (o.fulfillment_status === "ready" || o.fulfillment_status === "shipped")).length})
+              Retirada ({tabCounts?.pickup ?? 0})
             </TabBtn>
             <TabBtn active={tab === "delivery"} onClick={() => setTab("delivery")} icon={<Truck className="h-4 w-4" />}>
-              Entrega ({(data?.orders ?? []).filter((o) => o.delivery_method === "delivery" && (o.fulfillment_status === "ready" || o.fulfillment_status === "shipped")).length})
+              Entrega ({tabCounts?.delivery ?? 0})
             </TabBtn>
             <TabBtn active={tab === "done"} onClick={() => setTab("done")} icon={<CheckCircle2 className="h-4 w-4" />}>
-              Entregues ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "completed").length})
+              Entregues ({doneData?.total ?? tabCounts?.done ?? 0})
             </TabBtn>
             {superAdmin && (
               <TabBtn active={tab === "refunds"} onClick={() => setTab("refunds")} icon={<Undo2 className="h-4 w-4" />}>
-                Reembolsos ({(data?.orders ?? []).filter(isRefundPending).length})
+                Reembolsos ({tabCounts?.refunds ?? 0})
               </TabBtn>
             )}
             <TabBtn active={tab === "notifications"} onClick={() => setTab("notifications")} icon={<BellRing className="h-4 w-4" />}>
               Notificações ({(notifData?.orders ?? []).length})
             </TabBtn>
           </div>
+
 
 
           {seesAll ? (
@@ -838,7 +918,25 @@ function FulfillmentPage() {
             })}
           </div>
         )}
+
+        {!searchActive && tab === "done" && (
+          <div className="flex flex-col items-center gap-2 pt-2">
+            <div className="text-xs text-muted-foreground">
+              Mostrando {orders.length} de {doneData?.total ?? 0} pedidos entregues
+            </div>
+            {(doneData?.rows.length ?? 0) < (doneData?.total ?? 0) && (
+              <button
+                onClick={() => setDoneLimit((n) => n + DONE_PAGE_SIZE)}
+                disabled={doneFetching}
+                className="px-4 py-2 rounded bg-secondary text-xs font-bold uppercase tracking-wider hover:bg-secondary/80 disabled:opacity-60"
+              >
+                {doneFetching ? "Carregando…" : `Carregar mais ${DONE_PAGE_SIZE}`}
+              </button>
+            )}
+          </div>
+        )}
       </section>
+
       {refundTarget && (
         <RefundModal
           orderId={refundTarget.id}
