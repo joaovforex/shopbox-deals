@@ -94,6 +94,11 @@ function CheckoutPage() {
   const [useCashback, setUseCashback] = useState(false);
   const [installments, setInstallments] = useState(1);
 
+  const [unidades, setUnidades] = useState<Unidade[]>([]);
+  useEffect(() => {
+    fetchUnidades({ onlyActive: true }).then(setUnidades).catch(() => setUnidades([]));
+  }, []);
+
 
   const user = useAuthUser();
   const navigate = useNavigate();
