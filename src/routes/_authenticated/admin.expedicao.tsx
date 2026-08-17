@@ -622,7 +622,7 @@ function FulfillmentPage() {
 
         {!searchActive && (tab === "pickup" || tab === "delivery") && (
           <ScannerPanel
-            orders={(data?.orders ?? []).filter((o) => o.delivery_method === tab)}
+            orders={(openOrders ?? []).filter((o) => o.delivery_method === tab)}
             onMatch={(o) => setDeliverTarget(o)}
             mode={tab}
           />
@@ -632,26 +632,27 @@ function FulfillmentPage() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex bg-secondary rounded-md p-1">
             <TabBtn active={tab === "separation"} onClick={() => setTab("separation")} icon={<Hourglass className="h-4 w-4" />}>
-              Em separação ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "pending" || o.fulfillment_status === "preparing").length})
+              Em separação ({tabCounts?.separation ?? 0})
             </TabBtn>
             <TabBtn active={tab === "pickup"} onClick={() => setTab("pickup")} icon={<Store className="h-4 w-4" />}>
-              Retirada ({(data?.orders ?? []).filter((o) => o.delivery_method === "pickup" && (o.fulfillment_status === "ready" || o.fulfillment_status === "shipped")).length})
+              Retirada ({tabCounts?.pickup ?? 0})
             </TabBtn>
             <TabBtn active={tab === "delivery"} onClick={() => setTab("delivery")} icon={<Truck className="h-4 w-4" />}>
-              Entrega ({(data?.orders ?? []).filter((o) => o.delivery_method === "delivery" && (o.fulfillment_status === "ready" || o.fulfillment_status === "shipped")).length})
+              Entrega ({tabCounts?.delivery ?? 0})
             </TabBtn>
             <TabBtn active={tab === "done"} onClick={() => setTab("done")} icon={<CheckCircle2 className="h-4 w-4" />}>
-              Entregues ({(data?.orders ?? []).filter((o) => o.fulfillment_status === "completed").length})
+              Entregues ({doneData?.total ?? tabCounts?.done ?? 0})
             </TabBtn>
             {superAdmin && (
               <TabBtn active={tab === "refunds"} onClick={() => setTab("refunds")} icon={<Undo2 className="h-4 w-4" />}>
-                Reembolsos ({(data?.orders ?? []).filter(isRefundPending).length})
+                Reembolsos ({tabCounts?.refunds ?? 0})
               </TabBtn>
             )}
             <TabBtn active={tab === "notifications"} onClick={() => setTab("notifications")} icon={<BellRing className="h-4 w-4" />}>
               Notificações ({(notifData?.orders ?? []).length})
             </TabBtn>
           </div>
+
 
 
           {seesAll ? (
