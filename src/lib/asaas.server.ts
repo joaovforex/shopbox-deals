@@ -374,3 +374,44 @@ export function mapRefundStatus(providerStatus: string): "pending" | "confirmed"
   if (s === "CANCELLED" || s === "CANCELED" || s === "FAILED" || s === "REFUND_CANCELLED") return "cancelled";
   return "pending";
 }
+
+
+export type AsaasPaymentSummary = {
+  id: string;
+  status: string;
+  billingType?: string | null;
+  value?: number;
+  netValue?: number;
+  dateCreated?: string | null;
+  dueDate?: string | null;
+  description?: string | null;
+  externalReference?: string | null;
+  invoiceUrl?: string | null;
+  confirmedDate?: string | null;
+  creditCard?: { creditCardBrand?: string | null } | null;
+  /** Campos de recusa/análise que a Asaas pode devolver. */
+  refusalReason?: string | null;
+  transactionReceiptUrl?: string | null;
+  deleted?: boolean;
+};
+
+/**
+ * SOMENTE LEITURA: lista cobranças criadas a partir de uma data (yyyy-mm-dd),
+ * paginando até `maxPages` páginas de 100. Não cria nem altera nada.
+ */
+export async function listPaymentsCreatedSince(
+  sinceDate: string,
+  maxPages = 20,
+): Promise<AsaasPaymentSummary[]> {
+  const all: AsaasPaymentSummary[] = [];
+  for (let page = 0; page < maxPages; page++) {
+    const res = await asaasFetch<{ data?: AsaasPaymentSummary[]; hasMore?: boolean }>(
+      `/payments?dateCreated%5Bge%5D=${encodeURIComponent(sinceDate)}&limit=100&offset=${page * 100}`,
+      { method: "GET" },
+    );
+    const rows = res?.data ?? [];
+    all.push(...rows);
+    if (!res?.hasMore || rows.length === 0) break;
+  }
+  return all;
+}
