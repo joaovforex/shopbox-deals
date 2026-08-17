@@ -15,6 +15,7 @@ import { createExchangeVoucher } from "@/lib/exchange-vouchers.functions";
 import { printVoucherReceipt } from "@/lib/voucherReceipt";
 import { openWhatsApp, orderReminderMessage } from "@/lib/whatsapp";
 import { dispatchDelivery } from "@/lib/maisentregas.functions";
+import { fetchUnidades, fetchMyUnidadeScope } from "@/lib/unidades";
 
 export const Route = createFileRoute("/_authenticated/admin/expedicao")({
   head: () => ({ meta: [{ title: "Expedição · Admin" }] }),
@@ -56,6 +57,7 @@ type ItemRow = {
   unit_price: number;
   product_id?: string | null;
   sku?: string | null;
+  unidade_id?: string | null;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -130,14 +132,20 @@ function chunkArray<T>(values: T[], size: number) {
 async function attachSkus(rawItems: ItemRow[]) {
   const productIds = [...new Set(rawItems.map((i) => i.product_id).filter((x): x is string => typeof x === "string"))];
   const skuMap = new Map<string, string>();
+  const unidadeMap = new Map<string, string | null>();
   for (const productChunk of chunkArray(productIds, 80)) {
-    const { data: prods, error } = await supabase.from("products").select("id, sku").in("id", productChunk);
+    const { data: prods, error } = await supabase.from("products").select("id, sku, unidade_id").in("id", productChunk);
     if (error) throw error;
-    for (const p of (prods ?? []) as Array<{ id: string; sku: string }>) {
+    for (const p of (prods ?? []) as Array<{ id: string; sku: string; unidade_id: string | null }>) {
       skuMap.set(p.id, p.sku);
+      unidadeMap.set(p.id, p.unidade_id);
     }
   }
-  return rawItems.map((i) => ({ ...i, sku: i.product_id ? skuMap.get(i.product_id) ?? null : null }));
+  return rawItems.map((i) => ({
+    ...i,
+    sku: i.product_id ? skuMap.get(i.product_id) ?? null : null,
+    unidade_id: i.product_id ? unidadeMap.get(i.product_id) ?? null : null,
+  }));
 }
 
 async function fetchOrderItems(orderIds: string[]) {
@@ -166,6 +174,23 @@ function FulfillmentPage() {
   const voucherFn = useServerFn(createExchangeVoucher);
   const searchActive = search.trim().length >= 2;
   const qc = useQueryClient();
+  const [unidadeFilter, setUnidadeFilter] = useState<string>("");
+
+  // Escopo de unidade do usuário logado (RLS no banco já restringe o expedidor).
+  const { data: scope } = useQuery({
+    queryKey: ["my-unidade-scope"],
+    enabled: allowed === true,
+    queryFn: fetchMyUnidadeScope,
+    staleTime: 5 * 60_000,
+  });
+  const { data: unidades = [] } = useQuery({
+    queryKey: ["unidades", "all"],
+    enabled: allowed === true,
+    queryFn: () => fetchUnidades(),
+    staleTime: 5 * 60_000,
+  });
+  const seesAll = scope?.all !== false;
+  const activeUnidade = seesAll ? (unidadeFilter || null) : (scope?.unidadeId ?? null);
 
   useEffect(() => {
     hasAnyRole(["admin", "manager", "fulfillment"]).then(setAllowed);
@@ -400,16 +425,20 @@ function FulfillmentPage() {
     const map = new Map<string, ItemRow[]>();
     const source = searchActive ? (searchData?.items ?? []) : (data?.items ?? []);
     for (const it of source) {
+      // Cada expedidor enxerga apenas os itens da unidade dele.
+      if (activeUnidade && it.unidade_id && it.unidade_id !== activeUnidade) continue;
       const arr = map.get(it.order_id) ?? [];
       arr.push(it);
       map.set(it.order_id, arr);
     }
     return map;
-  }, [data, searchData, searchActive]);
+  }, [data, searchData, searchActive, activeUnidade]);
 
   const orders = useMemo(() => {
+    // Mantém apenas pedidos que possuem itens da unidade ativa.
+    const inScope = (id: string) => !activeUnidade || (itemsByOrder.get(id)?.length ?? 0) > 0;
     if (searchActive) {
-      return [...(searchData?.orders ?? [])].sort(
+      return [...(searchData?.orders ?? [])].filter((o) => inScope(o.id)).sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
     }
@@ -420,7 +449,7 @@ function FulfillmentPage() {
       if (tab === "delivery") return o.delivery_method === "delivery" && (o.fulfillment_status === "ready" || o.fulfillment_status === "shipped");
       return false;
     });
-    list = filterFulfillmentOrders(data?.orders ?? [], tab, labelFilter);
+    list = filterFulfillmentOrders(data?.orders ?? [], tab, labelFilter).filter((o) => inScope(o.id));
     if (tab === "done") {
       return list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
@@ -430,7 +459,7 @@ function FulfillmentPage() {
       if (da !== db) return da - db;
       return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });
-  }, [data, searchData, searchActive, tab, labelFilter]);
+  }, [data, searchData, searchActive, tab, labelFilter, activeUnidade, itemsByOrder]);
 
   if (allowed === null) {
     return <Shell><div className="flex-1 flex items-center justify-center">Carregando...</div></Shell>;
@@ -545,6 +574,27 @@ function FulfillmentPage() {
             </TabBtn>
           </div>
 
+
+          {seesAll ? (
+            <div className="inline-flex items-center gap-2 bg-secondary rounded-md p-1 pl-3">
+              <Store className="h-3.5 w-3.5 text-muted-foreground" />
+              <select
+                value={unidadeFilter}
+                onChange={(e) => setUnidadeFilter(e.target.value)}
+                className="bg-transparent text-xs font-bold uppercase tracking-wider py-1.5 pr-2 focus:outline-none"
+              >
+                <option value="">Todas as unidades</option>
+                {unidades.map((u) => (
+                  <option key={u.id} value={u.id}>{u.nome}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 bg-secondary rounded-md px-3 py-2 text-xs font-bold uppercase tracking-wider">
+              <Store className="h-3.5 w-3.5 text-muted-foreground" />
+              {unidades.find((u) => u.id === scope?.unidadeId)?.nome ?? "Minha unidade"}
+            </div>
+          )}
 
           <div className="inline-flex items-center gap-1 bg-secondary rounded-md p-1">
             <Filter className="h-3.5 w-3.5 text-muted-foreground ml-2" />

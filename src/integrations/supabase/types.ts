@@ -1555,21 +1555,32 @@ export type Database = {
           created_at: string
           id: string
           role: Database["public"]["Enums"]["app_role"]
+          unidade_id: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          unidade_id?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          unidade_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -1784,6 +1795,7 @@ export type Database = {
         Args: { _color: string; _variants: Json }
         Returns: number
       }
+      fulfillment_scope_unidade: { Args: { _user_id: string }; Returns: string }
       generate_product_sku: { Args: never; Returns: string }
       get_latest_price_snapshot: {
         Args: { _product_id: string }
@@ -1855,6 +1867,10 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      order_matches_unidade: {
+        Args: { _order_id: string; _unidade: string }
+        Returns: boolean
       }
       place_order:
         | {
@@ -1960,6 +1976,10 @@ export type Database = {
       user_purchased_product: {
         Args: { _product_id: string; _user_id: string }
         Returns: boolean
+      }
+      user_role_unidade: {
+        Args: { _role: string; _user_id: string }
+        Returns: string
       }
     }
     Enums: {

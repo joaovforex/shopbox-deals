@@ -2,7 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type Found = { id: string; full_name: string | null; email: string | null };
-export type TeamMember = { user_id: string; full_name: string | null; email: string | null; roles: string[] };
+export type TeamMember = {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  roles: string[];
+  unidade_id: string | null;
+};
 
 export const listTeamMembers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -13,7 +19,7 @@ export const listTeamMembers = createServerFn({ method: "GET" })
     const [{ data: usersData, error: usersError }, { data: profs, error: profError }, { data: roles, error: rolesError }] = await Promise.all([
       supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
       supabaseAdmin.from("profiles").select("id, full_name"),
-      supabaseAdmin.from("user_roles").select("user_id, role"),
+      supabaseAdmin.from("user_roles").select("user_id, role, unidade_id"),
     ]);
     if (usersError) throw new Error(usersError.message);
     if (profError) throw new Error(profError.message);
@@ -21,16 +27,19 @@ export const listTeamMembers = createServerFn({ method: "GET" })
 
     const profileById = new Map((profs ?? []).map((p) => [p.id, p.full_name]));
     const rolesById = new Map<string, string[]>();
-    for (const r of roles ?? []) {
+    const unidadeById = new Map<string, string | null>();
+    for (const r of (roles ?? []) as Array<{ user_id: string; role: string; unidade_id: string | null }>) {
       const arr = rolesById.get(r.user_id) ?? [];
-      arr.push(r.role as string);
+      arr.push(r.role);
       rolesById.set(r.user_id, arr);
+      if (r.unidade_id) unidadeById.set(r.user_id, r.unidade_id);
     }
     return (usersData?.users ?? []).map((u) => ({
       user_id: u.id,
       full_name: profileById.get(u.id) ?? (u.user_metadata?.full_name as string | undefined) ?? null,
       email: u.email ?? null,
       roles: rolesById.get(u.id) ?? ["user"],
+      unidade_id: unidadeById.get(u.id) ?? null,
     }));
   });
 
@@ -56,17 +65,29 @@ type InternalRole = (typeof INTERNAL_ROLES)[number];
 
 export const assignTeamRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { user_id: string; role: InternalRole }) => {
+  .inputValidator((input: { user_id: string; role: InternalRole; unidade_id?: string | null }) => {
     if (!input?.user_id) throw new Error("user_id obrigatório");
     if (!(INTERNAL_ROLES as readonly string[]).includes(input.role))
       throw new Error("Função inválida");
-    return input;
+    const unidade_id = input.unidade_id ? String(input.unidade_id) : null;
+    // Admin e gerente sempre abrangem todas as unidades.
+    const scoped = input.role === "admin" || input.role === "manager" ? null : unidade_id;
+    return { user_id: input.user_id, role: input.role, unidade_id: scoped };
   })
   .handler(async ({ data, context }) => {
     await assertAdmin(context);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: existingUser, error: userError } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
     if (userError || !existingUser?.user) throw new Error("Usuário não encontrado");
+    if (data.unidade_id) {
+      const { data: uni, error: uniErr } = await supabaseAdmin
+        .from("unidades")
+        .select("id")
+        .eq("id", data.unidade_id)
+        .maybeSingle();
+      if (uniErr) throw new Error(uniErr.message);
+      if (!uni) throw new Error("Unidade inválida");
+    }
     // Troca dinâmica: remove todos os cargos internos anteriores antes de atribuir o novo.
     const { error: delErr } = await supabaseAdmin
       .from("user_roles")
@@ -77,6 +98,7 @@ export const assignTeamRole = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("user_roles").insert({
       user_id: data.user_id,
       role: data.role as never,
+      unidade_id: data.unidade_id,
     });
     if (error) {
       if (error.code === "23505") return { ok: false as const, reason: "duplicate" };
