@@ -10,6 +10,7 @@ export type CartItem = {
   quantity: number;
   variant_color?: string | null;
   reserved_until?: string | null;
+  unidade_id?: string | null;
 };
 
 export function cartItemKey(item: { id: string; variant_color?: string | null }): string {
