@@ -81,8 +81,84 @@ export async function findOrCreateCustomer(input: AsaasCustomerInput): Promise<s
     }),
   });
   if (!created?.id) throw new Error("Falha ao registrar cliente na Asaas");
+  // Best-effort: reduzir custo de notificações (só e-mail de pagamento recebido).
+  await applyEmailOnlyNotifications(created.id).catch(() => {});
   return created.id;
 }
+
+export type AsaasNotification = {
+  id: string;
+  event: string;
+  enabled?: boolean;
+  emailEnabledForProvider?: boolean;
+  smsEnabledForProvider?: boolean;
+  emailEnabledForCustomer?: boolean;
+  smsEnabledForCustomer?: boolean;
+  phoneCallEnabledForCustomer?: boolean;
+  whatsappEnabledForCustomer?: boolean;
+};
+
+/** Lista as notificações configuradas de um cliente. */
+export async function listCustomerNotifications(customerId: string): Promise<AsaasNotification[]> {
+  const res = await asaasFetch<{ data?: AsaasNotification[] }>(
+    `/customers/${encodeURIComponent(customerId)}/notifications`,
+    { method: "GET" },
+  );
+  return res?.data ?? [];
+}
+
+function desiredNotificationState(event: string) {
+  const isReceived = event === "PAYMENT_RECEIVED";
+  return {
+    enabled: isReceived,
+    emailEnabledForProvider: false,
+    smsEnabledForProvider: false,
+    emailEnabledForCustomer: isReceived,
+    smsEnabledForCustomer: false,
+    phoneCallEnabledForCustomer: false,
+    whatsappEnabledForCustomer: false,
+  };
+}
+
+function needsUpdate(n: AsaasNotification): boolean {
+  const want = desiredNotificationState(n.event);
+  return (Object.keys(want) as (keyof typeof want)[]).some((k) => Boolean(n[k]) !== want[k]);
+}
+
+/**
+ * "Opção B": mantém apenas o e-mail de PAYMENT_RECEIVED para o cliente e
+ * desliga todo o resto (SMS, WhatsApp, voz, avisos e notificações do lojista).
+ * Idempotente: só chama a API quando há algo divergente.
+ * @returns true se enviou atualização, false se já estava correto.
+ */
+export async function applyEmailOnlyNotifications(customerId: string): Promise<boolean> {
+  const notifications = await listCustomerNotifications(customerId);
+  const pending = notifications.filter(needsUpdate);
+  if (pending.length === 0) return false;
+
+  await asaasFetch("/notifications/batch", {
+    method: "PUT",
+    body: JSON.stringify({
+      customer: customerId,
+      notifications: pending.map((n) => ({ id: n.id, ...desiredNotificationState(n.event) })),
+    }),
+  });
+  return true;
+}
+
+/** Lista clientes paginado (offset/limit) para ajustes em massa. */
+export async function listCustomers(
+  offset: number,
+  limit = 100,
+): Promise<{ ids: string[]; hasMore: boolean }> {
+  const res = await asaasFetch<{ data?: { id: string }[]; hasMore?: boolean }>(
+    `/customers?offset=${offset}&limit=${limit}`,
+    { method: "GET" },
+  );
+  const ids = (res?.data ?? []).map((c) => c.id).filter(Boolean);
+  return { ids, hasMore: Boolean(res?.hasMore) };
+}
+
 
 export type CreatePaymentInput = {
   customerId: string;
