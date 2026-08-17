@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { ArrowLeft, UserPlus, Trash2, Crown, Package, Truck, User, KeyRound, UserX, ShieldCheck, QrCode } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { isAdmin, type TeamRole } from "@/lib/products";
+import { fetchUnidades } from "@/lib/unidades";
 import { searchTeamCandidates, assignTeamRole, removeTeamRole, adminResetPassword, adminDeleteUser, listTeamMembers } from "@/lib/team.functions";
 
 export const Route = createFileRoute("/_authenticated/admin/equipe")({
@@ -18,6 +19,7 @@ type Member = {
   full_name: string | null;
   email: string | null;
   roles: TeamRole[];
+  unidade_id: string | null;
 };
 
 const ROLE_LABEL: Record<TeamRole, string> = {
@@ -52,9 +54,18 @@ function TeamPage() {
     enabled: admin === true,
     queryFn: async () => {
       const list = await fetchMembers({});
-      return list.map((m) => ({ ...m, roles: m.roles as TeamRole[] }));
+      return list.map((m) => ({ ...m, roles: m.roles as TeamRole[] })) as Member[];
     },
   });
+
+  const { data: unidades = [] } = useQuery({
+    queryKey: ["unidades", "all"],
+    queryFn: () => fetchUnidades(),
+  });
+  const unidadeNome = (id: string | null | undefined) =>
+    id ? (unidades.find((u) => u.id === id)?.nome ?? "Unidade removida") : "Todas as unidades";
+  // Unidade escolhida para o próximo cargo atribuído a cada usuário.
+  const [unidadePick, setUnidadePick] = useState<Record<string, string>>({});
 
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ id: string; full_name: string | null; email: string | null }>>([]);
@@ -120,10 +131,14 @@ function TeamPage() {
     (members.find((m) => m.user_id === user_id)?.roles ?? []).filter((r) => r !== "user");
 
   const assignRole = async (user_id: string, role: TeamRole) => {
+    const unidade_id = unidadePick[user_id] || null;
+    if ((role === "fulfillment" || role === "catalog" || role === "cashier") && !unidade_id) {
+      return toast.error("Escolha a unidade desta pessoa antes de atribuir o cargo.");
+    }
     if (role === "admin" && !confirm("Atribuir SUPER ADMIN dá controle TOTAL da loja (produtos, pedidos, métricas e equipe). Confirma?")) return;
     if (role === "manager" && !confirm("Atribuir ADM dá acesso a Catálogo + Expedição (sem métricas/equipe). Confirma?")) return;
     try {
-      const r = await doAssign({ data: { user_id, role: role as "admin" | "manager" | "catalog" | "fulfillment" } });
+      const r = await doAssign({ data: { user_id, role: role as "admin" | "manager" | "catalog" | "fulfillment", unidade_id } });
       if (!r.ok && r.reason === "duplicate") return toast.info("Essa função já está atribuída");
       toast.success(`Função "${ROLE_LABEL[role]}" atribuída`);
       qc.invalidateQueries({ queryKey: ["team-members"] });
@@ -219,7 +234,18 @@ function TeamPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1.5 items-center">
+                    <select
+                      value={unidadePick[u.id] ?? ""}
+                      onChange={(e) => setUnidadePick((p) => ({ ...p, [u.id]: e.target.value }))}
+                      className="text-xs bg-input border border-border rounded px-2 py-1.5"
+                      title="Unidade do membro"
+                    >
+                      <option value="">Todas as unidades</option>
+                      {unidades.map((un) => (
+                        <option key={un.id} value={un.id}>{un.nome}</option>
+                      ))}
+                    </select>
                     {ASSIGNABLE.map((r) => (
                       <button
                         key={r}
@@ -285,6 +311,11 @@ function TeamPage() {
                           </span>
                         ))}
                       </div>
+                      {m.roles.some((r) => r !== "user") && (
+                        <div className="text-[11px] text-muted-foreground mt-1">
+                          Unidade: {unidadeNome(m.unidade_id)}
+                        </div>
+                      )}
                     </td>
                     <td className="p-3">
                       <div className="flex justify-end flex-wrap gap-1">
