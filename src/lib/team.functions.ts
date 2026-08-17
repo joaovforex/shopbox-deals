@@ -2,7 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type Found = { id: string; full_name: string | null; email: string | null };
-export type TeamMember = { user_id: string; full_name: string | null; email: string | null; roles: string[] };
+export type TeamMember = {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  roles: string[];
+  unidade_id: string | null;
+};
 
 export const listTeamMembers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
