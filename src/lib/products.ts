@@ -42,6 +42,7 @@ export type ProductCard = {
   color_variants?: ColorVariant[] | null;
   brand?: string | null;
   size?: string | null;
+  unidade_id?: string | null;
 };
 
 
