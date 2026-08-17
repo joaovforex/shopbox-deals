@@ -56,35 +56,65 @@ export type AsaasCustomerInput = {
   cpfCnpj: string;
   email?: string | null;
   mobilePhone?: string | null;
+  /** Endereço (opcional) — melhora a análise de risco de cartão. */
+  postalCode?: string | null;
+  address?: string | null;
+  addressNumber?: string | null;
+  complement?: string | null;
+  province?: string | null;
+  city?: string | null;
+  state?: string | null;
 };
+
+function customerPayload(input: AsaasCustomerInput, cpfCnpj: string) {
+  const zip = (input.postalCode ?? "").replace(/\D/g, "");
+  return {
+    name: input.name.trim(),
+    cpfCnpj,
+    email: input.email?.trim() || undefined,
+    mobilePhone: (input.mobilePhone ?? "").replace(/\D/g, "") || undefined,
+    postalCode: zip.length === 8 ? zip : undefined,
+    address: input.address?.trim() || undefined,
+    addressNumber: input.addressNumber ? String(input.addressNumber).trim() || undefined : undefined,
+    complement: input.complement?.trim() || undefined,
+    province: input.province?.trim() || undefined,
+    city: input.city?.trim() || undefined,
+    state: (input.state ?? "").trim().toUpperCase() || undefined,
+    notificationDisabled: false,
+  };
+}
 
 /** Busca cliente pelo CPF/CNPJ; cria se não existir. Retorna o customerId. */
 export async function findOrCreateCustomer(input: AsaasCustomerInput): Promise<string> {
   const cpfCnpj = (input.cpfCnpj ?? "").replace(/\D/g, "");
   if (!cpfCnpj) throw new Error("CPF/CNPJ obrigatório para pagamento");
 
+  const payload = customerPayload(input, cpfCnpj);
+
   const found = await asaasFetch<{ data?: { id: string }[] }>(
     `/customers?cpfCnpj=${encodeURIComponent(cpfCnpj)}&limit=1`,
     { method: "GET" },
   );
   const existing = found?.data?.[0]?.id;
-  if (existing) return existing;
+  if (existing) {
+    // Best-effort: mantém telefone/endereço atualizados para a análise de risco.
+    await asaasFetch(`/customers/${encodeURIComponent(existing)}`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+    return existing;
+  }
 
   const created = await asaasFetch<{ id: string }>("/customers", {
     method: "POST",
-    body: JSON.stringify({
-      name: input.name.trim(),
-      cpfCnpj,
-      email: input.email?.trim() || undefined,
-      mobilePhone: (input.mobilePhone ?? "").replace(/\D/g, "") || undefined,
-      notificationDisabled: false,
-    }),
+    body: JSON.stringify(payload),
   });
   if (!created?.id) throw new Error("Falha ao registrar cliente na Asaas");
   // Best-effort: reduzir custo de notificações (só e-mail de pagamento recebido).
   await applyEmailOnlyNotifications(created.id).catch(() => {});
   return created.id;
 }
+
 
 export type AsaasNotification = {
   id: string;
