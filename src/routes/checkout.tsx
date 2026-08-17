@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
 import { Header, Footer } from "@/components/Header";
-import { useCart } from "@/lib/cart";
+import { useCart, cartItemKey, type CartItem } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
 import { createAsaasPayment } from "@/lib/asaas.functions";
@@ -13,6 +13,7 @@ import { getMyCashback } from "@/lib/cashback.functions";
 import { calculateCashback } from "@/lib/cashback-config";
 import { useSiteSettings } from "@/lib/site-settings";
 import { maxInstallmentsFor } from "@/lib/installments";
+import { fetchUnidades, unidadeEndereco, type Unidade } from "@/lib/unidades";
 
 
 
@@ -40,6 +41,33 @@ function maskCep(v: string) {
   const d = v.replace(/\D/g, "").slice(0, 8);
   if (d.length <= 5) return d;
   return `${d.slice(0, 5)}-${d.slice(5)}`;
+}
+
+type CartUnitGroup = {
+  unidade: Unidade | null;
+  items: CartItem[];
+  subtotal: number;
+};
+
+function groupCartItemsByUnidade(items: CartItem[], unidades: Unidade[]): CartUnitGroup[] {
+  const map = new Map<string, CartUnitGroup>();
+  for (const item of items) {
+    const uid = item.unidade_id ?? "default";
+    let group = map.get(uid);
+    if (!group) {
+      const unidade = unidades.find((u) => u.id === uid) ?? null;
+      group = { unidade, items: [], subtotal: 0 };
+      map.set(uid, group);
+    }
+    group.items.push(item);
+    group.subtotal += item.price * item.quantity;
+  }
+  return Array.from(map.values()).sort((a, b) => {
+    const oa = a.unidade?.ordem ?? 0;
+    const ob = b.unidade?.ordem ?? 0;
+    if (oa !== ob) return oa - ob;
+    return (a.unidade?.nome ?? "").localeCompare(b.unidade?.nome ?? "");
+  });
 }
 
 function isValidCpf(v: string) {
@@ -92,6 +120,11 @@ function CheckoutPage() {
   const [cashbackExpiry, setCashbackExpiry] = useState<{ amount: number; expiresAt: string } | null>(null);
   const [useCashback, setUseCashback] = useState(false);
   const [installments, setInstallments] = useState(1);
+
+  const [unidades, setUnidades] = useState<Unidade[]>([]);
+  useEffect(() => {
+    fetchUnidades({ onlyActive: true }).then(setUnidades).catch(() => setUnidades([]));
+  }, []);
 
 
   const user = useAuthUser();
@@ -311,6 +344,9 @@ function CheckoutPage() {
     }
   };
 
+  const unitGroups = groupCartItemsByUnidade(items, unidades);
+  const hasMultipleUnits = unitGroups.length > 1;
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -387,11 +423,34 @@ function CheckoutPage() {
             </div>
 
             {delivery === "pickup" ? (
-              <div className="bg-secondary rounded-md p-4 text-sm">
-                <p className="font-semibold">Retire na loja</p>
-                <p className="text-muted-foreground mt-1">{STORE_ADDRESS}</p>
-                <p className="text-muted-foreground">{STORE_HOURS}</p>
-                <p className="text-xs text-muted-foreground mt-2">
+              <div className="space-y-3">
+                {hasMultipleUnits && (
+                  <div className="bg-accent/10 border border-accent/30 text-accent rounded-md px-3 py-2 text-xs font-bold uppercase tracking-wider">
+                    Seu carrinho tem produtos de {unitGroups.length} lojas diferentes. Cada grupo deve ser retirado no local indicado.
+                  </div>
+                )}
+                {unitGroups.map((group) => {
+                  const u = group.unidade;
+                  const unitName = u?.nome ?? "Loja principal";
+                  const unitAddress = u ? unidadeEndereco(u) : STORE_ADDRESS;
+                  const unitHours = u?.horario_retirada ?? STORE_HOURS;
+                  return (
+                    <div key={group.unidade?.id ?? "default"} className="bg-secondary rounded-md p-4 text-sm">
+                      <p className="font-semibold">Retirar em: {unitName}</p>
+                      <p className="text-muted-foreground mt-1">{unitAddress}</p>
+                      <p className="text-muted-foreground">{unitHours}</p>
+                      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        {group.items.map((i) => (
+                          <li key={cartItemKey(i)} className="flex justify-between gap-2">
+                            <span className="line-clamp-1">{i.quantity}x {i.name}</span>
+                            <span className="whitespace-nowrap">{brl(i.price * i.quantity)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+                <p className="text-xs text-muted-foreground">
                   Acompanhe o status do pedido em <strong>Meus pedidos</strong> assim que o pagamento for confirmado.
                 </p>
               </div>
@@ -502,14 +561,26 @@ function CheckoutPage() {
         
         <aside className="bg-card border border-border rounded-lg p-5 h-fit lg:sticky lg:top-24 space-y-3">
           <h2 className="display text-xl">Resumo</h2>
-          <ul className="space-y-2 text-sm border-b border-border pb-3">
-            {items.map((i) => (
-              <li key={i.id} className="flex justify-between gap-2">
-                <span className="line-clamp-2">{i.quantity}x {i.name}</span>
-                <span className="font-semibold whitespace-nowrap">{brl(i.price * i.quantity)}</span>
-              </li>
+          <div className="space-y-3 text-sm border-b border-border pb-3">
+            {unitGroups.map((group) => (
+              <div key={group.unidade?.id ?? "default"} className="space-y-1.5">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  {group.unidade?.nome ?? "Loja principal"}
+                </p>
+                <ul className="space-y-1">
+                  {group.items.map((i) => (
+                    <li key={cartItemKey(i)} className="flex justify-between gap-2">
+                      <span className="line-clamp-2">{i.quantity}x {i.name}</span>
+                      <span className="font-semibold whitespace-nowrap">{brl(i.price * i.quantity)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-muted-foreground text-right">
+                  Subtotal: {brl(group.subtotal)}
+                </p>
+              </div>
             ))}
-          </ul>
+          </div>
           {(() => {
             const shippingFee = delivery === "delivery" ? 12 : 0;
             const cashbackApply = useCashback ? Math.min(cashbackBalance, total) : 0;

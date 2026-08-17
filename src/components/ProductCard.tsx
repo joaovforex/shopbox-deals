@@ -31,6 +31,7 @@ export function ProductCard({ product, priority = false }: { product: Product | 
     name: product.name,
     price: product.price,
     image_url: cover ?? null,
+    unidade_id: product.unidade_id ?? null,
   };
 
   const requireLogin = (target: "/carrinho" | "/checkout") => {
