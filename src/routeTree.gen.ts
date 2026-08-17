@@ -49,6 +49,7 @@ import { Route as ApiPublicHooksCieloRefundRetryRouteImport } from './routes/api
 import { Route as ApiPublicCashbackExpireRouteImport } from './routes/api/public/cashback/expire'
 import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas/webhook'
 import { Route as ApiPublicAsaasReconcileRouteImport } from './routes/api/public/asaas/reconcile'
+import { Route as ApiPublicAsaasNotificationsCleanupRouteImport } from './routes/api/public/asaas/notifications-cleanup'
 
 const TrocasEGarantiaRoute = TrocasEGarantiaRouteImport.update({
   id: '/trocas-e-garantia',
@@ -264,6 +265,12 @@ const ApiPublicAsaasReconcileRoute = ApiPublicAsaasReconcileRouteImport.update({
   path: '/api/public/asaas/reconcile',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicAsaasNotificationsCleanupRoute =
+  ApiPublicAsaasNotificationsCleanupRouteImport.update({
+    id: '/api/public/asaas/notifications-cleanup',
+    path: '/api/public/asaas/notifications-cleanup',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -299,6 +306,7 @@ export interface FileRoutesByFullPath {
   '/admin/saude': typeof AuthenticatedAdminSaudeRoute
   '/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
+  '/api/public/asaas/notifications-cleanup': typeof ApiPublicAsaasNotificationsCleanupRoute
   '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
   '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
@@ -340,6 +348,7 @@ export interface FileRoutesByTo {
   '/admin/saude': typeof AuthenticatedAdminSaudeRoute
   '/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
+  '/api/public/asaas/notifications-cleanup': typeof ApiPublicAsaasNotificationsCleanupRoute
   '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
   '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
@@ -383,6 +392,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/saude': typeof AuthenticatedAdminSaudeRoute
   '/_authenticated/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/_authenticated/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
+  '/api/public/asaas/notifications-cleanup': typeof ApiPublicAsaasNotificationsCleanupRoute
   '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
   '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
@@ -426,6 +436,7 @@ export interface FileRouteTypes {
     | '/admin/saude'
     | '/admin/vale-troca'
     | '/admin/venda-manual'
+    | '/api/public/asaas/notifications-cleanup'
     | '/api/public/asaas/reconcile'
     | '/api/public/asaas/webhook'
     | '/api/public/cashback/expire'
@@ -467,6 +478,7 @@ export interface FileRouteTypes {
     | '/admin/saude'
     | '/admin/vale-troca'
     | '/admin/venda-manual'
+    | '/api/public/asaas/notifications-cleanup'
     | '/api/public/asaas/reconcile'
     | '/api/public/asaas/webhook'
     | '/api/public/cashback/expire'
@@ -509,6 +521,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/saude'
     | '/_authenticated/admin/vale-troca'
     | '/_authenticated/admin/venda-manual'
+    | '/api/public/asaas/notifications-cleanup'
     | '/api/public/asaas/reconcile'
     | '/api/public/asaas/webhook'
     | '/api/public/cashback/expire'
@@ -536,6 +549,7 @@ export interface RootRouteChildren {
   EtiquetaQrcodeRoute: typeof EtiquetaQrcodeRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
+  ApiPublicAsaasNotificationsCleanupRoute: typeof ApiPublicAsaasNotificationsCleanupRoute
   ApiPublicAsaasReconcileRoute: typeof ApiPublicAsaasReconcileRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicCashbackExpireRoute: typeof ApiPublicCashbackExpireRoute
@@ -826,6 +840,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicAsaasReconcileRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/asaas/notifications-cleanup': {
+      id: '/api/public/asaas/notifications-cleanup'
+      path: '/api/public/asaas/notifications-cleanup'
+      fullPath: '/api/public/asaas/notifications-cleanup'
+      preLoaderRoute: typeof ApiPublicAsaasNotificationsCleanupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -898,6 +919,8 @@ const rootRouteChildren: RootRouteChildren = {
   EtiquetaQrcodeRoute: EtiquetaQrcodeRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
+  ApiPublicAsaasNotificationsCleanupRoute:
+    ApiPublicAsaasNotificationsCleanupRoute,
   ApiPublicAsaasReconcileRoute: ApiPublicAsaasReconcileRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicCashbackExpireRoute: ApiPublicCashbackExpireRoute,
