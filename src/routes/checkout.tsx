@@ -43,6 +43,33 @@ function maskCep(v: string) {
   return `${d.slice(0, 5)}-${d.slice(5)}`;
 }
 
+type CartUnitGroup = {
+  unidade: Unidade | null;
+  items: CartItem[];
+  subtotal: number;
+};
+
+function groupCartItemsByUnidade(items: CartItem[], unidades: Unidade[]): CartUnitGroup[] {
+  const map = new Map<string, CartUnitGroup>();
+  for (const item of items) {
+    const uid = item.unidade_id ?? "default";
+    let group = map.get(uid);
+    if (!group) {
+      const unidade = unidades.find((u) => u.id === uid) ?? null;
+      group = { unidade, items: [], subtotal: 0 };
+      map.set(uid, group);
+    }
+    group.items.push(item);
+    group.subtotal += item.price * item.quantity;
+  }
+  return Array.from(map.values()).sort((a, b) => {
+    const oa = a.unidade?.ordem ?? 0;
+    const ob = b.unidade?.ordem ?? 0;
+    if (oa !== ob) return oa - ob;
+    return (a.unidade?.nome ?? "").localeCompare(b.unidade?.nome ?? "");
+  });
+}
+
 function isValidCpf(v: string) {
   const cpf = v.replace(/\D/g, "");
   if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) return false;
