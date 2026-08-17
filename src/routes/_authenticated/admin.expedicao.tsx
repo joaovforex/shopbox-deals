@@ -435,8 +435,10 @@ function FulfillmentPage() {
   }, [data, searchData, searchActive, activeUnidade]);
 
   const orders = useMemo(() => {
+    // Mantém apenas pedidos que possuem itens da unidade ativa.
+    const inScope = (id: string) => !activeUnidade || (itemsByOrder.get(id)?.length ?? 0) > 0;
     if (searchActive) {
-      return [...(searchData?.orders ?? [])].sort(
+      return [...(searchData?.orders ?? [])].filter((o) => inScope(o.id)).sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
     }
@@ -447,7 +449,7 @@ function FulfillmentPage() {
       if (tab === "delivery") return o.delivery_method === "delivery" && (o.fulfillment_status === "ready" || o.fulfillment_status === "shipped");
       return false;
     });
-    list = filterFulfillmentOrders(data?.orders ?? [], tab, labelFilter);
+    list = filterFulfillmentOrders(data?.orders ?? [], tab, labelFilter).filter((o) => inScope(o.id));
     if (tab === "done") {
       return list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }
