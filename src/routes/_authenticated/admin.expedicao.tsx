@@ -459,7 +459,7 @@ function FulfillmentPage() {
       if (da !== db) return da - db;
       return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });
-  }, [data, searchData, searchActive, tab, labelFilter]);
+  }, [data, searchData, searchActive, tab, labelFilter, activeUnidade, itemsByOrder]);
 
   if (allowed === null) {
     return <Shell><div className="flex-1 flex items-center justify-center">Carregando...</div></Shell>;
