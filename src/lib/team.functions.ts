@@ -19,7 +19,7 @@ export const listTeamMembers = createServerFn({ method: "GET" })
     const [{ data: usersData, error: usersError }, { data: profs, error: profError }, { data: roles, error: rolesError }] = await Promise.all([
       supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
       supabaseAdmin.from("profiles").select("id, full_name"),
-      supabaseAdmin.from("user_roles").select("user_id, role"),
+      supabaseAdmin.from("user_roles").select("user_id, role, unidade_id"),
     ]);
     if (usersError) throw new Error(usersError.message);
     if (profError) throw new Error(profError.message);
@@ -27,16 +27,19 @@ export const listTeamMembers = createServerFn({ method: "GET" })
 
     const profileById = new Map((profs ?? []).map((p) => [p.id, p.full_name]));
     const rolesById = new Map<string, string[]>();
-    for (const r of roles ?? []) {
+    const unidadeById = new Map<string, string | null>();
+    for (const r of (roles ?? []) as Array<{ user_id: string; role: string; unidade_id: string | null }>) {
       const arr = rolesById.get(r.user_id) ?? [];
-      arr.push(r.role as string);
+      arr.push(r.role);
       rolesById.set(r.user_id, arr);
+      if (r.unidade_id) unidadeById.set(r.user_id, r.unidade_id);
     }
     return (usersData?.users ?? []).map((u) => ({
       user_id: u.id,
       full_name: profileById.get(u.id) ?? (u.user_metadata?.full_name as string | undefined) ?? null,
       email: u.email ?? null,
       roles: rolesById.get(u.id) ?? ["user"],
+      unidade_id: unidadeById.get(u.id) ?? null,
     }));
   });
 
