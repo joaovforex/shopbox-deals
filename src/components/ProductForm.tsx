@@ -329,6 +329,8 @@ export function ProductForm({
         cest: cestDigits || null,
         unidade_comercial: (unidadeComercial.trim() || "UN").toUpperCase().slice(0, 6),
         origem: Number.isFinite(Number(origem)) ? Number(origem) : 0,
+        unidade_id: unidadeId,
+
         // Edição manual apaga o snapshot para futuros descontos em massa não reverterem o preço.
         mass_discount_snapshot_price: null,
         mass_discount_snapshot_original: null,
