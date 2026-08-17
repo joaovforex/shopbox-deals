@@ -423,11 +423,34 @@ function CheckoutPage() {
             </div>
 
             {delivery === "pickup" ? (
-              <div className="bg-secondary rounded-md p-4 text-sm">
-                <p className="font-semibold">Retire na loja</p>
-                <p className="text-muted-foreground mt-1">{STORE_ADDRESS}</p>
-                <p className="text-muted-foreground">{STORE_HOURS}</p>
-                <p className="text-xs text-muted-foreground mt-2">
+              <div className="space-y-3">
+                {hasMultipleUnits && (
+                  <div className="bg-accent/10 border border-accent/30 text-accent rounded-md px-3 py-2 text-xs font-bold uppercase tracking-wider">
+                    Seu carrinho tem produtos de {unitGroups.length} lojas diferentes. Cada grupo deve ser retirado no local indicado.
+                  </div>
+                )}
+                {unitGroups.map((group) => {
+                  const u = group.unidade;
+                  const unitName = u?.nome ?? "Loja principal";
+                  const unitAddress = u ? unidadeEndereco(u) : STORE_ADDRESS;
+                  const unitHours = u?.horario_retirada ?? STORE_HOURS;
+                  return (
+                    <div key={group.items.map((i) => cartItemKey(i)).join("-")} className="bg-secondary rounded-md p-4 text-sm">
+                      <p className="font-semibold">Retirar em: {unitName}</p>
+                      <p className="text-muted-foreground mt-1">{unitAddress}</p>
+                      <p className="text-muted-foreground">{unitHours}</p>
+                      <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        {group.items.map((i) => (
+                          <li key={cartItemKey(i)} className="flex justify-between gap-2">
+                            <span className="line-clamp-1">{i.quantity}x {i.name}</span>
+                            <span className="whitespace-nowrap">{brl(i.price * i.quantity)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
+                <p className="text-xs text-muted-foreground">
                   Acompanhe o status do pedido em <strong>Meus pedidos</strong> assim que o pagamento for confirmado.
                 </p>
               </div>
