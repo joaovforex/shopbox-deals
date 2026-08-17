@@ -90,6 +90,12 @@ function isDelayed(o: OrderRow) {
   return false;
 }
 
+const OPEN_FULFILLMENT_STATUSES = ["pending", "preparing", "ready", "shipped"];
+/** Teto explícito (bem acima do volume real de pedidos em aberto). */
+const OPEN_HARD_LIMIT = 2000;
+/** Tamanho do bloco de "carregar mais" na aba Entregues. */
+const DONE_PAGE_SIZE = 200;
+
 const REFUND_PENDING_STATUSES = ["queued", "processing", "refund_failed"];
 function isRefundPending(o: Pick<OrderRow, "refund_status">) {
   return !!o.refund_status && REFUND_PENDING_STATUSES.includes(o.refund_status);
