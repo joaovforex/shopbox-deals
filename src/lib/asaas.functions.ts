@@ -96,7 +96,7 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
     if (!process.env.ASAAS_API_KEY) throw new Error("Asaas não configurado");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { findOrCreateCustomer, createAsaasCheckout } = await import("@/lib/asaas.server");
+    const { findOrCreateCustomer, createAsaasCheckout, createPayment } = await import("@/lib/asaas.server");
 
     // Limpa pedidos pendentes antigos devolvendo o estoque
     await supabaseAdmin.rpc("expire_stale_pending_orders" as never, { p_minutes: 5 } as never);
@@ -312,46 +312,71 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
         };
       }
 
-      // Asaas Checkout hospedado: parcelamento limitado a 5x.
       const callbackOrigin = isPublicHttpsOrigin(origin) ? origin : "https://shopboxonline.com";
-      const checkout = await createAsaasCheckout({
-        value: grandTotal,
-        externalReference: orderId as string,
-        itemName: description,
-        maxInstallmentCount: 5,
-        successUrl: `${callbackOrigin}/pedido/${orderId}`,
-        cancelUrl: `${callbackOrigin}/checkout`,
-        expiredUrl: `${callbackOrigin}/checkout`,
-        customer: {
-          name: data.customer_name,
-          cpfCnpj: data.customer_cpf,
-          email: data.customer_email,
-          phone: data.customer_phone,
-          ...(ship
-            ? {
-                postalCode: ship.zip,
-                address: ship.street,
-                addressNumber: String(ship.number ?? ""),
-                province: ship.district ?? null,
-              }
-            : {}),
-        },
-      });
+      const successUrl = `${callbackOrigin}/pedido/${orderId}`;
+
+      // Asaas Checkout hospedado: parcelamento limitado a 5x.
+      // Fallback para cobrança única UNDEFINED se o checkout recusar dados do cliente.
+      let invoiceUrl: string;
+      let paymentOrCheckoutId: string;
+      let checkoutId: string | null = null;
+      try {
+        const checkout = await createAsaasCheckout({
+          value: grandTotal,
+          externalReference: orderId as string,
+          itemName: description,
+          maxInstallmentCount: 5,
+          successUrl,
+          cancelUrl: `${callbackOrigin}/checkout`,
+          expiredUrl: `${callbackOrigin}/checkout`,
+          customer: {
+            name: data.customer_name,
+            cpfCnpj: data.customer_cpf,
+            email: data.customer_email,
+            phone: data.customer_phone,
+            ...(ship
+              ? {
+                  postalCode: ship.zip,
+                  address: ship.street,
+                  addressNumber: String(ship.number ?? ""),
+                  province: ship.district ?? null,
+                }
+              : {}),
+          },
+        });
+        invoiceUrl = checkout.url;
+        paymentOrCheckoutId = checkout.id;
+        checkoutId = checkout.id;
+      } catch (checkoutErr) {
+        console.warn(
+          `[asaas] fallback to createPayment for order ${orderId}:`,
+          checkoutErr instanceof Error ? checkoutErr.message : "unknown checkout error",
+        );
+        const payment = await createPayment({
+          customerId,
+          value: grandTotal,
+          externalReference: orderId as string,
+          description,
+          successUrl,
+        });
+        invoiceUrl = payment.invoiceUrl;
+        paymentOrCheckoutId = payment.id;
+      }
 
       await supabaseAdmin
         .from("orders")
         .update({
           asaas_customer_id: customerId,
-          asaas_checkout_id: checkout.id,
-          asaas_invoice_url: checkout.url,
+          asaas_checkout_id: checkoutId,
+          asaas_invoice_url: invoiceUrl,
           asaas_status: "PENDING",
         } as never)
         .eq("id", orderId as string);
 
       return {
         orderId: orderId as string,
-        preferenceId: checkout.id,
-        initPoint: checkout.url,
+        preferenceId: paymentOrCheckoutId,
+        initPoint: invoiceUrl,
       };
     } catch (err) {
       console.error("[asaas] create payment failed", err);
@@ -391,7 +416,7 @@ export const resumeAsaasPayment = createServerFn({ method: "POST" })
     const total = Number(order.total ?? 0);
     if (!(total > 0)) throw new Error("Pedido sem valor a pagar");
 
-    const { findOrCreateCustomer, createAsaasCheckout } = await import("@/lib/asaas.server");
+    const { findOrCreateCustomer, createAsaasCheckout, createPayment } = await import("@/lib/asaas.server");
     const customerId =
       (order.asaas_customer_id as string | null) ??
       (await findOrCreateCustomer({
@@ -410,35 +435,59 @@ export const resumeAsaasPayment = createServerFn({ method: "POST" })
 
     const origin = originFromRequest();
     const callbackOrigin = isPublicHttpsOrigin(origin) ? origin : "https://shopboxonline.com";
-    const checkout = await createAsaasCheckout({
-      value: total,
-      externalReference: order.id,
-      itemName: `Pedido shopbox ${order.id.slice(0, 8).toUpperCase()}`,
-      maxInstallmentCount: 5,
-      successUrl: `${callbackOrigin}/pedido/${order.id}`,
-      cancelUrl: `${callbackOrigin}/checkout`,
-      expiredUrl: `${callbackOrigin}/checkout`,
-      customer: {
-        name: String(order.customer_name ?? "Cliente"),
-        cpfCnpj: String(order.customer_cpf ?? ""),
-        email: order.customer_email,
-        phone: order.customer_phone,
-        postalCode: (order as { shipping_zip?: string | null }).shipping_zip ?? null,
-        address: (order as { shipping_street?: string | null }).shipping_street ?? null,
-        addressNumber: (order as { shipping_number?: string | null }).shipping_number ?? null,
-        province: (order as { shipping_district?: string | null }).shipping_district ?? null,
-      },
-    });
+    const successUrl = `${callbackOrigin}/pedido/${order.id}`;
+
+    let invoiceUrl: string;
+    let paymentOrCheckoutId: string;
+    let checkoutId: string | null = null;
+    try {
+      const checkout = await createAsaasCheckout({
+        value: total,
+        externalReference: order.id,
+        itemName: `Pedido shopbox ${order.id.slice(0, 8).toUpperCase()}`,
+        maxInstallmentCount: 5,
+        successUrl,
+        cancelUrl: `${callbackOrigin}/checkout`,
+        expiredUrl: `${callbackOrigin}/checkout`,
+        customer: {
+          name: String(order.customer_name ?? "Cliente"),
+          cpfCnpj: String(order.customer_cpf ?? ""),
+          email: order.customer_email,
+          phone: order.customer_phone,
+          postalCode: (order as { shipping_zip?: string | null }).shipping_zip ?? null,
+          address: (order as { shipping_street?: string | null }).shipping_street ?? null,
+          addressNumber: (order as { shipping_number?: string | null }).shipping_number ?? null,
+          province: (order as { shipping_district?: string | null }).shipping_district ?? null,
+        },
+      });
+      invoiceUrl = checkout.url;
+      paymentOrCheckoutId = checkout.id;
+      checkoutId = checkout.id;
+    } catch (checkoutErr) {
+      console.warn(
+        `[asaas] fallback to createPayment for order ${order.id}:`,
+        checkoutErr instanceof Error ? checkoutErr.message : "unknown checkout error",
+      );
+      const payment = await createPayment({
+        customerId,
+        value: total,
+        externalReference: order.id,
+        description: `Pedido shopbox ${order.id.slice(0, 8).toUpperCase()}`,
+        successUrl,
+      });
+      invoiceUrl = payment.invoiceUrl;
+      paymentOrCheckoutId = payment.id;
+    }
 
     await supabaseAdmin
       .from("orders")
       .update({
         asaas_customer_id: customerId,
-        asaas_checkout_id: checkout.id,
-        asaas_invoice_url: checkout.url,
+        asaas_checkout_id: checkoutId,
+        asaas_invoice_url: invoiceUrl,
         asaas_status: "PENDING",
       } as never)
       .eq("id", order.id);
 
-    return { orderId: order.id, initPoint: checkout.url };
+    return { orderId: order.id, initPoint: invoiceUrl };
   });
