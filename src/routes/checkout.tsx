@@ -121,6 +121,26 @@ function CheckoutPage() {
   const [useCashback, setUseCashback] = useState(false);
   const [installments, setInstallments] = useState(1);
 
+  // Meio de pagamento: "hosted" = Pix/boleto (fluxo hospedado Asaas, inalterado),
+  // "card" = cartão transparente digitado aqui na página.
+  const [payMethod, setPayMethod] = useState<"hosted" | "card">("hosted");
+  const [cardStatus, setCardStatus] = useState<null | "processing" | "analysis" | "refused">(null);
+  const [cardError, setCardError] = useState<string | null>(null);
+  // Dados do cartão: só existem em memória durante o envio. Nunca são salvos,
+  // nem em localStorage/sessionStorage, e só vão para a nossa própria rota.
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardHolder, setCardHolder] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+  const [cardCep, setCardCep] = useState("");
+  const [cardAddrNumber, setCardAddrNumber] = useState("");
+
+  const clearCardFields = () => {
+    setCardNumber("");
+    setCardExpiry("");
+    setCardCvv("");
+  };
+
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   useEffect(() => {
     fetchUnidades({ onlyActive: true }).then(setUnidades).catch(() => setUnidades([]));
