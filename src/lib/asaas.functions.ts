@@ -313,17 +313,12 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
         };
       }
 
-      const installments = Math.max(
-        1,
-        Math.min(Math.floor(Number(data.installments ?? 1)) || 1, maxInstallmentsFor(grandTotal)),
-      );
-
+      // Parcelamento é escolhido pelo cliente na página hospedada da Asaas.
       const payment = await createPayment({
         customerId,
         value: grandTotal,
         externalReference: orderId as string,
         description,
-        ...(installments > 1 ? { installmentCount: installments } : {}),
         ...(isPublicHttpsOrigin(origin) ? { successUrl: `${origin}/pedido/${orderId}` } : {}),
       });
 
