@@ -240,6 +240,117 @@ export async function createPayment(input: CreatePaymentInput): Promise<AsaasPay
   return { id: payment.id, invoiceUrl: payment.invoiceUrl, status: payment.status };
 }
 
+/* ============================================================
+ * ASAAS CHECKOUT (POST /v3/checkouts)
+ *
+ * Página hospedada da Asaas com controle do parcelamento
+ * (installment.maxInstallmentCount). Continua sendo redirecionamento:
+ * nenhum dado de cartão passa pelo nosso site.
+ * ============================================================ */
+
+export type AsaasCheckoutInput = {
+  /** Valor TOTAL a cobrar (já com frete e menos cashback). */
+  value: number;
+  /** id do pedido — essencial para webhook/reconciliação. */
+  externalReference: string;
+  /** Nome do item resumo exibido no checkout. */
+  itemName: string;
+  maxInstallmentCount?: number;
+  minutesToExpire?: number;
+  successUrl: string;
+  cancelUrl: string;
+  expiredUrl: string;
+  customer: {
+    name: string;
+    cpfCnpj: string;
+    email?: string | null;
+    phone?: string | null;
+    postalCode?: string | null;
+    address?: string | null;
+    addressNumber?: string | null;
+    province?: string | null;
+  };
+};
+
+export type AsaasCheckoutResult = { id: string; url: string };
+
+/** Endereço padrão da loja: a Asaas exige endereço no customerData. */
+const CHECKOUT_FALLBACK_ADDRESS = {
+  postalCode: "13480000",
+  address: "Rua Comercial",
+  addressNumber: "S/N",
+  province: "Centro",
+};
+
+function digits(v: unknown): string {
+  return String(v ?? "").replace(/\D/g, "");
+}
+
+function checkoutCustomerData(c: AsaasCheckoutInput["customer"], withPhone: boolean) {
+  const zip = digits(c.postalCode);
+  const phone = digits(c.phone);
+  return {
+    name: c.name.trim().slice(0, 100),
+    cpfCnpj: digits(c.cpfCnpj),
+    email: c.email?.trim() || undefined,
+    // A Asaas valida o telefone; quando inválido reenviamos sem ele.
+    phone: withPhone && phone.length >= 10 ? phone : undefined,
+    postalCode: zip.length === 8 ? zip : CHECKOUT_FALLBACK_ADDRESS.postalCode,
+    address: c.address?.trim() || CHECKOUT_FALLBACK_ADDRESS.address,
+    addressNumber: String(c.addressNumber ?? "").trim() || CHECKOUT_FALLBACK_ADDRESS.addressNumber,
+    province: c.province?.trim() || CHECKOUT_FALLBACK_ADDRESS.province,
+    // NÃO enviar `city`: a Asaas espera código IBGE numérico.
+  };
+}
+
+/**
+ * Cria uma sessão de checkout hospedada com Pix + cartão e teto de parcelas.
+ * A resposta traz `id` e `link` (URL do checkout).
+ */
+export async function createAsaasCheckout(input: AsaasCheckoutInput): Promise<AsaasCheckoutResult> {
+  const total = Number(input.value.toFixed(2));
+  const build = (withPhone: boolean) => ({
+    billingTypes: ["PIX", "CREDIT_CARD"],
+    chargeTypes: ["DETACHED", "INSTALLMENT"],
+    minutesToExpire: input.minutesToExpire ?? 60,
+    callback: {
+      successUrl: input.successUrl,
+      cancelUrl: input.cancelUrl,
+      expiredUrl: input.expiredUrl,
+    },
+    items: [{ name: input.itemName.slice(0, 100), value: total, quantity: 1 }],
+    installment: { maxInstallmentCount: input.maxInstallmentCount ?? 5 },
+    externalReference: input.externalReference,
+    customerData: checkoutCustomerData(input.customer, withPhone),
+  });
+
+  type CheckoutResponse = { id?: string; link?: string; status?: string };
+  let res: CheckoutResponse;
+  try {
+    res = await asaasFetch<CheckoutResponse>("/checkouts", {
+      method: "POST",
+      body: JSON.stringify(build(true)),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "";
+    if (/phone/i.test(msg)) {
+      // Telefone recusado pela Asaas: recria sem o telefone.
+      res = await asaasFetch<CheckoutResponse>("/checkouts", {
+        method: "POST",
+        body: JSON.stringify(build(false)),
+      });
+    } else {
+      throw new Error(msg || "Falha ao abrir o checkout da Asaas");
+    }
+  }
+
+  console.info("[asaas] checkout created", { id: res?.id, status: res?.status, hasLink: Boolean(res?.link) });
+  if (!res?.id || !res?.link) throw new Error("Asaas não retornou o link do checkout");
+  return { id: res.id, url: res.link };
+}
+
+
+
 
 /* ============================================================
  * Checkout TRANSPARENTE de cartão (cartão digitado no nosso site)
