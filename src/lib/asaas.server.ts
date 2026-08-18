@@ -214,26 +214,20 @@ function tomorrowIso(): string {
 }
 
 /**
- * Cria a cobrança. Sem parcelamento usa billingType UNDEFINED (cliente escolhe
- * Pix/cartão/boleto). Com `installmentCount > 1` a cobrança é criada como
- * cartão de crédito parcelado (`totalValue` dividido em N parcelas).
+ * Cria SEMPRE uma cobrança única com billingType UNDEFINED: o cliente escolhe
+ * Pix/cartão/boleto — e o número de parcelas no cartão — na própria página
+ * hospedada da Asaas. Nunca pré-dividimos em carnê.
  */
 export async function createPayment(input: CreatePaymentInput): Promise<AsaasPayment> {
-  const installments = Math.max(1, Math.floor(input.installmentCount ?? 1));
   const total = Number(input.value.toFixed(2));
   const body: Record<string, unknown> = {
     customer: input.customerId,
-    billingType: installments > 1 ? "CREDIT_CARD" : "UNDEFINED",
+    billingType: "UNDEFINED",
     dueDate: input.dueDate ?? tomorrowIso(),
     externalReference: input.externalReference,
     description: input.description.slice(0, 500),
+    value: total,
   };
-  if (installments > 1) {
-    body.installmentCount = installments;
-    body.totalValue = total;
-  } else {
-    body.value = total;
-  }
   if (input.successUrl) {
     body.callback = { successUrl: input.successUrl, autoRedirect: true };
   }
