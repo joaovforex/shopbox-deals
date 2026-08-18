@@ -151,8 +151,60 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
           }
         }
 
+        // === Conversões retirada → entrega ===
+        // Mesma rede de segurança para o frete de R$12: se o webhook não
+        // chegar, o pedido ficaria pago no gateway mas parado em retirada.
+        const upgradeSummary = { scanned: 0, applied: 0, errors: 0 };
+        try {
+          const upSince = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+          const { data: ups } = await supabaseAdmin
+            .from("delivery_upgrades")
+            .select("id, order_id, fee, mp_preference_id")
+            .eq("status", "pending")
+            .not("mp_preference_id", "is", null)
+            .gte("created_at", upSince)
+            .limit(100);
+          upgradeSummary.scanned = ups?.length ?? 0;
+          for (const row of ups ?? []) {
+            const u = row as { id: string; order_id: string; fee: number | null; mp_preference_id: string | null };
+            try {
+              const p = await getPayment(u.mp_preference_id!);
+              const fee = Number(u.fee ?? 0);
+              const okValue = p.value == null || !(fee > 0) || Math.abs(Number(p.value) - fee) < 0.02;
+              if (!okValue || !PAID.has(p.status)) continue;
+              await supabaseAdmin
+                .from("delivery_upgrades")
+                .update({ mp_payment_id: p.id, mp_status: p.status } as never)
+                .eq("id", u.id);
+              const { error: upErr } = await supabaseAdmin.rpc(
+                "apply_delivery_upgrade" as never,
+                { p_upgrade_id: u.id, p_mp_payment_id: p.id } as never,
+              );
+              if (upErr) {
+                console.error("[asaas:reconcile] apply_delivery_upgrade error", u.id, upErr);
+                upgradeSummary.errors++;
+                continue;
+              }
+              upgradeSummary.applied++;
+              await supabaseAdmin.from("admin_notifications").insert({
+                type: "delivery_upgrade_paid",
+                title: `Upgrade para entrega confirmado #${String(u.order_id).slice(0, 8).toUpperCase()}`,
+                body: "Frete pago (confirmado pela reconciliação) — pedido movido para entrega.",
+                order_id: u.order_id,
+                metadata: { upgrade_id: u.id, asaas_payment_id: p.id, source: "reconcile" },
+              } as never);
+            } catch (err) {
+              console.error("[asaas:reconcile] upgrade unexpected", u.id, err);
+              upgradeSummary.errors++;
+            }
+          }
+        } catch (err) {
+          console.error("[asaas:reconcile] upgrade scan error", err);
+        }
+
         // Rede de segurança dos ESTORNOS: a devolução Pix pode ser cancelada
         // pelo banco do cliente depois de criada.
+
         let refunds = null;
         try {
           const { syncPendingRefunds } = await import("@/lib/refund-sync.server");
