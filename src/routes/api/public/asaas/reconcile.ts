@@ -186,6 +186,14 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
                 continue;
               }
               upgradeSummary.applied++;
+              // Se o pedido já estava separado/pronto, dispara a corrida na TBT Express.
+              try {
+                const { createDeliveryForOrder } = await import("@/lib/maisentregas.functions");
+                await createDeliveryForOrder(u.order_id);
+              } catch (err) {
+                console.error("[asaas:reconcile] maisentregas upgrade dispatch error", u.order_id, err);
+              }
+
               await supabaseAdmin.from("admin_notifications").insert({
                 type: "delivery_upgrade_paid",
                 title: `Upgrade para entrega confirmado #${String(u.order_id).slice(0, 8).toUpperCase()}`,
