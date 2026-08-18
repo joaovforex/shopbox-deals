@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ScrollText, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getRoleSummary, type RoleSummary } from "@/lib/products";
+import { sanitizePostgrestTerm } from "@/lib/pgrst";
 import { AdminSkeleton } from "@/components/admin/AdminSkeleton";
 
 export const Route = createFileRoute("/_authenticated/admin/auditoria")({
