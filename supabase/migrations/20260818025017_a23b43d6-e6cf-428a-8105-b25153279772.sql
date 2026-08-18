@@ -1,0 +1,2 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS asaas_checkout_id text;
+CREATE INDEX IF NOT EXISTS idx_orders_asaas_checkout_id ON public.orders (asaas_checkout_id) WHERE asaas_checkout_id IS NOT NULL;

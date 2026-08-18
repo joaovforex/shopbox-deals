@@ -736,6 +736,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          asaas_checkout_id: string | null
           asaas_customer_id: string | null
           asaas_invoice_url: string | null
           asaas_payment_id: string | null
@@ -828,6 +829,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          asaas_checkout_id?: string | null
           asaas_customer_id?: string | null
           asaas_invoice_url?: string | null
           asaas_payment_id?: string | null
@@ -920,6 +922,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          asaas_checkout_id?: string | null
           asaas_customer_id?: string | null
           asaas_invoice_url?: string | null
           asaas_payment_id?: string | null
