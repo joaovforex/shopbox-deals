@@ -95,7 +95,7 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
             }
           }
 
-          if (!event || (!reference && !paymentLinkId)) {
+          if (!event || (!reference && !paymentLinkId && !checkoutSessionId)) {
             return new Response("ok", { status: 200 });
           }
 
