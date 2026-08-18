@@ -31,6 +31,12 @@ type CreateAsaasInput = {
   use_cashback?: number;
   /** Parcelas no cartão de crédito (1 = à vista / cliente escolhe Pix ou boleto). */
   installments?: number;
+  /**
+   * Cartão transparente: cria só o pedido pendente + cliente na Asaas e
+   * devolve o orderId, sem gerar a fatura hospedada. A cobrança é feita
+   * depois pela rota /api/checkout/asaas-card com os dados do cartão.
+   */
+  card_mode?: boolean;
 };
 
 
@@ -290,6 +296,22 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
       });
 
       const description = `Pedido shopbox ${(orderId as string).slice(0, 8).toUpperCase()} (${orderItems.length} ${orderItems.length === 1 ? "item" : "itens"})`;
+
+      // Cartão transparente: nada de fatura hospedada. O front cobra o cartão
+      // na rota /api/checkout/asaas-card usando este orderId.
+      if (data.card_mode) {
+        await supabaseAdmin
+          .from("orders")
+          .update({ asaas_customer_id: customerId } as never)
+          .eq("id", orderId as string);
+        return {
+          orderId: orderId as string,
+          preferenceId: "",
+          initPoint: "",
+          cardMode: true as const,
+          total: grandTotal,
+        };
+      }
 
       const installments = Math.max(
         1,

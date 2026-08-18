@@ -109,7 +109,12 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
           if (event === "PAYMENT_AWAITING_RISK_ANALYSIS") {
             isPaid = false;
             isCancel = false;
-          } else if (event === "PAYMENT_REPROVED_BY_RISK_ANALYSIS") {
+          } else if (
+            event === "PAYMENT_REPROVED_BY_RISK_ANALYSIS" ||
+            // Recusa de captura no cartão (checkout transparente): não pago,
+            // cancela para o cliente poder tentar outro cartão ou Pix.
+            event === "PAYMENT_CREDIT_CARD_CAPTURE_REFUSED"
+          ) {
             isPaid = false;
             isCancel = true;
           }

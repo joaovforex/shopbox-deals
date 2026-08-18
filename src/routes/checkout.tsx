@@ -121,6 +121,26 @@ function CheckoutPage() {
   const [useCashback, setUseCashback] = useState(false);
   const [installments, setInstallments] = useState(1);
 
+  // Meio de pagamento: "hosted" = Pix/boleto (fluxo hospedado Asaas, inalterado),
+  // "card" = cartão transparente digitado aqui na página.
+  const [payMethod, setPayMethod] = useState<"hosted" | "card">("hosted");
+  const [cardStatus, setCardStatus] = useState<null | "processing" | "analysis" | "refused">(null);
+  const [cardError, setCardError] = useState<string | null>(null);
+  // Dados do cartão: só existem em memória durante o envio. Nunca são salvos,
+  // nem em localStorage/sessionStorage, e só vão para a nossa própria rota.
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardHolder, setCardHolder] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvv, setCardCvv] = useState("");
+  const [cardCep, setCardCep] = useState("");
+  const [cardAddrNumber, setCardAddrNumber] = useState("");
+
+  const clearCardFields = () => {
+    setCardNumber("");
+    setCardExpiry("");
+    setCardCvv("");
+  };
+
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   useEffect(() => {
     fetchUnidades({ onlyActive: true }).then(setUnidades).catch(() => setUnidades([]));
@@ -316,7 +336,26 @@ function CheckoutPage() {
       };
     }
 
+    const isCard = payMethod === "card";
+    const cardDigits = cardNumber.replace(/\D/g, "");
+    const cvvDigits = cardCvv.replace(/\D/g, "");
+    const [expMonth, expYear] = cardExpiry.split("/").map((s) => (s ?? "").trim());
+    const holderCep = (delivery === "delivery" ? cep : cardCep).replace(/\D/g, "");
+    const holderNumber = (delivery === "delivery" ? number : cardAddrNumber).trim();
+
+    if (isCard) {
+      if (cardDigits.length < 13) return toast.error("Número do cartão inválido");
+      if (cardHolder.trim().length < 3) return toast.error("Informe o nome impresso no cartão");
+      if (!expMonth || !expYear || Number(expMonth) < 1 || Number(expMonth) > 12)
+        return toast.error("Validade inválida (MM/AA)");
+      if (cvvDigits.length < 3) return toast.error("CVV inválido");
+      if (holderCep.length !== 8) return toast.error("Informe o CEP do titular do cartão");
+      if (!holderNumber) return toast.error("Informe o número do endereço do titular");
+    }
+
     setBusy(true);
+    setCardError(null);
+    if (isCard) setCardStatus("processing");
     try {
       const res = await createCheckout({
         data: {
@@ -330,15 +369,75 @@ function CheckoutPage() {
           save_profile: saveProfile,
           use_cashback: useCashback ? Math.min(cashbackBalance, total) : 0,
           installments,
-
+          card_mode: isCard,
         },
       });
-      setRedirecting(true);
-      sessionStorage.setItem("mp_init_point", res.initPoint);
-      clear();
-      navigate({ to: "/redirecionando" });
+
+      // --- Pix / boleto: fluxo hospedado atual, sem alteração ---
+      if (!isCard) {
+        setRedirecting(true);
+        sessionStorage.setItem("mp_init_point", res.initPoint);
+        clear();
+        navigate({ to: "/redirecionando" });
+        return;
+      }
+
+      // --- Cartão transparente: cobra na nossa própria rota ---
+      // Pedido 100% pago com cashback já sai confirmado (sem cobrança).
+      if (!res.preferenceId && res.initPoint) {
+        clear();
+        navigate({ to: "/pedido/$id", params: { id: res.orderId } });
+        return;
+      }
+
+      const { data: sess } = await supabase.auth.getSession();
+      const accessToken = sess.session?.access_token ?? "";
+      const resp = await fetch("/api/checkout/asaas-card", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({
+          order_id: res.orderId,
+          installments,
+          card: {
+            holder_name: cardHolder.trim(),
+            number: cardDigits,
+            expiry_month: expMonth,
+            expiry_year: expYear,
+            ccv: cvvDigits,
+          },
+          holder: { postal_code: holderCep, address_number: holderNumber },
+        }),
+      });
+      const payload = (await resp.json().catch(() => null)) as
+        | { outcome?: string; orderId?: string; error?: string }
+        | null;
+
+      clearCardFields();
+
+      if (payload?.outcome === "approved") {
+        setCardStatus(null);
+        clear();
+        toast.success("Pagamento aprovado!");
+        navigate({ to: "/pedido/$id", params: { id: payload.orderId ?? res.orderId } });
+        return;
+      }
+      if (payload?.outcome === "analysis") {
+        setCardStatus("analysis");
+        clear();
+        toast.info("Pagamento em análise. Avisaremos assim que for aprovado.");
+        navigate({ to: "/pedido/$id", params: { id: payload.orderId ?? res.orderId } });
+        return;
+      }
+
+      setCardStatus("refused");
+      setCardError(payload?.error ?? "Pagamento recusado. Tente outro cartão ou pague com Pix.");
+      setBusy(false);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao iniciar pagamento";
+      if (isCard) {
+        setCardStatus("refused");
+        setCardError(msg);
+      }
       toast.error(msg);
       setBusy(false);
     }
@@ -519,7 +618,97 @@ function CheckoutPage() {
               const maxN = maxInstallmentsFor(grandTotal);
               return (
                 <div className="bg-secondary rounded-md p-4 text-sm space-y-3">
-                  <p className="font-semibold">Você será redirecionado para concluir o pagamento com segurança</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      ["hosted", "Pix / Boleto"],
+                      ["card", "Cartão de crédito"],
+                    ] as const).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => { setPayMethod(value); setCardError(null); setCardStatus(null); }}
+                        className={`rounded-md border px-3 py-2 text-sm font-semibold transition ${
+                          payMethod === value
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-input text-muted-foreground"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {payMethod === "hosted" && (
+                    <p className="font-semibold">Você será redirecionado para concluir o pagamento com segurança</p>
+                  )}
+                  {payMethod === "card" && (
+                    <div className="space-y-3">
+                      <p className="font-semibold">Pague com cartão sem sair do site</p>
+                      <Field
+                        label="Número do cartão *"
+                        value={cardNumber}
+                        onChange={(v) => setCardNumber(v.replace(/\D/g, "").slice(0, 19).replace(/(.{4})/g, "$1 ").trim())}
+                        placeholder="0000 0000 0000 0000"
+                        inputMode="numeric"
+                      />
+                      <Field
+                        label="Nome impresso no cartão *"
+                        value={cardHolder}
+                        onChange={(v) => setCardHolder(v.toUpperCase())}
+                        placeholder="COMO ESTÁ NO CARTÃO"
+                      />
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field
+                          label="Validade (MM/AA) *"
+                          value={cardExpiry}
+                          onChange={(v) => {
+                            const d = v.replace(/\D/g, "").slice(0, 4);
+                            setCardExpiry(d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d);
+                          }}
+                          placeholder="12/29"
+                          inputMode="numeric"
+                        />
+                        <Field
+                          label="CVV *"
+                          value={cardCvv}
+                          onChange={(v) => setCardCvv(v.replace(/\D/g, "").slice(0, 4))}
+                          placeholder="123"
+                          inputMode="numeric"
+                        />
+                      </div>
+                      {delivery !== "delivery" && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <Field
+                            label="CEP do titular *"
+                            value={cardCep}
+                            onChange={(v) => {
+                              const d = v.replace(/\D/g, "").slice(0, 8);
+                              setCardCep(d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d);
+                            }}
+                            placeholder="80000-000"
+                            inputMode="numeric"
+                          />
+                          <Field
+                            label="Nº do endereço *"
+                            value={cardAddrNumber}
+                            onChange={setCardAddrNumber}
+                            placeholder="123"
+                            inputMode="numeric"
+                          />
+                        </div>
+                      )}
+                      {cardStatus === "processing" && (
+                        <p className="text-xs text-muted-foreground">Processando o pagamento com o banco…</p>
+                      )}
+                      {cardError && (
+                        <div className="text-xs px-3 py-2 rounded bg-destructive/10 text-destructive">
+                          {cardError} Você pode tentar outro cartão ou escolher Pix.
+                        </div>
+                      )}
+                      <p className="text-[11px] text-muted-foreground">
+                        Os dados do cartão são enviados criptografados direto para o processador de pagamento e não ficam salvos no site.
+                      </p>
+                    </div>
+                  )}
                   {maxN > 1 ? (
                     <label className="block">
                       <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">

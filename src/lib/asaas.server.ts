@@ -249,6 +249,110 @@ export async function createPayment(input: CreatePaymentInput): Promise<AsaasPay
 }
 
 
+/* ============================================================
+ * Checkout TRANSPARENTE de cartão (cartão digitado no nosso site)
+ *
+ * HIGIENE OBRIGATÓRIA:
+ * - O número do cartão e o CVV só existem em memória durante esta chamada.
+ * - NUNCA logamos, gravamos ou retornamos número/CVV/validade.
+ * - Só o id da cobrança e o status podem ser persistidos.
+ * ============================================================ */
+
+export type TransparentCardInput = {
+  customerId: string;
+  /** Valor total da compra (será dividido em installmentCount parcelas). */
+  value: number;
+  externalReference: string;
+  description: string;
+  installmentCount?: number;
+  /** IP do DISPOSITIVO do cliente (x-forwarded-for), nunca o IP do servidor. */
+  remoteIp: string;
+  card: {
+    holderName: string;
+    number: string;
+    expiryMonth: string;
+    expiryYear: string;
+    ccv: string;
+  };
+  holderInfo: {
+    name: string;
+    email: string;
+    cpfCnpj: string;
+    postalCode: string;
+    addressNumber: string;
+    phone: string;
+  };
+};
+
+export type TransparentCardResult = {
+  id: string;
+  status: string;
+  installmentCount: number;
+  /** Só para fallback/consulta; nunca contém dados do cartão. */
+  invoiceUrl?: string | null;
+};
+
+/** true quando o status da Asaas significa "pagamento aprovado". */
+export function isApprovedStatus(status: string): boolean {
+  return ["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"].includes((status || "").toUpperCase());
+}
+
+/**
+ * Cria a cobrança de cartão enviando os dados do cartão direto para a API da
+ * Asaas (uma única autorização; parcelamento no cartão via installmentCount +
+ * totalValue, sem carnê de faturas futuras).
+ */
+export async function createTransparentCardPayment(
+  input: TransparentCardInput,
+): Promise<TransparentCardResult> {
+  const installments = Math.max(1, Math.floor(input.installmentCount ?? 1));
+  const total = Number(input.value.toFixed(2));
+
+  const body: Record<string, unknown> = {
+    customer: input.customerId,
+    billingType: "CREDIT_CARD",
+    dueDate: tomorrowIso(),
+    externalReference: input.externalReference,
+    description: input.description.slice(0, 500),
+    remoteIp: input.remoteIp,
+    creditCard: {
+      holderName: input.card.holderName.trim().slice(0, 100),
+      number: input.card.number.replace(/\D/g, ""),
+      expiryMonth: input.card.expiryMonth.padStart(2, "0"),
+      expiryYear: input.card.expiryYear,
+      ccv: input.card.ccv.replace(/\D/g, ""),
+    },
+    creditCardHolderInfo: {
+      name: input.holderInfo.name.trim().slice(0, 100),
+      email: input.holderInfo.email.trim(),
+      cpfCnpj: input.holderInfo.cpfCnpj.replace(/\D/g, ""),
+      postalCode: input.holderInfo.postalCode.replace(/\D/g, ""),
+      addressNumber: String(input.holderInfo.addressNumber || "S/N").slice(0, 10),
+      phone: input.holderInfo.phone.replace(/\D/g, ""),
+    },
+  };
+  if (installments > 1) {
+    body.installmentCount = installments;
+    body.totalValue = total;
+  } else {
+    body.value = total;
+  }
+
+  // asaasFetch loga apenas path/status/resposta da Asaas — nunca o corpo enviado.
+  const payment = await asaasFetch<{ id?: string; status?: string; invoiceUrl?: string | null }>(
+    "/payments",
+    { method: "POST", body: JSON.stringify(body) },
+  );
+  if (!payment?.id) throw new Error("Asaas não retornou a cobrança do cartão");
+  return {
+    id: payment.id,
+    status: String(payment.status ?? ""),
+    installmentCount: installments,
+    invoiceUrl: payment.invoiceUrl ?? null,
+  };
+}
+
+
 /** Consulta uma cobrança (usado em reconciliação). */
 export async function getPayment(id: string): Promise<{
   id: string;
