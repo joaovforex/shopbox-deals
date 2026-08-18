@@ -96,7 +96,7 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
     if (!process.env.ASAAS_API_KEY) throw new Error("Asaas não configurado");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { findOrCreateCustomer, createPayment } = await import("@/lib/asaas.server");
+    const { findOrCreateCustomer, createAsaasCheckout } = await import("@/lib/asaas.server");
 
     // Limpa pedidos pendentes antigos devolvendo o estoque
     await supabaseAdmin.rpc("expire_stale_pending_orders" as never, { p_minutes: 5 } as never);
