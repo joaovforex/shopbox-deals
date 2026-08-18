@@ -39,7 +39,10 @@ export const Route = createFileRoute("/api/public/maisentregas/poll")({
         const summary = { created: 0, polled: 0, errors: 0 };
 
         // 1) Pedidos pagos de delivery sem corrida criada — tenta criar agora.
-        const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        // Janela de 7 dias: pedidos convertidos de retirada para entrega podem
+        // ficar dias em preparo antes de ficarem prontos para despacho.
+        const sinceIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
         const { data: pendingCreate } = await supabaseAdmin
           .from("orders")
           .select("id")
