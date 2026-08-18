@@ -241,8 +241,9 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
           console.error("[asaas:reconcile] webhook health check error", err);
         }
 
-        console.info("[asaas:reconcile] done", summary, refunds, webhook);
-        return Response.json({ ok: true, summary, refunds, webhook });
+        console.info("[asaas:reconcile] done", summary, upgradeSummary, refunds, webhook);
+        return Response.json({ ok: true, summary, upgrades: upgradeSummary, refunds, webhook });
+
       },
     },
   },
