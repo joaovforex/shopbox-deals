@@ -355,8 +355,8 @@ function FulfillmentPage() {
     queryKey: ["fulfillment-search", search.trim()],
     enabled: allowed === true && searchActive,
     queryFn: async () => {
-      const term = search.trim();
-      const digits = term.replace(/\D/g, "");
+      const term = sanitizePostgrestTerm(search);
+      const digits = search.replace(/\D/g, "").slice(0, 20);
       let q = supabase
         .from("orders")
         .select("*")
