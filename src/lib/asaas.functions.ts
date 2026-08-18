@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isValidCpf } from "@/lib/cpf";
-import { maxInstallmentsFor } from "@/lib/installments";
 
 
 type CartItemInput = { product_id: string; quantity: number; color?: string | null };
@@ -313,17 +312,12 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
         };
       }
 
-      const installments = Math.max(
-        1,
-        Math.min(Math.floor(Number(data.installments ?? 1)) || 1, maxInstallmentsFor(grandTotal)),
-      );
-
+      // Parcelamento é escolhido pelo cliente na página hospedada da Asaas.
       const payment = await createPayment({
         customerId,
         value: grandTotal,
         externalReference: orderId as string,
         description,
-        ...(installments > 1 ? { installmentCount: installments } : {}),
         ...(isPublicHttpsOrigin(origin) ? { successUrl: `${origin}/pedido/${orderId}` } : {}),
       });
 
