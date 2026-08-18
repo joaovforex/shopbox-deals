@@ -31,6 +31,12 @@ type CreateAsaasInput = {
   use_cashback?: number;
   /** Parcelas no cartão de crédito (1 = à vista / cliente escolhe Pix ou boleto). */
   installments?: number;
+  /**
+   * Cartão transparente: cria só o pedido pendente + cliente na Asaas e
+   * devolve o orderId, sem gerar a fatura hospedada. A cobrança é feita
+   * depois pela rota /api/checkout/asaas-card com os dados do cartão.
+   */
+  card_mode?: boolean;
 };
 
 
