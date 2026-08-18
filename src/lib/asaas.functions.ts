@@ -312,30 +312,46 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
         };
       }
 
-      // Parcelamento é escolhido pelo cliente na página hospedada da Asaas.
-      const payment = await createPayment({
-        customerId,
+      // Asaas Checkout hospedado: parcelamento limitado a 5x.
+      const callbackOrigin = isPublicHttpsOrigin(origin) ? origin : "https://shopboxonline.com";
+      const checkout = await createAsaasCheckout({
         value: grandTotal,
         externalReference: orderId as string,
-        description,
-        ...(isPublicHttpsOrigin(origin) ? { successUrl: `${origin}/pedido/${orderId}` } : {}),
+        itemName: description,
+        maxInstallmentCount: 5,
+        successUrl: `${callbackOrigin}/pedido/${orderId}`,
+        cancelUrl: `${callbackOrigin}/checkout`,
+        expiredUrl: `${callbackOrigin}/checkout`,
+        customer: {
+          name: data.customer_name,
+          cpfCnpj: data.customer_cpf,
+          email: data.customer_email,
+          phone: data.customer_phone,
+          ...(ship
+            ? {
+                postalCode: ship.zip,
+                address: ship.street,
+                addressNumber: String(ship.number ?? ""),
+                province: ship.district ?? null,
+              }
+            : {}),
+        },
       });
-
 
       await supabaseAdmin
         .from("orders")
         .update({
           asaas_customer_id: customerId,
-          asaas_payment_id: payment.id,
-          asaas_invoice_url: payment.invoiceUrl,
-          asaas_status: payment.status,
+          asaas_checkout_id: checkout.id,
+          asaas_invoice_url: checkout.url,
+          asaas_status: "PENDING",
         } as never)
         .eq("id", orderId as string);
 
       return {
         orderId: orderId as string,
-        preferenceId: payment.id,
-        initPoint: payment.invoiceUrl,
+        preferenceId: checkout.id,
+        initPoint: checkout.url,
       };
     } catch (err) {
       console.error("[asaas] create payment failed", err);
