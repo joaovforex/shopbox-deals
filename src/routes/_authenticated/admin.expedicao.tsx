@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { sanitizePostgrestTerm } from "@/lib/pgrst";
 import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass, Gift, Copy, Check, QrCode } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
@@ -355,8 +356,8 @@ function FulfillmentPage() {
     queryKey: ["fulfillment-search", search.trim()],
     enabled: allowed === true && searchActive,
     queryFn: async () => {
-      const term = search.trim();
-      const digits = term.replace(/\D/g, "");
+      const term = sanitizePostgrestTerm(search);
+      const digits = search.replace(/\D/g, "").slice(0, 20);
       let q = supabase
         .from("orders")
         .select("*")

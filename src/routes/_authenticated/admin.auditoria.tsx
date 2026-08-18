@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ScrollText, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getRoleSummary, type RoleSummary } from "@/lib/products";
+import { sanitizePostgrestTerm } from "@/lib/pgrst";
 import { AdminSkeleton } from "@/components/admin/AdminSkeleton";
 
 export const Route = createFileRoute("/_authenticated/admin/auditoria")({
@@ -51,7 +52,7 @@ function AuditLogPage() {
         .select("*", { count: "exact" })
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
-      const t = term.trim();
+      const t = sanitizePostgrestTerm(term);
       if (t) q = q.or(`action.ilike.%${t}%,entity.ilike.%${t}%,user_name.ilike.%${t}%`);
       const { data, count, error } = await q;
       if (error) throw error;
