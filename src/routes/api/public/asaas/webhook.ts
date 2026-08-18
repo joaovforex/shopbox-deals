@@ -40,6 +40,7 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
                   externalReference?: string | null;
                   status?: string;
                   paymentLink?: string | null;
+                  checkoutSession?: string | null;
                   billingType?: string | null;
                 };
               }
