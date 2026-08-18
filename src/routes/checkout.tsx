@@ -12,7 +12,6 @@ import { createAsaasPayment } from "@/lib/asaas.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { calculateCashback } from "@/lib/cashback-config";
 import { useSiteSettings } from "@/lib/site-settings";
-import { maxInstallmentsFor } from "@/lib/installments";
 import { fetchUnidades, unidadeEndereco, type Unidade } from "@/lib/unidades";
 
 
@@ -119,7 +118,6 @@ function CheckoutPage() {
   const [cashbackBalance, setCashbackBalance] = useState(0);
   const [cashbackExpiry, setCashbackExpiry] = useState<{ amount: number; expiresAt: string } | null>(null);
   const [useCashback, setUseCashback] = useState(false);
-  const [installments, setInstallments] = useState(1);
 
   const [unidades, setUnidades] = useState<Unidade[]>([]);
   useEffect(() => {
@@ -329,7 +327,6 @@ function CheckoutPage() {
           items: items.map((i) => ({ product_id: i.id, quantity: i.quantity, color: i.variant_color ?? null })),
           save_profile: saveProfile,
           use_cashback: useCashback ? Math.min(cashbackBalance, total) : 0,
-          installments,
 
         },
       });
