@@ -301,6 +301,22 @@ async function handleUpgrade(
     }
     console.info("[asaas:webhook] delivery upgrade applied", { upgradeId, result });
 
+    // Pedido já separado/pronto passa a ser entrega: cria a corrida na TBT Express.
+    try {
+      const { data: upRow } = await admin
+        .from("delivery_upgrades")
+        .select("order_id")
+        .eq("id", upgradeId)
+        .maybeSingle();
+      if (upRow?.order_id) {
+        const { createDeliveryForOrder } = await import("@/lib/maisentregas.functions");
+        await createDeliveryForOrder(upRow.order_id);
+      }
+    } catch (err) {
+      console.error("[asaas:webhook] maisentregas upgrade dispatch error", upgradeId, err);
+    }
+
+
     try {
       const { data: up } = await admin
         .from("delivery_upgrades")
