@@ -30,6 +30,7 @@ import { Route as EtiquetaIdRouteImport } from './routes/etiqueta.$id'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedMeusPedidosRouteImport } from './routes/_authenticated/meus-pedidos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as ApiCheckoutAsaasCardRouteImport } from './routes/api/checkout/asaas-card'
 import { Route as ApiAdminAsaasCardDiagnosticRouteImport } from './routes/api/admin/asaas-card-diagnostic'
 import { Route as AuthenticatedAdminVendaManualRouteImport } from './routes/_authenticated/admin.venda-manual'
 import { Route as AuthenticatedAdminValeTrocaRouteImport } from './routes/_authenticated/admin.vale-troca'
@@ -156,6 +157,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiCheckoutAsaasCardRoute = ApiCheckoutAsaasCardRouteImport.update({
+  id: '/api/checkout/asaas-card',
+  path: '/api/checkout/asaas-card',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAdminAsaasCardDiagnosticRoute =
   ApiAdminAsaasCardDiagnosticRouteImport.update({
@@ -314,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/admin/asaas-card-diagnostic': typeof ApiAdminAsaasCardDiagnosticRoute
+  '/api/checkout/asaas-card': typeof ApiCheckoutAsaasCardRoute
   '/api/public/asaas/notifications-cleanup': typeof ApiPublicAsaasNotificationsCleanupRoute
   '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
   '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
@@ -357,6 +364,7 @@ export interface FileRoutesByTo {
   '/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/admin/asaas-card-diagnostic': typeof ApiAdminAsaasCardDiagnosticRoute
+  '/api/checkout/asaas-card': typeof ApiCheckoutAsaasCardRoute
   '/api/public/asaas/notifications-cleanup': typeof ApiPublicAsaasNotificationsCleanupRoute
   '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
   '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
@@ -402,6 +410,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/_authenticated/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
   '/api/admin/asaas-card-diagnostic': typeof ApiAdminAsaasCardDiagnosticRoute
+  '/api/checkout/asaas-card': typeof ApiCheckoutAsaasCardRoute
   '/api/public/asaas/notifications-cleanup': typeof ApiPublicAsaasNotificationsCleanupRoute
   '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
   '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
@@ -447,6 +456,7 @@ export interface FileRouteTypes {
     | '/admin/vale-troca'
     | '/admin/venda-manual'
     | '/api/admin/asaas-card-diagnostic'
+    | '/api/checkout/asaas-card'
     | '/api/public/asaas/notifications-cleanup'
     | '/api/public/asaas/reconcile'
     | '/api/public/asaas/webhook'
@@ -490,6 +500,7 @@ export interface FileRouteTypes {
     | '/admin/vale-troca'
     | '/admin/venda-manual'
     | '/api/admin/asaas-card-diagnostic'
+    | '/api/checkout/asaas-card'
     | '/api/public/asaas/notifications-cleanup'
     | '/api/public/asaas/reconcile'
     | '/api/public/asaas/webhook'
@@ -534,6 +545,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/vale-troca'
     | '/_authenticated/admin/venda-manual'
     | '/api/admin/asaas-card-diagnostic'
+    | '/api/checkout/asaas-card'
     | '/api/public/asaas/notifications-cleanup'
     | '/api/public/asaas/reconcile'
     | '/api/public/asaas/webhook'
@@ -563,6 +575,7 @@ export interface RootRouteChildren {
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
   ApiAdminAsaasCardDiagnosticRoute: typeof ApiAdminAsaasCardDiagnosticRoute
+  ApiCheckoutAsaasCardRoute: typeof ApiCheckoutAsaasCardRoute
   ApiPublicAsaasNotificationsCleanupRoute: typeof ApiPublicAsaasNotificationsCleanupRoute
   ApiPublicAsaasReconcileRoute: typeof ApiPublicAsaasReconcileRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
@@ -720,6 +733,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/checkout/asaas-card': {
+      id: '/api/checkout/asaas-card'
+      path: '/api/checkout/asaas-card'
+      fullPath: '/api/checkout/asaas-card'
+      preLoaderRoute: typeof ApiCheckoutAsaasCardRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/admin/asaas-card-diagnostic': {
       id: '/api/admin/asaas-card-diagnostic'
@@ -941,6 +961,7 @@ const rootRouteChildren: RootRouteChildren = {
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
   ApiAdminAsaasCardDiagnosticRoute: ApiAdminAsaasCardDiagnosticRoute,
+  ApiCheckoutAsaasCardRoute: ApiCheckoutAsaasCardRoute,
   ApiPublicAsaasNotificationsCleanupRoute:
     ApiPublicAsaasNotificationsCleanupRoute,
   ApiPublicAsaasReconcileRoute: ApiPublicAsaasReconcileRoute,
