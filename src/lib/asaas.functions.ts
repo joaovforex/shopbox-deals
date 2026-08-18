@@ -297,6 +297,22 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
 
       const description = `Pedido shopbox ${(orderId as string).slice(0, 8).toUpperCase()} (${orderItems.length} ${orderItems.length === 1 ? "item" : "itens"})`;
 
+      // Cartão transparente: nada de fatura hospedada. O front cobra o cartão
+      // na rota /api/checkout/asaas-card usando este orderId.
+      if (data.card_mode) {
+        await supabaseAdmin
+          .from("orders")
+          .update({ asaas_customer_id: customerId } as never)
+          .eq("id", orderId as string);
+        return {
+          orderId: orderId as string,
+          preferenceId: "",
+          initPoint: "",
+          cardMode: true as const,
+          total: grandTotal,
+        };
+      }
+
       const installments = Math.max(
         1,
         Math.min(Math.floor(Number(data.installments ?? 1)) || 1, maxInstallmentsFor(grandTotal)),
