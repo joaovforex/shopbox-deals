@@ -618,7 +618,97 @@ function CheckoutPage() {
               const maxN = maxInstallmentsFor(grandTotal);
               return (
                 <div className="bg-secondary rounded-md p-4 text-sm space-y-3">
-                  <p className="font-semibold">Você será redirecionado para concluir o pagamento com segurança</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      ["hosted", "Pix / Boleto"],
+                      ["card", "Cartão de crédito"],
+                    ] as const).map(([value, label]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => { setPayMethod(value); setCardError(null); setCardStatus(null); }}
+                        className={`rounded-md border px-3 py-2 text-sm font-semibold transition ${
+                          payMethod === value
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-input text-muted-foreground"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {payMethod === "hosted" && (
+                    <p className="font-semibold">Você será redirecionado para concluir o pagamento com segurança</p>
+                  )}
+                  {payMethod === "card" && (
+                    <div className="space-y-3">
+                      <p className="font-semibold">Pague com cartão sem sair do site</p>
+                      <Field
+                        label="Número do cartão *"
+                        value={cardNumber}
+                        onChange={(v) => setCardNumber(v.replace(/\D/g, "").slice(0, 19).replace(/(.{4})/g, "$1 ").trim())}
+                        placeholder="0000 0000 0000 0000"
+                        inputMode="numeric"
+                      />
+                      <Field
+                        label="Nome impresso no cartão *"
+                        value={cardHolder}
+                        onChange={(v) => setCardHolder(v.toUpperCase())}
+                        placeholder="COMO ESTÁ NO CARTÃO"
+                      />
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field
+                          label="Validade (MM/AA) *"
+                          value={cardExpiry}
+                          onChange={(v) => {
+                            const d = v.replace(/\D/g, "").slice(0, 4);
+                            setCardExpiry(d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d);
+                          }}
+                          placeholder="12/29"
+                          inputMode="numeric"
+                        />
+                        <Field
+                          label="CVV *"
+                          value={cardCvv}
+                          onChange={(v) => setCardCvv(v.replace(/\D/g, "").slice(0, 4))}
+                          placeholder="123"
+                          inputMode="numeric"
+                        />
+                      </div>
+                      {delivery !== "delivery" && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <Field
+                            label="CEP do titular *"
+                            value={cardCep}
+                            onChange={(v) => {
+                              const d = v.replace(/\D/g, "").slice(0, 8);
+                              setCardCep(d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d);
+                            }}
+                            placeholder="80000-000"
+                            inputMode="numeric"
+                          />
+                          <Field
+                            label="Nº do endereço *"
+                            value={cardAddrNumber}
+                            onChange={setCardAddrNumber}
+                            placeholder="123"
+                            inputMode="numeric"
+                          />
+                        </div>
+                      )}
+                      {cardStatus === "processing" && (
+                        <p className="text-xs text-muted-foreground">Processando o pagamento com o banco…</p>
+                      )}
+                      {cardError && (
+                        <div className="text-xs px-3 py-2 rounded bg-destructive/10 text-destructive">
+                          {cardError} Você pode tentar outro cartão ou escolher Pix.
+                        </div>
+                      )}
+                      <p className="text-[11px] text-muted-foreground">
+                        Os dados do cartão são enviados criptografados direto para o processador de pagamento e não ficam salvos no site.
+                      </p>
+                    </div>
+                  )}
                   {maxN > 1 ? (
                     <label className="block">
                       <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
