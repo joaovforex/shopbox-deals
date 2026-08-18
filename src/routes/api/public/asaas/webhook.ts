@@ -40,6 +40,7 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
                   externalReference?: string | null;
                   status?: string;
                   paymentLink?: string | null;
+                  checkoutSession?: string | null;
                   billingType?: string | null;
                 };
               }
@@ -50,6 +51,7 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
           const reference = payment?.externalReference ?? "";
           const paymentId = payment?.id ?? "";
           const paymentLinkId = payment?.paymentLink ?? "";
+          const checkoutSessionId = payment?.checkoutSession ?? "";
           let isPaid = false;
           let isCancel = false;
 
@@ -93,7 +95,7 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
             }
           }
 
-          if (!event || (!reference && !paymentLinkId)) {
+          if (!event || (!reference && !paymentLinkId && !checkoutSessionId)) {
             return new Response("ok", { status: 200 });
           }
 
@@ -184,7 +186,19 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
             return new Response("ok", { status: 200 });
           }
 
-          await handleOrder(supabaseAdmin, reference, paymentId, payment?.status ?? event, isPaid, isCancel);
+          // Asaas Checkout: o pagamento normalmente herda o externalReference
+          // da sessão. Rede de segurança quando não vier: casa pelo checkout id.
+          let orderRef = reference;
+          if (!orderRef && checkoutSessionId) {
+            const { data: byCheckout } = await supabaseAdmin
+              .from("orders")
+              .select("id")
+              .eq("asaas_checkout_id", checkoutSessionId)
+              .maybeSingle();
+            orderRef = (byCheckout as { id: string } | null)?.id ?? "";
+          }
+
+          await handleOrder(supabaseAdmin, orderRef, paymentId, payment?.status ?? event, isPaid, isCancel);
 
 
           return new Response("ok", { status: 200 });

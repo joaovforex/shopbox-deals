@@ -96,7 +96,7 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
     if (!process.env.ASAAS_API_KEY) throw new Error("Asaas não configurado");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { findOrCreateCustomer, createPayment } = await import("@/lib/asaas.server");
+    const { findOrCreateCustomer, createAsaasCheckout } = await import("@/lib/asaas.server");
 
     // Limpa pedidos pendentes antigos devolvendo o estoque
     await supabaseAdmin.rpc("expire_stale_pending_orders" as never, { p_minutes: 5 } as never);
@@ -312,30 +312,46 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
         };
       }
 
-      // Parcelamento é escolhido pelo cliente na página hospedada da Asaas.
-      const payment = await createPayment({
-        customerId,
+      // Asaas Checkout hospedado: parcelamento limitado a 5x.
+      const callbackOrigin = isPublicHttpsOrigin(origin) ? origin : "https://shopboxonline.com";
+      const checkout = await createAsaasCheckout({
         value: grandTotal,
         externalReference: orderId as string,
-        description,
-        ...(isPublicHttpsOrigin(origin) ? { successUrl: `${origin}/pedido/${orderId}` } : {}),
+        itemName: description,
+        maxInstallmentCount: 5,
+        successUrl: `${callbackOrigin}/pedido/${orderId}`,
+        cancelUrl: `${callbackOrigin}/checkout`,
+        expiredUrl: `${callbackOrigin}/checkout`,
+        customer: {
+          name: data.customer_name,
+          cpfCnpj: data.customer_cpf,
+          email: data.customer_email,
+          phone: data.customer_phone,
+          ...(ship
+            ? {
+                postalCode: ship.zip,
+                address: ship.street,
+                addressNumber: String(ship.number ?? ""),
+                province: ship.district ?? null,
+              }
+            : {}),
+        },
       });
-
 
       await supabaseAdmin
         .from("orders")
         .update({
           asaas_customer_id: customerId,
-          asaas_payment_id: payment.id,
-          asaas_invoice_url: payment.invoiceUrl,
-          asaas_status: payment.status,
+          asaas_checkout_id: checkout.id,
+          asaas_invoice_url: checkout.url,
+          asaas_status: "PENDING",
         } as never)
         .eq("id", orderId as string);
 
       return {
         orderId: orderId as string,
-        preferenceId: payment.id,
-        initPoint: payment.invoiceUrl,
+        preferenceId: checkout.id,
+        initPoint: checkout.url,
       };
     } catch (err) {
       console.error("[asaas] create payment failed", err);
@@ -375,7 +391,7 @@ export const resumeAsaasPayment = createServerFn({ method: "POST" })
     const total = Number(order.total ?? 0);
     if (!(total > 0)) throw new Error("Pedido sem valor a pagar");
 
-    const { findOrCreateCustomer, createPayment } = await import("@/lib/asaas.server");
+    const { findOrCreateCustomer, createAsaasCheckout } = await import("@/lib/asaas.server");
     const customerId =
       (order.asaas_customer_id as string | null) ??
       (await findOrCreateCustomer({
@@ -393,23 +409,36 @@ export const resumeAsaasPayment = createServerFn({ method: "POST" })
       }));
 
     const origin = originFromRequest();
-    const payment = await createPayment({
-      customerId,
+    const callbackOrigin = isPublicHttpsOrigin(origin) ? origin : "https://shopboxonline.com";
+    const checkout = await createAsaasCheckout({
       value: total,
       externalReference: order.id,
-      description: `Pedido shopbox ${order.id.slice(0, 8).toUpperCase()}`,
-      ...(isPublicHttpsOrigin(origin) ? { successUrl: `${origin}/pedido/${order.id}` } : {}),
+      itemName: `Pedido shopbox ${order.id.slice(0, 8).toUpperCase()}`,
+      maxInstallmentCount: 5,
+      successUrl: `${callbackOrigin}/pedido/${order.id}`,
+      cancelUrl: `${callbackOrigin}/checkout`,
+      expiredUrl: `${callbackOrigin}/checkout`,
+      customer: {
+        name: String(order.customer_name ?? "Cliente"),
+        cpfCnpj: String(order.customer_cpf ?? ""),
+        email: order.customer_email,
+        phone: order.customer_phone,
+        postalCode: (order as { shipping_zip?: string | null }).shipping_zip ?? null,
+        address: (order as { shipping_street?: string | null }).shipping_street ?? null,
+        addressNumber: (order as { shipping_number?: string | null }).shipping_number ?? null,
+        province: (order as { shipping_district?: string | null }).shipping_district ?? null,
+      },
     });
 
     await supabaseAdmin
       .from("orders")
       .update({
         asaas_customer_id: customerId,
-        asaas_payment_id: payment.id,
-        asaas_invoice_url: payment.invoiceUrl,
-        asaas_status: payment.status,
+        asaas_checkout_id: checkout.id,
+        asaas_invoice_url: checkout.url,
+        asaas_status: "PENDING",
       } as never)
       .eq("id", order.id);
 
-    return { orderId: order.id, initPoint: payment.invoiceUrl };
+    return { orderId: order.id, initPoint: checkout.url };
   });
