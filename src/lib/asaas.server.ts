@@ -198,8 +198,6 @@ export type CreatePaymentInput = {
   /** yyyy-mm-dd; default = hoje + 1 dia */
   dueDate?: string;
   successUrl?: string;
-  /** Nº de parcelas no cartão de crédito (>1 força billingType CREDIT_CARD). */
-  installmentCount?: number;
 };
 
 export type AsaasPayment = {
