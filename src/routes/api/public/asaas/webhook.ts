@@ -51,6 +51,7 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
           const reference = payment?.externalReference ?? "";
           const paymentId = payment?.id ?? "";
           const paymentLinkId = payment?.paymentLink ?? "";
+          const checkoutSessionId = payment?.checkoutSession ?? "";
           let isPaid = false;
           let isCancel = false;
 
