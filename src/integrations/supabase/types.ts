@@ -22,6 +22,7 @@ export type Database = {
           entity: string
           entity_id: string | null
           id: string
+          search_norm: string | null
           user_id: string | null
           user_name: string | null
         }
@@ -32,6 +33,7 @@ export type Database = {
           entity: string
           entity_id?: string | null
           id?: string
+          search_norm?: string | null
           user_id?: string | null
           user_name?: string | null
         }
@@ -42,6 +44,7 @@ export type Database = {
           entity?: string
           entity_id?: string | null
           id?: string
+          search_norm?: string | null
           user_id?: string | null
           user_name?: string | null
         }
@@ -812,6 +815,7 @@ export type Database = {
           refunded_at: string | null
           refunded_by: string | null
           refunded_by_name: string | null
+          search_norm: string | null
           shipping_address: string | null
           shipping_city: string | null
           shipping_complement: string | null
@@ -905,6 +909,7 @@ export type Database = {
           refunded_at?: string | null
           refunded_by?: string | null
           refunded_by_name?: string | null
+          search_norm?: string | null
           shipping_address?: string | null
           shipping_city?: string | null
           shipping_complement?: string | null
@@ -998,6 +1003,7 @@ export type Database = {
           refunded_at?: string | null
           refunded_by?: string | null
           refunded_by_name?: string | null
+          search_norm?: string | null
           shipping_address?: string | null
           shipping_city?: string | null
           shipping_complement?: string | null
@@ -1167,6 +1173,7 @@ export type Database = {
           original_price: number | null
           peso_liquido: number | null
           price: number
+          search_norm: string | null
           size: string | null
           sku: string
           stock: number
@@ -1197,6 +1204,7 @@ export type Database = {
           original_price?: number | null
           peso_liquido?: number | null
           price: number
+          search_norm?: string | null
           size?: string | null
           sku?: string
           stock?: number
@@ -1227,6 +1235,7 @@ export type Database = {
           original_price?: number | null
           peso_liquido?: number | null
           price?: number
+          search_norm?: string | null
           size?: string | null
           sku?: string
           stock?: number
@@ -1794,6 +1803,7 @@ export type Database = {
         Args: { p_minutes?: number }
         Returns: number
       }
+      f_unaccent: { Args: { "": string }; Returns: string }
       find_variant_index: {
         Args: { _color: string; _variants: Json }
         Returns: number
@@ -1975,6 +1985,7 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       snapshot_product_prices_daily: { Args: never; Returns: number }
+      text_norm: { Args: { "": string }; Returns: string }
       unaccent: { Args: { "": string }; Returns: string }
       user_purchased_product: {
         Args: { _product_id: string; _user_id: string }
