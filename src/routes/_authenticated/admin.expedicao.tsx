@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { sanitizePostgrestTerm } from "@/lib/pgrst";
+import { sanitizePostgrestTerm, normalizeSearchTerm } from "@/lib/pgrst";
 import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass, Gift, Copy, Check, QrCode } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
@@ -356,7 +356,7 @@ function FulfillmentPage() {
     queryKey: ["fulfillment-search", search.trim()],
     enabled: allowed === true && searchActive,
     queryFn: async () => {
-      const term = sanitizePostgrestTerm(search);
+      const term = normalizeSearchTerm(search);
       const digits = search.replace(/\D/g, "").slice(0, 20);
       let q = supabase
         .from("orders")
@@ -365,9 +365,9 @@ function FulfillmentPage() {
         .order("created_at", { ascending: false })
         .limit(100);
       if (digits.length >= 3) {
-        q = q.or(`customer_name.ilike.%${term}%,customer_cpf.ilike.%${digits}%`);
+        q = q.or(`search_norm.ilike.%${term}%,customer_cpf.ilike.%${digits}%`);
       } else {
-        q = q.ilike("customer_name", `%${term}%`);
+        q = q.ilike("search_norm", `%${term}%`);
       }
       const { data: orders, error } = await q;
       if (error) throw error;
