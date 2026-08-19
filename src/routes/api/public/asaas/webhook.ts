@@ -64,13 +64,13 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
                 received_len: token.length,
                 expected_len: expected.length,
               });
-              return new Response("unauthorized", { status: 401 });
+              return new Response("ok", { status: 200 });
             }
             try {
               const { getPayment } = await import("@/lib/asaas.server");
               const remote = await getPayment(paymentId);
               if (!remote?.id) {
-                return new Response("unauthorized", { status: 401 });
+                return new Response("ok", { status: 200 });
               }
               if (payment) payment.status = remote.status ?? payment.status;
               // No caminho de fallback, a requisição pode ser forjada; o status
@@ -97,7 +97,7 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
               });
             } catch (verifyErr) {
               console.warn("[asaas:webhook] API verification failed", verifyErr);
-              return new Response("unauthorized", { status: 401 });
+              return new Response("ok", { status: 200 });
             }
           }
 
