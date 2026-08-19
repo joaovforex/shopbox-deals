@@ -48,10 +48,10 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
 
           const event = payload?.event ?? "";
           const payment = payload?.payment;
-          const reference = payment?.externalReference ?? "";
+          let reference = payment?.externalReference ?? "";
           const paymentId = payment?.id ?? "";
-          const paymentLinkId = payment?.paymentLink ?? "";
-          const checkoutSessionId = payment?.checkoutSession ?? "";
+          let paymentLinkId = payment?.paymentLink ?? "";
+          let checkoutSessionId = payment?.checkoutSession ?? "";
           let isPaid = false;
           let isCancel = false;
 
