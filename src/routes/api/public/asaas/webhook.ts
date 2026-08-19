@@ -85,9 +85,15 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
                 "OVERDUE",
                 "DELETED",
               ].includes(remoteStatus);
+              // O vínculo com o pedido também precisa vir da Asaas: o
+              // externalReference do payload é forjável neste caminho.
+              reference = remote.externalReference ?? "";
+              paymentLinkId = "";
+              checkoutSessionId = "";
               console.info("[asaas:webhook] token mismatch — verified via API", {
                 paymentId,
                 status: remote.status,
+                hasReference: reference.length > 0,
               });
             } catch (verifyErr) {
               console.warn("[asaas:webhook] API verification failed", verifyErr);
