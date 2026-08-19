@@ -31,7 +31,6 @@ import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedMeusPedidosRouteImport } from './routes/_authenticated/meus-pedidos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as ApiCheckoutAsaasCardRouteImport } from './routes/api/checkout/asaas-card'
-import { Route as ApiAdminAsaasCardDiagnosticRouteImport } from './routes/api/admin/asaas-card-diagnostic'
 import { Route as AuthenticatedAdminVendaManualRouteImport } from './routes/_authenticated/admin.venda-manual'
 import { Route as AuthenticatedAdminValeTrocaRouteImport } from './routes/_authenticated/admin.vale-troca'
 import { Route as AuthenticatedAdminSaudeRouteImport } from './routes/_authenticated/admin.saude'
@@ -163,12 +162,6 @@ const ApiCheckoutAsaasCardRoute = ApiCheckoutAsaasCardRouteImport.update({
   path: '/api/checkout/asaas-card',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAdminAsaasCardDiagnosticRoute =
-  ApiAdminAsaasCardDiagnosticRouteImport.update({
-    id: '/api/admin/asaas-card-diagnostic',
-    path: '/api/admin/asaas-card-diagnostic',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const AuthenticatedAdminVendaManualRoute =
   AuthenticatedAdminVendaManualRouteImport.update({
     id: '/venda-manual',
@@ -319,7 +312,6 @@ export interface FileRoutesByFullPath {
   '/admin/saude': typeof AuthenticatedAdminSaudeRoute
   '/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
-  '/api/admin/asaas-card-diagnostic': typeof ApiAdminAsaasCardDiagnosticRoute
   '/api/checkout/asaas-card': typeof ApiCheckoutAsaasCardRoute
   '/api/public/asaas/notifications-cleanup': typeof ApiPublicAsaasNotificationsCleanupRoute
   '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
@@ -363,7 +355,6 @@ export interface FileRoutesByTo {
   '/admin/saude': typeof AuthenticatedAdminSaudeRoute
   '/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
-  '/api/admin/asaas-card-diagnostic': typeof ApiAdminAsaasCardDiagnosticRoute
   '/api/checkout/asaas-card': typeof ApiCheckoutAsaasCardRoute
   '/api/public/asaas/notifications-cleanup': typeof ApiPublicAsaasNotificationsCleanupRoute
   '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
@@ -409,7 +400,6 @@ export interface FileRoutesById {
   '/_authenticated/admin/saude': typeof AuthenticatedAdminSaudeRoute
   '/_authenticated/admin/vale-troca': typeof AuthenticatedAdminValeTrocaRoute
   '/_authenticated/admin/venda-manual': typeof AuthenticatedAdminVendaManualRoute
-  '/api/admin/asaas-card-diagnostic': typeof ApiAdminAsaasCardDiagnosticRoute
   '/api/checkout/asaas-card': typeof ApiCheckoutAsaasCardRoute
   '/api/public/asaas/notifications-cleanup': typeof ApiPublicAsaasNotificationsCleanupRoute
   '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
@@ -455,7 +445,6 @@ export interface FileRouteTypes {
     | '/admin/saude'
     | '/admin/vale-troca'
     | '/admin/venda-manual'
-    | '/api/admin/asaas-card-diagnostic'
     | '/api/checkout/asaas-card'
     | '/api/public/asaas/notifications-cleanup'
     | '/api/public/asaas/reconcile'
@@ -499,7 +488,6 @@ export interface FileRouteTypes {
     | '/admin/saude'
     | '/admin/vale-troca'
     | '/admin/venda-manual'
-    | '/api/admin/asaas-card-diagnostic'
     | '/api/checkout/asaas-card'
     | '/api/public/asaas/notifications-cleanup'
     | '/api/public/asaas/reconcile'
@@ -544,7 +532,6 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/saude'
     | '/_authenticated/admin/vale-troca'
     | '/_authenticated/admin/venda-manual'
-    | '/api/admin/asaas-card-diagnostic'
     | '/api/checkout/asaas-card'
     | '/api/public/asaas/notifications-cleanup'
     | '/api/public/asaas/reconcile'
@@ -574,7 +561,6 @@ export interface RootRouteChildren {
   EtiquetaQrcodeRoute: typeof EtiquetaQrcodeRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
-  ApiAdminAsaasCardDiagnosticRoute: typeof ApiAdminAsaasCardDiagnosticRoute
   ApiCheckoutAsaasCardRoute: typeof ApiCheckoutAsaasCardRoute
   ApiPublicAsaasNotificationsCleanupRoute: typeof ApiPublicAsaasNotificationsCleanupRoute
   ApiPublicAsaasReconcileRoute: typeof ApiPublicAsaasReconcileRoute
@@ -739,13 +725,6 @@ declare module '@tanstack/react-router' {
       path: '/api/checkout/asaas-card'
       fullPath: '/api/checkout/asaas-card'
       preLoaderRoute: typeof ApiCheckoutAsaasCardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/admin/asaas-card-diagnostic': {
-      id: '/api/admin/asaas-card-diagnostic'
-      path: '/api/admin/asaas-card-diagnostic'
-      fullPath: '/api/admin/asaas-card-diagnostic'
-      preLoaderRoute: typeof ApiAdminAsaasCardDiagnosticRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/admin/venda-manual': {
@@ -960,7 +939,6 @@ const rootRouteChildren: RootRouteChildren = {
   EtiquetaQrcodeRoute: EtiquetaQrcodeRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
-  ApiAdminAsaasCardDiagnosticRoute: ApiAdminAsaasCardDiagnosticRoute,
   ApiCheckoutAsaasCardRoute: ApiCheckoutAsaasCardRoute,
   ApiPublicAsaasNotificationsCleanupRoute:
     ApiPublicAsaasNotificationsCleanupRoute,
