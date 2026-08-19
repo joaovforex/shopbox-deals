@@ -380,6 +380,14 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
       };
     } catch (err) {
       console.error("[asaas] create payment failed", err);
+      // Devolve o cashback já aplicado antes de cancelar o pedido.
+      try {
+        await supabaseAdmin.rpc("refund_cashback_for_order" as never, {
+          p_order_id: orderId as string,
+        } as never);
+      } catch (refundErr) {
+        console.error("[asaas] cashback refund on failure error", refundErr);
+      }
       await supabaseAdmin.from("orders").update({ status: "cancelled" } as never).eq("id", orderId as string);
       throw new Error(err instanceof Error ? err.message : "Falha ao iniciar pagamento");
     }

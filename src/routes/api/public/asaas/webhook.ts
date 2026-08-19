@@ -48,10 +48,10 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
 
           const event = payload?.event ?? "";
           const payment = payload?.payment;
-          const reference = payment?.externalReference ?? "";
+          let reference = payment?.externalReference ?? "";
           const paymentId = payment?.id ?? "";
-          const paymentLinkId = payment?.paymentLink ?? "";
-          const checkoutSessionId = payment?.checkoutSession ?? "";
+          let paymentLinkId = payment?.paymentLink ?? "";
+          let checkoutSessionId = payment?.checkoutSession ?? "";
           let isPaid = false;
           let isCancel = false;
 
@@ -85,9 +85,15 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
                 "OVERDUE",
                 "DELETED",
               ].includes(remoteStatus);
+              // O vínculo com o pedido também precisa vir da Asaas: o
+              // externalReference do payload é forjável neste caminho.
+              reference = remote.externalReference ?? "";
+              paymentLinkId = "";
+              checkoutSessionId = "";
               console.info("[asaas:webhook] token mismatch — verified via API", {
                 paymentId,
                 status: remote.status,
+                hasReference: reference.length > 0,
               });
             } catch (verifyErr) {
               console.warn("[asaas:webhook] API verification failed", verifyErr);
@@ -221,6 +227,16 @@ async function handleOrder(
   isCancel: boolean,
 ): Promise<void> {
   if (!orderId) return;
+
+  // Lê o estado ANTES de sobrescrever: um evento tardio não pode poluir os
+  // campos de um pedido já pago.
+  const { data: current } = await admin
+    .from("orders")
+    .select("status, cancellation_reason")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!current || current.status === "paid") return;
+
   await admin
     .from("orders")
     .update({
@@ -231,12 +247,6 @@ async function handleOrder(
     })
     .eq("id", orderId);
 
-  const { data: current } = await admin
-    .from("orders")
-    .select("status, cancellation_reason")
-    .eq("id", orderId)
-    .maybeSingle();
-  if (!current || current.status === "paid") return;
   // Pedido cancelado por expiração automática pode ser "ressuscitado" quando
   // o pagamento confirma logo depois.
   if (
@@ -257,7 +267,9 @@ async function handleOrder(
       return;
     }
     console.info("[asaas:webhook] order confirmed", { orderId, result });
-    if (result === "ok" || result === "already_paid") {
+    // Só na PRIMEIRA confirmação: evita duas corridas na transportadora
+    // numa corrida entre webhook e reconciliação.
+    if (result === "ok") {
       try {
         const { createDeliveryForOrder } = await import("@/lib/maisentregas.functions");
         await createDeliveryForOrder(orderId);
