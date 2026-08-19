@@ -274,31 +274,33 @@ export type AsaasCheckoutInput = {
 
 export type AsaasCheckoutResult = { id: string; url: string };
 
-/** Endereço padrão da loja: a Asaas exige endereço no customerData. */
-const CHECKOUT_FALLBACK_ADDRESS = {
-  postalCode: "13480000",
-  address: "Rua Comercial",
-  addressNumber: "S/N",
-  province: "Centro",
-};
-
 function digits(v: unknown): string {
   return String(v ?? "").replace(/\D/g, "");
 }
 
-function checkoutCustomerData(c: AsaasCheckoutInput["customer"], withPhone: boolean) {
+function hasCompleteAddress(c: AsaasCheckoutInput["customer"]): boolean {
   const zip = digits(c.postalCode);
   const phone = digits(c.phone);
+  return (
+    zip.length === 8 &&
+    phone.length >= 10 &&
+    Boolean(c.address?.trim()) &&
+    Boolean(String(c.addressNumber ?? "").trim()) &&
+    Boolean(c.province?.trim())
+  );
+}
+
+function checkoutCustomerData(c: AsaasCheckoutInput["customer"]) {
+  if (!hasCompleteAddress(c)) return undefined;
   return {
     name: c.name.trim().slice(0, 100),
     cpfCnpj: digits(c.cpfCnpj),
     email: c.email?.trim() || undefined,
-    // A Asaas valida o telefone; quando inválido reenviamos sem ele.
-    phone: withPhone && phone.length >= 10 ? phone : undefined,
-    postalCode: zip.length === 8 ? zip : CHECKOUT_FALLBACK_ADDRESS.postalCode,
-    address: c.address?.trim() || CHECKOUT_FALLBACK_ADDRESS.address,
-    addressNumber: String(c.addressNumber ?? "").trim() || CHECKOUT_FALLBACK_ADDRESS.addressNumber,
-    province: c.province?.trim() || CHECKOUT_FALLBACK_ADDRESS.province,
+    phone: digits(c.phone),
+    postalCode: digits(c.postalCode),
+    address: c.address!.trim(),
+    addressNumber: String(c.addressNumber!).trim(),
+    province: c.province!.trim(),
     // NÃO enviar `city`: a Asaas espera código IBGE numérico.
   };
 }
@@ -306,41 +308,66 @@ function checkoutCustomerData(c: AsaasCheckoutInput["customer"], withPhone: bool
 /**
  * Cria uma sessão de checkout hospedada com Pix + cartão e teto de parcelas.
  * A resposta traz `id` e `link` (URL do checkout).
+ *
+ * Robustez: tenta com customerData completo; se a Asaas recusar, tenta sem
+ * customerData (o cliente preenche na página hospedada). Só então cai no
+ * fallback da cobrança antiga.
  */
 export async function createAsaasCheckout(input: AsaasCheckoutInput): Promise<AsaasCheckoutResult> {
   const total = Number(input.value.toFixed(2));
-  const build = (withPhone: boolean) => ({
-    billingTypes: ["PIX", "CREDIT_CARD"],
-    chargeTypes: ["DETACHED", "INSTALLMENT"],
-    minutesToExpire: input.minutesToExpire ?? 60,
-    callback: {
-      successUrl: input.successUrl,
-      cancelUrl: input.cancelUrl,
-      expiredUrl: input.expiredUrl,
-    },
-    items: [{ name: input.itemName.slice(0, 100), value: total, quantity: 1 }],
-    installment: { maxInstallmentCount: input.maxInstallmentCount ?? 5 },
-    externalReference: input.externalReference,
-    customerData: checkoutCustomerData(input.customer, withPhone),
-  });
+  const completeCustomerData = checkoutCustomerData(input.customer);
+
+  const build = (withCustomerData: boolean) => {
+    const body: Record<string, unknown> = {
+      billingTypes: ["PIX", "CREDIT_CARD"],
+      chargeTypes: ["DETACHED", "INSTALLMENT"],
+      minutesToExpire: input.minutesToExpire ?? 60,
+      callback: {
+        successUrl: input.successUrl,
+        cancelUrl: input.cancelUrl,
+        expiredUrl: input.expiredUrl,
+      },
+      items: [{ name: input.itemName.slice(0, 100), value: total, quantity: 1 }],
+      installment: { maxInstallmentCount: input.maxInstallmentCount ?? 5 },
+      externalReference: input.externalReference,
+    };
+    if (withCustomerData && completeCustomerData) {
+      body.customerData = completeCustomerData;
+    }
+    return body;
+  };
 
   type CheckoutResponse = { id?: string; link?: string; status?: string };
+
+  const attempt = async (withCustomerData: boolean): Promise<CheckoutResponse> => {
+    console.info("[asaas] creating checkout", {
+      externalReference: input.externalReference,
+      withCustomerData,
+    });
+    return asaasFetch<CheckoutResponse>("/checkouts", {
+      method: "POST",
+      body: JSON.stringify(build(withCustomerData)),
+    });
+  };
+
   let res: CheckoutResponse;
   try {
-    res = await asaasFetch<CheckoutResponse>("/checkouts", {
-      method: "POST",
-      body: JSON.stringify(build(true)),
+    res = await attempt(true);
+  } catch (firstErr) {
+    const firstMsg = firstErr instanceof Error ? firstErr.message : "";
+    console.warn("[asaas] checkout with customerData failed, retrying without", {
+      externalReference: input.externalReference,
+      error: firstMsg,
     });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "";
-    if (/phone/i.test(msg)) {
-      // Telefone recusado pela Asaas: recria sem o telefone.
-      res = await asaasFetch<CheckoutResponse>("/checkouts", {
-        method: "POST",
-        body: JSON.stringify(build(false)),
+    try {
+      res = await attempt(false);
+    } catch (secondErr) {
+      const secondMsg = secondErr instanceof Error ? secondErr.message : "";
+      console.error("[asaas] checkout without customerData also failed", {
+        externalReference: input.externalReference,
+        error: secondMsg,
       });
-    } else {
-      throw new Error(msg || "Falha ao abrir o checkout da Asaas");
+      throw new Error(secondMsg || "Falha ao abrir o checkout da Asaas");
     }
   }
 
