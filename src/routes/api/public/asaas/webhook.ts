@@ -267,7 +267,9 @@ async function handleOrder(
       return;
     }
     console.info("[asaas:webhook] order confirmed", { orderId, result });
-    if (result === "ok" || result === "already_paid") {
+    // Só na PRIMEIRA confirmação: evita duas corridas na transportadora
+    // numa corrida entre webhook e reconciliação.
+    if (result === "ok") {
       try {
         const { createDeliveryForOrder } = await import("@/lib/maisentregas.functions");
         await createDeliveryForOrder(orderId);
