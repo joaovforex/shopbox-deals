@@ -488,6 +488,7 @@ export async function getPayment(id: string): Promise<{
   id: string;
   status: string;
   externalReference?: string | null;
+  checkoutSession?: string | null;
   invoiceUrl?: string | null;
   value?: number;
 }> {
@@ -620,6 +621,7 @@ export type AsaasPaymentSummary = {
   dueDate?: string | null;
   description?: string | null;
   externalReference?: string | null;
+  checkoutSession?: string | null;
   invoiceUrl?: string | null;
   confirmedDate?: string | null;
   creditCard?: { creditCardBrand?: string | null } | null;

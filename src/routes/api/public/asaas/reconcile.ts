@@ -36,9 +36,27 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
           return new Response("config", { status: 500 });
         }
 
-        const { getPayment, listPaymentsByReference, listPaymentsByPaymentLink } = await import(
-          "@/lib/asaas.server"
-        );
+        const {
+          getPayment,
+          listPaymentsByReference,
+          listPaymentsByPaymentLink,
+          listPaymentsCreatedSince,
+        } = await import("@/lib/asaas.server");
+
+        // Cache best-effort das cobranças recentes, usado só quando um pedido
+        // com Asaas Checkout não casa por externalReference.
+        let recentPayments: Awaited<ReturnType<typeof listPaymentsCreatedSince>> | null = null;
+        const getRecentPayments = async () => {
+          if (recentPayments) return recentPayments;
+          try {
+            const since = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+            recentPayments = await listPaymentsCreatedSince(since, 5);
+          } catch (err) {
+            console.error("[asaas:reconcile] recent payments scan error", err);
+            recentPayments = [];
+          }
+          return recentPayments;
+        };
 
         // Pedidos não aprovados precisam ser cancelados para devolver
         // cashback e estoque ao cliente. Sem isso o saldo fica "preso"
@@ -59,7 +77,9 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
 
         const { data: orders, error } = await supabaseAdmin
           .from("orders")
-          .select("id, status, total, cancellation_reason, asaas_payment_id, mp_preference_id")
+          .select(
+            "id, status, total, cancellation_reason, asaas_payment_id, mp_preference_id, asaas_checkout_id",
+          )
           .eq("payment_provider", "asaas")
           .in("status", ["pending", "cancelled"])
           .gte("created_at", sinceIso)
@@ -81,6 +101,7 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
             cancellation_reason: string | null;
             asaas_payment_id: string | null;
             mp_preference_id: string | null;
+            asaas_checkout_id: string | null;
           };
           // Cancelados só são recuperáveis quando a expiração automática cancelou.
           if (o.status === "cancelled" && o.cancellation_reason !== "expired") {
@@ -106,6 +127,17 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
               if (!paid && o.mp_preference_id) {
                 const byLink = await listPaymentsByPaymentLink(o.mp_preference_id);
                 paid = byLink.find((p) => PAID.has(p.status) && valueMatches(p.value));
+              }
+              // Rede de segurança do Asaas Checkout: casa pelo id da sessão,
+              // e só quando bate exatamente.
+              if (!paid && o.asaas_checkout_id) {
+                const recent = await getRecentPayments();
+                paid = recent.find(
+                  (p) =>
+                    p.checkoutSession === o.asaas_checkout_id &&
+                    PAID.has(p.status) &&
+                    valueMatches(p.value),
+                );
               }
               if (paid) {
                 paymentId = paid.id;
@@ -234,7 +266,9 @@ export const Route = createFileRoute("/api/public/asaas/reconcile")({
           const list = (await res.json()) as {
             data?: Array<{ id: string; interrupted?: boolean; enabled?: boolean }>;
           };
+          const OFFICIAL_WEBHOOK_ID = "a04f86cd-af52-4781-99cc-eb3fe754c019";
           for (const hook of list.data ?? []) {
+            if (hook.id !== OFFICIAL_WEBHOOK_ID) continue;
             if (hook.interrupted || hook.enabled === false) {
               await fetch(`https://api.asaas.com/v3/webhooks/${hook.id}`, {
                 method: "PUT",
