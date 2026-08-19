@@ -1,4 +1,5 @@
 import { queryOptions, infiniteQueryOptions, useQuery } from "@tanstack/react-query";
+import { normalizeSearchTerm } from "@/lib/pgrst";
 import { supabase } from "@/integrations/supabase/client";
 
 
@@ -159,8 +160,8 @@ async function fetchProductsPagedDirect(args: {
     .eq("active", true)
     .order("created_at", { ascending: false });
 
-  const term = args.search?.trim() ? cleanSearchTerm(args.search) : "";
-  if (term) query = query.ilike("name", `%${term}%`);
+  const term = args.search?.trim() ? normalizeSearchTerm(args.search) : "";
+  if (term) query = query.ilike("search_norm", `%${term}%`);
   if (args.category) query = query.eq("category", args.category);
   if (args.brand) query = query.eq("brand", args.brand);
   if (args.size) query = query.eq("size", args.size);

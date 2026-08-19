@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Minus, Trash2, Search, Copy, ExternalLink, Crown } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
+import { normalizeSearchTerm } from "@/lib/pgrst";
 import { supabase } from "@/integrations/supabase/client";
 import { getRoleSummary, type RoleSummary } from "@/lib/products";
 import { createManualSale, type ManualPaymentMethod } from "@/lib/manual-sale.functions";
@@ -72,7 +73,7 @@ function ManualSalePage() {
         .from("products")
         .select("id, name, price, stock, image_url, color_variants")
         .eq("active", true)
-        .ilike("name", `%${search.trim()}%`)
+        .ilike("search_norm", `%${normalizeSearchTerm(search)}%`)
         .limit(12);
       if (!cancel) {
         setResults((data ?? []) as unknown as ProductRow[]);
