@@ -99,7 +99,7 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
     const { findOrCreateCustomer, createAsaasCheckout, createPayment } = await import("@/lib/asaas.server");
 
     // Limpa pedidos pendentes antigos devolvendo o estoque
-    await supabaseAdmin.rpc("expire_stale_pending_orders" as never, { p_minutes: 5 } as never);
+    await supabaseAdmin.rpc("expire_stale_pending_orders" as never, { p_minutes: 20 } as never);
 
     // Bloqueio anti-duplicidade (mesmo do Mercado Pago)
     {
