@@ -227,6 +227,16 @@ async function handleOrder(
   isCancel: boolean,
 ): Promise<void> {
   if (!orderId) return;
+
+  // Lê o estado ANTES de sobrescrever: um evento tardio não pode poluir os
+  // campos de um pedido já pago.
+  const { data: current } = await admin
+    .from("orders")
+    .select("status, cancellation_reason")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!current || current.status === "paid") return;
+
   await admin
     .from("orders")
     .update({
@@ -237,12 +247,6 @@ async function handleOrder(
     })
     .eq("id", orderId);
 
-  const { data: current } = await admin
-    .from("orders")
-    .select("status, cancellation_reason")
-    .eq("id", orderId)
-    .maybeSingle();
-  if (!current || current.status === "paid") return;
   // Pedido cancelado por expiração automática pode ser "ressuscitado" quando
   // o pagamento confirma logo depois.
   if (
