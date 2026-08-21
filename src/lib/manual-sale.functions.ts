@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { maxInstallmentsFor } from "@/lib/installments";
 
 type CartItemInput = { product_id: string; quantity: number; color?: string | null };
 
