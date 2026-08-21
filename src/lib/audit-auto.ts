@@ -110,24 +110,59 @@ function firstId(data: unknown): string | null {
   return null;
 }
 
-function wrapThenable(builder: unknown, onResult: (res: { data?: unknown; error?: unknown }) => void) {
+type WrapResult = { data?: unknown; error?: unknown; before?: unknown };
+
+function wrapThenable(
+  builder: unknown,
+  onResult: (res: WrapResult) => void,
+  beforeExec?: () => Promise<unknown>,
+) {
   const b = builder as { then?: (...a: unknown[]) => unknown };
   if (!b || typeof b.then !== "function") return builder;
   const origThen = b.then.bind(b);
-  b.then = ((onFulfilled: (v: unknown) => unknown, onRejected?: (e: unknown) => unknown) =>
-    origThen(
+  b.then = ((onFulfilled: (v: unknown) => unknown, onRejected?: (e: unknown) => unknown) => {
+    let beforePromise: Promise<unknown> | undefined;
+    try {
+      beforePromise = beforeExec?.();
+    } catch {
+      /* ignora */
+    }
+    return origThen(
       (res: unknown) => {
         try {
-          onResult((res ?? {}) as { data?: unknown; error?: unknown });
+          const base = (res ?? {}) as WrapResult;
+          if (beforePromise) {
+            void beforePromise
+              .then((before) => onResult({ ...base, before }))
+              .catch(() => onResult(base));
+          } else {
+            onResult(base);
+          }
         } catch {
           /* ignora */
         }
         return onFulfilled ? onFulfilled(res) : res;
       },
       onRejected,
-    )) as never;
+    );
+  }) as never;
   return builder;
 }
+
+/** Tabelas em que vale capturar o estado anterior antes de um update. */
+const TRACK_BEFORE = new Set([
+  "products",
+  "orders",
+  "profiles",
+  "unidades",
+  "site_settings",
+  "short_links",
+  "user_roles",
+  "fiscal_config",
+  "product_reviews",
+]);
+
+const IGNORED_QS = new Set(["select", "columns", "on_conflict", "order", "limit", "offset"]);
 
 function installInterceptors() {
   const client = supabase as unknown as {
@@ -136,6 +171,27 @@ function installInterceptors() {
   };
 
   const origFrom = client.from.bind(client);
+
+  const fetchBefore = (table: string, builder: unknown, keys: string[]) => {
+    const url = (builder as { url?: URL }).url;
+    if (!url || keys.length === 0) return Promise.resolve(null);
+    try {
+      const q = (origFrom(table) as { select: (c: string) => unknown }).select(
+        ["id", ...keys].join(","),
+      ) as { url: URL };
+      for (const [k, v] of url.searchParams.entries()) {
+        if (IGNORED_QS.has(k)) continue;
+        q.url.searchParams.append(k, v);
+      }
+      q.url.searchParams.set("limit", "3");
+      return Promise.resolve(q as unknown as Promise<{ data?: unknown }>)
+        .then((r) => r?.data ?? null)
+        .catch(() => null);
+    } catch {
+      return Promise.resolve(null);
+    }
+  };
+
   client.from = (table: string) => {
     const builder = origFrom(table) as Record<string, unknown>;
     if (TABLE_DENYLIST.has(table)) return builder;
@@ -144,23 +200,52 @@ function installInterceptors() {
       if (typeof orig !== "function") continue;
       builder[op] = (...args: unknown[]) => {
         const result = orig.apply(builder, args);
-        const payload = op === "delete" ? undefined : sanitize(args[0]);
-        return wrapThenable(result, (res) => {
-          push({
-            action: `db.${op}.${table}`,
-            entity: table,
-            entity_id: firstId(res.data),
-            details: {
-              ok: !res.error,
-              ...(payload !== undefined ? { payload } : {}),
-              ...(res.error ? { erro: sanitize(res.error) } : {}),
-            },
-          });
-        });
+        const raw = args[0];
+        const payload = op === "delete" ? undefined : (sanitize(raw) as Record<string, unknown>);
+        const keys =
+          op === "update" && raw && typeof raw === "object" && !Array.isArray(raw)
+            ? Object.keys(raw as Record<string, unknown>).filter(
+                (k) => k !== "updated_at" && k !== "search_norm",
+              )
+            : [];
+        const wantsBefore = op === "update" && TRACK_BEFORE.has(table) && keys.length > 0;
+        return wrapThenable(
+          result,
+          (res) => {
+            const beforeRows = Array.isArray(res.before) ? (res.before as Record<string, unknown>[]) : null;
+            const antes =
+              beforeRows && beforeRows.length === 1
+                ? (sanitize(beforeRows[0]) as Record<string, unknown>)
+                : beforeRows && beforeRows.length > 1
+                  ? { registros: beforeRows.length }
+                  : undefined;
+            push({
+              action: `db.${op}.${table}`,
+              entity: table,
+              entity_id:
+                firstId(res.data) ??
+                (beforeRows && beforeRows.length === 1
+                  ? ((beforeRows[0]?.["id"] as string | undefined) ?? null)
+                  : null),
+              details: {
+                ok: !res.error,
+                ...(antes ? { antes } : {}),
+                ...(payload !== undefined
+                  ? op === "update"
+                    ? { depois: payload }
+                    : { payload }
+                  : {}),
+                ...(res.error ? { erro: sanitize(res.error) } : {}),
+              },
+            });
+          },
+          wantsBefore ? () => fetchBefore(table, result, keys) : undefined,
+        );
       };
     }
     return builder;
   };
+
 
   const origRpc = client.rpc.bind(client);
   client.rpc = (fn: string, args?: unknown, opts?: unknown) => {
