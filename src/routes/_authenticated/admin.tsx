@@ -323,9 +323,9 @@ function AdminPage() {
 
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-screen">
+    <div className="flex flex-col lg:flex-row min-h-screen w-full max-w-full overflow-x-hidden">
       <AdminSidebar roles={roles} />
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="flex-1 min-w-0 w-full flex flex-col">
       <Header />
 
       <section className="bg-card border-b-4 border-primary">
