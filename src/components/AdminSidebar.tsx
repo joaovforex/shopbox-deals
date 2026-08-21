@@ -6,6 +6,7 @@ import {
   ShoppingBag,
   QrCode,
   Undo2,
+  Coins,
   Gift,
   FileText,
   Radio,
