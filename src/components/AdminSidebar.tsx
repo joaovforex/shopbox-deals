@@ -35,6 +35,7 @@ const ITEMS: Item[] = [
   { to: "/admin/caixa-qr", label: "Caixa QR", icon: QrCode, color: "text-indigo-600", show: (r) => r.isSuperAdmin || r.isCashier },
   { to: "/admin/reembolsos", label: "Reembolsos", icon: Undo2, color: "text-rose-600", show: (r) => r.isSuperAdmin },
   { to: "/admin/vale-troca", label: "Vale-troca", icon: Gift, color: "text-pink-600", show: (r) => r.isSuperAdmin },
+  { to: "/admin/cashback", label: "Cashback", icon: Coins, color: "text-amber-500", show: (r) => r.isSuperAdmin },
   { to: "/admin/fiscal", label: "Fiscal", icon: FileText, color: "text-amber-600", show: (r) => r.isSuperAdmin },
   { to: "/admin/agendador-canal", label: "Canal", icon: Radio, color: "text-fuchsia-600", show: (r) => r.isSuperAdmin },
   { to: "/admin/links", label: "Links curtos", icon: Link2, color: "text-teal-600", show: (r) => r.isSuperAdmin },
