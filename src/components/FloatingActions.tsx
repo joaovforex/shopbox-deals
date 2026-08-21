@@ -7,7 +7,7 @@ const WHATSAPP_MESSAGE = "Preciso de ajuda com a loja online.";
 const INSTAGRAM_URL = "https://www.instagram.com/shopbox.colombo/";
 // Endereço padrão sincronizado com src/lib/whatsapp.ts — o valor real vem de site_settings.store_address.
 const DEFAULT_MAPS_ADDRESS = "Rua Emílio Gleber, 1118 — Atuba, Colombo / PR";
-const GROUP_URL = "https://shopboxonline.com/grupowhatsapp";
+const GROUP_URL = "https://shopbox-grupos.vercel.app/";
 
 const CONTACTS = [
   {
