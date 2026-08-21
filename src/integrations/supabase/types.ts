@@ -1611,6 +1611,15 @@ export type Database = {
       admin_cashback_outstanding: { Args: never; Returns: Json }
       admin_catalog_value: { Args: never; Returns: Json }
       admin_delete_products: { Args: { p_ids: string[] }; Returns: number }
+      admin_grant_cashback: {
+        Args: {
+          p_amount: number
+          p_days?: number
+          p_reason: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       admin_order_metrics: {
         Args: {
           p_category?: string

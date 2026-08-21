@@ -41,6 +41,7 @@ import { Route as AuthenticatedAdminFiscalRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminExpedicaoRouteImport } from './routes/_authenticated/admin.expedicao'
 import { Route as AuthenticatedAdminEquipeRouteImport } from './routes/_authenticated/admin.equipe'
 import { Route as AuthenticatedAdminConfiguracoesRouteImport } from './routes/_authenticated/admin.configuracoes'
+import { Route as AuthenticatedAdminCashbackRouteImport } from './routes/_authenticated/admin.cashback'
 import { Route as AuthenticatedAdminCaixaQrRouteImport } from './routes/_authenticated/admin.caixa-qr'
 import { Route as AuthenticatedAdminAuditoriaRouteImport } from './routes/_authenticated/admin.auditoria'
 import { Route as AuthenticatedAdminAgendadorCanalRouteImport } from './routes/_authenticated/admin.agendador-canal'
@@ -220,6 +221,12 @@ const AuthenticatedAdminConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const AuthenticatedAdminCashbackRoute =
+  AuthenticatedAdminCashbackRouteImport.update({
+    id: '/cashback',
+    path: '/cashback',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const AuthenticatedAdminCaixaQrRoute =
   AuthenticatedAdminCaixaQrRouteImport.update({
     id: '/caixa-qr',
@@ -302,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/caixa-qr': typeof AuthenticatedAdminCaixaQrRoute
+  '/admin/cashback': typeof AuthenticatedAdminCashbackRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/admin/equipe': typeof AuthenticatedAdminEquipeRoute
   '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
@@ -345,6 +353,7 @@ export interface FileRoutesByTo {
   '/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/caixa-qr': typeof AuthenticatedAdminCaixaQrRoute
+  '/admin/cashback': typeof AuthenticatedAdminCashbackRoute
   '/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/admin/equipe': typeof AuthenticatedAdminEquipeRoute
   '/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
@@ -390,6 +399,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
   '/_authenticated/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/_authenticated/admin/caixa-qr': typeof AuthenticatedAdminCaixaQrRoute
+  '/_authenticated/admin/cashback': typeof AuthenticatedAdminCashbackRoute
   '/_authenticated/admin/configuracoes': typeof AuthenticatedAdminConfiguracoesRoute
   '/_authenticated/admin/equipe': typeof AuthenticatedAdminEquipeRoute
   '/_authenticated/admin/expedicao': typeof AuthenticatedAdminExpedicaoRoute
@@ -435,6 +445,7 @@ export interface FileRouteTypes {
     | '/admin/agendador-canal'
     | '/admin/auditoria'
     | '/admin/caixa-qr'
+    | '/admin/cashback'
     | '/admin/configuracoes'
     | '/admin/equipe'
     | '/admin/expedicao'
@@ -478,6 +489,7 @@ export interface FileRouteTypes {
     | '/admin/agendador-canal'
     | '/admin/auditoria'
     | '/admin/caixa-qr'
+    | '/admin/cashback'
     | '/admin/configuracoes'
     | '/admin/equipe'
     | '/admin/expedicao'
@@ -522,6 +534,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/agendador-canal'
     | '/_authenticated/admin/auditoria'
     | '/_authenticated/admin/caixa-qr'
+    | '/_authenticated/admin/cashback'
     | '/_authenticated/admin/configuracoes'
     | '/_authenticated/admin/equipe'
     | '/_authenticated/admin/expedicao'
@@ -797,6 +810,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminConfiguracoesRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
+    '/_authenticated/admin/cashback': {
+      id: '/_authenticated/admin/cashback'
+      path: '/cashback'
+      fullPath: '/admin/cashback'
+      preLoaderRoute: typeof AuthenticatedAdminCashbackRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/_authenticated/admin/caixa-qr': {
       id: '/_authenticated/admin/caixa-qr'
       path: '/caixa-qr'
@@ -874,6 +894,7 @@ interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminAgendadorCanalRoute: typeof AuthenticatedAdminAgendadorCanalRoute
   AuthenticatedAdminAuditoriaRoute: typeof AuthenticatedAdminAuditoriaRoute
   AuthenticatedAdminCaixaQrRoute: typeof AuthenticatedAdminCaixaQrRoute
+  AuthenticatedAdminCashbackRoute: typeof AuthenticatedAdminCashbackRoute
   AuthenticatedAdminConfiguracoesRoute: typeof AuthenticatedAdminConfiguracoesRoute
   AuthenticatedAdminEquipeRoute: typeof AuthenticatedAdminEquipeRoute
   AuthenticatedAdminExpedicaoRoute: typeof AuthenticatedAdminExpedicaoRoute
@@ -890,6 +911,7 @@ const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminAgendadorCanalRoute: AuthenticatedAdminAgendadorCanalRoute,
   AuthenticatedAdminAuditoriaRoute: AuthenticatedAdminAuditoriaRoute,
   AuthenticatedAdminCaixaQrRoute: AuthenticatedAdminCaixaQrRoute,
+  AuthenticatedAdminCashbackRoute: AuthenticatedAdminCashbackRoute,
   AuthenticatedAdminConfiguracoesRoute: AuthenticatedAdminConfiguracoesRoute,
   AuthenticatedAdminEquipeRoute: AuthenticatedAdminEquipeRoute,
   AuthenticatedAdminExpedicaoRoute: AuthenticatedAdminExpedicaoRoute,
