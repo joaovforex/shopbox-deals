@@ -36,6 +36,26 @@ function AdminPage() {
   const refresh = async () => setRoles(await getRoleSummary());
   useEffect(() => { refresh(); }, []);
 
+  // Auditoria automática: registra escritas, RPCs e navegação de cada membro da equipe.
+  useEffect(() => {
+    if (!roles?.hasAnyTeamRole) return;
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data }) => {
+      const u = data.user;
+      if (cancelled || !u) return;
+      const meta = u.user_metadata as Record<string, unknown> | undefined;
+      startAutoAudit({ id: u.id, name: (meta?.full_name as string | undefined) ?? u.email ?? null });
+      auditPageView(window.location.pathname);
+    });
+    return () => { cancelled = true; };
+  }, [roles?.hasAnyTeamRole]);
+
+  useEffect(() => {
+    if (!roles?.hasAnyTeamRole) return;
+    auditPageView(pathname);
+  }, [pathname, roles?.hasAnyTeamRole]);
+
+
   // Cargo Caixa (sem catálogo/expedição) vai direto para Caixa QR
   useEffect(() => {
     if (!isChildRoute && roles && !roles.isCatalog && !roles.isFulfillment && roles.isCashier) {
