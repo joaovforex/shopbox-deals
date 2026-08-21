@@ -515,7 +515,8 @@ function CheckoutPage() {
                 Pague com Pix, cartão de crédito, débito ou boleto na próxima etapa.
               </p>
               <p className="text-xs text-muted-foreground">
-                No cartão você pode parcelar na próxima etapa.
+                No cartão você escolhe o parcelamento na próxima etapa (até {MAX_INSTALLMENTS}x sem juros,
+                parcela mínima de {brl(MIN_INSTALLMENT_VALUE)}).
               </p>
               <p className="text-xs text-muted-foreground">
                 O pedido fica reservado por alguns minutos enquanto aguardamos a confirmação do pagamento.
@@ -601,6 +602,11 @@ function CheckoutPage() {
                   <span className="font-bold">Total</span>
                   <span className="display text-2xl text-price">{brl(grandTotal)}</span>
                 </div>
+                {installmentLabel(grandTotal) && (
+                  <p className="text-xs text-muted-foreground text-right -mt-1">
+                    ou no cartão {installmentLabel(grandTotal)}
+                  </p>
+                )}
                 <div className="text-[11px] text-[#25D366] font-bold text-center -mt-1">
                   💰 Você ganhará {brl(calculateCashback(total - cashbackApply, cashbackRate))} em cashback nesta compra
                 </div>
