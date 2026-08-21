@@ -21,7 +21,7 @@ export function installmentPlans(total: number): { count: number; value: number 
   }));
 }
 
-/** Texto curto do melhor parcelamento, ex.: "em até 7x de R$ 28,57 sem juros". */
+/** Texto curto do melhor parcelamento, ex.: "em até 5x de R$ 40,00 sem juros". */
 export function installmentLabel(total: number): string | null {
   const max = maxInstallmentsFor(total);
   if (!(total > 0) || max < 2) return null;
