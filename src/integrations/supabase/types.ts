@@ -1860,6 +1860,7 @@ export type Database = {
           sku: string
           stock: number
           total_count: number
+          unidade_id: string
         }[]
       }
       list_used_categories: {
