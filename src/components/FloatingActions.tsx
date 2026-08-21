@@ -15,11 +15,6 @@ const CONTACTS = [
     description: "Produtos diversos",
     number: "5541995829892",
   },
-  {
-    label: "João",
-    description: "Autopeças",
-    number: "5541999232414",
-  },
 ];
 
 function whatsappHref(number: string) {
