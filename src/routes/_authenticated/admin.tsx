@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Share2, Eye, EyeOff, Crown, Truck, Package, ShieldAlert, CheckSquare, Square, XSquare } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { AdminSidebar } from "@/components/AdminSidebar";
+import { startAutoAudit, auditPageView } from "@/lib/audit-auto";
+
 import { supabase } from "@/integrations/supabase/client";
 import { adminProductsInfiniteQuery, getRoleSummary, type Product, type RoleSummary } from "@/lib/products";
 import { claimFirstAdmin } from "@/lib/admin.functions";
