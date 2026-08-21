@@ -100,7 +100,7 @@ export const createManualSale = createServerFn({ method: "POST" })
         name: `Venda shopbox ${(orderId as string).slice(0, 8).toUpperCase()}`,
         value: total,
         description: `Venda manual para ${data.customer_name.trim()}`,
-        maxInstallmentCount: 7,
+        maxInstallmentCount: maxInstallmentsFor(total),
       });
 
       await supabaseAdmin
