@@ -173,7 +173,7 @@ export function AdminSidebar({ roles }: { roles: RoleSummary }) {
       </aside>
 
       {/* Mobile/tablet: botão de menu + painel agrupado */}
-      <nav className="lg:hidden sticky top-0 z-30 bg-card border-b border-border">
+      <nav className="lg:hidden relative z-20 w-full max-w-full overflow-x-hidden bg-card border-b border-border">
         <button
           type="button"
           onClick={() => setMobileOpen((v) => !v)}
