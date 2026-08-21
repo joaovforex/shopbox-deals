@@ -125,7 +125,7 @@ function AuditLogPage() {
                   </>
                 );
                 return href ? (
-                  <Link key={r.id} to={href} className="bg-card border border-border rounded-lg p-3 block hover:border-primary">
+                  <Link key={r.id} to={href as never} className="bg-card border border-border rounded-lg p-3 block hover:border-primary">
                     {body}
                   </Link>
                 ) : (
@@ -153,7 +153,7 @@ function AuditLogPage() {
                       <tr
                         key={r.id}
                         className={`border-t border-border align-top ${href ? "hover:bg-secondary/60 cursor-pointer" : ""}`}
-                        onClick={href ? () => navigate({ to: href }) : undefined}
+                        onClick={href ? () => navigate({ to: href as never }) : undefined}
                       >
                         <td className="p-3 whitespace-nowrap text-xs text-muted-foreground">{fmt(r.created_at)}</td>
                         <td className="p-3">{r.user_name ?? "—"}</td>
