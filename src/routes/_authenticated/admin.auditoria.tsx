@@ -6,6 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { getRoleSummary, type RoleSummary } from "@/lib/products";
 import { normalizeSearchTerm } from "@/lib/pgrst";
 import { AdminSkeleton } from "@/components/admin/AdminSkeleton";
+import { actionLabel, situationText, auditLink, type AuditLogRow } from "@/lib/audit-format";
+import { Link } from "@tanstack/react-router";
+import { ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/auditoria")({
   head: () => ({
@@ -19,16 +22,7 @@ export const Route = createFileRoute("/_authenticated/admin/auditoria")({
 
 const PAGE_SIZE = 50;
 
-type AuditRow = {
-  id: string;
-  user_id: string | null;
-  user_name: string | null;
-  action: string;
-  entity: string;
-  entity_id: string | null;
-  details: Record<string, unknown> | null;
-  created_at: string;
-};
+type AuditRow = AuditLogRow;
 
 function fmt(ts: string) {
   return new Date(ts).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
@@ -38,6 +32,7 @@ function AuditLogPage() {
   const [roles, setRoles] = useState<RoleSummary | null>(null);
   const [page, setPage] = useState(0);
   const [term, setTerm] = useState("");
+  const navigate = Route.useNavigate();
 
   useEffect(() => { getRoleSummary().then(setRoles); }, []);
 
@@ -112,23 +107,31 @@ function AuditLogPage() {
           <>
             {/* Mobile: cartões */}
             <div className="md:hidden flex flex-col gap-3">
-              {rows.map((r) => (
-                <div key={r.id} className="bg-card border border-border rounded-lg p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-sm truncate">{r.action}</span>
-                    <span className="text-[11px] text-muted-foreground shrink-0">{fmt(r.created_at)}</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {r.entity}{r.entity_id ? ` · ${r.entity_id.slice(0, 8)}` : ""}
-                  </div>
-                  <div className="text-xs mt-1">{r.user_name ?? "—"}</div>
-                  {r.details && Object.keys(r.details).length > 0 && (
-                    <pre className="mt-2 text-[10px] bg-muted rounded p-2 overflow-x-auto">
-                      {JSON.stringify(r.details, null, 2)}
-                    </pre>
-                  )}
-                </div>
-              ))}
+              {rows.map((r) => {
+                const href = auditLink(r);
+                const body = (
+                  <>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-sm truncate">{actionLabel(r)}</span>
+                      <span className="text-[11px] text-muted-foreground shrink-0">{fmt(r.created_at)}</span>
+                    </div>
+                    <div className="text-xs mt-1">{r.user_name ?? "—"}</div>
+                    <div className="text-xs text-muted-foreground mt-1">{situationText(r)}</div>
+                    {href && (
+                      <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary">
+                        Ver <ExternalLink className="h-3 w-3" />
+                      </span>
+                    )}
+                  </>
+                );
+                return href ? (
+                  <Link key={r.id} to={href} className="bg-card border border-border rounded-lg p-3 block hover:border-primary">
+                    {body}
+                  </Link>
+                ) : (
+                  <div key={r.id} className="bg-card border border-border rounded-lg p-3">{body}</div>
+                );
+              })}
             </div>
 
             {/* Desktop: tabela */}
@@ -139,31 +142,29 @@ function AuditLogPage() {
                     <th className="p-3">Quando</th>
                     <th className="p-3">Usuário</th>
                     <th className="p-3">Ação</th>
-                    <th className="p-3">Entidade</th>
-                    <th className="p-3">Detalhes</th>
+                    <th className="p-3">Situação</th>
+                    <th className="p-3 w-10"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r) => (
-                    <tr key={r.id} className="border-t border-border align-top">
-                      <td className="p-3 whitespace-nowrap text-xs text-muted-foreground">{fmt(r.created_at)}</td>
-                      <td className="p-3">{r.user_name ?? "—"}</td>
-                      <td className="p-3 font-semibold">{r.action}</td>
-                      <td className="p-3 text-xs">
-                        {r.entity}
-                        {r.entity_id && <div className="font-mono text-muted-foreground">{r.entity_id.slice(0, 8)}</div>}
-                      </td>
-                      <td className="p-3">
-                        {r.details && Object.keys(r.details).length > 0 ? (
-                          <pre className="text-[10px] bg-muted rounded p-2 max-w-md overflow-x-auto">
-                            {JSON.stringify(r.details)}
-                          </pre>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  {rows.map((r) => {
+                    const href = auditLink(r);
+                    return (
+                      <tr
+                        key={r.id}
+                        className={`border-t border-border align-top ${href ? "hover:bg-secondary/60 cursor-pointer" : ""}`}
+                        onClick={href ? () => navigate({ to: href }) : undefined}
+                      >
+                        <td className="p-3 whitespace-nowrap text-xs text-muted-foreground">{fmt(r.created_at)}</td>
+                        <td className="p-3">{r.user_name ?? "—"}</td>
+                        <td className="p-3 font-semibold">{actionLabel(r)}</td>
+                        <td className="p-3 text-xs text-muted-foreground max-w-xl">{situationText(r)}</td>
+                        <td className="p-3">
+                          {href && <ExternalLink className="h-4 w-4 text-primary" />}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
