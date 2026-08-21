@@ -9,6 +9,7 @@ import { ProductForm } from "@/components/ProductForm";
 import { RelatedProducts } from "@/components/RelatedProducts";
 import { ProductReviews } from "@/components/ProductReviews";
 import { brl, discountPct, postDate } from "@/lib/format";
+import { installmentLabel } from "@/lib/installments";
 import { calculateCashback } from "@/lib/cashback-config";
 import { useSiteSettings } from "@/lib/site-settings";
 import { fetchProduct, getRoleSummary, productImages, type Product } from "@/lib/products";
@@ -354,6 +355,11 @@ function ProductPage() {
                 <span className="text-5xl display text-price">{brl(product.price)}</span>
                 {off > 0 && <span className="text-deal font-black">-{off}%</span>}
               </div>
+              {installmentLabel(product.price) && (
+                <div className="mt-1 text-sm text-muted-foreground">
+                  ou no cartão {installmentLabel(product.price)}
+                </div>
+              )}
               <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-[#25D366]/15 text-[#25D366] px-2.5 py-1 rounded">
                 💰 Ganhe {brl(calculateCashback(product.price, cashbackRate))} em cashback
               </div>
