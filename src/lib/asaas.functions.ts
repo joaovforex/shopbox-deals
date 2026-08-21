@@ -316,7 +316,7 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
       const callbackOrigin = isPublicHttpsOrigin(origin) ? origin : "https://shopboxonline.com";
       const successUrl = `${callbackOrigin}/pedido/${orderId}`;
 
-      // Asaas Checkout hospedado: parcelamento até 7x (parcela mínima R$ 5).
+      // Asaas Checkout hospedado: parcelamento até 5x (parcela mínima R$ 5).
       // Fallback para cobrança única UNDEFINED se o checkout recusar dados do cliente.
       let invoiceUrl: string;
       let paymentOrCheckoutId: string;

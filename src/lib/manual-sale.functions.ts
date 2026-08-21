@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { maxInstallmentsFor } from "@/lib/installments";
 
 type CartItemInput = { product_id: string; quantity: number; color?: string | null };
 
@@ -99,7 +100,7 @@ export const createManualSale = createServerFn({ method: "POST" })
         name: `Venda shopbox ${(orderId as string).slice(0, 8).toUpperCase()}`,
         value: total,
         description: `Venda manual para ${data.customer_name.trim()}`,
-        maxInstallmentCount: 7,
+        maxInstallmentCount: maxInstallmentsFor(total),
       });
 
       await supabaseAdmin

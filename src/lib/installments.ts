@@ -1,5 +1,5 @@
-/** Limites de parcelamento no cartão: até 7x e nunca abaixo de R$ 5,00 por parcela. */
-export const MAX_INSTALLMENTS = 7;
+/** Limites de parcelamento no cartão: até 5x e nunca abaixo de R$ 5,00 por parcela. */
+export const MAX_INSTALLMENTS = 5;
 export const MIN_INSTALLMENT_VALUE = 5;
 
 export function maxInstallmentsFor(total: number): number {
@@ -21,7 +21,7 @@ export function installmentPlans(total: number): { count: number; value: number 
   }));
 }
 
-/** Texto curto do melhor parcelamento, ex.: "em até 7x de R$ 28,57 sem juros". */
+/** Texto curto do melhor parcelamento, ex.: "em até 5x de R$ 40,00 sem juros". */
 export function installmentLabel(total: number): string | null {
   const max = maxInstallmentsFor(total);
   if (!(total > 0) || max < 2) return null;
