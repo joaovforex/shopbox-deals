@@ -67,6 +67,9 @@ export const Route = createFileRoute("/api/public/maisentregas/poll")({
           .select("id, maisentregas_order_id")
           .not("maisentregas_order_id", "is", null)
           .not("maisentregas_status", "in", "(entregue,cancelado,devolvido)")
+          // Ignora corridas que a API rejeita por falta de acesso (token de
+          // outra conta) — senão o mesmo pedido erra em todo cron.
+          .or("maisentregas_last_error.is.null,maisentregas_last_error.not.ilike.[sem-acesso]%")
           .limit(100);
         for (const o of active ?? []) {
           try {
