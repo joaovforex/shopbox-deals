@@ -8,6 +8,7 @@ import { Header, Footer } from "@/components/Header";
 import { useCart, cartItemKey, type CartItem } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
+import { installmentLabel, MAX_INSTALLMENTS, MIN_INSTALLMENT_VALUE } from "@/lib/installments";
 import { createAsaasPayment } from "@/lib/asaas.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { calculateCashback } from "@/lib/cashback-config";
