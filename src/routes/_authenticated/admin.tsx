@@ -157,9 +157,9 @@ function AdminPage() {
   if (isChildRoute) {
     if (!roles) return <Outlet />;
     return (
-      <div className="flex flex-col lg:flex-row min-h-screen">
+      <div className="flex flex-col lg:flex-row min-h-screen w-full max-w-full overflow-x-hidden">
         <AdminSidebar roles={roles} />
-        <div className="flex-1 min-w-0 flex flex-col"><Outlet /></div>
+        <div className="flex-1 min-w-0 w-full flex flex-col pb-20 lg:pb-0"><Outlet /></div>
       </div>
     );
   }
