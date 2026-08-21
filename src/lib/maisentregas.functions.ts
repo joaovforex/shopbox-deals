@@ -277,10 +277,19 @@ export async function pollOrderStatus(orderRowId: string, meOrderId: string): Pr
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[maisentregas] pollOrderStatus failed", { orderRowId, meOrderId, msg });
+    // 401 / "não tem acesso a esta OS": a OS pertence a outra conta da Mais
+    // Entregas (token trocado). Nunca vai resolver sozinho — marcamos o erro
+    // com um prefixo para o poller parar de tentar indefinidamente.
+    const noAccess = /\b401\b/.test(msg) || /n[ãa]o tem acesso/i.test(msg);
+    const prefix = noAccess ? "[sem-acesso] " : "";
+    if (noAccess) {
+      console.error("[maisentregas] pollOrderStatus sem acesso — parando de acompanhar", { orderRowId, meOrderId });
+    } else {
+      console.error("[maisentregas] pollOrderStatus failed", { orderRowId, meOrderId, msg });
+    }
     await supabaseAdmin.from("orders").update({
       maisentregas_last_check_at: new Date().toISOString(),
-      maisentregas_last_error: msg.slice(0, 800),
+      maisentregas_last_error: (prefix + msg).slice(0, 800),
     }).eq("id", orderRowId);
   }
 }
