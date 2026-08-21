@@ -315,7 +315,7 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
       const callbackOrigin = isPublicHttpsOrigin(origin) ? origin : "https://shopboxonline.com";
       const successUrl = `${callbackOrigin}/pedido/${orderId}`;
 
-      // Asaas Checkout hospedado: parcelamento limitado a 5x.
+      // Asaas Checkout hospedado: parcelamento até 7x (parcela mínima R$ 5).
       // Fallback para cobrança única UNDEFINED se o checkout recusar dados do cliente.
       let invoiceUrl: string;
       let paymentOrCheckoutId: string;
@@ -325,7 +325,7 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
           value: grandTotal,
           externalReference: orderId as string,
           itemName: description,
-          maxInstallmentCount: 5,
+          maxInstallmentCount: maxInstallmentsFor(grandTotal),
           successUrl,
           cancelUrl: `${callbackOrigin}/checkout`,
           expiredUrl: `${callbackOrigin}/checkout`,
@@ -453,7 +453,7 @@ export const resumeAsaasPayment = createServerFn({ method: "POST" })
         value: total,
         externalReference: order.id,
         itemName: `Pedido shopbox ${order.id.slice(0, 8).toUpperCase()}`,
-        maxInstallmentCount: 5,
+        maxInstallmentCount: maxInstallmentsFor(total),
         successUrl,
         cancelUrl: `${callbackOrigin}/checkout`,
         expiredUrl: `${callbackOrigin}/checkout`,
