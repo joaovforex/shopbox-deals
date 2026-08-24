@@ -523,21 +523,27 @@ function CheckoutPage() {
             )}
           </Section>
 
-          <Section title="Pagamento">
+          <Section title={`Pagamento pela ${providerName}`}>
             <div className="bg-secondary rounded-md p-4 text-sm space-y-3">
-              <p className="font-semibold">Você será redirecionado para concluir o pagamento com segurança</p>
-              <p className="text-muted-foreground">
-                Pague com Pix, cartão de crédito, débito ou boleto na próxima etapa.
+              <p className="font-semibold">
+                Ao clicar em pagar, você abre a página oficial da {providerName} e escolhe como pagar:
+              </p>
+              <ul className="text-muted-foreground space-y-1">
+                <li>• <strong>Pix</strong> — confirmação na hora, pedido liberado em segundos</li>
+                <li>• <strong>Cartão de crédito</strong> — até {MAX_INSTALLMENTS}x sem juros (parcela mínima de {brl(MIN_INSTALLMENT_VALUE)})</li>
+                <li>• <strong>Cartão de débito</strong> — aprovação imediata</li>
+              </ul>
+              <p className="text-xs text-muted-foreground">
+                Seus dados de cartão são digitados direto no ambiente da {providerName} — a shopbox nunca vê o número do
+                seu cartão. Assim que a {providerName} confirmar, seu pedido aparece em <strong>Meus pedidos</strong>
+                {" "}automaticamente.
               </p>
               <p className="text-xs text-muted-foreground">
-                No cartão você escolhe o parcelamento na próxima etapa (até {MAX_INSTALLMENTS}x sem juros,
-                parcela mínima de {brl(MIN_INSTALLMENT_VALUE)}).
-              </p>
-              <p className="text-xs text-muted-foreground">
-                O pedido fica reservado por alguns minutos enquanto aguardamos a confirmação do pagamento.
+                Reservamos seus itens por 20 minutos enquanto o pagamento é concluído.
               </p>
             </div>
           </Section>
+
 
         </div>
 
