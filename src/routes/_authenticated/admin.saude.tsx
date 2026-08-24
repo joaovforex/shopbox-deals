@@ -91,7 +91,26 @@ async function loadHealth() {
     cashbackEntries,
     unauthorized24h: unauthorized.count ?? 0,
     pendingOrders24h: pendingOrders.count ?? 0,
+    webhooks24h: webhooks24h.count ?? 0,
+    webhookErrors24h: webhookFailures.count ?? 0,
+    webhookErrorSamples: ((webhookFailures.data ?? []) as Array<{
+      id: string;
+      processed_at: string;
+      payment_id: string | null;
+      raw_payload: unknown;
+    }>).map((e) => {
+      const log = (e.raw_payload as { _log?: { stage?: string; detail?: string; orderId?: string } } | null)?._log;
+      return {
+        id: e.id,
+        at: e.processed_at,
+        paymentId: e.payment_id,
+        stage: log?.stage ?? "desconhecido",
+        detail: log?.detail ?? "sem detalhe",
+        orderId: log?.orderId ?? null,
+      };
+    }),
   };
+
 }
 
 type Tone = "ok" | "warn" | "bad";
