@@ -5,6 +5,7 @@ import { CheckCircle2, Package, Store, Clock, ArrowRight, Sparkles, Truck, Alert
 import { Header, Footer } from "@/components/Header";
 import { getPublicOrder } from "@/lib/orders.functions";
 import { resumeAsaasPayment } from "@/lib/asaas.functions";
+import { resumeCieloPayment } from "@/lib/cielo.functions";
 import { brl } from "@/lib/format";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
 import { mpStatusDetailMessage } from "@/lib/cpf";
@@ -86,7 +87,7 @@ function OrderPage() {
               {isCancelled
                 ? "Não recebemos a confirmação do pagamento."
                 : isPending
-                  ? "Assim que a Asaas confirmar, atualizamos esta página automaticamente."
+                  ? "Assim que o pagamento for confirmado, atualizamos esta página automaticamente."
                   : isDone
                     ? "Obrigado pela compra! 💚"
                     : isDelivery
@@ -116,7 +117,7 @@ function OrderPage() {
                 <p className="font-bold text-foreground mb-1">{rejectionInfo.title}</p>
                 <p className="text-muted-foreground leading-relaxed">{rejectionInfo.description}</p>
                 {rejectionInfo.retryable && (
-                  <RetryPaymentButton orderId={id} />
+                  <RetryPaymentButton orderId={id} paymentMethod={data.order.payment_method} />
                 )}
               </div>
             </div>
@@ -250,9 +251,11 @@ function OrderPage() {
   );
 }
 
-function RetryPaymentButton({ orderId }: { orderId: string }) {
+function RetryPaymentButton({ orderId, paymentMethod }: { orderId: string; paymentMethod: string }) {
   const [loading, setLoading] = useState(false);
-  const resume = useServerFn(resumeAsaasPayment);
+  const resumeAsaas = useServerFn(resumeAsaasPayment);
+  const resumeCielo = useServerFn(resumeCieloPayment);
+  const resume = paymentMethod === "asaas" ? resumeAsaas : resumeCielo;
   const onClick = async () => {
     setLoading(true);
     try {
