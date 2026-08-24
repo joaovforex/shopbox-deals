@@ -118,6 +118,8 @@ function CheckoutPage() {
   const { data: settings } = useSiteSettings();
   const provider = settings?.payment_provider === "asaas" ? "asaas" : "cielo";
   const createCheckout = provider === "asaas" ? createAsaasCheckout : createCieloCheckout;
+  const providerName = provider === "asaas" ? "Asaas" : "Cielo";
+
   const cashbackRate = settings?.cashback_rate ?? 0.05;
 
   const [cashbackBalance, setCashbackBalance] = useState(0);
@@ -145,12 +147,16 @@ function CheckoutPage() {
     (async () => {
       try {
         const r = await fetchCashback();
-        setCashbackBalance(Number(r.balance ?? 0));
+        const balance = Number(r.balance ?? 0);
+        setCashbackBalance(balance);
         setCashbackExpiry(r.nextExpiry ?? null);
+        // Já vem marcado: um clique a menos para quem tem saldo (pode desmarcar).
+        setUseCashback(balance > 0);
       } catch {
         setCashbackBalance(0);
       }
     })();
+
   }, [user, fetchCashback]);
 
   const [name, setName] = useState("");
@@ -361,8 +367,12 @@ function CheckoutPage() {
           </Link>
           <h1 className="display text-3xl md:text-4xl">Finalizar compra</h1>
           <div className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
-            Pagamento 100% seguro · Pix, cartão ou boleto
+            {providerName} · ambiente 100% seguro
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Só falta 1 passo: confira seus dados e clique em pagar — o restante você faz na página da {providerName}.
+          </p>
+
         </div>
       </section>
 
@@ -513,21 +523,27 @@ function CheckoutPage() {
             )}
           </Section>
 
-          <Section title="Pagamento">
+          <Section title={`Pagamento pela ${providerName}`}>
             <div className="bg-secondary rounded-md p-4 text-sm space-y-3">
-              <p className="font-semibold">Você será redirecionado para concluir o pagamento com segurança</p>
-              <p className="text-muted-foreground">
-                Pague com Pix, cartão de crédito, débito ou boleto na próxima etapa.
+              <p className="font-semibold">
+                Ao clicar em pagar, você abre a página oficial da {providerName} e escolhe como pagar:
+              </p>
+              <ul className="text-muted-foreground space-y-1">
+                <li>• <strong>Pix</strong> — confirmação na hora, pedido liberado em segundos</li>
+                <li>• <strong>Cartão de crédito</strong> — até {MAX_INSTALLMENTS}x sem juros (parcela mínima de {brl(MIN_INSTALLMENT_VALUE)})</li>
+                <li>• <strong>Cartão de débito</strong> — aprovação imediata</li>
+              </ul>
+              <p className="text-xs text-muted-foreground">
+                Seus dados de cartão são digitados direto no ambiente da {providerName} — a shopbox nunca vê o número do
+                seu cartão. Assim que a {providerName} confirmar, seu pedido aparece em <strong>Meus pedidos</strong>
+                {" "}automaticamente.
               </p>
               <p className="text-xs text-muted-foreground">
-                No cartão você escolhe o parcelamento na próxima etapa (até {MAX_INSTALLMENTS}x sem juros,
-                parcela mínima de {brl(MIN_INSTALLMENT_VALUE)}).
-              </p>
-              <p className="text-xs text-muted-foreground">
-                O pedido fica reservado por alguns minutos enquanto aguardamos a confirmação do pagamento.
+                Reservamos seus itens por 20 minutos enquanto o pagamento é concluído.
               </p>
             </div>
           </Section>
+
 
         </div>
 
@@ -620,14 +636,18 @@ function CheckoutPage() {
                   disabled={busy || (delivery === "delivery" && coverageOk !== true)}
                   className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] transition-transform disabled:opacity-60 disabled:scale-100"
                 >
-                  {busy ? "Redirecionando..." : `Pagar ${brl(grandTotal)}`}
+                  {busy ? `Abrindo ${providerName}...` : `Pagar ${brl(grandTotal)}`}
                 </button>
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Pix, cartão de crédito em até {MAX_INSTALLMENTS}x ou débito na próxima tela
+                </p>
               </>
             );
           })()}
           <p className="text-[11px] text-muted-foreground text-center">
-            Ao confirmar você aceita os termos da loja. Pagamento processado com segurança pela {provider === "asaas" ? "Asaas" : "Cielo"}.
+            Ao confirmar você aceita os termos da loja. Pagamento processado com segurança pela {providerName}.
           </p>
+
         </aside>
       </form>
 

@@ -45,11 +45,12 @@ function RedirectingPage() {
 
       <div className="relative z-10 mt-10 text-center space-y-3">
         <h1 className="display text-2xl md:text-4xl">
-          Redirecionando para o pagamento{dots}
+          Abrindo o pagamento seguro{dots}
         </h1>
         <p className="text-muted-foreground text-sm md:text-base">
-          Estamos te levando para concluir o pagamento com segurança.
+          Você vai concluir com Pix, cartão de crédito ou débito no ambiente oficial da Cielo.
         </p>
+
         {target && (
           <p className="text-sm md:text-base">
             Se a página não abrir automaticamente,{" "}

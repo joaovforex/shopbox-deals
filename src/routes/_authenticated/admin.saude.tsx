@@ -53,6 +53,8 @@ async function loadHealth() {
     cashback,
     unauthorized,
     pendingOrders,
+    webhooks24h,
+    webhookFailures,
   ] = await Promise.all([
     supabase.from("cielo_webhook_events").select("processed_at").order("processed_at", { ascending: false }).limit(1),
     supabase.from("orders").select("mp_last_attempt_at").not("mp_last_attempt_at", "is", null).order("mp_last_attempt_at", { ascending: false }).limit(1),
@@ -62,7 +64,16 @@ async function loadHealth() {
     fetchCashbackOutstanding(),
     supabase.from("admin_audit_log").select("id,created_at", { count: "exact" }).ilike("action", "%unauthorized%").gte("created_at", since24h),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending").gte("created_at", since24h),
+    supabase.from("cielo_webhook_events").select("id", { count: "exact", head: true }).gte("processed_at", since24h),
+    supabase
+      .from("cielo_webhook_events")
+      .select("id,processed_at,payment_id,raw_payload", { count: "exact" })
+      .eq("raw_payload->_log->>status", "error")
+      .gte("processed_at", since24h)
+      .order("processed_at", { ascending: false })
+      .limit(5),
   ]);
+
 
   // Agregado no banco (RPC) — a leitura anterior parava no teto de 1000 linhas.
   const cashbackBalance = cashback.balance;
@@ -80,7 +91,26 @@ async function loadHealth() {
     cashbackEntries,
     unauthorized24h: unauthorized.count ?? 0,
     pendingOrders24h: pendingOrders.count ?? 0,
+    webhooks24h: webhooks24h.count ?? 0,
+    webhookErrors24h: webhookFailures.count ?? 0,
+    webhookErrorSamples: ((webhookFailures.data ?? []) as Array<{
+      id: string;
+      processed_at: string;
+      payment_id: string | null;
+      raw_payload: unknown;
+    }>).map((e) => {
+      const log = (e.raw_payload as { _log?: { stage?: string; detail?: string; orderId?: string } } | null)?._log;
+      return {
+        id: e.id,
+        at: e.processed_at,
+        paymentId: e.payment_id,
+        stage: log?.stage ?? "desconhecido",
+        detail: log?.detail ?? "sem detalhe",
+        orderId: log?.orderId ?? null,
+      };
+    }),
   };
+
 }
 
 type Tone = "ok" | "warn" | "bad";
@@ -125,7 +155,10 @@ function HealthPage() {
     queryKey: ["admin", "health"],
     queryFn: loadHealth,
     enabled: !!roles?.isSuperAdmin,
-    staleTime: 60_000,
+    staleTime: 20_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+
   });
 
   if (roles && !roles.isSuperAdmin) {
@@ -177,7 +210,42 @@ function HealthPage() {
               </div>
             )}
 
+            {data.webhookErrors24h > 0 && (
+              <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                  <div className="min-w-0 text-sm">
+                    <p className="font-bold text-destructive">
+                      {data.webhookErrors24h} falha(s) no webhook da Cielo nas últimas 24h
+                    </p>
+                    <ul className="mt-2 space-y-1 text-xs">
+                      {data.webhookErrorSamples.map((e) => (
+                        <li key={e.id} className="flex flex-wrap gap-2">
+                          <span className="text-muted-foreground">{new Date(e.at).toLocaleString("pt-BR")}</span>
+                          <span className="font-bold uppercase">{e.stage}</span>
+                          <span className="text-destructive break-all">{e.detail}</span>
+                          {e.orderId && <span className="font-mono text-muted-foreground">#{e.orderId.slice(0, 8)}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <Card
+                icon={Activity}
+                title="Webhooks Cielo (24h)"
+                value={String(data.webhooks24h)}
+                hint={
+                  data.webhookErrors24h > 0
+                    ? `${data.webhookErrors24h} com falha — veja o alerta acima`
+                    : "Nenhuma falha registrada · atualiza a cada 30s"
+                }
+                tone={data.webhookErrors24h > 0 ? "bad" : data.webhooks24h === 0 ? "warn" : "ok"}
+              />
+
               <Card
                 icon={CreditCard}
                 title="Último webhook de pagamento"
