@@ -117,7 +117,7 @@ function OrderPage() {
                 <p className="font-bold text-foreground mb-1">{rejectionInfo.title}</p>
                 <p className="text-muted-foreground leading-relaxed">{rejectionInfo.description}</p>
                 {rejectionInfo.retryable && (
-                  <RetryPaymentButton orderId={id} paymentMethod={data.order.payment_method} />
+                  <RetryPaymentButton orderId={id} paymentMethod={data?.order?.payment_method ?? "cielo"} />
                 )}
               </div>
             </div>
