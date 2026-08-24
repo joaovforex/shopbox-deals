@@ -34,6 +34,7 @@ function SettingsPage() {
   const [desktopUrl, setDesktopUrl] = useState<string>("");
   const [mobileUrl, setMobileUrl] = useState<string>("");
   const [storeAddress, setStoreAddress] = useState<string>("");
+  const [provider, setProvider] = useState<string>("cielo");
   const [saving, setSaving] = useState(false);
   const [uploadingDesk, setUploadingDesk] = useState(false);
   const [uploadingMob, setUploadingMob] = useState(false);
@@ -46,6 +47,7 @@ function SettingsPage() {
     setDesktopUrl(data.banner_desktop_url ?? "");
     setMobileUrl(data.banner_mobile_url ?? "");
     setStoreAddress(data.store_address ?? "");
+    setProvider(data.payment_provider === "asaas" ? "asaas" : "cielo");
   }, [data]);
 
   async function uploadImage(file: File, kind: "desktop" | "mobile"): Promise<string | null> {
@@ -122,6 +124,7 @@ function SettingsPage() {
         banner_desktop_url: desktopUrl || null,
         banner_mobile_url: mobileUrl || null,
         store_address: storeAddress.trim(),
+        payment_provider: provider,
       })
       .eq("id", 1);
     setSaving(false);
@@ -228,6 +231,31 @@ function SettingsPage() {
             placeholder="Rua, número — Bairro, Cidade / UF"
             className="w-full bg-background border-2 border-border rounded-md px-3 py-2 text-sm"
           />
+        </section>
+
+        {/* Provedor de pagamento */}
+        <section className="bg-card border-2 border-border rounded-lg p-5">
+          <h2 className="display text-lg mb-2">Provedor de pagamento</h2>
+          <p className="text-sm text-muted-foreground mb-3">
+            Define qual gateway processa o checkout da loja. A Asaas fica como reserva e pode ser
+            reativada a qualquer momento — os pedidos antigos continuam sendo consultados no provedor original.
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {[
+              { id: "cielo", label: "Cielo", desc: "Checkout Cielo (ativo)" },
+              { id: "asaas", label: "Asaas", desc: "Backup — Pix, boleto e cartão" },
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setProvider(opt.id)}
+                className={`text-left rounded-md border-2 p-3 transition-colors ${provider === opt.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
+              >
+                <span className="font-bold block">{opt.label}</span>
+                <span className="text-xs text-muted-foreground">{opt.desc}</span>
+              </button>
+            ))}
+          </div>
         </section>
 
         {/* Unidades (lojas) */}

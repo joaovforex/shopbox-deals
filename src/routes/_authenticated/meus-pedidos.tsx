@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { brl } from "@/lib/format";
 import { STORE_ADDRESS } from "@/lib/whatsapp";
 import { resumeAsaasPayment } from "@/lib/asaas.functions";
+import { resumeCieloPayment } from "@/lib/cielo.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { DeliveryUpgradeButton } from "@/components/DeliveryUpgradeButton";
 import { toast } from "sonner";
@@ -248,6 +249,8 @@ function ResumePaymentBlock({ orderId, createdAt, paymentMethod }: { orderId: st
   const [now, setNow] = useState(() => Date.now());
   const [loading, setLoading] = useState(false);
   const resumeAsaas = useServerFn(resumeAsaasPayment);
+  const resumeCielo = useServerFn(resumeCieloPayment);
+  const resume = paymentMethod === "asaas" ? resumeAsaas : resumeCielo;
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -270,7 +273,7 @@ function ResumePaymentBlock({ orderId, createdAt, paymentMethod }: { orderId: st
   const onResume = async () => {
     setLoading(true);
     try {
-      const res = await resumeAsaas({ data: { orderId } });
+      const res = await resume({ data: { orderId } });
       if (res?.initPoint && typeof window !== "undefined") {
         sessionStorage.setItem("mp_init_point", res.initPoint);
         window.location.assign("/redirecionando");

@@ -10,6 +10,7 @@ import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
 import { installmentLabel, MAX_INSTALLMENTS, MIN_INSTALLMENT_VALUE } from "@/lib/installments";
 import { createAsaasPayment } from "@/lib/asaas.functions";
+import { createCieloPayment } from "@/lib/cielo.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { calculateCashback } from "@/lib/cashback-config";
 import { useSiteSettings } from "@/lib/site-settings";
@@ -111,9 +112,12 @@ function CheckoutPage() {
   const { items, total, clear } = useCart();
   const [busy, setBusy] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
-  const createCheckout = useServerFn(createAsaasPayment);
+  const createAsaasCheckout = useServerFn(createAsaasPayment);
+  const createCieloCheckout = useServerFn(createCieloPayment);
   const fetchCashback = useServerFn(getMyCashback);
   const { data: settings } = useSiteSettings();
+  const provider = settings?.payment_provider === "asaas" ? "asaas" : "cielo";
+  const createCheckout = provider === "asaas" ? createAsaasCheckout : createCieloCheckout;
   const cashbackRate = settings?.cashback_rate ?? 0.05;
 
   const [cashbackBalance, setCashbackBalance] = useState(0);
@@ -622,7 +626,7 @@ function CheckoutPage() {
             );
           })()}
           <p className="text-[11px] text-muted-foreground text-center">
-            Ao confirmar você aceita os termos da loja. Pagamento processado pela Asaas.
+            Ao confirmar você aceita os termos da loja. Pagamento processado com segurança pela {provider === "asaas" ? "Asaas" : "Cielo"}.
           </p>
         </aside>
       </form>

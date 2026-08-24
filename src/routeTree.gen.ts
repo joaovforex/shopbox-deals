@@ -48,6 +48,7 @@ import { Route as AuthenticatedAdminAgendadorCanalRouteImport } from './routes/_
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicMaisentregasPollRouteImport } from './routes/api/public/maisentregas/poll'
 import { Route as ApiPublicHooksCieloRefundRetryRouteImport } from './routes/api/public/hooks/cielo-refund-retry'
+import { Route as ApiPublicCieloReconcileRouteImport } from './routes/api/public/cielo/reconcile'
 import { Route as ApiPublicCashbackExpireRouteImport } from './routes/api/public/cashback/expire'
 import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas/webhook'
 import { Route as ApiPublicAsaasReconcileRouteImport } from './routes/api/public/asaas/reconcile'
@@ -263,6 +264,11 @@ const ApiPublicHooksCieloRefundRetryRoute =
     path: '/api/public/hooks/cielo-refund-retry',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCieloReconcileRoute = ApiPublicCieloReconcileRouteImport.update({
+  id: '/api/public/cielo/reconcile',
+  path: '/api/public/cielo/reconcile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicCashbackExpireRoute = ApiPublicCashbackExpireRouteImport.update({
   id: '/api/public/cashback/expire',
   path: '/api/public/cashback/expire',
@@ -325,6 +331,7 @@ export interface FileRoutesByFullPath {
   '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
   '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
+  '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
   '/api/public/hooks/cielo-refund-retry': typeof ApiPublicHooksCieloRefundRetryRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -369,6 +376,7 @@ export interface FileRoutesByTo {
   '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
   '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
+  '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
   '/api/public/hooks/cielo-refund-retry': typeof ApiPublicHooksCieloRefundRetryRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -415,6 +423,7 @@ export interface FileRoutesById {
   '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
   '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
+  '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
   '/api/public/hooks/cielo-refund-retry': typeof ApiPublicHooksCieloRefundRetryRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -461,6 +470,7 @@ export interface FileRouteTypes {
     | '/api/public/asaas/reconcile'
     | '/api/public/asaas/webhook'
     | '/api/public/cashback/expire'
+    | '/api/public/cielo/reconcile'
     | '/api/public/hooks/cielo-refund-retry'
     | '/api/public/maisentregas/poll'
     | '/lovable/email/queue/process'
@@ -505,6 +515,7 @@ export interface FileRouteTypes {
     | '/api/public/asaas/reconcile'
     | '/api/public/asaas/webhook'
     | '/api/public/cashback/expire'
+    | '/api/public/cielo/reconcile'
     | '/api/public/hooks/cielo-refund-retry'
     | '/api/public/maisentregas/poll'
     | '/lovable/email/queue/process'
@@ -550,6 +561,7 @@ export interface FileRouteTypes {
     | '/api/public/asaas/reconcile'
     | '/api/public/asaas/webhook'
     | '/api/public/cashback/expire'
+    | '/api/public/cielo/reconcile'
     | '/api/public/hooks/cielo-refund-retry'
     | '/api/public/maisentregas/poll'
     | '/lovable/email/queue/process'
@@ -579,6 +591,7 @@ export interface RootRouteChildren {
   ApiPublicAsaasReconcileRoute: typeof ApiPublicAsaasReconcileRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicCashbackExpireRoute: typeof ApiPublicCashbackExpireRoute
+  ApiPublicCieloReconcileRoute: typeof ApiPublicCieloReconcileRoute
   ApiPublicHooksCieloRefundRetryRoute: typeof ApiPublicHooksCieloRefundRetryRoute
   ApiPublicMaisentregasPollRoute: typeof ApiPublicMaisentregasPollRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -859,6 +872,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksCieloRefundRetryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cielo/reconcile': {
+      id: '/api/public/cielo/reconcile'
+      path: '/api/public/cielo/reconcile'
+      fullPath: '/api/public/cielo/reconcile'
+      preLoaderRoute: typeof ApiPublicCieloReconcileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cashback/expire': {
       id: '/api/public/cashback/expire'
       path: '/api/public/cashback/expire'
@@ -967,6 +987,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAsaasReconcileRoute: ApiPublicAsaasReconcileRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicCashbackExpireRoute: ApiPublicCashbackExpireRoute,
+  ApiPublicCieloReconcileRoute: ApiPublicCieloReconcileRoute,
   ApiPublicHooksCieloRefundRetryRoute: ApiPublicHooksCieloRefundRetryRoute,
   ApiPublicMaisentregasPollRoute: ApiPublicMaisentregasPollRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
