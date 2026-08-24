@@ -53,6 +53,8 @@ async function loadHealth() {
     cashback,
     unauthorized,
     pendingOrders,
+    webhooks24h,
+    webhookFailures,
   ] = await Promise.all([
     supabase.from("cielo_webhook_events").select("processed_at").order("processed_at", { ascending: false }).limit(1),
     supabase.from("orders").select("mp_last_attempt_at").not("mp_last_attempt_at", "is", null).order("mp_last_attempt_at", { ascending: false }).limit(1),
@@ -62,7 +64,16 @@ async function loadHealth() {
     fetchCashbackOutstanding(),
     supabase.from("admin_audit_log").select("id,created_at", { count: "exact" }).ilike("action", "%unauthorized%").gte("created_at", since24h),
     supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pending").gte("created_at", since24h),
+    supabase.from("cielo_webhook_events").select("id", { count: "exact", head: true }).gte("processed_at", since24h),
+    supabase
+      .from("cielo_webhook_events")
+      .select("id,processed_at,payment_id,raw_payload", { count: "exact" })
+      .eq("raw_payload->_log->>status", "error")
+      .gte("processed_at", since24h)
+      .order("processed_at", { ascending: false })
+      .limit(5),
   ]);
+
 
   // Agregado no banco (RPC) — a leitura anterior parava no teto de 1000 linhas.
   const cashbackBalance = cashback.balance;
