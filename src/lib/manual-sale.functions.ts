@@ -95,7 +95,6 @@ export const createManualSale = createServerFn({ method: "POST" })
       .eq("id", orderId as string)
       .maybeSingle();
     const total = Number((orderRow as { total?: number } | null)?.total ?? 0);
-    const shippingFee = Number((orderRow as { delivery_fee?: number } | null)?.delivery_fee ?? 0);
     if (!(total > 0)) throw new Error("Pedido sem valor a cobrar");
 
     const origin = originFromRequest();
@@ -126,7 +125,7 @@ export const createManualSale = createServerFn({ method: "POST" })
       const { buildCieloCheckout } = await import("@/lib/cielo-checkout.server");
       const checkoutUrl = await buildCieloCheckout({
         orderId: orderId as string,
-        productsTotal: Math.max(0, total - shippingFee),
+        productsTotal: total,
         shippingFee: 0,
         shipping: null,
         customer: {
