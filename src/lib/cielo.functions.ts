@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isValidCpf } from "@/lib/cpf";
-import { maxInstallmentsFor } from "@/lib/installments";
 
 type CartItemInput = { product_id: string; quantity: number; color?: string | null };
 
@@ -85,7 +84,7 @@ export const createCieloPayment = createServerFn({ method: "POST" })
     }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { createCheckout } = await import("@/lib/cielo.server");
+    const { buildCieloCheckout } = await import("@/lib/cielo-checkout.server");
 
     await supabaseAdmin.rpc("expire_stale_pending_orders" as never, { p_minutes: 20 } as never);
 
@@ -248,7 +247,6 @@ export const createCieloPayment = createServerFn({ method: "POST" })
     try {
       const callbackOrigin = isPublicHttpsOrigin(origin) ? origin : "https://shopboxonline.com";
       const checkoutUrl = await buildCieloCheckout({
-        createCheckout,
         orderId: orderId as string,
         productsTotal,
         shippingFee,
@@ -284,60 +282,6 @@ export const createCieloPayment = createServerFn({ method: "POST" })
     }
   });
 
-/** Monta o payload do checkout Cielo: 1 item com o total dos produtos + frete opcional. */
-async function buildCieloCheckout(args: {
-  createCheckout: typeof import("@/lib/cielo.server").createCheckout;
-  orderId: string;
-  productsTotal: number;
-  shippingFee: number;
-  shipping: {
-    zip: string;
-    street: string;
-    number: string;
-    complement?: string | null;
-    district?: string | null;
-    city: string;
-    state: string;
-  } | null;
-  customer: { name: string; email?: string; identity?: string; phone?: string };
-  returnUrl: string;
-}): Promise<string> {
-  const shortId = args.orderId.slice(0, 8).toUpperCase();
-  const totalForInstallments = args.productsTotal + args.shippingFee;
-  const res = await args.createCheckout({
-    orderNumber: args.orderId,
-    softDescriptor: "SHOPBOX",
-    items: [
-      {
-        name: `Pedido shopbox ${shortId}`,
-        unitPriceCents: Math.round(args.productsTotal * 100),
-        quantity: 1,
-        sku: shortId,
-      },
-    ],
-    shipping:
-      args.shippingFee > 0 && args.shipping
-        ? {
-            type: "FixedAmount",
-            priceCents: Math.round(args.shippingFee * 100),
-            address: {
-              street: args.shipping.street,
-              number: String(args.shipping.number),
-              complement: args.shipping.complement ?? null,
-              district: args.shipping.district ?? null,
-              city: args.shipping.city,
-              state: (args.shipping.state || "PR").toUpperCase(),
-              zipCode: args.shipping.zip.replace(/\D/g, ""),
-            },
-          }
-        : { type: "WithoutShipping" },
-    maxInstallments: maxInstallmentsFor(totalForInstallments),
-    returnUrl: args.returnUrl,
-    customer: args.customer,
-  });
-  return res.checkoutUrl;
-}
-
 /** Retoma o pagamento de um pedido pendente da Cielo. */
 export const resumeCieloPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -348,7 +292,7 @@ export const resumeCieloPayment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!process.env.CIELO_CLIENT_ID) throw new Error("Cielo não configurada");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { createCheckout } = await import("@/lib/cielo.server");
+    const { buildCieloCheckout } = await import("@/lib/cielo-checkout.server");
 
     const { data: order, error } = await supabaseAdmin
       .from("orders")
@@ -374,7 +318,6 @@ export const resumeCieloPayment = createServerFn({ method: "POST" })
     const callbackOrigin = isPublicHttpsOrigin(origin) ? origin : "https://shopboxonline.com";
 
     const checkoutUrl = await buildCieloCheckout({
-      createCheckout,
       orderId: order.id,
       productsTotal: Math.max(0, total - shippingFee),
       shippingFee,
