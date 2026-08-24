@@ -145,12 +145,16 @@ function CheckoutPage() {
     (async () => {
       try {
         const r = await fetchCashback();
-        setCashbackBalance(Number(r.balance ?? 0));
+        const balance = Number(r.balance ?? 0);
+        setCashbackBalance(balance);
         setCashbackExpiry(r.nextExpiry ?? null);
+        // Já vem marcado: um clique a menos para quem tem saldo (pode desmarcar).
+        setUseCashback(balance > 0);
       } catch {
         setCashbackBalance(0);
       }
     })();
+
   }, [user, fetchCashback]);
 
   const [name, setName] = useState("");
