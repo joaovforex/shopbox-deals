@@ -155,7 +155,12 @@ export const getPosChargeStatus = createServerFn({ method: "POST" })
             patch.paid_at = new Date().toISOString();
           }
           await supabaseAdmin.from("pos_charges").update(patch as never).eq("id", current.id);
-          return { ...(row as Record<string, unknown>), ...patch };
+          const { data: fresh } = await context.supabase
+            .from("pos_charges")
+            .select("id,status,total,items,note,operator_name,mp_status,mp_status_detail,mp_payment_method_id,mp_payment_id,paid_at,last_event_at,created_at")
+            .eq("id", current.id)
+            .maybeSingle();
+          if (fresh) return fresh;
         }
       } catch (err) {
         console.error("[caixa-qr] cielo status check failed", err);
