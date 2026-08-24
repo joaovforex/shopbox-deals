@@ -201,7 +201,7 @@ function CaixaQrPage() {
           <h1 className="text-3xl font-black uppercase tracking-tight">Caixa QR</h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
             Solução provisória: cadastre os itens vendidos no balcão, gere um QR code e peça para o cliente
-            escanear com o celular. O pagamento acontece direto na Asaas e o status atualiza aqui.
+            escanear com o celular. O pagamento acontece direto na Cielo e o status atualiza aqui.
           </p>
         </div>
 
@@ -302,7 +302,7 @@ function CaixaQrPage() {
                 {loading ? "Gerando..." : "Gerar QR code"}
               </button>
               <p className="text-[11px] text-muted-foreground mt-3 leading-snug">
-                Ao gerar, o cliente escaneia o QR e finaliza na Asaas (Pix, crédito, débito).
+                Ao gerar, o cliente escaneia o QR e finaliza na Cielo (Pix, crédito, débito).
                 A confirmação chega automaticamente pelo webhook e aparece aqui na tela.
               </p>
             </aside>
@@ -379,7 +379,7 @@ function CaixaQrPage() {
                 <div className="bg-emerald-500/10 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 rounded-md p-4 text-sm">
                   <strong className="font-black uppercase tracking-wider block mb-1">QR pronto</strong>
                   Peça ao cliente para abrir a câmera do celular, escanear este QR e finalizar o pagamento.
-                  A confirmação chega aqui automaticamente pelo webhook da Asaas.
+                  A confirmação chega aqui automaticamente pelo webhook da Cielo.
                 </div>
               )}
 

@@ -16,7 +16,8 @@ export const Route = createFileRoute("/_authenticated/admin/venda-manual")({
 });
 
 const PAYMENT_OPTIONS: Array<{ value: ManualPaymentMethod; label: string }> = [
-  { value: "asaas", label: "Asaas (Pix/cartão/boleto)" },
+  { value: "cielo", label: "Cielo (Pix/cartão)" },
+  { value: "asaas", label: "Asaas (backup)" },
   { value: "pix", label: "Pix" },
   { value: "card", label: "Cartão" },
   { value: "dinheiro", label: "Dinheiro" },
@@ -51,7 +52,7 @@ function ManualSalePage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [delivery, setDelivery] = useState<"pickup" | "delivery">("pickup");
-  const [payment, setPayment] = useState<ManualPaymentMethod>("asaas");
+  const [payment, setPayment] = useState<ManualPaymentMethod>("cielo");
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState<{ orderId: string; initPoint: string | null } | null>(null);
 

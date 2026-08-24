@@ -52,7 +52,7 @@ export const Route = createFileRoute("/api/public/cielo/reconcile")({
         const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
         const { data: orders, error } = await supabaseAdmin
           .from("orders")
-          .select("id, status, total, cancellation_reason, cielo_payment_id")
+          .select("id, status, total, delivery_fee, cancellation_reason, cielo_payment_id")
           .eq("payment_provider", "cielo")
           .in("status", ["pending", "cancelled"])
           .gte("created_at", sinceIso)
@@ -70,6 +70,7 @@ export const Route = createFileRoute("/api/public/cielo/reconcile")({
             id: string;
             status: string;
             total: number | null;
+            delivery_fee: number | null;
             cancellation_reason: string | null;
             cielo_payment_id: string | null;
           };
@@ -77,7 +78,8 @@ export const Route = createFileRoute("/api/public/cielo/reconcile")({
             summary.stillOpen++;
             continue;
           }
-          const expectedTotal = Number(o.total ?? 0);
+          // A Cielo devolve apenas o valor dos itens do carrinho (sem o frete).
+          const expectedTotal = Math.max(0, Number(o.total ?? 0) - Number(o.delivery_fee ?? 0));
           try {
             const tx = await getOrderByOrderNumber(o.id);
             if (!tx) {
