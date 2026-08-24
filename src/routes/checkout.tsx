@@ -118,6 +118,8 @@ function CheckoutPage() {
   const { data: settings } = useSiteSettings();
   const provider = settings?.payment_provider === "asaas" ? "asaas" : "cielo";
   const createCheckout = provider === "asaas" ? createAsaasCheckout : createCieloCheckout;
+  const providerName = provider === "asaas" ? "Asaas" : "Cielo";
+
   const cashbackRate = settings?.cashback_rate ?? 0.05;
 
   const [cashbackBalance, setCashbackBalance] = useState(0);
