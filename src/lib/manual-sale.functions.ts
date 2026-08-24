@@ -52,8 +52,14 @@ export const createManualSale = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Sem permissão");
 
     const isCash = data.payment_method === "dinheiro";
+    // Asaas fica como backup: só é usada quando explicitamente escolhida.
+    const useAsaas = data.payment_method === "asaas";
+    const provider = useAsaas ? "asaas" : "cielo";
 
-    if (!isCash && !process.env.ASAAS_API_KEY) throw new Error("Asaas não configurado");
+    if (!isCash && useAsaas && !process.env.ASAAS_API_KEY) throw new Error("Asaas não configurada");
+    if (!isCash && !useAsaas && (!process.env.CIELO_CLIENT_ID || !process.env.CIELO_CLIENT_SECRET)) {
+      throw new Error("Cielo não configurada");
+    }
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
@@ -78,48 +84,71 @@ export const createManualSale = createServerFn({ method: "POST" })
       };
     }
 
-    // Marca como Asaas
     await supabaseAdmin
       .from("orders")
-      .update({ payment_provider: "asaas" } as never)
+      .update({ payment_provider: provider } as never)
       .eq("id", orderId as string);
 
     const { data: orderRow } = await supabaseAdmin
       .from("orders")
-      .select("total")
+      .select("total, delivery_fee")
       .eq("id", orderId as string)
       .maybeSingle();
     const total = Number((orderRow as { total?: number } | null)?.total ?? 0);
+    const shippingFee = Number((orderRow as { delivery_fee?: number } | null)?.delivery_fee ?? 0);
     if (!(total > 0)) throw new Error("Pedido sem valor a cobrar");
 
-    void originFromRequest();
+    const origin = originFromRequest();
+    const callbackOrigin = /^https:\/\/[^/]+\.[^/]+/.test(origin) ? origin : "https://shopboxonline.com";
 
     try {
-      const { createPaymentLink } = await import("@/lib/asaas.server");
-      const link = await createPaymentLink({
-        name: `Venda shopbox ${(orderId as string).slice(0, 8).toUpperCase()}`,
-        value: total,
-        description: `Venda manual para ${data.customer_name.trim()}`,
-        maxInstallmentCount: maxInstallmentsFor(total),
+      if (useAsaas) {
+        const { createPaymentLink } = await import("@/lib/asaas.server");
+        const link = await createPaymentLink({
+          name: `Venda shopbox ${(orderId as string).slice(0, 8).toUpperCase()}`,
+          value: total,
+          description: `Venda manual para ${data.customer_name.trim()}`,
+          maxInstallmentCount: maxInstallmentsFor(total),
+        });
+
+        await supabaseAdmin
+          .from("orders")
+          .update({
+            mp_preference_id: link.id,
+            mp_init_point: link.url,
+            asaas_invoice_url: link.url,
+          } as never)
+          .eq("id", orderId as string);
+
+        return { orderId: orderId as string, initPoint: link.url, preferenceId: link.id };
+      }
+
+      const { buildCieloCheckout } = await import("@/lib/cielo-checkout.server");
+      const checkoutUrl = await buildCieloCheckout({
+        orderId: orderId as string,
+        productsTotal: Math.max(0, total - shippingFee),
+        shippingFee: 0,
+        shipping: null,
+        customer: {
+          name: data.customer_name.trim(),
+          phone: data.customer_phone,
+        },
+        returnUrl: `${callbackOrigin}/pedido/${orderId}`,
       });
 
       await supabaseAdmin
         .from("orders")
         .update({
-          mp_preference_id: link.id,
-          mp_init_point: link.url,
-          asaas_invoice_url: link.url,
+          cielo_checkout_url: checkoutUrl,
+          cielo_status: "pending",
+          mp_init_point: checkoutUrl,
         } as never)
         .eq("id", orderId as string);
 
-      return {
-        orderId: orderId as string,
-        initPoint: link.url,
-        preferenceId: link.id,
-      };
+      return { orderId: orderId as string, initPoint: checkoutUrl, preferenceId: "" };
     } catch (err) {
-      console.error("[manual-sale] asaas payment link error", err);
+      console.error(`[manual-sale] ${provider} payment link error`, err);
       await supabaseAdmin.from("orders").update({ status: "cancelled" }).eq("id", orderId as string);
-      throw new Error(err instanceof Error ? err.message : "Falha ao gerar cobrança na Asaas");
+      throw new Error(err instanceof Error ? err.message : "Falha ao gerar cobrança");
     }
   });
