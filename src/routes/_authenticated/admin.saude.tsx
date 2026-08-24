@@ -155,7 +155,10 @@ function HealthPage() {
     queryKey: ["admin", "health"],
     queryFn: loadHealth,
     enabled: !!roles?.isSuperAdmin,
-    staleTime: 60_000,
+    staleTime: 20_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+
   });
 
   if (roles && !roles.isSuperAdmin) {
