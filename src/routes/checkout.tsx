@@ -636,14 +636,18 @@ function CheckoutPage() {
                   disabled={busy || (delivery === "delivery" && coverageOk !== true)}
                   className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] transition-transform disabled:opacity-60 disabled:scale-100"
                 >
-                  {busy ? "Redirecionando..." : `Pagar ${brl(grandTotal)}`}
+                  {busy ? `Abrindo ${providerName}...` : `Pagar ${brl(grandTotal)}`}
                 </button>
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Pix, cartão de crédito em até {MAX_INSTALLMENTS}x ou débito na próxima tela
+                </p>
               </>
             );
           })()}
           <p className="text-[11px] text-muted-foreground text-center">
-            Ao confirmar você aceita os termos da loja. Pagamento processado com segurança pela {provider === "asaas" ? "Asaas" : "Cielo"}.
+            Ao confirmar você aceita os termos da loja. Pagamento processado com segurança pela {providerName}.
           </p>
+
         </aside>
       </form>
 
