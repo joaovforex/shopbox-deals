@@ -45,7 +45,9 @@ export const createCaixaQrPayment = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await ensureStaff(context);
 
-    if (!process.env.ASAAS_API_KEY) throw new Error("Asaas não configurado");
+    if (!process.env.CIELO_CLIENT_ID || !process.env.CIELO_CLIENT_SECRET) {
+      throw new Error("Cielo não configurada");
+    }
 
     const total = data.items.reduce((a, i) => a + i.unit_price * i.quantity, 0);
 
@@ -80,28 +82,34 @@ export const createCaixaQrPayment = createServerFn({ method: "POST" })
     const chargeId = (charge as { id: string }).id;
 
     try {
-      const { createPaymentLink } = await import("@/lib/asaas.server");
-      const link = await createPaymentLink({
-        name: `Caixa shopbox ${chargeId.slice(0, 8).toUpperCase()}`,
-        value: total,
-        description: data.items.map((i) => `${i.quantity}x ${i.title}`).join(" | "),
+      const { buildCieloCheckout } = await import("@/lib/cielo-checkout.server");
+      const checkoutUrl = await buildCieloCheckout({
+        orderId: chargeId,
+        productsTotal: total,
+        shippingFee: 0,
+        shipping: null,
+        customer: { name: "Cliente balcao" },
+        returnUrl: "https://shopboxonline.com/",
       });
 
-      // O id do link é a chave de correlação usada pelo webhook da Asaas.
+      // O order_number enviado à Cielo é o id da cobrança (sem hífens, 20 chars).
       await supabaseAdmin
         .from("pos_charges")
-        .update({ mp_preference_id: link.id } as never)
+        .update({
+          mp_preference_id: chargeId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 20),
+          mp_init_point: checkoutUrl,
+        } as never)
         .eq("id", chargeId);
 
       return {
         chargeId,
-        preferenceId: link.id,
-        initPoint: link.url,
+        preferenceId: chargeId,
+        initPoint: checkoutUrl,
         total,
       };
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Falha ao gerar cobrança na Asaas";
-      console.error("[caixa-qr] asaas payment link error", msg);
+      const msg = err instanceof Error ? err.message : "Falha ao gerar cobrança na Cielo";
+      console.error("[caixa-qr] cielo checkout error", msg);
       await supabaseAdmin
         .from("pos_charges")
         .update({ status: "failed", mp_status_detail: msg.slice(0, 500) } as never)
