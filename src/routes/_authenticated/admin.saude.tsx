@@ -210,7 +210,42 @@ function HealthPage() {
               </div>
             )}
 
+            {data.webhookErrors24h > 0 && (
+              <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                  <div className="min-w-0 text-sm">
+                    <p className="font-bold text-destructive">
+                      {data.webhookErrors24h} falha(s) no webhook da Cielo nas últimas 24h
+                    </p>
+                    <ul className="mt-2 space-y-1 text-xs">
+                      {data.webhookErrorSamples.map((e) => (
+                        <li key={e.id} className="flex flex-wrap gap-2">
+                          <span className="text-muted-foreground">{new Date(e.at).toLocaleString("pt-BR")}</span>
+                          <span className="font-bold uppercase">{e.stage}</span>
+                          <span className="text-destructive break-all">{e.detail}</span>
+                          {e.orderId && <span className="font-mono text-muted-foreground">#{e.orderId.slice(0, 8)}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <Card
+                icon={Activity}
+                title="Webhooks Cielo (24h)"
+                value={String(data.webhooks24h)}
+                hint={
+                  data.webhookErrors24h > 0
+                    ? `${data.webhookErrors24h} com falha — veja o alerta acima`
+                    : "Nenhuma falha registrada · atualiza a cada 30s"
+                }
+                tone={data.webhookErrors24h > 0 ? "bad" : data.webhooks24h === 0 ? "warn" : "ok"}
+              />
+
               <Card
                 icon={CreditCard}
                 title="Último webhook de pagamento"
