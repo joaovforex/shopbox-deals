@@ -97,7 +97,6 @@ export const createCaixaQrPayment = createServerFn({ method: "POST" })
         .from("pos_charges")
         .update({
           mp_preference_id: chargeId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 20),
-          mp_init_point: checkoutUrl,
         } as never)
         .eq("id", chargeId);
 
@@ -133,6 +132,35 @@ export const getPosChargeStatus = createServerFn({ method: "POST" })
       .eq("id", data.chargeId)
       .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!row) return row;
+
+    // Consulta ativa na Cielo enquanto estiver pendente (confirmação rápida no balcão).
+    const current = row as { id: string; status: string };
+    if (current.status === "pending" && process.env.CIELO_CLIENT_ID) {
+      try {
+        const { getOrderByOrderNumber, mapCieloStatus } = await import("@/lib/cielo.server");
+        const tx = await getOrderByOrderNumber(current.id);
+        if (tx) {
+          const mapped = mapCieloStatus(tx.status);
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const patch: Record<string, unknown> = {
+            mp_status: tx.status,
+            mp_payment_method_id: tx.paymentType ?? null,
+            mp_status_detail: tx.returnMessage ?? null,
+            last_event_at: new Date().toISOString(),
+          };
+          if (mapped.order_action === "paid") {
+            patch.status = "paid";
+            patch.mp_payment_id = tx.checkoutOrderNumber;
+            patch.paid_at = new Date().toISOString();
+          }
+          await supabaseAdmin.from("pos_charges").update(patch as never).eq("id", current.id);
+          return { ...(row as Record<string, unknown>), ...patch };
+        }
+      } catch (err) {
+        console.error("[caixa-qr] cielo status check failed", err);
+      }
+    }
     return row;
   });
 
