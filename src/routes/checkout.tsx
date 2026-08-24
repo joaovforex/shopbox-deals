@@ -365,8 +365,12 @@ function CheckoutPage() {
           </Link>
           <h1 className="display text-3xl md:text-4xl">Finalizar compra</h1>
           <div className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-1 rounded">
-            Pagamento 100% seguro · Pix, cartão ou boleto
+            {providerName} · ambiente 100% seguro
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Só falta 1 passo: confira seus dados e clique em pagar — o restante você faz na página da {providerName}.
+          </p>
+
         </div>
       </section>
 
