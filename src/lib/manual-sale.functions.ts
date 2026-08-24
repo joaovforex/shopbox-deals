@@ -31,7 +31,7 @@ export const createManualSale = createServerFn({ method: "POST" })
     const phone = (data.customer_phone ?? "").replace(/\D/g, "");
     if (!/^[0-9]{10,11}$/.test(phone)) throw new Error("Telefone inválido");
     if (!["pickup", "delivery"].includes(data.delivery_method)) throw new Error("Entrega inválida");
-    const pm = (data.payment_method ?? "asaas") as ManualPaymentMethod;
+    const pm = (data.payment_method ?? "cielo") as ManualPaymentMethod;
     if (!MANUAL_PAYMENT_METHODS.includes(pm)) throw new Error("Forma de pagamento inválida");
     if (!Array.isArray(data.items) || data.items.length === 0) throw new Error("Carrinho vazio");
     if (data.items.length > 50) throw new Error("Carrinho muito grande");
