@@ -788,6 +788,17 @@ function FulfillmentPage() {
                         <Clock className="inline h-3 w-3 mr-1" />
                         {STATUS_LABEL[o.fulfillment_status] ?? o.fulfillment_status}
                       </span>
+                      {(() => {
+                        const p = paymentInfo(o);
+                        return (
+                          <span
+                            className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded ${p.cls}`}
+                            title="Forma de pagamento confirmada pelo provedor"
+                          >
+                            <p.Icon className="h-3 w-3" /> {p.label}
+                          </span>
+                        );
+                      })()}
                     </div>
                   </header>
 
