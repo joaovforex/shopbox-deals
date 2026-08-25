@@ -273,6 +273,16 @@ function TeamPage() {
                         {ROLE_ICON[r]} {ROLE_LABEL[r]}
                       </button>
                     ))}
+                    {rolesFor(u.id).map((r) => (
+                      <button
+                        key={`rm-${r}`}
+                        onClick={() => removeRole(u.id, r)}
+                        className="inline-flex items-center gap-1 text-xs bg-destructive/10 border border-destructive/30 text-destructive hover:bg-destructive/20 rounded px-2.5 py-1.5"
+                        title={`Desatribuir ${ROLE_LABEL[r]}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Tirar {ROLE_LABEL[r]}
+                      </button>
+                    ))}
                     <button
                       onClick={() => resetPassword(u.id, u.full_name ?? u.email ?? u.id.slice(0,8))}
                       className="inline-flex items-center gap-1 text-xs bg-card border border-border hover:border-accent rounded px-2.5 py-1.5"
