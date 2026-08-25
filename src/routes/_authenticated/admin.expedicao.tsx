@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { normalizeSearchTerm } from "@/lib/pgrst";
-import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass, Gift, Copy, Check, QrCode } from "lucide-react";
+import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass, Gift, Copy, Check, QrCode, CreditCard, Banknote, MessageCircle } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
 import { ExchangeVoucherModal } from "@/components/ExchangeVoucherModal";
@@ -14,7 +14,7 @@ import { brl } from "@/lib/format";
 import { refundOrder, listCieloRefundQueue, retryCieloRefundNow, type CieloRefundQueueRow } from "@/lib/refunds.functions";
 import { createExchangeVoucher } from "@/lib/exchange-vouchers.functions";
 import { printVoucherReceipt } from "@/lib/voucherReceipt";
-import { openWhatsApp, orderReminderMessage } from "@/lib/whatsapp";
+import { openWhatsApp, orderReminderMessage, orderContactMessage } from "@/lib/whatsapp";
 import { dispatchDelivery } from "@/lib/maisentregas.functions";
 import { fetchUnidades, fetchMyUnidadeScope } from "@/lib/unidades";
 
@@ -36,6 +36,9 @@ type OrderRow = {
   shipping_state: string | null;
   delivery_method: string;
   payment_method: string;
+  payment_provider?: string | null;
+  cielo_payment_method?: string | null;
+  mp_payment_method_id?: string | null;
   status: string;
   fulfillment_status: string;
   total: number;
