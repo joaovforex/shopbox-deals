@@ -1182,6 +1182,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 type NotifRow = {
   id: string; created_at: string; customer_name: string; customer_email: string | null;
   customer_phone: string | null; payment_method: string; delivery_method: string;
+  payment_provider?: string | null; cielo_payment_method?: string | null; mp_payment_method_id?: string | null;
   status: string; total: number; mp_payment_id: string | null; stock_restored_at: string | null;
   cancellation_reason?: string | null;
 };
@@ -1305,7 +1306,7 @@ function NotificationsPanel({ rows, itemsByOrder }: { rows: NotifRow[]; itemsByO
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/50 pt-2">
-                <span>{o.payment_method === "pix" ? "PIX" : "Cartão / MP"} · {o.delivery_method === "pickup" ? "Retirada" : "Entrega"}</span>
+                <span>{paymentInfo(o).label} · {o.delivery_method === "pickup" ? "Retirada" : "Entrega"}</span>
                 <span className="font-bold text-foreground">{brl(Number(o.total))}</span>
               </div>
             </article>
