@@ -72,6 +72,29 @@ const STATUS_LABEL: Record<string, string> = {
   completed: "Concluído",
 };
 
+// Forma de pagamento exibida na expedição: usa o método real informado pela
+// adquirente (Cielo → cielo_payment_method; Asaas/MP → mp_payment_method_id)
+// e cai no payment_method genérico quando o detalhe não existe (pedidos antigos).
+type PaymentInfo = { label: string; Icon: typeof QrCode; cls: string };
+function paymentInfo(o: Pick<OrderRow, "payment_method" | "payment_provider" | "cielo_payment_method" | "mp_payment_method_id">): PaymentInfo {
+  const detail = (o.cielo_payment_method || o.mp_payment_method_id || "").toLowerCase();
+  if (detail.includes("pix")) return { label: "PIX", Icon: QrCode, cls: "bg-[#25D366]/20 text-[#25D366]" };
+  if (detail.includes("debit")) return { label: "Cartão de débito", Icon: CreditCard, cls: "bg-blue-500/15 text-blue-500" };
+  if (detail.includes("credit") || detail === "card") return { label: "Cartão de crédito", Icon: CreditCard, cls: "bg-accent/20 text-accent" };
+  if (detail.includes("boleto")) return { label: "Boleto", Icon: Banknote, cls: "bg-muted text-muted-foreground" };
+  const pm = (o.payment_method || "").toLowerCase();
+  if (pm === "pix") return { label: "PIX", Icon: QrCode, cls: "bg-[#25D366]/20 text-[#25D366]" };
+  if (pm === "card" || pm === "credit_card") return { label: "Cartão", Icon: CreditCard, cls: "bg-accent/20 text-accent" };
+  if (pm === "dinheiro") return { label: "Dinheiro", Icon: Banknote, cls: "bg-emerald-500/15 text-emerald-600" };
+  if (pm === "cashback") return { label: "Cashback", Icon: Gift, cls: "bg-primary/15 text-primary" };
+  // Sem detalhe da adquirente: mostra apenas o provedor.
+  const provider = o.payment_provider || o.payment_method;
+  if (provider === "cielo") return { label: "Cartão/PIX · Cielo", Icon: CreditCard, cls: "bg-secondary text-foreground" };
+  if (provider === "asaas") return { label: "PIX/Cartão · Asaas", Icon: CreditCard, cls: "bg-secondary text-foreground" };
+  if (provider === "mercadopago") return { label: "Cartão/PIX · MP", Icon: CreditCard, cls: "bg-secondary text-foreground" };
+  return { label: (o.payment_method || "—").toUpperCase(), Icon: CreditCard, cls: "bg-secondary text-foreground" };
+}
+
 function nextStatus(current: string, delivery: string): string {
   const flow = delivery === "pickup"
     ? ["pending", "preparing", "ready", "completed"]
