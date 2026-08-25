@@ -38,6 +38,8 @@ type OrderRow = {
   payment_method: string;
   payment_provider?: string | null;
   cielo_payment_method?: string | null;
+  cielo_card_brand?: string | null;
+  cielo_installments?: number | null;
   mp_payment_method_id?: string | null;
   status: string;
   fulfillment_status: string;
@@ -73,15 +75,50 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 // Forma de pagamento exibida na expedição: usa o método real informado pela
-// adquirente (Cielo → cielo_payment_method; Asaas/MP → mp_payment_method_id)
-// e cai no payment_method genérico quando o detalhe não existe (pedidos antigos).
+// adquirente (Cielo → cielo_payment_method + bandeira + parcelas;
+// Asaas/MP → mp_payment_method_id) e cai no payment_method genérico quando o
+// detalhe não existe (pedidos antigos).
 type PaymentInfo = { label: string; Icon: typeof QrCode; cls: string };
-function paymentInfo(o: Pick<OrderRow, "payment_method" | "payment_provider" | "cielo_payment_method" | "mp_payment_method_id">): PaymentInfo {
+
+const CARD_BRANDS: Record<string, string> = {
+  visa: "Visa",
+  master: "Mastercard",
+  mastercard: "Mastercard",
+  elo: "Elo",
+  amex: "Amex",
+  "american express": "Amex",
+  hipercard: "Hipercard",
+  hiper: "Hipercard",
+  diners: "Diners",
+  discover: "Discover",
+  jcb: "JCB",
+  aura: "Aura",
+  cabal: "Cabal",
+  maestro: "Maestro",
+  sorocred: "Sorocred",
+  unionpay: "UnionPay",
+  banescard: "Banescard",
+};
+
+function formatCardBrand(brand?: string | null): string {
+  const b = (brand ?? "").trim();
+  if (!b) return "";
+  return CARD_BRANDS[b.toLowerCase()] ?? b.charAt(0).toUpperCase() + b.slice(1).toLowerCase();
+}
+
+function paymentInfo(o: Pick<OrderRow, "payment_method" | "payment_provider" | "cielo_payment_method" | "cielo_card_brand" | "cielo_installments" | "mp_payment_method_id">): PaymentInfo {
   const detail = (o.cielo_payment_method || o.mp_payment_method_id || "").toLowerCase();
+  // Bandeira: vem da Cielo (cielo_card_brand). Em pedidos antigos do Mercado Pago
+  // o mp_payment_method_id já era a própria bandeira (ex.: "master", "visa").
+  const brand = formatCardBrand(o.cielo_card_brand) || (CARD_BRANDS[detail] ? formatCardBrand(detail) : "");
+  const installments = Number(o.cielo_installments ?? 0);
+  const suffix = installments > 1 ? ` · ${installments}x` : "";
   if (detail.includes("pix")) return { label: "PIX", Icon: QrCode, cls: "bg-[#25D366]/20 text-[#25D366]" };
-  if (detail.includes("debit")) return { label: "Cartão de débito", Icon: CreditCard, cls: "bg-blue-500/15 text-blue-500" };
-  if (detail.includes("credit") || detail === "card") return { label: "Cartão de crédito", Icon: CreditCard, cls: "bg-accent/20 text-accent" };
+  if (detail.includes("debit")) return { label: `Débito${brand ? ` ${brand}` : ""}`, Icon: CreditCard, cls: "bg-blue-500/15 text-blue-500" };
+  if (detail.includes("credit") || detail === "card") return { label: `Crédito${brand ? ` ${brand}` : ""}${suffix}`, Icon: CreditCard, cls: "bg-accent/20 text-accent" };
   if (detail.includes("boleto")) return { label: "Boleto", Icon: Banknote, cls: "bg-muted text-muted-foreground" };
+  // Pedido antigo do MP: só sabemos a bandeira, sem distinguir crédito/débito.
+  if (brand) return { label: `Cartão ${brand}`, Icon: CreditCard, cls: "bg-accent/20 text-accent" };
   const pm = (o.payment_method || "").toLowerCase();
   if (pm === "pix") return { label: "PIX", Icon: QrCode, cls: "bg-[#25D366]/20 text-[#25D366]" };
   if (pm === "card" || pm === "credit_card") return { label: "Cartão", Icon: CreditCard, cls: "bg-accent/20 text-accent" };
@@ -1182,7 +1219,9 @@ function Shell({ children }: { children: React.ReactNode }) {
 type NotifRow = {
   id: string; created_at: string; customer_name: string; customer_email: string | null;
   customer_phone: string | null; payment_method: string; delivery_method: string;
-  payment_provider?: string | null; cielo_payment_method?: string | null; mp_payment_method_id?: string | null;
+  payment_provider?: string | null; cielo_payment_method?: string | null;
+  cielo_card_brand?: string | null; cielo_installments?: number | null;
+  mp_payment_method_id?: string | null;
   status: string; total: number; mp_payment_id: string | null; stock_restored_at: string | null;
   cancellation_reason?: string | null;
 };

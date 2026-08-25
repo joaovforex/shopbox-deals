@@ -150,7 +150,44 @@ export const Route = createFileRoute("/api/public/cielo/reconcile")({
           }
         }
 
-        return new Response(JSON.stringify(summary), {
+        // Backfill: completa bandeira/parcelas de pedidos pagos nos últimos 30 dias
+        // que ainda não têm esse detalhe (ex.: webhook falhou e a conciliação
+        // confirmou antes de gravarmos a bandeira).
+        let backfilled = 0;
+        try {
+          const { data: missing } = await supabaseAdmin
+            .from("orders")
+            .select("id")
+            .eq("payment_provider", "cielo")
+            .eq("cielo_status", "paid")
+            .is("cielo_card_brand", null)
+            .or("cielo_payment_method.is.null,cielo_payment_method.not.ilike.pix%")
+            .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+            .order("created_at", { ascending: false })
+            .limit(40);
+          for (const row of missing ?? []) {
+            const id = (row as { id: string }).id;
+            try {
+              const tx = await getOrderByOrderNumber(id);
+              if (!tx) continue;
+              await supabaseAdmin
+                .from("orders")
+                .update({
+                  cielo_payment_method: tx.paymentType ?? null,
+                  cielo_card_brand: tx.brand ?? null,
+                  cielo_installments: tx.installments ?? null,
+                } as never)
+                .eq("id", id);
+              backfilled++;
+            } catch (err) {
+              console.error("[cielo:reconcile] backfill error", id, err);
+            }
+          }
+        } catch (err) {
+          console.error("[cielo:reconcile] backfill query error", err);
+        }
+
+        return new Response(JSON.stringify({ ...summary, backfilled }), {
           status: 200,
           headers: { "Content-Type": "application/json" },
         });
