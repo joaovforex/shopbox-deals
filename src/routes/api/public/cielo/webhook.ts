@@ -108,7 +108,15 @@ async function parseBody(request: Request): Promise<Record<string, string>> {
 
 async function handleCieloNotification(request: Request): Promise<Outcome> {
   const body = await parseBody(request);
-  const orderNumber = body["order_number"] ?? body["ordernumber"] ?? "";
+  // A Cielo Checkout envia o nosso identificador em nomes diferentes conforme o evento:
+  // `order_number`, `merchantordernumber` ou apenas dentro da `url` de consulta.
+  const urlTail = (body["url"] ?? "").split("/").filter(Boolean).pop() ?? "";
+  const orderNumber =
+    body["order_number"] ??
+    body["ordernumber"] ??
+    body["merchantordernumber"] ??
+    body["merchant_order_number"] ??
+    urlTail;
   const checkoutId =
     body["checkout_cielo_order_number"] ?? body["checkoutcieloordernumber"] ?? body["order_id"] ?? "";
   const statusRaw = body["payment_status"] ?? body["status"] ?? "";

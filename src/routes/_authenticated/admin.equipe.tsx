@@ -149,13 +149,31 @@ function TeamPage() {
   };
 
   const removeRole = async (user_id: string, role: TeamRole) => {
-    if (!confirm(`Remover função "${ROLE_LABEL[role]}"?`)) return;
+    if (!confirm(`Desatribuir a função "${ROLE_LABEL[role]}" desta pessoa?`)) return;
     try {
       await doRemove({ data: { user_id, role: role as "admin" | "manager" | "catalog" | "fulfillment" } });
-      toast.success("Removida");
+      toast.success(`Função "${ROLE_LABEL[role]}" desatribuída`);
+      qc.invalidateQueries({ queryKey: ["team-members"] });
       refetch();
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao remover");
+    }
+  };
+
+  /** Remove de uma vez todos os cargos internos da pessoa (vira cliente comum). */
+  const removeAllRoles = async (user_id: string, label: string) => {
+    const roles = rolesFor(user_id);
+    if (roles.length === 0) return toast.info("Essa pessoa não tem cargo interno");
+    if (!confirm(`Desatribuir TODOS os cargos de "${label}"? Ela volta a ser cliente comum.`)) return;
+    try {
+      for (const r of roles) {
+        await doRemove({ data: { user_id, role: r as "admin" | "manager" | "catalog" | "fulfillment" } });
+      }
+      toast.success("Cargos desatribuídos");
+      qc.invalidateQueries({ queryKey: ["team-members"] });
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao desatribuir");
     }
   };
 
@@ -255,6 +273,16 @@ function TeamPage() {
                         {ROLE_ICON[r]} {ROLE_LABEL[r]}
                       </button>
                     ))}
+                    {rolesFor(u.id).map((r) => (
+                      <button
+                        key={`rm-${r}`}
+                        onClick={() => removeRole(u.id, r)}
+                        className="inline-flex items-center gap-1 text-xs bg-destructive/10 border border-destructive/30 text-destructive hover:bg-destructive/20 rounded px-2.5 py-1.5"
+                        title={`Desatribuir ${ROLE_LABEL[r]}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Tirar {ROLE_LABEL[r]}
+                      </button>
+                    ))}
                     <button
                       onClick={() => resetPassword(u.id, u.full_name ?? u.email ?? u.id.slice(0,8))}
                       className="inline-flex items-center gap-1 text-xs bg-card border border-border hover:border-accent rounded px-2.5 py-1.5"
@@ -326,9 +354,18 @@ function TeamPage() {
                             className="inline-flex items-center gap-1 text-xs hover:bg-destructive/10 text-destructive rounded px-2 py-1"
                             title={`Remover ${ROLE_LABEL[r]}`}
                           >
-                            <Trash2 className="h-3 w-3" /> {ROLE_LABEL[r]}
+                            <Trash2 className="h-3 w-3" /> Tirar {ROLE_LABEL[r]}
                           </button>
                         ))}
+                        {m.roles.filter((r) => r !== "user").length > 1 && (
+                          <button
+                            onClick={() => removeAllRoles(m.user_id, m.full_name ?? m.email ?? m.user_id.slice(0, 8))}
+                            className="inline-flex items-center gap-1 text-xs hover:bg-destructive/10 text-destructive rounded px-2 py-1"
+                            title="Desatribuir todos os cargos"
+                          >
+                            <Trash2 className="h-3 w-3" /> Desatribuir tudo
+                          </button>
+                        )}
                         <button
                           onClick={() => resetPassword(m.user_id, m.full_name ?? m.user_id.slice(0,8))}
                           className="inline-flex items-center gap-1 text-xs hover:bg-accent/10 text-accent rounded px-2 py-1"
