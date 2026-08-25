@@ -149,13 +149,31 @@ function TeamPage() {
   };
 
   const removeRole = async (user_id: string, role: TeamRole) => {
-    if (!confirm(`Remover função "${ROLE_LABEL[role]}"?`)) return;
+    if (!confirm(`Desatribuir a função "${ROLE_LABEL[role]}" desta pessoa?`)) return;
     try {
       await doRemove({ data: { user_id, role: role as "admin" | "manager" | "catalog" | "fulfillment" } });
-      toast.success("Removida");
+      toast.success(`Função "${ROLE_LABEL[role]}" desatribuída`);
+      qc.invalidateQueries({ queryKey: ["team-members"] });
       refetch();
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao remover");
+    }
+  };
+
+  /** Remove de uma vez todos os cargos internos da pessoa (vira cliente comum). */
+  const removeAllRoles = async (user_id: string, label: string) => {
+    const roles = rolesFor(user_id);
+    if (roles.length === 0) return toast.info("Essa pessoa não tem cargo interno");
+    if (!confirm(`Desatribuir TODOS os cargos de "${label}"? Ela volta a ser cliente comum.`)) return;
+    try {
+      for (const r of roles) {
+        await doRemove({ data: { user_id, role: r as "admin" | "manager" | "catalog" | "fulfillment" } });
+      }
+      toast.success("Cargos desatribuídos");
+      qc.invalidateQueries({ queryKey: ["team-members"] });
+      refetch();
+    } catch (e: any) {
+      toast.error(e.message ?? "Erro ao desatribuir");
     }
   };
 
