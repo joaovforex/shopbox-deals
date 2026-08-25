@@ -749,6 +749,7 @@ export type Database = {
           cashback_granted_at: string | null
           cashback_used: number
           cielo_authorization_code: string | null
+          cielo_card_brand: string | null
           cielo_checkout_url: string | null
           cielo_installments: number | null
           cielo_last_check_at: string | null
@@ -843,6 +844,7 @@ export type Database = {
           cashback_granted_at?: string | null
           cashback_used?: number
           cielo_authorization_code?: string | null
+          cielo_card_brand?: string | null
           cielo_checkout_url?: string | null
           cielo_installments?: number | null
           cielo_last_check_at?: string | null
@@ -937,6 +939,7 @@ export type Database = {
           cashback_granted_at?: string | null
           cashback_used?: number
           cielo_authorization_code?: string | null
+          cielo_card_brand?: string | null
           cielo_checkout_url?: string | null
           cielo_installments?: number | null
           cielo_last_check_at?: string | null
