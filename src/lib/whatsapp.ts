@@ -52,6 +52,15 @@ export function orderReadyMessage(customerName: string, orderId: string) {
   ].join("\n");
 }
 
+export function orderContactMessage(customerName: string, orderId: string) {
+  const shortId = orderId.slice(0, 8).toUpperCase();
+  return [
+    `Olá, ${customerName}!`,
+    ``,
+    `Aqui é da equipe shopbox, falando sobre o seu pedido *#${shortId}*.`,
+  ].join("\n");
+}
+
 export function orderReminderMessage(customerName: string, orderId: string) {
   const shortId = orderId.slice(0, 8).toUpperCase();
   return [

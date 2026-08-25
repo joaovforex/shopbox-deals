@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { normalizeSearchTerm } from "@/lib/pgrst";
-import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass, Gift, Copy, Check, QrCode } from "lucide-react";
+import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass, Gift, Copy, Check, QrCode, CreditCard, Banknote, MessageCircle } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
 import { ExchangeVoucherModal } from "@/components/ExchangeVoucherModal";
@@ -14,7 +14,7 @@ import { brl } from "@/lib/format";
 import { refundOrder, listCieloRefundQueue, retryCieloRefundNow, type CieloRefundQueueRow } from "@/lib/refunds.functions";
 import { createExchangeVoucher } from "@/lib/exchange-vouchers.functions";
 import { printVoucherReceipt } from "@/lib/voucherReceipt";
-import { openWhatsApp, orderReminderMessage } from "@/lib/whatsapp";
+import { openWhatsApp, orderReminderMessage, orderContactMessage } from "@/lib/whatsapp";
 import { dispatchDelivery } from "@/lib/maisentregas.functions";
 import { fetchUnidades, fetchMyUnidadeScope } from "@/lib/unidades";
 
@@ -36,6 +36,9 @@ type OrderRow = {
   shipping_state: string | null;
   delivery_method: string;
   payment_method: string;
+  payment_provider?: string | null;
+  cielo_payment_method?: string | null;
+  mp_payment_method_id?: string | null;
   status: string;
   fulfillment_status: string;
   total: number;
@@ -68,6 +71,29 @@ const STATUS_LABEL: Record<string, string> = {
   shipped: "Enviado",
   completed: "Concluído",
 };
+
+// Forma de pagamento exibida na expedição: usa o método real informado pela
+// adquirente (Cielo → cielo_payment_method; Asaas/MP → mp_payment_method_id)
+// e cai no payment_method genérico quando o detalhe não existe (pedidos antigos).
+type PaymentInfo = { label: string; Icon: typeof QrCode; cls: string };
+function paymentInfo(o: Pick<OrderRow, "payment_method" | "payment_provider" | "cielo_payment_method" | "mp_payment_method_id">): PaymentInfo {
+  const detail = (o.cielo_payment_method || o.mp_payment_method_id || "").toLowerCase();
+  if (detail.includes("pix")) return { label: "PIX", Icon: QrCode, cls: "bg-[#25D366]/20 text-[#25D366]" };
+  if (detail.includes("debit")) return { label: "Cartão de débito", Icon: CreditCard, cls: "bg-blue-500/15 text-blue-500" };
+  if (detail.includes("credit") || detail === "card") return { label: "Cartão de crédito", Icon: CreditCard, cls: "bg-accent/20 text-accent" };
+  if (detail.includes("boleto")) return { label: "Boleto", Icon: Banknote, cls: "bg-muted text-muted-foreground" };
+  const pm = (o.payment_method || "").toLowerCase();
+  if (pm === "pix") return { label: "PIX", Icon: QrCode, cls: "bg-[#25D366]/20 text-[#25D366]" };
+  if (pm === "card" || pm === "credit_card") return { label: "Cartão", Icon: CreditCard, cls: "bg-accent/20 text-accent" };
+  if (pm === "dinheiro") return { label: "Dinheiro", Icon: Banknote, cls: "bg-emerald-500/15 text-emerald-600" };
+  if (pm === "cashback") return { label: "Cashback", Icon: Gift, cls: "bg-primary/15 text-primary" };
+  // Sem detalhe da adquirente: mostra apenas o provedor.
+  const provider = o.payment_provider || o.payment_method;
+  if (provider === "cielo") return { label: "Cartão/PIX · Cielo", Icon: CreditCard, cls: "bg-secondary text-foreground" };
+  if (provider === "asaas") return { label: "PIX/Cartão · Asaas", Icon: CreditCard, cls: "bg-secondary text-foreground" };
+  if (provider === "mercadopago") return { label: "Cartão/PIX · MP", Icon: CreditCard, cls: "bg-secondary text-foreground" };
+  return { label: (o.payment_method || "—").toUpperCase(), Icon: CreditCard, cls: "bg-secondary text-foreground" };
+}
 
 function nextStatus(current: string, delivery: string): string {
   const flow = delivery === "pickup"
@@ -304,7 +330,7 @@ function FulfillmentPage() {
     queryFn: async () => {
       const { data: orders, error } = await supabase
         .from("orders")
-        .select("id, created_at, customer_name, customer_email, customer_phone, payment_method, delivery_method, status, total, mp_payment_id, stock_restored_at, cancellation_reason")
+        .select("id, created_at, customer_name, customer_email, customer_phone, payment_method, payment_provider, cielo_payment_method, mp_payment_method_id, delivery_method, status, total, mp_payment_id, stock_restored_at, cancellation_reason")
         .in("status", ["pending", "cancelled"])
         .order("created_at", { ascending: false })
         .limit(80);
@@ -312,6 +338,7 @@ function FulfillmentPage() {
       const list = (orders ?? []) as Array<{
         id: string; created_at: string; customer_name: string; customer_email: string | null;
         customer_phone: string | null; payment_method: string; delivery_method: string;
+        payment_provider: string | null; cielo_payment_method: string | null; mp_payment_method_id: string | null;
         status: string; total: number; mp_payment_id: string | null; stock_restored_at: string | null;
         cancellation_reason: string | null;
       }>;
@@ -762,6 +789,17 @@ function FulfillmentPage() {
                         <Clock className="inline h-3 w-3 mr-1" />
                         {STATUS_LABEL[o.fulfillment_status] ?? o.fulfillment_status}
                       </span>
+                      {(() => {
+                        const p = paymentInfo(o);
+                        return (
+                          <span
+                            className={`inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded ${p.cls}`}
+                            title="Forma de pagamento confirmada pelo provedor"
+                          >
+                            <p.Icon className="h-3 w-3" /> {p.label}
+                          </span>
+                        );
+                      })()}
                     </div>
                   </header>
 
@@ -867,6 +905,15 @@ function FulfillmentPage() {
                         title="Confirmar entrega ao cliente"
                       >
                         <CheckCheck className="h-3.5 w-3.5" /> Entregue
+                      </button>
+                    )}
+                    {o.customer_phone && (
+                      <button
+                        onClick={() => openWhatsApp(o.customer_phone, orderContactMessage(o.customer_name, o.id))}
+                        className="inline-flex items-center gap-1.5 text-xs bg-[#25D366]/15 text-[#25D366] border border-[#25D366]/40 hover:bg-[#25D366]/25 px-3 py-2 rounded font-bold uppercase tracking-wider"
+                        title="Abrir conversa com o cliente no WhatsApp"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" /> Falar com cliente
                       </button>
                     )}
                     {o.delivery_method === "pickup" && delayed && o.customer_phone && (
@@ -1135,6 +1182,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 type NotifRow = {
   id: string; created_at: string; customer_name: string; customer_email: string | null;
   customer_phone: string | null; payment_method: string; delivery_method: string;
+  payment_provider?: string | null; cielo_payment_method?: string | null; mp_payment_method_id?: string | null;
   status: string; total: number; mp_payment_id: string | null; stock_restored_at: string | null;
   cancellation_reason?: string | null;
 };
@@ -1258,7 +1306,7 @@ function NotificationsPanel({ rows, itemsByOrder }: { rows: NotifRow[]; itemsByO
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/50 pt-2">
-                <span>{o.payment_method === "pix" ? "PIX" : "Cartão / MP"} · {o.delivery_method === "pickup" ? "Retirada" : "Entrega"}</span>
+                <span>{paymentInfo(o).label} · {o.delivery_method === "pickup" ? "Retirada" : "Entrega"}</span>
                 <span className="font-bold text-foreground">{brl(Number(o.total))}</span>
               </div>
             </article>
