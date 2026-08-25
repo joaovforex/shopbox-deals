@@ -175,9 +175,13 @@ function MobileMenu({ user, signOut, hasTeamRole }: { user: { email?: string } |
 export function Header() {
   const { count } = useCart();
   const [user, setUser] = useState<{ email?: string } | null>(null);
-  const [hasTeamRole, setHasTeamRole] = useState<boolean>(() => readCachedTeamRoleSync() ?? false);
+  // Começa false no SSR e na 1ª render do cliente (evita hydration mismatch);
+  // o cache local é aplicado só no useEffect.
+  const [hasTeamRole, setHasTeamRole] = useState<boolean>(false);
 
   useEffect(() => {
+    const cached = readCachedTeamRoleSync();
+    if (cached) setHasTeamRole(true);
     const sync = () => getRoleSummary().then((r) => setHasTeamRole(r.hasAnyTeamRole));
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user ? { email: data.user.email ?? undefined } : null);

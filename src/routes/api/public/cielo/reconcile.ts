@@ -126,6 +126,7 @@ export const Route = createFileRoute("/api/public/cielo/reconcile")({
                 cielo_tid: tx.tid ?? null,
                 cielo_authorization_code: tx.authorizationCode ?? null,
                 cielo_payment_method: tx.paymentType ?? null,
+                cielo_card_brand: tx.brand ?? null,
                 cielo_installments: tx.installments ?? null,
                 cielo_last_check_at: new Date().toISOString(),
               } as never)
