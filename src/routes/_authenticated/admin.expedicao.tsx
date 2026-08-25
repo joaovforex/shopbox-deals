@@ -906,6 +906,15 @@ function FulfillmentPage() {
                         <CheckCheck className="h-3.5 w-3.5" /> Entregue
                       </button>
                     )}
+                    {o.customer_phone && (
+                      <button
+                        onClick={() => openWhatsApp(o.customer_phone, orderContactMessage(o.customer_name, o.id))}
+                        className="inline-flex items-center gap-1.5 text-xs bg-[#25D366]/15 text-[#25D366] border border-[#25D366]/40 hover:bg-[#25D366]/25 px-3 py-2 rounded font-bold uppercase tracking-wider"
+                        title="Abrir conversa com o cliente no WhatsApp"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" /> Falar com cliente
+                      </button>
+                    )}
                     {o.delivery_method === "pickup" && delayed && o.customer_phone && (
                       <button
                         onClick={() => openWhatsApp(o.customer_phone, orderReminderMessage(o.customer_name, o.id))}
