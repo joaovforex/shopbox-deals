@@ -354,9 +354,18 @@ function TeamPage() {
                             className="inline-flex items-center gap-1 text-xs hover:bg-destructive/10 text-destructive rounded px-2 py-1"
                             title={`Remover ${ROLE_LABEL[r]}`}
                           >
-                            <Trash2 className="h-3 w-3" /> {ROLE_LABEL[r]}
+                            <Trash2 className="h-3 w-3" /> Tirar {ROLE_LABEL[r]}
                           </button>
                         ))}
+                        {m.roles.filter((r) => r !== "user").length > 1 && (
+                          <button
+                            onClick={() => removeAllRoles(m.user_id, m.full_name ?? m.email ?? m.user_id.slice(0, 8))}
+                            className="inline-flex items-center gap-1 text-xs hover:bg-destructive/10 text-destructive rounded px-2 py-1"
+                            title="Desatribuir todos os cargos"
+                          >
+                            <Trash2 className="h-3 w-3" /> Desatribuir tudo
+                          </button>
+                        )}
                         <button
                           onClick={() => resetPassword(m.user_id, m.full_name ?? m.user_id.slice(0,8))}
                           className="inline-flex items-center gap-1 text-xs hover:bg-accent/10 text-accent rounded px-2 py-1"
