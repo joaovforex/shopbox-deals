@@ -330,7 +330,7 @@ function FulfillmentPage() {
     queryFn: async () => {
       const { data: orders, error } = await supabase
         .from("orders")
-        .select("id, created_at, customer_name, customer_email, customer_phone, payment_method, delivery_method, status, total, mp_payment_id, stock_restored_at, cancellation_reason")
+        .select("id, created_at, customer_name, customer_email, customer_phone, payment_method, payment_provider, cielo_payment_method, mp_payment_method_id, delivery_method, status, total, mp_payment_id, stock_restored_at, cancellation_reason")
         .in("status", ["pending", "cancelled"])
         .order("created_at", { ascending: false })
         .limit(80);
@@ -338,6 +338,7 @@ function FulfillmentPage() {
       const list = (orders ?? []) as Array<{
         id: string; created_at: string; customer_name: string; customer_email: string | null;
         customer_phone: string | null; payment_method: string; delivery_method: string;
+        payment_provider: string | null; cielo_payment_method: string | null; mp_payment_method_id: string | null;
         status: string; total: number; mp_payment_id: string | null; stock_restored_at: string | null;
         cancellation_reason: string | null;
       }>;
