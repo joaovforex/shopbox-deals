@@ -770,7 +770,61 @@ function FulfillmentPage() {
             ))}
           </div>
 
-          {delayedCount > 0 && (
+          {!searchActive && tab === "done" && (
+            <div className="inline-flex items-center gap-2 bg-secondary rounded-md p-1 pl-2 flex-wrap">
+              <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1.5 rounded ${doneDateActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {doneDateFrom && doneDateTo
+                      ? `${format(doneDateFrom, "dd/MM/yyyy")} – ${format(doneDateTo, "dd/MM/yyyy")}`
+                      : doneDateFrom
+                        ? `A partir de ${format(doneDateFrom, "dd/MM/yyyy")}`
+                        : doneDateTo
+                          ? `Até ${format(doneDateTo, "dd/MM/yyyy")}`
+                          : "Filtrar por data"}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="range"
+                    selected={{
+                      from: doneDateFrom,
+                      to: doneDateTo,
+                    }}
+                    onSelect={(range) => {
+                      setDoneDateFrom(range?.from);
+                      setDoneDateTo(range?.to);
+                      setDoneLimit(DONE_PAGE_SIZE);
+                    }}
+                    numberOfMonths={2}
+                    defaultMonth={doneDateFrom}
+                    locale={ptBRLocale}
+                  />
+                  <div className="flex items-center justify-between border-t border-border p-2">
+                    <span className="text-[11px] text-muted-foreground">Data da entrega</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDoneDateFrom(undefined);
+                        setDoneDateTo(undefined);
+                        setDoneLimit(DONE_PAGE_SIZE);
+                      }}
+                      disabled={!doneDateActive}
+                      className="text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-secondary hover:bg-muted disabled:opacity-50"
+                    >
+                      Limpar
+                    </button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {delayedCount > 0 && tab !== "done" && (
             <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-destructive bg-destructive/10 px-3 py-1.5 rounded-md">
               <AlertTriangle className="h-3.5 w-3.5" />
               {delayedCount} pedido{delayedCount > 1 ? "s" : ""} atrasado{delayedCount > 1 ? "s" : ""}
