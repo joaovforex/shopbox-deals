@@ -803,7 +803,7 @@ function FulfillmentPage() {
                     }}
                     numberOfMonths={2}
                     defaultMonth={doneDateFrom}
-                    locale={ptBRLocale}
+                    locale={ptBR}
                   />
                   <div className="flex items-center justify-between border-t border-border p-2">
                     <span className="text-[11px] text-muted-foreground">Data da entrega</span>
