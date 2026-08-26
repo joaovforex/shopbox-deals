@@ -299,17 +299,27 @@ function FulfillmentPage() {
 
   // Pedidos CONCLUÍDOS: janela recente paginada (carregar mais) + total real.
   const [doneLimit, setDoneLimit] = useState(DONE_PAGE_SIZE);
+  const [doneDateFrom, setDoneDateFrom] = useState<Date | undefined>(undefined);
+  const [doneDateTo, setDoneDateTo] = useState<Date | undefined>(undefined);
+  const doneDateActive = !!(doneDateFrom || doneDateTo);
   const { data: doneData, isLoading: doneLoading, isFetching: doneFetching } = useQuery({
-    queryKey: ["fulfillment-orders", "done", doneLimit],
+    queryKey: ["fulfillment-orders", "done", doneLimit, doneDateFrom?.toISOString(), doneDateTo?.toISOString()],
     enabled: allowed === true && tab === "done",
     placeholderData: (prev) => prev,
     queryFn: async () => {
-      const { data: orders, error, count } = await supabase
+      let q = supabase
         .from("orders")
         .select("*", { count: "exact" })
         .eq("status", "paid")
-        .eq("fulfillment_status", "completed")
-        .order("created_at", { ascending: false })
+        .eq("fulfillment_status", "completed");
+      if (doneDateFrom) {
+        q = q.gte("delivered_at", startOfDay(doneDateFrom).toISOString());
+      }
+      if (doneDateTo) {
+        q = q.lte("delivered_at", endOfDay(doneDateTo).toISOString());
+      }
+      const { data: orders, error, count } = await q
+        .order("delivered_at", { ascending: false })
         .range(0, doneLimit - 1);
       if (error) throw error;
       return { rows: (orders ?? []) as OrderRow[], total: count ?? 0 };
