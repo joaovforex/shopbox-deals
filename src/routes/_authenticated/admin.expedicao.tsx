@@ -3,8 +3,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { format, startOfDay, endOfDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { normalizeSearchTerm } from "@/lib/pgrst";
-import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass, Gift, Copy, Check, QrCode, CreditCard, Banknote, MessageCircle } from "lucide-react";
+import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass, Gift, Copy, Check, QrCode, CreditCard, Banknote, MessageCircle, Calendar as CalendarIcon } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
 import { ExchangeVoucherModal } from "@/components/ExchangeVoucherModal";
@@ -17,6 +19,9 @@ import { printVoucherReceipt } from "@/lib/voucherReceipt";
 import { openWhatsApp, orderReminderMessage, orderContactMessage } from "@/lib/whatsapp";
 import { dispatchDelivery } from "@/lib/maisentregas.functions";
 import { fetchUnidades, fetchMyUnidadeScope } from "@/lib/unidades";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/admin/expedicao")({
   head: () => ({ meta: [{ title: "Expedição · Admin" }] }),
@@ -295,17 +300,27 @@ function FulfillmentPage() {
 
   // Pedidos CONCLUÍDOS: janela recente paginada (carregar mais) + total real.
   const [doneLimit, setDoneLimit] = useState(DONE_PAGE_SIZE);
+  const [doneDateFrom, setDoneDateFrom] = useState<Date | undefined>(undefined);
+  const [doneDateTo, setDoneDateTo] = useState<Date | undefined>(undefined);
+  const doneDateActive = !!(doneDateFrom || doneDateTo);
   const { data: doneData, isLoading: doneLoading, isFetching: doneFetching } = useQuery({
-    queryKey: ["fulfillment-orders", "done", doneLimit],
+    queryKey: ["fulfillment-orders", "done", doneLimit, doneDateFrom?.toISOString(), doneDateTo?.toISOString()],
     enabled: allowed === true && tab === "done",
     placeholderData: (prev) => prev,
     queryFn: async () => {
-      const { data: orders, error, count } = await supabase
+      let q = supabase
         .from("orders")
         .select("*", { count: "exact" })
         .eq("status", "paid")
-        .eq("fulfillment_status", "completed")
-        .order("created_at", { ascending: false })
+        .eq("fulfillment_status", "completed");
+      if (doneDateFrom) {
+        q = q.gte("delivered_at", startOfDay(doneDateFrom).toISOString());
+      }
+      if (doneDateTo) {
+        q = q.lte("delivered_at", endOfDay(doneDateTo).toISOString());
+      }
+      const { data: orders, error, count } = await q
+        .order("delivered_at", { ascending: false })
         .range(0, doneLimit - 1);
       if (error) throw error;
       return { rows: (orders ?? []) as OrderRow[], total: count ?? 0 };
@@ -756,7 +771,61 @@ function FulfillmentPage() {
             ))}
           </div>
 
-          {delayedCount > 0 && (
+          {!searchActive && tab === "done" && (
+            <div className="inline-flex items-center gap-2 bg-secondary rounded-md p-1 pl-2 flex-wrap">
+              <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground" />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className={`text-xs font-bold uppercase tracking-wider px-2.5 py-1.5 rounded ${doneDateActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {doneDateFrom && doneDateTo
+                      ? `${format(doneDateFrom, "dd/MM/yyyy")} – ${format(doneDateTo, "dd/MM/yyyy")}`
+                      : doneDateFrom
+                        ? `A partir de ${format(doneDateFrom, "dd/MM/yyyy")}`
+                        : doneDateTo
+                          ? `Até ${format(doneDateTo, "dd/MM/yyyy")}`
+                          : "Filtrar por data"}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="range"
+                    selected={{
+                      from: doneDateFrom,
+                      to: doneDateTo,
+                    }}
+                    onSelect={(range) => {
+                      setDoneDateFrom(range?.from);
+                      setDoneDateTo(range?.to);
+                      setDoneLimit(DONE_PAGE_SIZE);
+                    }}
+                    numberOfMonths={2}
+                    defaultMonth={doneDateFrom}
+                    locale={ptBR}
+                  />
+                  <div className="flex items-center justify-between border-t border-border p-2">
+                    <span className="text-[11px] text-muted-foreground">Data da entrega</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDoneDateFrom(undefined);
+                        setDoneDateTo(undefined);
+                        setDoneLimit(DONE_PAGE_SIZE);
+                      }}
+                      disabled={!doneDateActive}
+                      className="text-[11px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-secondary hover:bg-muted disabled:opacity-50"
+                    >
+                      Limpar
+                    </button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {delayedCount > 0 && tab !== "done" && (
             <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-destructive bg-destructive/10 px-3 py-1.5 rounded-md">
               <AlertTriangle className="h-3.5 w-3.5" />
               {delayedCount} pedido{delayedCount > 1 ? "s" : ""} atrasado{delayedCount > 1 ? "s" : ""}
