@@ -917,6 +917,13 @@ function FulfillmentPage() {
                           Entregue em {new Date(o.delivered_at).toLocaleString("pt-BR")}
                         </div>
                       )}
+                      {o.fulfillment_status === "completed" && o.pickup_person_name && (
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          Retirado por <span className="font-semibold text-foreground">{o.pickup_person_name}</span>
+                          {o.delivered_by_name ? ` · agente ${o.delivered_by_name}` : ""}
+                        </div>
+                      )}
+                      {o.pickup_photo_path && <PickupProofButton path={o.pickup_photo_path} />}
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       {delayed && (
