@@ -98,7 +98,7 @@ export const searchCashbackCustomers = createServerFn({ method: "POST" })
     return (profiles ?? []).map((p: any) => ({
       id: p.id,
       name: (p.full_name ?? "").trim() || "(sem nome)",
-      email: (p.email ?? "").trim(),
+      email: ((p.email ?? "").trim() || authEmails.get(p.id) || "").trim(),
       phone: (p.phone ?? "").trim(),
       cpf: (p.cpf ?? "").trim(),
       balance: Math.round((balances.get(p.id) ?? 0) * 100) / 100,
