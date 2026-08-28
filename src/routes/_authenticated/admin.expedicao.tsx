@@ -1715,6 +1715,15 @@ function DeliveryConfirmModal({ order, onCancel, onConfirm }: { order: OrderRow;
     };
   }, []);
 
+  // Quando o usuário clica em "Tirar outra", o <video> é remontado. Reatribui
+  // o stream ativo ao novo elemento para que a prévia volte a funcionar.
+  useEffect(() => {
+    if (!photo && streamRef.current && videoRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [photo]);
+
   useEffect(() => () => { if (photo) URL.revokeObjectURL(photo.url); }, [photo]);
 
   const capture = async () => {
