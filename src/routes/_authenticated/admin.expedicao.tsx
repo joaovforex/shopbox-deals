@@ -59,6 +59,10 @@ type OrderRow = {
   maisentregas_order_id?: string | null;
   maisentregas_status?: string | null;
   delivered_at?: string | null;
+  delivered_by_name?: string | null;
+  pickup_person_name?: string | null;
+  pickup_photo_path?: string | null;
+  pickup_photo_taken_at?: string | null;
 };
 
 type ItemRow = {
