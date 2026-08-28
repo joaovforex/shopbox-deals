@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { format, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { normalizeSearchTerm } from "@/lib/pgrst";
-import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass, Gift, Copy, Check, QrCode, CreditCard, Banknote, MessageCircle, Calendar as CalendarIcon } from "lucide-react";
+import { ArrowLeft, Store, Printer, Package, CheckCircle2, Clock, AlertTriangle, Filter, RotateCcw, CheckCheck, ScanLine, BellRing, Truck, Search, X, Undo2, XCircle, Hourglass, Gift, Copy, Check, QrCode, CreditCard, Banknote, MessageCircle, Calendar as CalendarIcon, Camera, RefreshCw } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { RefundModal } from "@/components/RefundModal";
 import { ExchangeVoucherModal } from "@/components/ExchangeVoucherModal";
@@ -59,6 +59,10 @@ type OrderRow = {
   maisentregas_order_id?: string | null;
   maisentregas_status?: string | null;
   delivered_at?: string | null;
+  delivered_by_name?: string | null;
+  pickup_person_name?: string | null;
+  pickup_photo_path?: string | null;
+  pickup_photo_taken_at?: string | null;
 };
 
 type ItemRow = {
@@ -544,20 +548,51 @@ function FulfillmentPage() {
     qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
   };
 
-  const markDelivered = async (o: OrderRow, agentName: string) => {
+  const markDelivered = async (o: OrderRow, agentName: string, pickupPerson: string, photoBlob: Blob | null) => {
     const name = agentName.trim();
+    const person = pickupPerson.trim();
     if (!name) {
       toast.error("Informe o nome do agente que fez a entrega.");
       return false;
     }
+    if (person.length < 2) {
+      toast.error("Informe o nome de quem está retirando o pedido.");
+      return false;
+    }
+    if (!photoBlob) {
+      toast.error("Tire a foto de quem está retirando antes de confirmar.");
+      return false;
+    }
+    let photoPath = "";
+    try {
+      // Prova de retirada: a foto vai para um bucket privado, acessível
+      // apenas a admin/gerente/expedição pelas políticas do storage.
+      photoPath = `${o.id}/${Date.now()}.jpg`;
+      const up = await supabase.storage
+        .from("pickup-proofs")
+        .upload(photoPath, photoBlob, { contentType: "image/jpeg", upsert: false });
+      if (up.error) {
+        console.error("[markDelivered] upload da foto falhou:", up.error);
+        toast.error("Não foi possível salvar a foto da retirada. Tente novamente.");
+        return false;
+      }
+    } catch (e: any) {
+      console.error("[markDelivered] exceção no upload:", e);
+      toast.error(e?.message || "Falha ao enviar a foto da retirada.");
+      return false;
+    }
     try {
       // RPC atômica: valida cargo (admin/manager/fulfillment), grava o
-      // nome do agente e marca fulfillment_status=completed em uma única
-      // transação. Substitui o update direto na tabela (que dependia
-      // exclusivamente das políticas de UPDATE de orders).
+      // nome do agente, o responsável pela retirada e a foto, e marca
+      // fulfillment_status=completed em uma única transação.
       const { error } = await supabase.rpc(
         "confirm_order_delivery" as never,
-        { p_order_id: o.id, p_delivered_by_name: name } as never,
+        {
+          p_order_id: o.id,
+          p_delivered_by_name: name,
+          p_pickup_person_name: person,
+          p_pickup_photo_path: photoPath,
+        } as never,
       );
       if (error) {
         console.error("[markDelivered] erro RPC:", error);
@@ -882,6 +917,13 @@ function FulfillmentPage() {
                           Entregue em {new Date(o.delivered_at).toLocaleString("pt-BR")}
                         </div>
                       )}
+                      {o.fulfillment_status === "completed" && o.pickup_person_name && (
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          Retirado por <span className="font-semibold text-foreground">{o.pickup_person_name}</span>
+                          {o.delivered_by_name ? ` · agente ${o.delivered_by_name}` : ""}
+                        </div>
+                      )}
+                      {o.pickup_photo_path && <PickupProofButton path={o.pickup_photo_path} />}
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       {delayed && (
@@ -1149,8 +1191,8 @@ function FulfillmentPage() {
         <DeliveryConfirmModal
           order={deliverTarget}
           onCancel={() => setDeliverTarget(null)}
-          onConfirm={async (agent) => {
-            const ok = await markDelivered(deliverTarget, agent);
+          onConfirm={async (agent, person, photo) => {
+            const ok = await markDelivered(deliverTarget, agent, person, photo);
             if (ok) setDeliverTarget(null);
           }}
         />
@@ -1583,11 +1625,122 @@ function RefundsPanel({
   );
 }
 
-function DeliveryConfirmModal({ order, onCancel, onConfirm }: { order: OrderRow; onCancel: () => void; onConfirm: (agentName: string) => Promise<void> | void }) {
+/** Visualiza a foto de retirada (bucket privado → URL assinada temporária). */
+function PickupProofButton({ path }: { path: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const open = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.storage.from("pickup-proofs").createSignedUrl(path, 300);
+      if (error || !data?.signedUrl) {
+        toast.error("Não foi possível abrir a foto da retirada.");
+        return;
+      }
+      setUrl(data.signedUrl);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={open}
+        disabled={loading}
+        className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary hover:underline mt-0.5 disabled:opacity-60"
+      >
+        <Camera className="h-3 w-3" /> {loading ? "Abrindo…" : "Ver foto da retirada"}
+      </button>
+      {url && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setUrl(null)}>
+          <img
+            src={url}
+            alt="Foto de quem retirou o pedido"
+            className="max-h-[85vh] max-w-full rounded-lg border-2 border-primary"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
+function DeliveryConfirmModal({ order, onCancel, onConfirm }: { order: OrderRow; onCancel: () => void; onConfirm: (agentName: string, pickupPerson: string, photo: Blob | null) => Promise<void> | void }) {
   const [agent, setAgent] = useState("");
+  const [person, setPerson] = useState("");
   const [saving, setSaving] = useState(false);
+  const [camError, setCamError] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<{ blob: Blob; url: string } | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const shortId = order.id.slice(0, 8).toUpperCase();
   const isDelivery = order.delivery_method === "delivery";
+
+  const stopCam = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+          audio: false,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => {});
+        }
+      } catch (e: any) {
+        setCamError(
+          e?.name === "NotAllowedError"
+            ? "Permissão da webcam negada. Libere o acesso à câmera no navegador."
+            : "Nenhuma webcam disponível neste computador.",
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+      stopCam();
+    };
+  }, []);
+
+  useEffect(() => () => { if (photo) URL.revokeObjectURL(photo.url); }, [photo]);
+
+  const capture = async () => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth) {
+      toast.error("A webcam ainda não está pronta.");
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.82));
+    if (!blob) {
+      toast.error("Falha ao capturar a foto.");
+      return;
+    }
+    setPhoto({ blob, url: URL.createObjectURL(blob) });
+  };
+
+  const retake = () => {
+    if (photo) URL.revokeObjectURL(photo.url);
+    setPhoto(null);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1596,20 +1749,29 @@ function DeliveryConfirmModal({ order, onCancel, onConfirm }: { order: OrderRow;
       toast.error("Digite o nome do agente entregante.");
       return;
     }
+    if (person.trim().length < 2) {
+      toast.error("Digite o nome do responsável pela retirada.");
+      return;
+    }
+    if (!photo) {
+      toast.error("Tire a foto de quem está retirando o pedido.");
+      return;
+    }
     setSaving(true);
     try {
-      await onConfirm(name);
+      await onConfirm(name, person.trim(), photo.blob);
     } finally {
       setSaving(false);
     }
   };
+
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onCancel}>
       <form
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
-        className="bg-card border-2 border-primary rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4"
+        className="bg-card border-2 border-primary rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4 max-h-[92vh] overflow-y-auto"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -1642,6 +1804,58 @@ function DeliveryConfirmModal({ order, onCancel, onConfirm }: { order: OrderRow;
           </p>
         </div>
 
+        <div>
+          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Nome de quem está retirando
+          </label>
+          <input
+            value={person}
+            onChange={(e) => setPerson(e.target.value)}
+            placeholder="Ex.: Maria Silva (nome de quem recebeu)"
+            className="mt-1 w-full bg-secondary/60 border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Foto de quem está retirando (obrigatória)
+          </label>
+          <div className="mt-1 rounded-lg overflow-hidden border border-border bg-black/80 aspect-video flex items-center justify-center">
+            {camError ? (
+              <p className="text-xs text-destructive-foreground bg-destructive/80 px-3 py-2 text-center">{camError}</p>
+            ) : photo ? (
+              <img src={photo.url} alt="Foto capturada da retirada" className="h-full w-full object-cover" />
+            ) : (
+              <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+            )}
+          </div>
+          <div className="flex gap-2 mt-2">
+            {photo ? (
+              <button
+                type="button"
+                onClick={retake}
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-secondary hover:bg-muted px-3 py-2 rounded disabled:opacity-60"
+              >
+                <RefreshCw className="h-4 w-4" /> Tirar outra
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={capture}
+                disabled={saving || !!camError}
+                className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-primary text-primary-foreground hover:opacity-90 px-3 py-2 rounded disabled:opacity-60"
+              >
+                <Camera className="h-4 w-4" /> Tirar foto
+              </button>
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1.5">
+            A foto é guardada em área privada, visível apenas para admin, gerência e expedição, como prova da retirada.
+          </p>
+        </div>
+
+
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
@@ -1653,7 +1867,7 @@ function DeliveryConfirmModal({ order, onCancel, onConfirm }: { order: OrderRow;
           </button>
           <button
             type="submit"
-            disabled={saving || !agent.trim()}
+            disabled={saving || !agent.trim() || person.trim().length < 2 || !photo}
             className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-[#25D366] text-white hover:opacity-90 px-4 py-2 rounded disabled:opacity-60"
           >
             <CheckCheck className="h-4 w-4" />

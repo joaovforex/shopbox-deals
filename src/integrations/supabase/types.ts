@@ -810,6 +810,9 @@ export type Database = {
           nfe_xml_url: string | null
           payment_method: string
           payment_provider: string
+          pickup_person_name: string | null
+          pickup_photo_path: string | null
+          pickup_photo_taken_at: string | null
           refund_reason: string | null
           refund_status: string | null
           refunded_amount: number | null
@@ -905,6 +908,9 @@ export type Database = {
           nfe_xml_url?: string | null
           payment_method?: string
           payment_provider?: string
+          pickup_person_name?: string | null
+          pickup_photo_path?: string | null
+          pickup_photo_taken_at?: string | null
           refund_reason?: string | null
           refund_status?: string | null
           refunded_amount?: number | null
@@ -1000,6 +1006,9 @@ export type Database = {
           nfe_xml_url?: string | null
           payment_method?: string
           payment_provider?: string
+          pickup_person_name?: string | null
+          pickup_photo_path?: string | null
+          pickup_photo_taken_at?: string | null
           refund_reason?: string | null
           refund_status?: string | null
           refunded_amount?: number | null
@@ -1732,10 +1741,20 @@ export type Database = {
         Returns: number
       }
       clear_global_discount: { Args: never; Returns: number }
-      confirm_order_delivery: {
-        Args: { p_delivered_by_name: string; p_order_id: string }
-        Returns: string
-      }
+      confirm_order_delivery:
+        | {
+            Args: { p_delivered_by_name: string; p_order_id: string }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_delivered_by_name: string
+              p_order_id: string
+              p_pickup_person_name: string
+              p_pickup_photo_path: string
+            }
+            Returns: string
+          }
       confirm_order_paid: {
         Args: { p_mp_payment_id?: string; p_order_id: string }
         Returns: string
