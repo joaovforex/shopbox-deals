@@ -72,13 +72,13 @@ export const searchCashbackCustomers = createServerFn({ method: "POST" })
       .limit(20);
     if (error) throw new Error(error.message);
 
-    const ids = (profiles ?? []).map((p: any) => p.id);
+    const foundIds = (profiles ?? []).map((p: any) => p.id);
     const balances = new Map<string, number>();
-    if (ids.length > 0) {
+    if (foundIds.length > 0) {
       const { data: entries } = await supabaseAdmin
         .from("cashback_entries")
         .select("user_id, amount, consumed, expires_at, expired_at, kind")
-        .in("user_id", ids)
+        .in("user_id", foundIds)
         .eq("kind", "earn")
         .is("expired_at", null);
       const now = Date.now();
