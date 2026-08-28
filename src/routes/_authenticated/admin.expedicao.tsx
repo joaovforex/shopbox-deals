@@ -1184,8 +1184,8 @@ function FulfillmentPage() {
         <DeliveryConfirmModal
           order={deliverTarget}
           onCancel={() => setDeliverTarget(null)}
-          onConfirm={async (agent) => {
-            const ok = await markDelivered(deliverTarget, agent);
+          onConfirm={async (agent, person, photo) => {
+            const ok = await markDelivered(deliverTarget, agent, person, photo);
             if (ok) setDeliverTarget(null);
           }}
         />
