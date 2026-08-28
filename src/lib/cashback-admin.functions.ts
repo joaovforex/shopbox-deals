@@ -46,12 +46,16 @@ export const searchCashbackCustomers = createServerFn({ method: "POST" })
     const digits = term.replace(/\D/g, "");
 
     const ids = new Set<string>();
+    const authEmails = new Map<string, string>();
 
     // Busca por nome/e-mail ignorando acentos e maiúsculas (usa text_norm no banco).
     const { data: candidates } = await context.supabase.rpc("search_team_candidates" as never, {
       p_term: raw.slice(0, 120),
     } as never);
-    for (const c of (candidates ?? []) as Array<{ id: string }>) ids.add(c.id);
+    for (const c of (candidates ?? []) as Array<{ id: string; email: string | null }>) {
+      ids.add(c.id);
+      if (c.email) authEmails.set(c.id, c.email);
+    }
 
     // Busca complementar por telefone/CPF.
     if (digits.length >= 4) {
