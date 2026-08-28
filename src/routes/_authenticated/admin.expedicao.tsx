@@ -1618,11 +1618,122 @@ function RefundsPanel({
   );
 }
 
-function DeliveryConfirmModal({ order, onCancel, onConfirm }: { order: OrderRow; onCancel: () => void; onConfirm: (agentName: string) => Promise<void> | void }) {
+/** Visualiza a foto de retirada (bucket privado → URL assinada temporária). */
+function PickupProofButton({ path }: { path: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const open = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.storage.from("pickup-proofs").createSignedUrl(path, 300);
+      if (error || !data?.signedUrl) {
+        toast.error("Não foi possível abrir a foto da retirada.");
+        return;
+      }
+      setUrl(data.signedUrl);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={open}
+        disabled={loading}
+        className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary hover:underline mt-0.5 disabled:opacity-60"
+      >
+        <Camera className="h-3 w-3" /> {loading ? "Abrindo…" : "Ver foto da retirada"}
+      </button>
+      {url && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setUrl(null)}>
+          <img
+            src={url}
+            alt="Foto de quem retirou o pedido"
+            className="max-h-[85vh] max-w-full rounded-lg border-2 border-primary"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
+function DeliveryConfirmModal({ order, onCancel, onConfirm }: { order: OrderRow; onCancel: () => void; onConfirm: (agentName: string, pickupPerson: string, photo: Blob | null) => Promise<void> | void }) {
   const [agent, setAgent] = useState("");
+  const [person, setPerson] = useState("");
   const [saving, setSaving] = useState(false);
+  const [camError, setCamError] = useState<string | null>(null);
+  const [photo, setPhoto] = useState<{ blob: Blob; url: string } | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const shortId = order.id.slice(0, 8).toUpperCase();
   const isDelivery = order.delivery_method === "delivery";
+
+  const stopCam = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+          audio: false,
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => {});
+        }
+      } catch (e: any) {
+        setCamError(
+          e?.name === "NotAllowedError"
+            ? "Permissão da webcam negada. Libere o acesso à câmera no navegador."
+            : "Nenhuma webcam disponível neste computador.",
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+      stopCam();
+    };
+  }, []);
+
+  useEffect(() => () => { if (photo) URL.revokeObjectURL(photo.url); }, [photo]);
+
+  const capture = async () => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth) {
+      toast.error("A webcam ainda não está pronta.");
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.82));
+    if (!blob) {
+      toast.error("Falha ao capturar a foto.");
+      return;
+    }
+    setPhoto({ blob, url: URL.createObjectURL(blob) });
+  };
+
+  const retake = () => {
+    if (photo) URL.revokeObjectURL(photo.url);
+    setPhoto(null);
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1631,13 +1742,22 @@ function DeliveryConfirmModal({ order, onCancel, onConfirm }: { order: OrderRow;
       toast.error("Digite o nome do agente entregante.");
       return;
     }
+    if (person.trim().length < 2) {
+      toast.error("Digite o nome do responsável pela retirada.");
+      return;
+    }
+    if (!photo) {
+      toast.error("Tire a foto de quem está retirando o pedido.");
+      return;
+    }
     setSaving(true);
     try {
-      await onConfirm(name);
+      await onConfirm(name, person.trim(), photo.blob);
     } finally {
       setSaving(false);
     }
   };
+
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onCancel}>
