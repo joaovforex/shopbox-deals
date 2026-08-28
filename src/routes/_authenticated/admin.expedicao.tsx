@@ -320,7 +320,10 @@ function FulfillmentPage() {
         q = q.lte("delivered_at", endOfDay(doneDateTo).toISOString());
       }
       const { data: orders, error, count } = await q
-        .order("delivered_at", { ascending: false })
+        // Pedidos antigos sem data de entrega registrada ficam no fim da lista
+        // (o padrão do Postgres em DESC é NULLS FIRST, o que jogaria eles pro topo).
+        .order("delivered_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false })
         .range(0, doneLimit - 1);
       if (error) throw error;
       return { rows: (orders ?? []) as OrderRow[], total: count ?? 0 };
