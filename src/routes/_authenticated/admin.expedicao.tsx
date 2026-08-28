@@ -1764,7 +1764,7 @@ function DeliveryConfirmModal({ order, onCancel, onConfirm }: { order: OrderRow;
       <form
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
-        className="bg-card border-2 border-primary rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4"
+        className="bg-card border-2 border-primary rounded-xl shadow-2xl w-full max-w-md p-6 space-y-4 max-h-[92vh] overflow-y-auto"
       >
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -1860,7 +1860,7 @@ function DeliveryConfirmModal({ order, onCancel, onConfirm }: { order: OrderRow;
           </button>
           <button
             type="submit"
-            disabled={saving || !agent.trim()}
+            disabled={saving || !agent.trim() || person.trim().length < 2 || !photo}
             className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-[#25D366] text-white hover:opacity-90 px-4 py-2 rounded disabled:opacity-60"
           >
             <CheckCheck className="h-4 w-4" />
