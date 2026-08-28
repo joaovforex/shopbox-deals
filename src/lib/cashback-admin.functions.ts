@@ -36,22 +36,39 @@ export const searchCashbackCustomers = createServerFn({ method: "POST" })
   .inputValidator((data: { term: string }) => ({ term: String(data?.term ?? "").slice(0, 100) }))
   .handler(async ({ data, context }): Promise<CashbackCustomer[]> => {
     await requireAdmin(context as never);
-    const term = sanitizePostgrestTerm(data.term);
+    const raw = String(data.term ?? "").trim();
+    if (raw.length < 2) return [];
+    // Mantém @ . - _ (essenciais pra e-mail), remove só o que quebra o filtro PostgREST.
+    const term = raw.replace(/[(),*%\\"'`:]/g, " ").replace(/\s+/g, " ").trim().slice(0, 100);
     if (term.length < 2) return [];
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const digits = term.replace(/\D/g, "");
 
-    const filters = [
-      `full_name.ilike.%${term}%`,
-      `email.ilike.%${term}%`,
-      ...(digits.length >= 4 ? [`phone.ilike.%${digits}%`, `cpf.ilike.%${digits}%`] : []),
-    ].join(",");
+    const ids = new Set<string>();
+
+    // Busca por nome/e-mail ignorando acentos e maiúsculas (usa text_norm no banco).
+    const { data: candidates } = await context.supabase.rpc("search_team_candidates" as never, {
+      p_term: raw.slice(0, 120),
+    } as never);
+    for (const c of (candidates ?? []) as Array<{ id: string }>) ids.add(c.id);
+
+    // Busca complementar por telefone/CPF.
+    if (digits.length >= 4) {
+      const { data: byDigits } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .or(`phone.ilike.%${digits}%,cpf.ilike.%${digits}%`)
+        .limit(20);
+      for (const p of byDigits ?? []) ids.add((p as any).id);
+    }
+
+    if (ids.size === 0) return [];
 
     const { data: profiles, error } = await supabaseAdmin
       .from("profiles")
       .select("id, full_name, email, phone, cpf")
-      .or(filters)
+      .in("id", Array.from(ids))
       .limit(20);
     if (error) throw new Error(error.message);
 
