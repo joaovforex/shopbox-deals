@@ -548,20 +548,51 @@ function FulfillmentPage() {
     qc.invalidateQueries({ queryKey: ["fulfillment-orders"] });
   };
 
-  const markDelivered = async (o: OrderRow, agentName: string) => {
+  const markDelivered = async (o: OrderRow, agentName: string, pickupPerson: string, photoBlob: Blob | null) => {
     const name = agentName.trim();
+    const person = pickupPerson.trim();
     if (!name) {
       toast.error("Informe o nome do agente que fez a entrega.");
       return false;
     }
+    if (person.length < 2) {
+      toast.error("Informe o nome de quem está retirando o pedido.");
+      return false;
+    }
+    if (!photoBlob) {
+      toast.error("Tire a foto de quem está retirando antes de confirmar.");
+      return false;
+    }
+    let photoPath = "";
+    try {
+      // Prova de retirada: a foto vai para um bucket privado, acessível
+      // apenas a admin/gerente/expedição pelas políticas do storage.
+      photoPath = `${o.id}/${Date.now()}.jpg`;
+      const up = await supabase.storage
+        .from("pickup-proofs")
+        .upload(photoPath, photoBlob, { contentType: "image/jpeg", upsert: false });
+      if (up.error) {
+        console.error("[markDelivered] upload da foto falhou:", up.error);
+        toast.error("Não foi possível salvar a foto da retirada. Tente novamente.");
+        return false;
+      }
+    } catch (e: any) {
+      console.error("[markDelivered] exceção no upload:", e);
+      toast.error(e?.message || "Falha ao enviar a foto da retirada.");
+      return false;
+    }
     try {
       // RPC atômica: valida cargo (admin/manager/fulfillment), grava o
-      // nome do agente e marca fulfillment_status=completed em uma única
-      // transação. Substitui o update direto na tabela (que dependia
-      // exclusivamente das políticas de UPDATE de orders).
+      // nome do agente, o responsável pela retirada e a foto, e marca
+      // fulfillment_status=completed em uma única transação.
       const { error } = await supabase.rpc(
         "confirm_order_delivery" as never,
-        { p_order_id: o.id, p_delivered_by_name: name } as never,
+        {
+          p_order_id: o.id,
+          p_delivered_by_name: name,
+          p_pickup_person_name: person,
+          p_pickup_photo_path: photoPath,
+        } as never,
       );
       if (error) {
         console.error("[markDelivered] erro RPC:", error);
