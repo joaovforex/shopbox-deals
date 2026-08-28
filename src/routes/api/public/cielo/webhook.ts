@@ -54,13 +54,21 @@ async function logEvent(params: {
 }): Promise<void> {
   try {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    await supabaseAdmin.from("cielo_webhook_events" as never).insert({
-      payment_id: params.paymentId || "desconhecido",
-      change_type: params.changeType,
-      order_id: params.orderId ?? null,
-      cielo_status: params.cieloStatus ?? null,
-      raw_payload: { ...params.payload, _log: params.outcome } as never,
-    } as never);
+    const { error } = await supabaseAdmin.from("cielo_webhook_events" as never).upsert(
+      {
+        payment_id: params.paymentId || "desconhecido",
+        // change_type é numérico; usamos o timestamp pra permitir múltiplas
+        // notificações do mesmo pagamento sem colidir com a unique (payment_id, change_type).
+        change_type: Number.isFinite(params.changeType) && params.changeType > 0 ? params.changeType : Date.now() % 2147483647,
+        order_id: params.orderId ?? null,
+        // A coluna cielo_status é integer; o status textual da Cielo vai no payload.
+        cielo_status: null,
+        processed_at: new Date().toISOString(),
+        raw_payload: { ...params.payload, _log: params.outcome, _cielo_status: params.cieloStatus ?? null } as never,
+      } as never,
+      { onConflict: "payment_id,change_type" } as never,
+    );
+    if (error) console.error("[cielo:webhook] falha ao registrar evento", error.message);
   } catch (err) {
     console.error("[cielo:webhook] falha ao registrar evento", err);
   }

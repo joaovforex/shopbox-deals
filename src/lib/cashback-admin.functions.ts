@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { sanitizePostgrestTerm } from "@/lib/pgrst";
+
 
 export type CashbackCustomer = {
   id: string;
@@ -36,32 +36,53 @@ export const searchCashbackCustomers = createServerFn({ method: "POST" })
   .inputValidator((data: { term: string }) => ({ term: String(data?.term ?? "").slice(0, 100) }))
   .handler(async ({ data, context }): Promise<CashbackCustomer[]> => {
     await requireAdmin(context as never);
-    const term = sanitizePostgrestTerm(data.term);
+    const raw = String(data.term ?? "").trim();
+    if (raw.length < 2) return [];
+    // Mantém @ . - _ (essenciais pra e-mail), remove só o que quebra o filtro PostgREST.
+    const term = raw.replace(/[(),*%\\"'`:]/g, " ").replace(/\s+/g, " ").trim().slice(0, 100);
     if (term.length < 2) return [];
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const digits = term.replace(/\D/g, "");
 
-    const filters = [
-      `full_name.ilike.%${term}%`,
-      `email.ilike.%${term}%`,
-      ...(digits.length >= 4 ? [`phone.ilike.%${digits}%`, `cpf.ilike.%${digits}%`] : []),
-    ].join(",");
+    const ids = new Set<string>();
+    const authEmails = new Map<string, string>();
+
+    // Busca por nome/e-mail ignorando acentos e maiúsculas (usa text_norm no banco).
+    const { data: candidates } = await context.supabase.rpc("search_team_candidates" as never, {
+      p_term: raw.slice(0, 120),
+    } as never);
+    for (const c of (candidates ?? []) as Array<{ id: string; email: string | null }>) {
+      ids.add(c.id);
+      if (c.email) authEmails.set(c.id, c.email);
+    }
+
+    // Busca complementar por telefone/CPF.
+    if (digits.length >= 4) {
+      const { data: byDigits } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .or(`phone.ilike.%${digits}%,cpf.ilike.%${digits}%`)
+        .limit(20);
+      for (const p of byDigits ?? []) ids.add((p as any).id);
+    }
+
+    if (ids.size === 0) return [];
 
     const { data: profiles, error } = await supabaseAdmin
       .from("profiles")
       .select("id, full_name, email, phone, cpf")
-      .or(filters)
+      .in("id", Array.from(ids))
       .limit(20);
     if (error) throw new Error(error.message);
 
-    const ids = (profiles ?? []).map((p: any) => p.id);
+    const foundIds = (profiles ?? []).map((p: any) => p.id);
     const balances = new Map<string, number>();
-    if (ids.length > 0) {
+    if (foundIds.length > 0) {
       const { data: entries } = await supabaseAdmin
         .from("cashback_entries")
         .select("user_id, amount, consumed, expires_at, expired_at, kind")
-        .in("user_id", ids)
+        .in("user_id", foundIds)
         .eq("kind", "earn")
         .is("expired_at", null);
       const now = Date.now();
@@ -77,7 +98,7 @@ export const searchCashbackCustomers = createServerFn({ method: "POST" })
     return (profiles ?? []).map((p: any) => ({
       id: p.id,
       name: (p.full_name ?? "").trim() || "(sem nome)",
-      email: (p.email ?? "").trim(),
+      email: ((p.email ?? "").trim() || authEmails.get(p.id) || "").trim(),
       phone: (p.phone ?? "").trim(),
       cpf: (p.cpf ?? "").trim(),
       balance: Math.round((balances.get(p.id) ?? 0) * 100) / 100,
