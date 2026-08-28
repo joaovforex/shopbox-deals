@@ -1797,6 +1797,58 @@ function DeliveryConfirmModal({ order, onCancel, onConfirm }: { order: OrderRow;
           </p>
         </div>
 
+        <div>
+          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Nome de quem está retirando
+          </label>
+          <input
+            value={person}
+            onChange={(e) => setPerson(e.target.value)}
+            placeholder="Ex.: Maria Silva (nome de quem recebeu)"
+            className="mt-1 w-full bg-secondary/60 border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Foto de quem está retirando (obrigatória)
+          </label>
+          <div className="mt-1 rounded-lg overflow-hidden border border-border bg-black/80 aspect-video flex items-center justify-center">
+            {camError ? (
+              <p className="text-xs text-destructive-foreground bg-destructive/80 px-3 py-2 text-center">{camError}</p>
+            ) : photo ? (
+              <img src={photo.url} alt="Foto capturada da retirada" className="h-full w-full object-cover" />
+            ) : (
+              <video ref={videoRef} playsInline muted className="h-full w-full object-cover" />
+            )}
+          </div>
+          <div className="flex gap-2 mt-2">
+            {photo ? (
+              <button
+                type="button"
+                onClick={retake}
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-secondary hover:bg-muted px-3 py-2 rounded disabled:opacity-60"
+              >
+                <RefreshCw className="h-4 w-4" /> Tirar outra
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={capture}
+                disabled={saving || !!camError}
+                className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-primary text-primary-foreground hover:opacity-90 px-3 py-2 rounded disabled:opacity-60"
+              >
+                <Camera className="h-4 w-4" /> Tirar foto
+              </button>
+            )}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1.5">
+            A foto é guardada em área privada, visível apenas para admin, gerência e expedição, como prova da retirada.
+          </p>
+        </div>
+
+
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"
