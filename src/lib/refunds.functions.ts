@@ -320,10 +320,13 @@ export const refundOrder = createServerFn({ method: "POST" })
 
     return {
       ok: true,
+      queued: false as const,
+      message: null,
       refundId: mpRefundId,
       amount: data.amount,
       full: isFull,
       removed: true,
+
       receipt: {
         orderId: order.id,
         customerName: order.customer_name,
