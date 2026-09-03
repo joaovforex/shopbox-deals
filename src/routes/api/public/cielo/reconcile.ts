@@ -92,6 +92,10 @@ export const Route = createFileRoute("/api/public/cielo/reconcile")({
                 .from("orders")
                 .update({
                   cielo_status: mapped.cielo_status,
+                  cielo_return_code: tx.returnCode ?? null,
+                  cielo_return_message: tx.returnMessage ?? null,
+                  cielo_payment_method: tx.paymentType ?? null,
+                  cielo_card_brand: tx.brand ?? null,
                   cielo_last_check_at: new Date().toISOString(),
                 } as never)
                 .eq("id", o.id);
