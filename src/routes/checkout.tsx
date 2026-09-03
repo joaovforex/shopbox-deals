@@ -181,6 +181,9 @@ function CheckoutPage() {
   const [shippingQuote, setShippingQuote] = useState<number | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [coverageMsg, setCoverageMsg] = useState<string | null>(null);
+  const [hasSavedAddress, setHasSavedAddress] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(true);
+
 
 
   // Pré-preenche do perfil do cliente logado (inclui endereço salvo)
