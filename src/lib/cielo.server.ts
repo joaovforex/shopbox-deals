@@ -353,6 +353,11 @@ export function mapCieloStatus(status: string): {
     case "created":
     case "scheduled":
       return { cielo_status: "pending", order_action: "pending" };
+    // Falha de processamento na Cielo (status 6). Na prática não se recupera:
+    // liberamos o pedido para cancelamento/estoque em vez de deixá-lo travado.
+    case "notfinalized":
+    case "notfinished":
+      return { cielo_status: "not_finalized", order_action: "cancelled" };
     default:
       return { cielo_status: `unknown_${s}`, order_action: "noop" };
   }
