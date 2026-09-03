@@ -249,24 +249,61 @@ function CheckoutPage() {
     return () => { cancelled = true; };
   }, [cep]);
 
-  // Libera o botão de pagamento assim que os campos mínimos estiverem ok.
-  // Não chamamos mais a Mais Entregas aqui (preconfirm) — era lento (2-5s) e
-  // a corrida só é criada após o pagamento aprovado de qualquer jeito.
+  // Cotação real do frete na TBT/Mais Entregas (debounce) — o valor exibido é
+  // o mesmo recalculado no servidor na hora de gerar o pagamento.
   useEffect(() => {
     if (delivery !== "delivery") {
       setCoverageOk(null);
       setCoverageMsg(null);
+      setShippingQuote(null);
+      setQuoting(false);
       return;
     }
     const d = cep.replace(/\D/g, "");
     if (d.length !== 8 || !street.trim() || !number.trim() || cepError) {
       setCoverageOk(null);
       setCoverageMsg(null);
+      setShippingQuote(null);
+      setQuoting(false);
       return;
     }
-    setCoverageOk(true);
-    setCoverageMsg("Entrega disponível. Prazo de até 2 dias úteis — frete por conta da loja.");
-  }, [delivery, cep, street, number, cepError]);
+    let cancelled = false;
+    setQuoting(true);
+    setCoverageOk(null);
+    setCoverageMsg(null);
+    const t = setTimeout(async () => {
+      try {
+        const res = await quoteDelivery({
+          data: {
+            zip: d,
+            street: street.trim(),
+            number: number.trim(),
+            district: district.trim(),
+            complement: complement.trim(),
+            city: city.trim() || "Curitiba",
+          },
+        });
+        if (cancelled) return;
+        setShippingQuote(res.fee);
+        setCoverageOk(true);
+        setCoverageMsg(
+          `Entrega disponível${res.etaMinutes ? ` · aprox. ${res.etaMinutes} min de rota` : ""}.`,
+        );
+      } catch (err) {
+        if (cancelled) return;
+        setShippingQuote(null);
+        setCoverageOk(false);
+        setCoverageMsg(
+          err instanceof Error && /cobertura|frete/i.test(err.message)
+            ? err.message
+            : "Não conseguimos calcular o frete para este endereço. Revise os dados ou escolha retirada na loja.",
+        );
+      } finally {
+        if (!cancelled) setQuoting(false);
+      }
+    }, 700);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [delivery, cep, street, number, district, complement, city, cepError]);
 
 
   if (user === undefined || user === null) {
