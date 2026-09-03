@@ -15,6 +15,7 @@ import { getMyCashback } from "@/lib/cashback.functions";
 import { calculateCashback } from "@/lib/cashback-config";
 import { useSiteSettings } from "@/lib/site-settings";
 import { fetchUnidades, unidadeEndereco, type Unidade } from "@/lib/unidades";
+import { quoteDelivery } from "@/lib/maisentregas.functions";
 
 
 
@@ -177,6 +178,8 @@ function CheckoutPage() {
   const [cepBusy, setCepBusy] = useState(false);
   const [cepError, setCepError] = useState<string | null>(null);
   const [coverageOk, setCoverageOk] = useState<null | boolean>(null);
+  const [shippingQuote, setShippingQuote] = useState<number | null>(null);
+  const [quoting, setQuoting] = useState(false);
   const [coverageMsg, setCoverageMsg] = useState<string | null>(null);
 
 
@@ -248,24 +251,61 @@ function CheckoutPage() {
     return () => { cancelled = true; };
   }, [cep]);
 
-  // Libera o botão de pagamento assim que os campos mínimos estiverem ok.
-  // Não chamamos mais a Mais Entregas aqui (preconfirm) — era lento (2-5s) e
-  // a corrida só é criada após o pagamento aprovado de qualquer jeito.
+  // Cotação real do frete na TBT/Mais Entregas (debounce) — o valor exibido é
+  // o mesmo recalculado no servidor na hora de gerar o pagamento.
   useEffect(() => {
     if (delivery !== "delivery") {
       setCoverageOk(null);
       setCoverageMsg(null);
+      setShippingQuote(null);
+      setQuoting(false);
       return;
     }
     const d = cep.replace(/\D/g, "");
     if (d.length !== 8 || !street.trim() || !number.trim() || cepError) {
       setCoverageOk(null);
       setCoverageMsg(null);
+      setShippingQuote(null);
+      setQuoting(false);
       return;
     }
-    setCoverageOk(true);
-    setCoverageMsg("Entrega disponível. Prazo de até 2 dias úteis — frete por conta da loja.");
-  }, [delivery, cep, street, number, cepError]);
+    let cancelled = false;
+    setQuoting(true);
+    setCoverageOk(null);
+    setCoverageMsg(null);
+    const t = setTimeout(async () => {
+      try {
+        const res = await quoteDelivery({
+          data: {
+            zip: d,
+            street: street.trim(),
+            number: number.trim(),
+            district: district.trim(),
+            complement: complement.trim(),
+            city: city.trim() || "Curitiba",
+          },
+        });
+        if (cancelled) return;
+        setShippingQuote(res.fee);
+        setCoverageOk(true);
+        setCoverageMsg(
+          `Entrega disponível${res.etaMinutes ? ` · aprox. ${res.etaMinutes} min de rota` : ""}.`,
+        );
+      } catch (err) {
+        if (cancelled) return;
+        setShippingQuote(null);
+        setCoverageOk(false);
+        setCoverageMsg(
+          err instanceof Error && /cobertura|frete/i.test(err.message)
+            ? err.message
+            : "Não conseguimos calcular o frete para este endereço. Revise os dados ou escolha retirada na loja.",
+        );
+      } finally {
+        if (!cancelled) setQuoting(false);
+      }
+    }, 700);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [delivery, cep, street, number, district, complement, city, cepError]);
 
 
   if (user === undefined || user === null) {
@@ -311,7 +351,8 @@ function CheckoutPage() {
       if (!street.trim()) return toast.error("Informe a rua");
       if (!number.trim()) return toast.error("Informe o número");
       if (coverageOk === false) return toast.error(coverageMsg ?? "Endereço fora da área de entrega");
-      if (coverageOk !== true) return toast.error("Aguarde a validação do endereço");
+      if (quoting) return toast.error("Aguarde o cálculo do frete");
+      if (coverageOk !== true || shippingQuote == null) return toast.error("Aguarde a validação do endereço");
       shipping = {
         zip: cepDigits,
         street: street.trim(),
@@ -428,8 +469,8 @@ function CheckoutPage() {
                 active={delivery === "delivery"}
                 onClick={() => setDelivery("delivery")}
                 title="Receber em casa"
-                subtitle="FRETE R$ 12"
-                description="Frete fixo de R$ 12,00. Entrega em até 2 dias úteis."
+                subtitle={shippingQuote != null ? `FRETE ${brl(shippingQuote)}` : "FRETE CALCULADO"}
+                description="Frete calculado pelo endereço. Entrega em até 2 dias úteis."
                 highlight
               />
             </div>
@@ -473,7 +514,13 @@ function CheckoutPage() {
                 </div>
                 <div className="bg-primary/10 border border-primary/30 text-primary rounded-md px-3 py-2 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                   <span>🚚</span>
-                  <span>Frete fixo R$ 12,00 · Curitiba e região metropolitana</span>
+                  <span>
+                    {quoting
+                      ? "Calculando frete..."
+                      : shippingQuote != null
+                        ? `Frete ${brl(shippingQuote)} para este endereço`
+                        : "Frete calculado pelo endereço · Curitiba e região metropolitana"}
+                  </span>
                 </div>
                 <div className="grid sm:grid-cols-[160px_1fr] gap-3">
                   <Field
@@ -571,7 +618,7 @@ function CheckoutPage() {
             ))}
           </div>
           {(() => {
-            const shippingFee = delivery === "delivery" ? 12 : 0;
+            const shippingFee = delivery === "delivery" ? (shippingQuote ?? 0) : 0;
             const cashbackApply = useCashback ? Math.min(cashbackBalance, total) : 0;
             const grandTotal = Math.max(0, total - cashbackApply) + shippingFee;
             const expiresInDays = cashbackExpiry
@@ -612,11 +659,23 @@ function CheckoutPage() {
                 )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{delivery === "pickup" ? "Retirada" : "Entrega"}</span>
-                  <span className="font-semibold">{shippingFee > 0 ? brl(shippingFee) : "Grátis"}</span>
+                  <span className="font-semibold">
+                    {delivery === "pickup"
+                      ? "Grátis"
+                      : quoting
+                        ? "Calculando..."
+                        : shippingFee > 0
+                          ? brl(shippingFee)
+                          : "—"}
+                  </span>
                 </div>
                 {delivery === "delivery" && (
                   <p className="text-[11px] text-muted-foreground -mt-1">
-                    Frete fixo de R$ 12,00 para Curitiba e região metropolitana.
+                    {quoting
+                      ? "Calculando o frete com a transportadora..."
+                      : shippingQuote != null
+                        ? "Frete calculado pela transportadora para o seu endereço."
+                        : "Preencha CEP, rua e número para calcular o frete."}
                   </p>
                 )}
                 <div className="border-t border-border pt-3 flex justify-between items-baseline">
@@ -633,7 +692,7 @@ function CheckoutPage() {
                 </div>
                 <button
                   type="submit"
-                  disabled={busy || (delivery === "delivery" && coverageOk !== true)}
+                  disabled={busy || (delivery === "delivery" && (quoting || coverageOk !== true || shippingQuote == null))}
                   className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] transition-transform disabled:opacity-60 disabled:scale-100"
                 >
                   {busy ? `Abrindo ${providerName}...` : `Pagar ${brl(grandTotal)}`}
