@@ -369,10 +369,23 @@ function OrdersPanel() {
   async function deleteOrder(target: OrderRow) {
     setBusy(true);
     try {
+      // Pedido pago na Cielo: dispara o estorno REAL antes de excluir.
+      const cieloRes = await refundOnCancelFn({
+        data: { orderId: target.id, reason: "Pedido cancelado/excluído pelo lojista" },
+      });
+      if (cieloRes.queued) {
+        toast.info(cieloRes.message ?? "Estorno enfileirado — pedido mantido até concluir");
+        setDeleteTarget(null);
+        qc.invalidateQueries({ queryKey: ["admin-orders"] });
+        return;
+      }
+      if (cieloRes.refunded) toast.success(cieloRes.message ?? "Estorno enviado à Cielo");
+
       const { error: e1 } = await supabase.from("order_items").delete().eq("order_id", target.id);
       if (e1) throw e1;
       const { error: e2 } = await supabase.from("orders").delete().eq("id", target.id);
       if (e2) throw e2;
+
       await logAudit({
         action: "order.delete",
         entity: "order",
