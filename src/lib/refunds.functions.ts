@@ -178,7 +178,48 @@ export const refundOrder = createServerFn({ method: "POST" })
     // cancelado como concluído.
     let refundStatus: "pending" | "confirmed" | "cancelled" | "manual" = "manual";
     let providerStatus: string | null = null;
-    if (useAsaasApi) {
+    if (useCieloApi) {
+      const { attemptCieloRefund } = await import("@/lib/cielo-refund.server");
+      const outcome = await attemptCieloRefund({
+        orderId: order.id,
+        cieloPaymentId: cieloPaymentId as string,
+        amount: data.amount,
+        isFull,
+        reason: data.reason,
+        customerName: order.customer_name,
+        customerEmail: order.customer_email,
+        customerPhone: order.customer_phone,
+        customerCpf: order.customer_cpf,
+        paymentMethod: order.payment_method,
+        orderTotal: total,
+        orderCreatedAt: order.created_at,
+        items: itemsSnapshot,
+        operatorId: userId,
+        operatorName,
+      });
+      if (!outcome.ok) {
+        if (outcome.queued) {
+          // Fila criada: o cron vai retentar sozinho (Cielo libera saldo em D+1).
+          return {
+            ok: true,
+            queued: true as const,
+            refundId: null,
+            amount: data.amount,
+            full: isFull,
+            removed: false,
+            message:
+              "A Cielo ainda não pôde processar o estorno agora" +
+              (outcome.insufficientBalance ? " (saldo insuficiente — normal em D+0)" : "") +
+              `. O sistema vai retentar automaticamente até concluir. Motivo: ${outcome.error}`,
+          };
+        }
+        throw new Error(`Falha no estorno Cielo: ${outcome.error}`);
+      }
+      providerRefundId = outcome.refundId;
+      providerStatus = "Voided";
+      refundStatus = "confirmed";
+    } else if (useAsaasApi) {
+
       try {
         const { refundPayment, mapRefundStatus } = await import("@/lib/asaas.server");
         const refund = await refundPayment(
