@@ -26,7 +26,7 @@ import {
 } from "@/lib/admin-metrics";
 import { brl } from "@/lib/format";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
-import { refundOrder } from "@/lib/refunds.functions";
+import { refundOrder, refundCieloOnCancel } from "@/lib/refunds.functions";
 import { createExchangeVoucher } from "@/lib/exchange-vouchers.functions";
 import { listAllCustomers } from "@/lib/customers.functions";
 import { getPosChargesMetrics } from "@/lib/caixa-qr.functions";
@@ -131,6 +131,7 @@ function OrdersPanel() {
   const [deleteTarget, setDeleteTarget] = useState<OrderRow | null>(null);
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const refundFn = useServerFn(refundOrder);
+  const refundOnCancelFn = useServerFn(refundCieloOnCancel);
   const voucherFn = useServerFn(createExchangeVoucher);
   const listCustomersFn = useServerFn(listAllCustomers);
   const posMetricsFn = useServerFn(getPosChargesMetrics);
@@ -369,10 +370,23 @@ function OrdersPanel() {
   async function deleteOrder(target: OrderRow) {
     setBusy(true);
     try {
+      // Pedido pago na Cielo: dispara o estorno REAL antes de excluir.
+      const cieloRes = await refundOnCancelFn({
+        data: { orderId: target.id, reason: "Pedido cancelado/excluído pelo lojista" },
+      });
+      if (cieloRes.queued) {
+        toast.info(cieloRes.message ?? "Estorno enfileirado — pedido mantido até concluir");
+        setDeleteTarget(null);
+        qc.invalidateQueries({ queryKey: ["admin-orders"] });
+        return;
+      }
+      if (cieloRes.refunded) toast.success(cieloRes.message ?? "Estorno enviado à Cielo");
+
       const { error: e1 } = await supabase.from("order_items").delete().eq("order_id", target.id);
       if (e1) throw e1;
       const { error: e2 } = await supabase.from("orders").delete().eq("id", target.id);
       if (e2) throw e2;
+
       await logAudit({
         action: "order.delete",
         entity: "order",

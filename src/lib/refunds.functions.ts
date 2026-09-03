@@ -75,16 +75,20 @@ export const refundOrder = createServerFn({ method: "POST" })
 
     const provider = (order as { payment_provider?: string }).payment_provider ?? "asaas";
     const asaasPaymentId = (order as { asaas_payment_id?: string | null }).asaas_payment_id;
+    const cieloPaymentId = (order as { cielo_payment_id?: string | null }).cielo_payment_id;
 
-    // A Asaas é o único gateway ativo. Pedidos antigos (Mercado Pago / Cielo)
-    // são reembolsados MANUALMENTE: o operador devolve o dinheiro por fora
-    // (Pix/transferência) e o sistema grava o histórico.
-    const useAsaasApi = !!asaasPaymentId;
-    const isManualLegacy = !useAsaasApi;
+    // Cielo é o gateway ativo: estorno REAL via API (void), com fila de
+    // retentativa automática quando a Cielo recusa por saldo insuficiente.
+    // Pedidos antigos da Asaas continuam usando a API da Asaas.
+    // Sem nenhum ID de gateway → reembolso manual (histórico apenas).
+    const useCieloApi = !!cieloPaymentId;
+    const useAsaasApi = !useCieloApi && !!asaasPaymentId;
+    const isManualLegacy = !useCieloApi && !useAsaasApi;
 
     if (useAsaasApi && !process.env.ASAAS_API_KEY) {
       throw new Error("Asaas não configurado");
     }
+
 
 
     // ============================================================
@@ -174,7 +178,50 @@ export const refundOrder = createServerFn({ method: "POST" })
     // cancelado como concluído.
     let refundStatus: "pending" | "confirmed" | "cancelled" | "manual" = "manual";
     let providerStatus: string | null = null;
-    if (useAsaasApi) {
+    if (useCieloApi) {
+      const { attemptCieloRefund } = await import("@/lib/cielo-refund.server");
+      const outcome = await attemptCieloRefund({
+        orderId: order.id,
+        cieloPaymentId: cieloPaymentId as string,
+        amount: data.amount,
+        isFull,
+        reason: data.reason,
+        customerName: order.customer_name,
+        customerEmail: order.customer_email,
+        customerPhone: order.customer_phone,
+        customerCpf: order.customer_cpf,
+        paymentMethod: order.payment_method,
+        orderTotal: total,
+        orderCreatedAt: order.created_at,
+        items: itemsSnapshot,
+        operatorId: userId,
+        operatorName,
+      });
+      if (!outcome.ok) {
+        if (outcome.queued) {
+          // Fila criada: o cron vai retentar sozinho (Cielo libera saldo em D+1).
+          return {
+            ok: true,
+            queued: true as const,
+            refundId: null,
+            amount: data.amount,
+            full: isFull,
+            removed: false,
+            receipt: null,
+
+            message:
+              "A Cielo ainda não pôde processar o estorno agora" +
+              (outcome.insufficientBalance ? " (saldo insuficiente — normal em D+0)" : "") +
+              `. O sistema vai retentar automaticamente até concluir. Motivo: ${outcome.error}`,
+          };
+        }
+        throw new Error(`Falha no estorno Cielo: ${outcome.error}`);
+      }
+      providerRefundId = outcome.refundId;
+      providerStatus = "Voided";
+      refundStatus = "confirmed";
+    } else if (useAsaasApi) {
+
       try {
         const { refundPayment, mapRefundStatus } = await import("@/lib/asaas.server");
         const refund = await refundPayment(
@@ -223,7 +270,7 @@ export const refundOrder = createServerFn({ method: "POST" })
       mp_payment_id: order.mp_payment_id,
       mp_refund_id: mpRefundId,
       provider,
-      provider_payment_id: asaasPaymentId ?? order.mp_payment_id ?? null,
+      provider_payment_id: cieloPaymentId ?? asaasPaymentId ?? order.mp_payment_id ?? null,
       provider_status: providerStatus,
       status: refundStatus,
       confirmed_at: refundStatus === "confirmed" || refundStatus === "manual" ? new Date().toISOString() : null,
@@ -273,10 +320,13 @@ export const refundOrder = createServerFn({ method: "POST" })
 
     return {
       ok: true,
+      queued: false as const,
+      message: null,
       refundId: mpRefundId,
       amount: data.amount,
       full: isFull,
       removed: true,
+
       receipt: {
         orderId: order.id,
         customerName: order.customer_name,
@@ -723,3 +773,133 @@ export const reinstateOrderAsPaid = createServerFn({ method: "POST" })
     return { ok: true, orderId: order.id, stockDecrements };
   });
 
+
+// ============================================================
+// Estorno automático da Cielo ao CANCELAR/EXCLUIR um pedido pago
+// ============================================================
+
+/**
+ * Chamado antes de cancelar/excluir um pedido no admin.
+ * Se o pedido está pago na Cielo e ainda não foi estornado, dispara o void
+ * real (dinheiro volta ao cliente). Se a Cielo recusar (ex.: saldo
+ * insuficiente em D+0), enfileira a retentativa automática e BLOQUEIA a
+ * exclusão até o estorno concluir.
+ */
+export const refundCieloOnCancel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { orderId: string; reason?: string }) => {
+    if (!data?.orderId || typeof data.orderId !== "string") throw new Error("Pedido inválido");
+    return { orderId: data.orderId, reason: (data.reason ?? "Pedido cancelado pelo lojista").slice(0, 500) };
+  })
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: isSuper } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+    if (!isSuper) throw new Error("Apenas SUPERADMIN pode cancelar com estorno");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: order } = await supabaseAdmin
+      .from("orders")
+      .select("id,status,total,cielo_payment_id,mp_payment_id,payment_provider,payment_method,refund_status,customer_name,customer_email,customer_phone,customer_cpf,created_at")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (!order) throw new Error("Pedido não encontrado");
+
+    const o = order as any;
+    const cieloPaymentId: string | null = o.cielo_payment_id ?? null;
+    const alreadyRefunded = o.refund_status === "refunded" || o.refund_status === "partially_refunded";
+
+    if (o.status !== "paid" || !cieloPaymentId || alreadyRefunded) {
+      return { skipped: true as const, refunded: false, queued: false, message: null as string | null };
+    }
+
+    const total = Number(o.total);
+    const { data: items } = await supabaseAdmin
+      .from("order_items")
+      .select("product_name,variant_color,quantity,unit_price")
+      .eq("order_id", o.id);
+    const itemsSnapshot = (items ?? []).map((it: any) => ({
+      name: it.product_name,
+      color: it.variant_color,
+      quantity: it.quantity,
+      unitPrice: Number(it.unit_price),
+    }));
+    const { data: prof } = await supabaseAdmin.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+    const operatorName = prof?.full_name || "—";
+
+    const { attemptCieloRefund } = await import("@/lib/cielo-refund.server");
+    const outcome = await attemptCieloRefund({
+      orderId: o.id,
+      cieloPaymentId,
+      amount: total,
+      isFull: true,
+      reason: data.reason,
+      customerName: o.customer_name,
+      customerEmail: o.customer_email,
+      customerPhone: o.customer_phone,
+      customerCpf: o.customer_cpf,
+      paymentMethod: o.payment_method,
+      orderTotal: total,
+      orderCreatedAt: o.created_at,
+      items: itemsSnapshot,
+      operatorId: userId,
+      operatorName,
+    });
+
+    if (!outcome.ok) {
+      if (outcome.queued) {
+        return {
+          skipped: false as const,
+          refunded: false,
+          queued: true,
+          message:
+            "Estorno na Cielo enfileirado — o sistema vai retentar automaticamente até o dinheiro voltar ao cliente. " +
+            "O pedido NÃO foi excluído para não perder o vínculo do estorno.",
+        };
+      }
+      throw new Error(`Falha ao estornar na Cielo: ${outcome.error}`);
+    }
+
+    await supabaseAdmin.from("refunds").insert({
+      order_id: o.id,
+      mp_payment_id: o.mp_payment_id,
+      mp_refund_id: outcome.refundId,
+      provider: o.payment_provider ?? "cielo",
+      provider_payment_id: cieloPaymentId,
+      provider_status: "Voided",
+      status: "confirmed",
+      confirmed_at: new Date().toISOString(),
+      last_checked_at: new Date().toISOString(),
+      amount: total,
+      is_full: true,
+      reason: data.reason,
+      customer_name: o.customer_name,
+      customer_email: o.customer_email,
+      customer_phone: o.customer_phone,
+      customer_cpf: o.customer_cpf,
+      payment_method: o.payment_method,
+      order_total: total,
+      order_created_at: o.created_at,
+      items: itemsSnapshot,
+      operator_id: userId,
+      operator_name: operatorName,
+    } as never);
+
+    await supabaseAdmin
+      .from("orders")
+      .update({
+        refund_status: "refunded",
+        refunded_at: new Date().toISOString(),
+        refunded_amount: total,
+        refund_reason: data.reason,
+        refunded_by: userId,
+        refunded_by_name: operatorName,
+      } as never)
+      .eq("id", o.id);
+
+    return {
+      skipped: false as const,
+      refunded: true,
+      queued: false,
+      message: `Estorno de R$ ${total.toFixed(2)} enviado à Cielo — o dinheiro volta ao cliente.`,
+    };
+  });
