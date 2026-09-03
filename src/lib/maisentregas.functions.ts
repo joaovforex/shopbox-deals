@@ -46,6 +46,62 @@ function buildAddress(input: {
 }
 
 // =====================================================================
+// quoteDeliveryFee — helper server-only (chamado também pelo checkout
+// server-side, para nunca confiar no valor vindo do cliente).
+// Lança erro quando a TBT não cobre o endereço ou a cotação falha.
+// =====================================================================
+export async function quoteDeliveryFee(input: {
+  zip: string; street: string; number: string;
+  district?: string; complement?: string; city?: string;
+}): Promise<{ fee: number; distanceKm?: number; etaMinutes?: number }> {
+  const me = await import("@/lib/maisentregas.server");
+  const email = process.env.MAISENTREGAS_EMAIL;
+  if (!email) throw new Error("Mais Entregas não configurada (falta MAISENTREGAS_EMAIL)");
+
+  const res = await me.preconfirm({
+    client: email,
+    city: ME_CITY,
+    payment: ME_PAYMENT,
+    billing: ME_BILLING,
+    delivery: ME_DELIVERY,
+    address: [
+      buildAddress({
+        street: me.PICKUP_ADDRESS.street,
+        number: me.PICKUP_ADDRESS.number,
+        complement: me.PICKUP_ADDRESS.complement,
+        district: me.PICKUP_ADDRESS.district,
+        city: me.PICKUP_ADDRESS.city,
+        state: me.PICKUP_ADDRESS.state,
+        zip: me.PICKUP_ADDRESS.zip,
+        name: me.PICKUP_ADDRESS.recipient_name,
+        phone: me.PICKUP_ADDRESS.recipient_phone,
+        comment: "coleta",
+      }),
+      buildAddress({
+        street: input.street,
+        number: input.number,
+        complement: input.complement,
+        district: input.district,
+        city: input.city ?? "Curitiba",
+        state: "PR",
+        zip: input.zip,
+        comment: "entrega",
+      }),
+    ],
+  });
+
+  const fee = Number(res?.value ?? res?.billing?.value ?? 0);
+  if (!Number.isFinite(fee) || fee <= 0) {
+    throw new Error("Não conseguimos calcular o frete para este endereço.");
+  }
+  return {
+    fee: Math.round(fee * 100) / 100,
+    distanceKm: res?.estimate?.distancia,
+    etaMinutes: res?.estimate?.duracaoEstimadaMinutos,
+  };
+}
+
+// =====================================================================
 // quoteDelivery — cota o frete e valida cobertura para um endereço.
 // Chamada do checkout. Requer login (evita abuso público da API paga).
 // =====================================================================
@@ -69,49 +125,10 @@ export const quoteDelivery = createServerFn({ method: "POST" })
     };
   })
   .handler(async ({ data }) => {
-    const me = await import("@/lib/maisentregas.server");
-    const email = process.env.MAISENTREGAS_EMAIL;
-    if (!email) throw new Error("Mais Entregas não configurada (falta MAISENTREGAS_EMAIL)");
-
-    const res = await me.preconfirm({
-      client: email,
-      city: ME_CITY,
-      payment: ME_PAYMENT,
-      billing: ME_BILLING,
-      delivery: ME_DELIVERY,
-      address: [
-        buildAddress({
-          street: me.PICKUP_ADDRESS.street,
-          number: me.PICKUP_ADDRESS.number,
-          complement: me.PICKUP_ADDRESS.complement,
-          district: me.PICKUP_ADDRESS.district,
-          city: me.PICKUP_ADDRESS.city,
-          state: me.PICKUP_ADDRESS.state,
-          zip: me.PICKUP_ADDRESS.zip,
-          name: me.PICKUP_ADDRESS.recipient_name,
-          phone: me.PICKUP_ADDRESS.recipient_phone,
-          comment: "coleta",
-        }),
-        buildAddress({
-          street: data.street,
-          number: data.number,
-          complement: data.complement,
-          district: data.district,
-          city: data.city,
-          state: "PR",
-          zip: data.zip,
-          comment: "entrega",
-        }),
-      ],
-    });
-
-    const fee = Number(res?.value ?? res?.billing?.value ?? 0);
-    return {
-      ok: true as const,
-      fee,
-      meOrderId: res.id ? String(res.id) : undefined,
-    };
+    const q = await quoteDeliveryFee(data);
+    return { ok: true as const, ...q };
   });
+
 
 // =====================================================================
 // createDeliveryForOrder — chamado internamente após pagamento aprovado.
