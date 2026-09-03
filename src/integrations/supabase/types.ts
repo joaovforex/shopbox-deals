@@ -768,6 +768,9 @@ export type Database = {
           delivered_by_name: string | null
           delivery_fee: number
           delivery_method: string
+          delivery_quote_at: string | null
+          delivery_quote_distance_km: number | null
+          delivery_quote_eta_minutes: number | null
           destinatario_cpf_cnpj: string | null
           destinatario_nome: string | null
           fulfillment_status: string
@@ -866,6 +869,9 @@ export type Database = {
           delivered_by_name?: string | null
           delivery_fee?: number
           delivery_method?: string
+          delivery_quote_at?: string | null
+          delivery_quote_distance_km?: number | null
+          delivery_quote_eta_minutes?: number | null
           destinatario_cpf_cnpj?: string | null
           destinatario_nome?: string | null
           fulfillment_status?: string
@@ -964,6 +970,9 @@ export type Database = {
           delivered_by_name?: string | null
           delivery_fee?: number
           delivery_method?: string
+          delivery_quote_at?: string | null
+          delivery_quote_distance_km?: number | null
+          delivery_quote_eta_minutes?: number | null
           destinatario_cpf_cnpj?: string | null
           destinatario_nome?: string | null
           fulfillment_status?: string
