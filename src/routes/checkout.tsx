@@ -611,7 +611,7 @@ function CheckoutPage() {
             ))}
           </div>
           {(() => {
-            const shippingFee = delivery === "delivery" ? 12 : 0;
+            const shippingFee = delivery === "delivery" ? (shippingQuote ?? 0) : 0;
             const cashbackApply = useCashback ? Math.min(cashbackBalance, total) : 0;
             const grandTotal = Math.max(0, total - cashbackApply) + shippingFee;
             const expiresInDays = cashbackExpiry
