@@ -181,6 +181,9 @@ function CheckoutPage() {
   const [shippingQuote, setShippingQuote] = useState<number | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [coverageMsg, setCoverageMsg] = useState<string | null>(null);
+  const [hasSavedAddress, setHasSavedAddress] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(true);
+
 
 
   // Pré-preenche do perfil do cliente logado (inclui endereço salvo)
@@ -206,7 +209,12 @@ function CheckoutPage() {
         if (p.address_complement) setComplement((c) => c || p.address_complement!);
         if (p.address_district) setDistrict((d) => d || p.address_district!);
         if (p.address_city && isRmcCity(p.address_city)) setCity(p.address_city);
+        if (p.address_zip && p.address_street && p.address_number) {
+          setHasSavedAddress(true);
+          setEditingAddress(false);
+        }
       }
+
     })();
   }, []);
 
@@ -522,6 +530,21 @@ function CheckoutPage() {
                         : "Frete calculado pelo endereço · Curitiba e região metropolitana"}
                   </span>
                 </div>
+                {hasSavedAddress && !editingAddress ? (
+                  <div className="bg-secondary rounded-md p-4 text-sm space-y-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Endereço salvo</p>
+                    <p className="font-semibold">{street}, {number}{complement ? ` - ${complement}` : ""}</p>
+                    <p className="text-muted-foreground">{district ? `${district} · ` : ""}{city}/{stateUf} · CEP {cep}</p>
+                    <button
+                      type="button"
+                      onClick={() => setEditingAddress(true)}
+                      className="text-primary text-xs font-bold uppercase tracking-wider hover:underline"
+                    >
+                      Editar endereço
+                    </button>
+                  </div>
+                ) : (
+                  <>
                 <div className="grid sm:grid-cols-[160px_1fr] gap-3">
                   <Field
                     label="CEP *"
@@ -558,6 +581,21 @@ function CheckoutPage() {
                     </select>
                   </label>
                 </div>
+                {hasSavedAddress && (
+                  <button
+                    type="button"
+                    onClick={() => setEditingAddress(false)}
+                    className="text-muted-foreground text-xs font-bold uppercase tracking-wider hover:underline"
+                  >
+                    Usar endereço salvo
+                  </button>
+                )}
+                <p className="text-[11px] text-muted-foreground">
+                  Marque "Salvar meus dados" abaixo para reutilizar este endereço nas próximas compras.
+                </p>
+                  </>
+                )}
+
                 {coverageMsg && (
                   <div className={`text-xs px-3 py-2 rounded ${coverageOk ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
                     {coverageMsg}
