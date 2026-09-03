@@ -513,7 +513,13 @@ function CheckoutPage() {
                 </div>
                 <div className="bg-primary/10 border border-primary/30 text-primary rounded-md px-3 py-2 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                   <span>🚚</span>
-                  <span>Frete fixo R$ 12,00 · Curitiba e região metropolitana</span>
+                  <span>
+                    {quoting
+                      ? "Calculando frete..."
+                      : shippingQuote != null
+                        ? `Frete ${brl(shippingQuote)} para este endereço`
+                        : "Frete calculado pelo endereço · Curitiba e região metropolitana"}
+                  </span>
                 </div>
                 <div className="grid sm:grid-cols-[160px_1fr] gap-3">
                   <Field
