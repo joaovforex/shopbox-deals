@@ -189,6 +189,8 @@ export const createCieloPayment = createServerFn({ method: "POST" })
     );
     // Frete real cotado na TBT/Mais Entregas (nunca confiar em valor do cliente).
     let shippingFee = 0;
+    let quoteDistanceKm: number | null = null;
+    let quoteEtaMinutes: number | null = null;
     if (data.delivery_method === "delivery") {
       if (!data.shipping) throw new Error("Endereço de entrega obrigatório");
       const { quoteDeliveryFee } = await import("@/lib/maisentregas.functions");
@@ -202,6 +204,8 @@ export const createCieloPayment = createServerFn({ method: "POST" })
           city: data.shipping.city ?? "Curitiba",
         });
         shippingFee = q.fee;
+        quoteDistanceKm = Number.isFinite(Number(q.distanceKm)) ? Number(q.distanceKm) : null;
+        quoteEtaMinutes = Number.isFinite(Number(q.etaMinutes)) ? Math.round(Number(q.etaMinutes)) : null;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error("[checkout] cotação de frete falhou", { orderId, msg });
@@ -229,6 +233,9 @@ export const createCieloPayment = createServerFn({ method: "POST" })
         delivery_fee: shippingFee,
         total: grandTotal,
         cashback_used: cashbackUsed,
+        delivery_quote_distance_km: quoteDistanceKm,
+        delivery_quote_eta_minutes: quoteEtaMinutes,
+        delivery_quote_at: data.delivery_method === "delivery" ? new Date().toISOString() : null,
       } as never)
       .eq("id", orderId as string);
 

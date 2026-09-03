@@ -58,6 +58,9 @@ type OrderRow = {
   label_printed_by_name?: string | null;
   maisentregas_order_id?: string | null;
   maisentregas_status?: string | null;
+  delivery_fee?: number | null;
+  delivery_quote_distance_km?: number | null;
+  delivery_quote_eta_minutes?: number | null;
   delivered_at?: string | null;
   delivered_by_name?: string | null;
   pickup_person_name?: string | null;
@@ -958,6 +961,23 @@ function FulfillmentPage() {
                     {o.delivery_method === "delivery" ? (
                       <>
                         <div><strong className="text-foreground inline-flex items-center gap-1"><Truck className="h-3 w-3" /> Entrega motoboy:</strong> {o.shipping_address}</div>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <span className="inline-flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-foreground">
+                            Frete TBT: {Number(o.delivery_fee ?? 0) > 0
+                              ? `R$ ${Number(o.delivery_fee).toFixed(2).replace(".", ",")}`
+                              : "não cotado"}
+                          </span>
+                          {o.delivery_quote_distance_km != null && (
+                            <span className="inline-flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-foreground">
+                              {Number(o.delivery_quote_distance_km).toFixed(1).replace(".", ",")} km
+                            </span>
+                          )}
+                          {o.delivery_quote_eta_minutes != null && (
+                            <span className="inline-flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-foreground">
+                              ~{Math.round(Number(o.delivery_quote_eta_minutes))} min
+                            </span>
+                          )}
+                        </div>
                         {o.maisentregas_status && (
                           <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
                             Mais Entregas: {o.maisentregas_status.replace(/_/g, " ")}
