@@ -270,7 +270,7 @@ export const refundOrder = createServerFn({ method: "POST" })
       mp_payment_id: order.mp_payment_id,
       mp_refund_id: mpRefundId,
       provider,
-      provider_payment_id: asaasPaymentId ?? order.mp_payment_id ?? null,
+      provider_payment_id: cieloPaymentId ?? asaasPaymentId ?? order.mp_payment_id ?? null,
       provider_status: providerStatus,
       status: refundStatus,
       confirmed_at: refundStatus === "confirmed" || refundStatus === "manual" ? new Date().toISOString() : null,
