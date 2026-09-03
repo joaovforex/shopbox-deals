@@ -351,7 +351,8 @@ function CheckoutPage() {
       if (!street.trim()) return toast.error("Informe a rua");
       if (!number.trim()) return toast.error("Informe o número");
       if (coverageOk === false) return toast.error(coverageMsg ?? "Endereço fora da área de entrega");
-      if (coverageOk !== true) return toast.error("Aguarde a validação do endereço");
+      if (quoting) return toast.error("Aguarde o cálculo do frete");
+      if (coverageOk !== true || shippingQuote == null) return toast.error("Aguarde a validação do endereço");
       shipping = {
         zip: cepDigits,
         street: street.trim(),
