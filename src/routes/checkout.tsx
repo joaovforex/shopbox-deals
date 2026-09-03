@@ -530,6 +530,21 @@ function CheckoutPage() {
                         : "Frete calculado pelo endereço · Curitiba e região metropolitana"}
                   </span>
                 </div>
+                {hasSavedAddress && !editingAddress ? (
+                  <div className="bg-secondary rounded-md p-4 text-sm space-y-2">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Endereço salvo</p>
+                    <p className="font-semibold">{street}, {number}{complement ? ` - ${complement}` : ""}</p>
+                    <p className="text-muted-foreground">{district ? `${district} · ` : ""}{city}/{stateUf} · CEP {cep}</p>
+                    <button
+                      type="button"
+                      onClick={() => setEditingAddress(true)}
+                      className="text-primary text-xs font-bold uppercase tracking-wider hover:underline"
+                    >
+                      Editar endereço
+                    </button>
+                  </div>
+                ) : (
+                  <>
                 <div className="grid sm:grid-cols-[160px_1fr] gap-3">
                   <Field
                     label="CEP *"
@@ -566,6 +581,21 @@ function CheckoutPage() {
                     </select>
                   </label>
                 </div>
+                {hasSavedAddress && (
+                  <button
+                    type="button"
+                    onClick={() => setEditingAddress(false)}
+                    className="text-muted-foreground text-xs font-bold uppercase tracking-wider hover:underline"
+                  >
+                    Usar endereço salvo
+                  </button>
+                )}
+                <p className="text-[11px] text-muted-foreground">
+                  Marque "Salvar meus dados" abaixo para reutilizar este endereço nas próximas compras.
+                </p>
+                  </>
+                )}
+
                 {coverageMsg && (
                   <div className={`text-xs px-3 py-2 rounded ${coverageOk ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
                     {coverageMsg}
