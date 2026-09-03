@@ -189,6 +189,8 @@ export const createCieloPayment = createServerFn({ method: "POST" })
     );
     // Frete real cotado na TBT/Mais Entregas (nunca confiar em valor do cliente).
     let shippingFee = 0;
+    let quoteDistanceKm: number | null = null;
+    let quoteEtaMinutes: number | null = null;
     if (data.delivery_method === "delivery") {
       if (!data.shipping) throw new Error("Endereço de entrega obrigatório");
       const { quoteDeliveryFee } = await import("@/lib/maisentregas.functions");
