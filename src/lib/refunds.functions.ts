@@ -207,6 +207,8 @@ export const refundOrder = createServerFn({ method: "POST" })
             amount: data.amount,
             full: isFull,
             removed: false,
+            receipt: null,
+
             message:
               "A Cielo ainda não pôde processar o estorno agora" +
               (outcome.insufficientBalance ? " (saldo insuficiente — normal em D+0)" : "") +
