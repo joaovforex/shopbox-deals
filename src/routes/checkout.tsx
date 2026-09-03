@@ -206,7 +206,12 @@ function CheckoutPage() {
         if (p.address_complement) setComplement((c) => c || p.address_complement!);
         if (p.address_district) setDistrict((d) => d || p.address_district!);
         if (p.address_city && isRmcCity(p.address_city)) setCity(p.address_city);
+        if (p.address_zip && p.address_street && p.address_number) {
+          setHasSavedAddress(true);
+          setEditingAddress(false);
+        }
       }
+
     })();
   }, []);
 
