@@ -178,6 +178,8 @@ function CheckoutPage() {
   const [cepBusy, setCepBusy] = useState(false);
   const [cepError, setCepError] = useState<string | null>(null);
   const [coverageOk, setCoverageOk] = useState<null | boolean>(null);
+  const [shippingQuote, setShippingQuote] = useState<number | null>(null);
+  const [quoting, setQuoting] = useState(false);
   const [coverageMsg, setCoverageMsg] = useState<string | null>(null);
 
 
