@@ -468,8 +468,8 @@ function CheckoutPage() {
                 active={delivery === "delivery"}
                 onClick={() => setDelivery("delivery")}
                 title="Receber em casa"
-                subtitle="FRETE R$ 12"
-                description="Frete fixo de R$ 12,00. Entrega em até 2 dias úteis."
+                subtitle={shippingQuote != null ? `FRETE ${brl(shippingQuote)}` : "FRETE CALCULADO"}
+                description="Frete calculado pelo endereço. Entrega em até 2 dias úteis."
                 highlight
               />
             </div>
