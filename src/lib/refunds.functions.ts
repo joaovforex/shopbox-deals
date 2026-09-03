@@ -75,16 +75,20 @@ export const refundOrder = createServerFn({ method: "POST" })
 
     const provider = (order as { payment_provider?: string }).payment_provider ?? "asaas";
     const asaasPaymentId = (order as { asaas_payment_id?: string | null }).asaas_payment_id;
+    const cieloPaymentId = (order as { cielo_payment_id?: string | null }).cielo_payment_id;
 
-    // A Asaas é o único gateway ativo. Pedidos antigos (Mercado Pago / Cielo)
-    // são reembolsados MANUALMENTE: o operador devolve o dinheiro por fora
-    // (Pix/transferência) e o sistema grava o histórico.
-    const useAsaasApi = !!asaasPaymentId;
-    const isManualLegacy = !useAsaasApi;
+    // Cielo é o gateway ativo: estorno REAL via API (void), com fila de
+    // retentativa automática quando a Cielo recusa por saldo insuficiente.
+    // Pedidos antigos da Asaas continuam usando a API da Asaas.
+    // Sem nenhum ID de gateway → reembolso manual (histórico apenas).
+    const useCieloApi = !!cieloPaymentId;
+    const useAsaasApi = !useCieloApi && !!asaasPaymentId;
+    const isManualLegacy = !useCieloApi && !useAsaasApi;
 
     if (useAsaasApi && !process.env.ASAAS_API_KEY) {
       throw new Error("Asaas não configurado");
     }
+
 
 
     // ============================================================
