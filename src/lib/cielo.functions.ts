@@ -204,6 +204,8 @@ export const createCieloPayment = createServerFn({ method: "POST" })
           city: data.shipping.city ?? "Curitiba",
         });
         shippingFee = q.fee;
+        quoteDistanceKm = Number.isFinite(Number(q.distanceKm)) ? Number(q.distanceKm) : null;
+        quoteEtaMinutes = Number.isFinite(Number(q.etaMinutes)) ? Math.round(Number(q.etaMinutes)) : null;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error("[checkout] cotação de frete falhou", { orderId, msg });
