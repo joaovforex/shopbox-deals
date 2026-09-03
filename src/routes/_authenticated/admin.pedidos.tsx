@@ -26,7 +26,7 @@ import {
 } from "@/lib/admin-metrics";
 import { brl } from "@/lib/format";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
-import { refundOrder } from "@/lib/refunds.functions";
+import { refundOrder, refundCieloOnCancel } from "@/lib/refunds.functions";
 import { createExchangeVoucher } from "@/lib/exchange-vouchers.functions";
 import { listAllCustomers } from "@/lib/customers.functions";
 import { getPosChargesMetrics } from "@/lib/caixa-qr.functions";
@@ -131,6 +131,7 @@ function OrdersPanel() {
   const [deleteTarget, setDeleteTarget] = useState<OrderRow | null>(null);
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
   const refundFn = useServerFn(refundOrder);
+  const refundOnCancelFn = useServerFn(refundCieloOnCancel);
   const voucherFn = useServerFn(createExchangeVoucher);
   const listCustomersFn = useServerFn(listAllCustomers);
   const posMetricsFn = useServerFn(getPosChargesMetrics);
