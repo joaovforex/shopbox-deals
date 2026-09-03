@@ -206,7 +206,27 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
       (acc, it) => acc + Number(it.unit_price) * Number(it.quantity),
       0,
     );
-    const shippingFee = data.delivery_method === "delivery" ? 12 : 0;
+    // Frete real cotado na TBT/Mais Entregas (nunca confiar em valor do cliente).
+    let shippingFee = 0;
+    if (data.delivery_method === "delivery") {
+      if (!data.shipping) throw new Error("Endereço de entrega obrigatório");
+      const { quoteDeliveryFee } = await import("@/lib/maisentregas.functions");
+      try {
+        const q = await quoteDeliveryFee({
+          zip: data.shipping.zip,
+          street: data.shipping.street,
+          number: String(data.shipping.number),
+          district: data.shipping.district ?? undefined,
+          complement: data.shipping.complement ?? undefined,
+          city: data.shipping.city ?? "Curitiba",
+        });
+        shippingFee = q.fee;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error("[checkout] cotação de frete falhou", { orderId, msg });
+        throw new Error("Não conseguimos calcular o frete para este endereço. Escolha retirada na loja ou revise o endereço.");
+      }
+    }
 
     // 2.1) Cashback
     let cashbackUsed = 0;
