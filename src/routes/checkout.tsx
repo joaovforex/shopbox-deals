@@ -652,11 +652,23 @@ function CheckoutPage() {
                 )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">{delivery === "pickup" ? "Retirada" : "Entrega"}</span>
-                  <span className="font-semibold">{shippingFee > 0 ? brl(shippingFee) : "Grátis"}</span>
+                  <span className="font-semibold">
+                    {delivery === "pickup"
+                      ? "Grátis"
+                      : quoting
+                        ? "Calculando..."
+                        : shippingFee > 0
+                          ? brl(shippingFee)
+                          : "—"}
+                  </span>
                 </div>
                 {delivery === "delivery" && (
                   <p className="text-[11px] text-muted-foreground -mt-1">
-                    Frete fixo de R$ 12,00 para Curitiba e região metropolitana.
+                    {quoting
+                      ? "Calculando o frete com a transportadora..."
+                      : shippingQuote != null
+                        ? "Frete calculado pela transportadora para o seu endereço."
+                        : "Preencha CEP, rua e número para calcular o frete."}
                   </p>
                 )}
                 <div className="border-t border-border pt-3 flex justify-between items-baseline">
