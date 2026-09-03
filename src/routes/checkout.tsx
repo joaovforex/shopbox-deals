@@ -692,7 +692,7 @@ function CheckoutPage() {
                 </div>
                 <button
                   type="submit"
-                  disabled={busy || (delivery === "delivery" && coverageOk !== true)}
+                  disabled={busy || (delivery === "delivery" && (quoting || coverageOk !== true || shippingQuote == null))}
                   className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] transition-transform disabled:opacity-60 disabled:scale-100"
                 >
                   {busy ? `Abrindo ${providerName}...` : `Pagar ${brl(grandTotal)}`}
