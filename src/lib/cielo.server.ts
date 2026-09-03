@@ -269,8 +269,8 @@ export async function getOrder(checkoutOrderNumber: string): Promise<CieloOrderS
     tid: pick<string>(payment, "tid", "Tid"),
     authorizationCode: pick<string>(payment, "authorizationCode", "AuthorizationCode"),
     nsu: pick<string>(payment, "nsu", "Nsu"),
-    returnCode: pick<string>(payment, "errorcode", "ErrorCode"),
-    returnMessage: pick<string>(payment, "errorMessage", "ErrorMessage"),
+    returnCode: pick<string>(payment, "errorCode", "ErrorCode", "errorcode"),
+    returnMessage: pick<string>(payment, "errorMessage", "ErrorMessage", "errormessage"),
     brand: pick<string>(payment, "brand", "Brand"),
     amount: amount || undefined,
   };
