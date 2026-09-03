@@ -37,8 +37,8 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
     q: "Como funciona a entrega?",
     a: (
       <>
-        Trabalhamos com <strong>frete fixo de R$ 12</strong> para Curitiba e região metropolitana e{" "}
-        <strong>frete grátis para compras acima de R$ 80</strong>. Se preferir, você também pode
+        Entregamos em <strong>Curitiba e região metropolitana</strong>. O valor do frete é
+        calculado no checkout de acordo com o seu endereço. Se preferir, você também pode
         retirar de graça na loja física em Colombo.
       </>
     ),

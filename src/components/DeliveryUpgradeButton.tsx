@@ -22,7 +22,7 @@ export function DeliveryUpgradeButton({ orderId }: { orderId: string }) {
             <Truck className="h-3.5 w-3.5" /> Prefere receber em casa?
           </div>
           <div className="text-muted-foreground">
-            Pague apenas <span className="font-bold text-foreground">R$ 12,00</span> de frete (Pix) e mudamos seu pedido para entrega.
+            Pague o frete por Pix e mudamos seu pedido para entrega.
           </div>
         </div>
         <button
@@ -88,7 +88,7 @@ function DeliveryUpgradeDialog({ orderId, onClose }: { orderId: string; onClose:
             <div className="text-xs uppercase tracking-widest text-accent font-bold">Converter para entrega</div>
             <h2 className="display text-xl">Endereço de entrega</h2>
             <p className="text-xs text-muted-foreground mt-1">
-              Frete de <strong>R$ 12,00</strong> pago por Pix. Entregamos apenas em Curitiba e região metropolitana.
+              Frete pago por Pix. Entregamos apenas em Curitiba e região metropolitana.
             </p>
           </div>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground p-1" aria-label="Fechar">
@@ -121,7 +121,7 @@ function DeliveryUpgradeDialog({ orderId, onClose }: { orderId: string; onClose:
               className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider text-xs px-4 py-2.5 rounded-md hover:bg-primary/90 disabled:opacity-60"
             >
               <Truck className="h-4 w-4" />
-              {loading ? "Abrindo..." : "Pagar R$ 12,00 (Pix)"}
+              {loading ? "Abrindo..." : "Pagar frete (Pix)"}
             </button>
           </div>
         </form>
