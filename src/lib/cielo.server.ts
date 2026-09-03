@@ -229,6 +229,16 @@ export async function listCheckoutsByOrderNumber(orderNumber: string): Promise<s
     .filter((s): s is string => !!s);
 }
 
+/** Diagnóstico: payload bruto da última transação de um order_number. */
+export async function getRawOrderByOrderNumber(orderNumber: string): Promise<unknown> {
+  const ids = await listCheckoutsByOrderNumber(orderNumber);
+  if (ids.length === 0) return { checkouts: [] };
+  const last = ids[ids.length - 1] as string;
+  const res = await authedFetch(`${ORDER_BY_CHECKOUT_ID_URL}/${encodeURIComponent(last)}`);
+  const text = await res.text().catch(() => "");
+  return { checkouts: ids, status: res.status, body: text };
+}
+
 /** Consulta detalhes de uma transação pelo checkout_cielo_order_number. */
 export async function getOrder(checkoutOrderNumber: string): Promise<CieloOrderStatus | null> {
   const res = await authedFetch(
@@ -259,8 +269,8 @@ export async function getOrder(checkoutOrderNumber: string): Promise<CieloOrderS
     tid: pick<string>(payment, "tid", "Tid"),
     authorizationCode: pick<string>(payment, "authorizationCode", "AuthorizationCode"),
     nsu: pick<string>(payment, "nsu", "Nsu"),
-    returnCode: pick<string>(payment, "errorcode", "ErrorCode"),
-    returnMessage: pick<string>(payment, "errorMessage", "ErrorMessage"),
+    returnCode: pick<string>(payment, "errorCode", "ErrorCode", "errorcode"),
+    returnMessage: pick<string>(payment, "errorMessage", "ErrorMessage", "errormessage"),
     brand: pick<string>(payment, "brand", "Brand"),
     amount: amount || undefined,
   };
@@ -343,6 +353,11 @@ export function mapCieloStatus(status: string): {
     case "created":
     case "scheduled":
       return { cielo_status: "pending", order_action: "pending" };
+    // Falha de processamento na Cielo (status 6). Na prática não se recupera:
+    // liberamos o pedido para cancelamento/estoque em vez de deixá-lo travado.
+    case "notfinalized":
+    case "notfinished":
+      return { cielo_status: "not_finalized", order_action: "cancelled" };
     default:
       return { cielo_status: `unknown_${s}`, order_action: "noop" };
   }
