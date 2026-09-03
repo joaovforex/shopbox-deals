@@ -229,6 +229,16 @@ export async function listCheckoutsByOrderNumber(orderNumber: string): Promise<s
     .filter((s): s is string => !!s);
 }
 
+/** Diagnóstico: payload bruto da última transação de um order_number. */
+export async function getRawOrderByOrderNumber(orderNumber: string): Promise<unknown> {
+  const ids = await listCheckoutsByOrderNumber(orderNumber);
+  if (ids.length === 0) return { checkouts: [] };
+  const last = ids[ids.length - 1] as string;
+  const res = await authedFetch(`${ORDER_BY_CHECKOUT_ID_URL}/${encodeURIComponent(last)}`);
+  const text = await res.text().catch(() => "");
+  return { checkouts: ids, status: res.status, body: text };
+}
+
 /** Consulta detalhes de uma transação pelo checkout_cielo_order_number. */
 export async function getOrder(checkoutOrderNumber: string): Promise<CieloOrderStatus | null> {
   const res = await authedFetch(
