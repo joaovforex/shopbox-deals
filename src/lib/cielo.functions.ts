@@ -233,6 +233,9 @@ export const createCieloPayment = createServerFn({ method: "POST" })
         delivery_fee: shippingFee,
         total: grandTotal,
         cashback_used: cashbackUsed,
+        delivery_quote_distance_km: quoteDistanceKm,
+        delivery_quote_eta_minutes: quoteEtaMinutes,
+        delivery_quote_at: data.delivery_method === "delivery" ? new Date().toISOString() : null,
       } as never)
       .eq("id", orderId as string);
 
