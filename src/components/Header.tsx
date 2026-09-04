@@ -390,7 +390,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-border py-4 px-4 flex flex-col sm:flex-row items-center justify-center gap-2 text-center text-xs text-muted-foreground">
-        <span>© {new Date().getFullYear()} shopbox · CNPJ 63.010.601/0002-86 · Todos os direitos reservados</span>
+        <span>© {new Date().getFullYear()} shopbox · CNPJ 34.960.313/0001-03 · Todos os direitos reservados</span>
       </div>
     </footer>
   );
