@@ -22,7 +22,7 @@ function PrivacyPage() {
       <main className="flex-1 container mx-auto px-4 py-10 max-w-3xl">
         <h1 className="display text-3xl mb-2">Política de Privacidade</h1>
         <p className="text-sm text-muted-foreground mb-8">
-          shopbox · CNPJ 63.010.601/0002-86 · Última atualização: 02/07/2026
+          shopbox · CNPJ 34.960.313/0001-03 · Última atualização: 02/07/2026
         </p>
 
         <div className="prose prose-invert space-y-6 text-sm leading-relaxed text-foreground/90">
@@ -30,7 +30,7 @@ function PrivacyPage() {
             <h2 className="text-lg font-bold text-primary mb-2">1. Quem somos</h2>
             <p>
               A shopbox é uma loja de varejo situada na Rua Emílio Gleber, 1118 — Atuba, Colombo / PR,
-              inscrita no CNPJ 63.010.601/0002-86. Esta política descreve como tratamos os dados dos
+              inscrita no CNPJ 34.960.313/0001-03. Esta política descreve como tratamos os dados dos
               clientes que utilizam nosso site e serviços, em conformidade com a Lei Geral de Proteção
               de Dados (LGPD - Lei nº 13.709/2018).
             </p>

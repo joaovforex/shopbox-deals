@@ -22,7 +22,7 @@ function TermsPage() {
       <main className="flex-1 container mx-auto px-4 py-10 max-w-3xl">
         <h1 className="display text-3xl mb-2">Termos de Uso</h1>
         <p className="text-sm text-muted-foreground mb-8">
-          shopbox · CNPJ 63.010.601/0002-86 · Última atualização: 02/07/2026
+          shopbox · CNPJ 34.960.313/0001-03 · Última atualização: 02/07/2026
         </p>
 
         <div className="space-y-6 text-sm leading-relaxed text-foreground/90">
@@ -30,7 +30,7 @@ function TermsPage() {
             <h2 className="text-lg font-bold text-primary mb-2">1. Sobre a shopbox</h2>
             <p>
               A shopbox é um comércio varejista situado na Rua Emílio Gleber, 1118 — Atuba, Colombo / PR,
-              inscrita no CNPJ 63.010.601/0002-86. Ao utilizar o site, você concorda com estes Termos de Uso.
+              inscrita no CNPJ 34.960.313/0001-03. Ao utilizar o site, você concorda com estes Termos de Uso.
             </p>
           </section>
 
