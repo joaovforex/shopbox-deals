@@ -52,6 +52,7 @@ import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicMaisentregasPollRouteImport } from './routes/api/public/maisentregas/poll'
 import { Route as ApiPublicHooksCieloRefundRetryRouteImport } from './routes/api/public/hooks/cielo-refund-retry'
+import { Route as ApiPublicFeedGoogleDotxmlRouteImport } from './routes/api/public/feed/google[.]xml'
 import { Route as ApiPublicCieloWebhookRouteImport } from './routes/api/public/cielo/webhook'
 import { Route as ApiPublicCieloReconcileRouteImport } from './routes/api/public/cielo/reconcile'
 import { Route as ApiPublicCieloDiagRouteImport } from './routes/api/public/cielo/diag'
@@ -291,6 +292,12 @@ const ApiPublicHooksCieloRefundRetryRoute =
     path: '/api/public/hooks/cielo-refund-retry',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicFeedGoogleDotxmlRoute =
+  ApiPublicFeedGoogleDotxmlRouteImport.update({
+    id: '/api/public/feed/google.xml',
+    path: '/api/public/feed/google.xml',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicCieloWebhookRoute = ApiPublicCieloWebhookRouteImport.update({
   id: '/api/public/cielo/webhook',
   path: '/api/public/cielo/webhook',
@@ -375,6 +382,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cielo/diag': typeof ApiPublicCieloDiagRoute
   '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
   '/api/public/cielo/webhook': typeof ApiPublicCieloWebhookRoute
+  '/api/public/feed/google.xml': typeof ApiPublicFeedGoogleDotxmlRoute
   '/api/public/hooks/cielo-refund-retry': typeof ApiPublicHooksCieloRefundRetryRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -426,6 +434,7 @@ export interface FileRoutesByTo {
   '/api/public/cielo/diag': typeof ApiPublicCieloDiagRoute
   '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
   '/api/public/cielo/webhook': typeof ApiPublicCieloWebhookRoute
+  '/api/public/feed/google.xml': typeof ApiPublicFeedGoogleDotxmlRoute
   '/api/public/hooks/cielo-refund-retry': typeof ApiPublicHooksCieloRefundRetryRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -479,6 +488,7 @@ export interface FileRoutesById {
   '/api/public/cielo/diag': typeof ApiPublicCieloDiagRoute
   '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
   '/api/public/cielo/webhook': typeof ApiPublicCieloWebhookRoute
+  '/api/public/feed/google.xml': typeof ApiPublicFeedGoogleDotxmlRoute
   '/api/public/hooks/cielo-refund-retry': typeof ApiPublicHooksCieloRefundRetryRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
   '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
@@ -532,6 +542,7 @@ export interface FileRouteTypes {
     | '/api/public/cielo/diag'
     | '/api/public/cielo/reconcile'
     | '/api/public/cielo/webhook'
+    | '/api/public/feed/google.xml'
     | '/api/public/hooks/cielo-refund-retry'
     | '/api/public/maisentregas/poll'
     | '/lovable/email/queue/process'
@@ -583,6 +594,7 @@ export interface FileRouteTypes {
     | '/api/public/cielo/diag'
     | '/api/public/cielo/reconcile'
     | '/api/public/cielo/webhook'
+    | '/api/public/feed/google.xml'
     | '/api/public/hooks/cielo-refund-retry'
     | '/api/public/maisentregas/poll'
     | '/lovable/email/queue/process'
@@ -635,6 +647,7 @@ export interface FileRouteTypes {
     | '/api/public/cielo/diag'
     | '/api/public/cielo/reconcile'
     | '/api/public/cielo/webhook'
+    | '/api/public/feed/google.xml'
     | '/api/public/hooks/cielo-refund-retry'
     | '/api/public/maisentregas/poll'
     | '/lovable/email/queue/process'
@@ -671,6 +684,7 @@ export interface RootRouteChildren {
   ApiPublicCieloDiagRoute: typeof ApiPublicCieloDiagRoute
   ApiPublicCieloReconcileRoute: typeof ApiPublicCieloReconcileRoute
   ApiPublicCieloWebhookRoute: typeof ApiPublicCieloWebhookRoute
+  ApiPublicFeedGoogleDotxmlRoute: typeof ApiPublicFeedGoogleDotxmlRoute
   ApiPublicHooksCieloRefundRetryRoute: typeof ApiPublicHooksCieloRefundRetryRoute
   ApiPublicMaisentregasPollRoute: typeof ApiPublicMaisentregasPollRoute
   LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
@@ -979,6 +993,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksCieloRefundRetryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/feed/google.xml': {
+      id: '/api/public/feed/google.xml'
+      path: '/api/public/feed/google.xml'
+      fullPath: '/api/public/feed/google.xml'
+      preLoaderRoute: typeof ApiPublicFeedGoogleDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cielo/webhook': {
       id: '/api/public/cielo/webhook'
       path: '/api/public/cielo/webhook'
@@ -1116,6 +1137,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicCieloDiagRoute: ApiPublicCieloDiagRoute,
   ApiPublicCieloReconcileRoute: ApiPublicCieloReconcileRoute,
   ApiPublicCieloWebhookRoute: ApiPublicCieloWebhookRoute,
+  ApiPublicFeedGoogleDotxmlRoute: ApiPublicFeedGoogleDotxmlRoute,
   ApiPublicHooksCieloRefundRetryRoute: ApiPublicHooksCieloRefundRetryRoute,
   ApiPublicMaisentregasPollRoute: ApiPublicMaisentregasPollRoute,
   LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
