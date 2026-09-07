@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TrocasEGarantiaRouteImport } from './routes/trocas-e-garantia'
 import { Route as TermosRouteImport } from './routes/termos'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RedirecionandoRouteImport } from './routes/redirecionando'
 import { Route as PoliticaPrivacidadeRouteImport } from './routes/politica-privacidade'
@@ -67,6 +68,11 @@ const TrocasEGarantiaRoute = TrocasEGarantiaRouteImport.update({
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
   path: '/termos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -334,6 +340,7 @@ export interface FileRoutesByFullPath {
   '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
   '/trocas-e-garantia': typeof TrocasEGarantiaRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -384,6 +391,7 @@ export interface FileRoutesByTo {
   '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
   '/trocas-e-garantia': typeof TrocasEGarantiaRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -436,6 +444,7 @@ export interface FileRoutesById {
   '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
   '/trocas-e-garantia': typeof TrocasEGarantiaRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -488,6 +497,7 @@ export interface FileRouteTypes {
     | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
+    | '/sitemap.xml'
     | '/termos'
     | '/trocas-e-garantia'
     | '/.well-known/oauth-protected-resource'
@@ -538,6 +548,7 @@ export interface FileRouteTypes {
     | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
+    | '/sitemap.xml'
     | '/termos'
     | '/trocas-e-garantia'
     | '/.well-known/oauth-protected-resource'
@@ -589,6 +600,7 @@ export interface FileRouteTypes {
     | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
+    | '/sitemap.xml'
     | '/termos'
     | '/trocas-e-garantia'
     | '/.well-known/oauth-protected-resource'
@@ -641,6 +653,7 @@ export interface RootRouteChildren {
   PoliticaPrivacidadeRoute: typeof PoliticaPrivacidadeRoute
   RedirecionandoRoute: typeof RedirecionandoRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
   TrocasEGarantiaRoute: typeof TrocasEGarantiaRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -677,6 +690,13 @@ declare module '@tanstack/react-router' {
       path: '/termos'
       fullPath: '/termos'
       preLoaderRoute: typeof TermosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -1076,6 +1096,7 @@ const rootRouteChildren: RootRouteChildren = {
   PoliticaPrivacidadeRoute: PoliticaPrivacidadeRoute,
   RedirecionandoRoute: RedirecionandoRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
   TrocasEGarantiaRoute: TrocasEGarantiaRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
