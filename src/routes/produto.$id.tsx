@@ -25,15 +25,16 @@ import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
 
 export const Route = createFileRoute("/produto/$id")({
   loader: async ({ params, context }) => {
-    const [product, origin] = await Promise.all([
+    const [product, origin, reviews] = await Promise.all([
       context.queryClient.ensureQueryData({
         queryKey: ["product", params.id],
         queryFn: () => fetchProduct(params.id),
       }),
       getRequestOrigin(),
+      context.queryClient.ensureQueryData(reviewsSummaryQuery(params.id)).catch(() => ({ count: 0, average: 0 })),
     ]);
     if (!product) throw notFound();
-    return { product, origin };
+    return { product, origin, reviews };
   },
   head: ({ loaderData }) => {
     if (!loaderData) {
@@ -47,7 +48,11 @@ export const Route = createFileRoute("/produto/$id")({
         ],
       };
     }
-    const { product, origin } = loaderData as { product: Product; origin: string };
+    const { product, origin, reviews } = loaderData as {
+      product: Product;
+      origin: string;
+      reviews: { count: number; average: number };
+    };
 
     const imgs = productImages(product);
     const rawImage = imgs[0] ?? "";
@@ -73,6 +78,15 @@ export const Route = createFileRoute("/produto/$id")({
       ...(product.sku ? { sku: product.sku } : {}),
       ...(product.brand ? { brand: { "@type": "Brand", name: product.brand } } : {}),
       ...(product.category ? { category: product.category } : {}),
+      ...(reviews && reviews.count > 0
+        ? {
+            aggregateRating: {
+              "@type": "AggregateRating",
+              ratingValue: reviews.average.toFixed(1),
+              reviewCount: reviews.count,
+            },
+          }
+        : {}),
       offers: {
         "@type": "Offer",
         url: productUrl,
