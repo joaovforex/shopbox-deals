@@ -9,6 +9,9 @@ import { ProductForm } from "@/components/ProductForm";
 import { RelatedProducts } from "@/components/RelatedProducts";
 import { ProductReviews } from "@/components/ProductReviews";
 import { ProductTrustBlock } from "@/components/TrustBar";
+import { DeliveryEstimate } from "@/components/DeliveryEstimate";
+import { StarRating } from "@/components/StarRating";
+import { reviewsSummaryQuery } from "@/lib/reviews";
 import { brl, discountPct, postDate } from "@/lib/format";
 import { installmentLabel } from "@/lib/installments";
 import { calculateCashback } from "@/lib/cashback-config";
@@ -56,7 +59,57 @@ export const Route = createFileRoute("/produto/$id")({
       : `Por ${brl(product.price)}`;
     const descBody = product.description ? `\n\n${product.description}` : "";
     const ogDescription = `${priceLine}${descBody}`;
+    const productUrl = `${origin}/produto/${product.id}`;
+    const availability = product.stock > 0
+      ? "https://schema.org/InStock"
+      : "https://schema.org/OutOfStock";
+    const jsonLdProduct: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: product.name,
+      url: productUrl,
+      ...(image ? { image: [image] } : {}),
+      ...(product.description ? { description: product.description } : {}),
+      ...(product.sku ? { sku: product.sku } : {}),
+      ...(product.brand ? { brand: { "@type": "Brand", name: product.brand } } : {}),
+      ...(product.category ? { category: product.category } : {}),
+      offers: {
+        "@type": "Offer",
+        url: productUrl,
+        priceCurrency: "BRL",
+        price: Number(product.price).toFixed(2),
+        availability,
+        itemCondition: "https://schema.org/NewCondition",
+      },
+    };
+    const breadcrumb = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Início", item: `${origin}/` },
+        { "@type": "ListItem", position: 2, name: "Loja", item: `${origin}/loja` },
+        ...(product.category
+          ? [{
+              "@type": "ListItem",
+              position: 3,
+              name: product.category,
+              item: `${origin}/loja?cat=${encodeURIComponent(product.category)}`,
+            }]
+          : []),
+        {
+          "@type": "ListItem",
+          position: product.category ? 4 : 3,
+          name: product.name,
+          item: productUrl,
+        },
+      ],
+    };
     return {
+      links: [{ rel: "canonical", href: productUrl }],
+      scripts: [
+        { type: "application/ld+json", children: JSON.stringify(jsonLdProduct) },
+        { type: "application/ld+json", children: JSON.stringify(breadcrumb) },
+      ],
       meta: [
         { title: `${product.name} — Shopbox` },
         { name: "description", content: priceLine + (product.description ? ` — ${product.description}` : "") },
