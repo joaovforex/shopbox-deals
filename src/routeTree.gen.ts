@@ -14,6 +14,7 @@ import { Route as TermosRouteImport } from './routes/termos'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RedirecionandoRouteImport } from './routes/redirecionando'
 import { Route as PoliticaPrivacidadeRouteImport } from './routes/politica-privacidade'
+import { Route as McpRouteImport } from './routes/mcp'
 import { Route as LojaRouteImport } from './routes/loja'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -30,6 +31,7 @@ import { Route as EtiquetaIdRouteImport } from './routes/etiqueta.$id'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedMeusPedidosRouteImport } from './routes/_authenticated/meus-pedidos'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as ApiCheckoutAsaasCardRouteImport } from './routes/api/checkout/asaas-card'
 import { Route as AuthenticatedAdminVendaManualRouteImport } from './routes/_authenticated/admin.venda-manual'
 import { Route as AuthenticatedAdminValeTrocaRouteImport } from './routes/_authenticated/admin.vale-troca'
@@ -45,6 +47,7 @@ import { Route as AuthenticatedAdminCashbackRouteImport } from './routes/_authen
 import { Route as AuthenticatedAdminCaixaQrRouteImport } from './routes/_authenticated/admin.caixa-qr'
 import { Route as AuthenticatedAdminAuditoriaRouteImport } from './routes/_authenticated/admin.auditoria'
 import { Route as AuthenticatedAdminAgendadorCanalRouteImport } from './routes/_authenticated/admin.agendador-canal'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicMaisentregasPollRouteImport } from './routes/api/public/maisentregas/poll'
 import { Route as ApiPublicHooksCieloRefundRetryRouteImport } from './routes/api/public/hooks/cielo-refund-retry'
@@ -79,6 +82,11 @@ const RedirecionandoRoute = RedirecionandoRouteImport.update({
 const PoliticaPrivacidadeRoute = PoliticaPrivacidadeRouteImport.update({
   id: '/politica-privacidade',
   path: '/politica-privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LojaRoute = LojaRouteImport.update({
@@ -161,6 +169,12 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiCheckoutAsaasCardRoute = ApiCheckoutAsaasCardRouteImport.update({
   id: '/api/checkout/asaas-card',
   path: '/api/checkout/asaas-card',
@@ -248,6 +262,11 @@ const AuthenticatedAdminAgendadorCanalRoute =
     path: '/agendador-canal',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LovableEmailQueueProcessRoute =
   LovableEmailQueueProcessRouteImport.update({
     id: '/lovable/email/queue/process',
@@ -311,11 +330,13 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/faq': typeof FaqRoute
   '/loja': typeof LojaRoute
+  '/mcp': typeof McpRoute
   '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/termos': typeof TermosRoute
   '/trocas-e-garantia': typeof TrocasEGarantiaRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
@@ -324,6 +345,7 @@ export interface FileRoutesByFullPath {
   '/etiqueta/qrcode': typeof EtiquetaQrcodeRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/caixa-qr': typeof AuthenticatedAdminCaixaQrRoute
@@ -358,11 +380,13 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/faq': typeof FaqRoute
   '/loja': typeof LojaRoute
+  '/mcp': typeof McpRoute
   '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/termos': typeof TermosRoute
   '/trocas-e-garantia': typeof TrocasEGarantiaRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
@@ -371,6 +395,7 @@ export interface FileRoutesByTo {
   '/etiqueta/qrcode': typeof EtiquetaQrcodeRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/admin/caixa-qr': typeof AuthenticatedAdminCaixaQrRoute
@@ -407,11 +432,13 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/faq': typeof FaqRoute
   '/loja': typeof LojaRoute
+  '/mcp': typeof McpRoute
   '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/termos': typeof TermosRoute
   '/trocas-e-garantia': typeof TrocasEGarantiaRoute
+  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
@@ -420,6 +447,7 @@ export interface FileRoutesById {
   '/etiqueta/qrcode': typeof EtiquetaQrcodeRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/_authenticated/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
   '/_authenticated/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
   '/_authenticated/admin/caixa-qr': typeof AuthenticatedAdminCaixaQrRoute
@@ -456,11 +484,13 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/faq'
     | '/loja'
+    | '/mcp'
     | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
     | '/termos'
     | '/trocas-e-garantia'
+    | '/.well-known/oauth-protected-resource'
     | '/admin'
     | '/meus-pedidos'
     | '/perfil'
@@ -469,6 +499,7 @@ export interface FileRouteTypes {
     | '/etiqueta/qrcode'
     | '/pedido/$id'
     | '/produto/$id'
+    | '/.lovable/oauth/consent'
     | '/admin/agendador-canal'
     | '/admin/auditoria'
     | '/admin/caixa-qr'
@@ -503,11 +534,13 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/faq'
     | '/loja'
+    | '/mcp'
     | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
     | '/termos'
     | '/trocas-e-garantia'
+    | '/.well-known/oauth-protected-resource'
     | '/admin'
     | '/meus-pedidos'
     | '/perfil'
@@ -516,6 +549,7 @@ export interface FileRouteTypes {
     | '/etiqueta/qrcode'
     | '/pedido/$id'
     | '/produto/$id'
+    | '/.lovable/oauth/consent'
     | '/admin/agendador-canal'
     | '/admin/auditoria'
     | '/admin/caixa-qr'
@@ -551,11 +585,13 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/faq'
     | '/loja'
+    | '/mcp'
     | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
     | '/termos'
     | '/trocas-e-garantia'
+    | '/.well-known/oauth-protected-resource'
     | '/_authenticated/admin'
     | '/_authenticated/meus-pedidos'
     | '/_authenticated/perfil'
@@ -564,6 +600,7 @@ export interface FileRouteTypes {
     | '/etiqueta/qrcode'
     | '/pedido/$id'
     | '/produto/$id'
+    | '/.lovable/oauth/consent'
     | '/_authenticated/admin/agendador-canal'
     | '/_authenticated/admin/auditoria'
     | '/_authenticated/admin/caixa-qr'
@@ -600,16 +637,19 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   FaqRoute: typeof FaqRoute
   LojaRoute: typeof LojaRoute
+  McpRoute: typeof McpRoute
   PoliticaPrivacidadeRoute: typeof PoliticaPrivacidadeRoute
   RedirecionandoRoute: typeof RedirecionandoRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   TermosRoute: typeof TermosRoute
   TrocasEGarantiaRoute: typeof TrocasEGarantiaRoute
+  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   EtiquetaIdRoute: typeof EtiquetaIdRoute
   EtiquetaFragilRoute: typeof EtiquetaFragilRoute
   EtiquetaQrcodeRoute: typeof EtiquetaQrcodeRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   ApiCheckoutAsaasCardRoute: typeof ApiCheckoutAsaasCardRoute
   ApiPublicAsaasNotificationsCleanupRoute: typeof ApiPublicAsaasNotificationsCleanupRoute
   ApiPublicAsaasReconcileRoute: typeof ApiPublicAsaasReconcileRoute
@@ -658,6 +698,13 @@ declare module '@tanstack/react-router' {
       path: '/politica-privacidade'
       fullPath: '/politica-privacidade'
       preLoaderRoute: typeof PoliticaPrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/loja': {
@@ -772,6 +819,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/checkout/asaas-card': {
       id: '/api/checkout/asaas-card'
       path: '/api/checkout/asaas-card'
@@ -876,6 +930,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/agendador-canal'
       preLoaderRoute: typeof AuthenticatedAdminAgendadorCanalRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/lovable/email/queue/process': {
       id: '/lovable/email/queue/process'
@@ -1011,16 +1072,20 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   FaqRoute: FaqRoute,
   LojaRoute: LojaRoute,
+  McpRoute: McpRoute,
   PoliticaPrivacidadeRoute: PoliticaPrivacidadeRoute,
   RedirecionandoRoute: RedirecionandoRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   TermosRoute: TermosRoute,
   TrocasEGarantiaRoute: TrocasEGarantiaRoute,
+  Char91DotwellKnownChar93OauthProtectedResourceRoute:
+    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   EtiquetaIdRoute: EtiquetaIdRoute,
   EtiquetaFragilRoute: EtiquetaFragilRoute,
   EtiquetaQrcodeRoute: EtiquetaQrcodeRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   ApiCheckoutAsaasCardRoute: ApiCheckoutAsaasCardRoute,
   ApiPublicAsaasNotificationsCleanupRoute:
     ApiPublicAsaasNotificationsCleanupRoute,
