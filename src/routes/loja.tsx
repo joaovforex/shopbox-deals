@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
@@ -26,12 +26,26 @@ export const Route = createFileRoute("/loja")({
     size: typeof search.size === "string" ? search.size : undefined,
   }),
   loaderDeps: ({ search }) => ({ cat: search.cat, q: search.q, min: search.min, max: search.max, page: search.page ?? 1 }),
-  head: () => ({
-    meta: [
-      { title: "Ofertas · shopbox" },
-      { name: "description", content: "Catálogo completo da shopbox com todas as ofertas." },
-    ],
-  }),
+  head: ({ match }) => {
+    const cat = (match.search as LojaSearch)?.cat;
+    const base = "https://shopboxonline.com";
+    const title = cat ? `${cat} em promoção | shopbox` : "Ofertas · shopbox";
+    const description = cat
+      ? `Produtos de ${cat} com desconto na shopbox. Pagamento no Pix ou cartão e retirada em Colombo/PR.`
+      : "Catálogo completo da shopbox com todas as ofertas.";
+    const canonical = cat ? `${base}/loja?cat=${encodeURIComponent(cat)}` : `${base}/loja`;
+    return {
+      meta: [
+        { title },
+        { name: "description", content: description },
+        { property: "og:title", content: title },
+        { property: "og:description", content: description },
+        { property: "og:type", content: "website" },
+        { property: "og:url", content: canonical },
+      ],
+      links: [{ rel: "canonical", href: canonical }],
+    };
+  },
   loader: ({ context, deps }) =>
     // prefetch (não ensure) para que timeouts transitórios do Postgres
     // não derrubem o SSR — o cliente reexecuta a query com retry.
@@ -219,14 +233,37 @@ function Loja() {
 
       <section className="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
         <div className="mb-4 sm:mb-5">
-          <h1 className="display text-2xl sm:text-4xl">Ofertas shopbox</h1>
+          <nav aria-label="Trilha de navegação" className="mb-2 text-xs text-muted-foreground">
+            <Link to="/" className="hover:text-primary">Início</Link>
+            <span className="mx-1">/</span>
+            {cat ? (
+              <>
+                <Link to="/loja" className="hover:text-primary">Loja</Link>
+                <span className="mx-1">/</span>
+                <span className="text-foreground font-semibold">{cat}</span>
+              </>
+            ) : (
+              <span className="text-foreground font-semibold">Loja</span>
+            )}
+          </nav>
+          <h1 className="display text-2xl sm:text-4xl">
+            {cat ? `Ofertas em ${cat}` : "Ofertas shopbox"}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Catálogo completo com super descontos ·{" "}
+            {cat ? `Produtos de ${cat} com desconto` : "Catálogo completo com super descontos"} ·{" "}
             <span className="font-semibold text-foreground">
               {total} {total === 1 ? "produto" : "produtos"}
             </span>
-            {cat ? ` em ${cat}` : ""}
           </p>
+          {hasFilter && (
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/loja", search: {} })}
+              className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-bold uppercase tracking-wider hover:bg-secondary"
+            >
+              <X className="h-3.5 w-3.5" /> Limpar filtros
+            </button>
+          )}
         </div>
 
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
