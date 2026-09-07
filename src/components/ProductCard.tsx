@@ -108,22 +108,37 @@ export function ProductCard({ product, priority = false }: { product: Product | 
       </div>
 
       <div className="p-3 sm:p-4 flex-1 flex flex-col gap-1.5">
+        {product.category && (
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground truncate">
+            {product.category}
+          </span>
+        )}
+
         <h3 className="text-sm font-medium text-foreground line-clamp-2 min-h-[2.5rem] leading-snug">
           {product.name}
         </h3>
 
-        {reviews && reviews.count > 0 && (
-          <StarRatingCompact average={reviews.average} count={reviews.count} />
-        )}
+        <div className="min-h-[1.25rem]">
+          {reviews && reviews.count > 0 && (
+            <StarRatingCompact average={reviews.average} count={reviews.count} />
+          )}
+        </div>
 
         <div className="mt-auto pt-1">
-          {product.original_price && product.original_price > product.price && (
-            <span className="block text-xs text-muted-foreground line-through">
-              {brl(product.original_price)}
+          <span className="block h-4 text-xs text-muted-foreground line-through">
+            {product.original_price && product.original_price > product.price
+              ? brl(product.original_price)
+              : "\u00a0"}
+          </span>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="text-lg sm:text-xl font-black text-price leading-tight">
+              {brl(product.price)}
             </span>
-          )}
-          <div className="text-lg font-semibold text-price leading-tight">
-            {brl(product.price)}
+            {off > 0 && (
+              <span className="text-[11px] font-black uppercase tracking-wider text-deal">
+                -{off}%
+              </span>
+            )}
           </div>
         </div>
 
@@ -131,10 +146,10 @@ export function ProductCard({ product, priority = false }: { product: Product | 
           <button
             type="button"
             onClick={buyNow}
-            className="mt-3 inline-flex items-center justify-center gap-2 bg-background border border-border hover:border-foreground hover:bg-foreground hover:text-background text-foreground text-xs font-medium uppercase tracking-wider py-2.5 rounded-md transition-colors"
-            aria-label="Comprar"
+            className="mt-3 inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider py-2.5 rounded-md shadow-sm hover:opacity-90 transition-opacity"
+            aria-label={`Comprar ${product.name}`}
           >
-            <ShoppingCart className="h-4 w-4" />
+            <ShoppingCart className="h-4 w-4" aria-hidden />
             Comprar
           </button>
         )}
