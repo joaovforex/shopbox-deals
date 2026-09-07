@@ -23,7 +23,9 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: DESCRIPTION },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:url", content: "https://shopboxonline.com/" },
     ],
+    links: [{ rel: "canonical", href: "https://shopboxonline.com/" }],
   }),
   loader: ({ context }) =>
     context.queryClient.prefetchQuery(pageProductsQuery({ page: 1 })).catch(() => undefined),
