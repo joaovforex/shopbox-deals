@@ -217,7 +217,18 @@ function Loja() {
       <Header />
       <AnnouncementBanner />
 
-      <section className="container mx-auto pl-6 pr-3 sm:pl-10 sm:pr-4 py-4 sm:py-6">
+      <section className="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
+        <div className="mb-4 sm:mb-5">
+          <h1 className="display text-2xl sm:text-4xl">Ofertas shopbox</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Catálogo completo com super descontos ·{" "}
+            <span className="font-semibold text-foreground">
+              {total} {total === 1 ? "produto" : "produtos"}
+            </span>
+            {cat ? ` em ${cat}` : ""}
+          </p>
+        </div>
+
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
