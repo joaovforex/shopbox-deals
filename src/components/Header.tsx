@@ -214,14 +214,15 @@ export function Header() {
 
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b-4 border-primary">
         <div className="container mx-auto px-3 sm:px-4 h-16 sm:h-20 grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4">
-          <Link to="/loja" className="flex items-center shrink-0">
+          <Link to="/" className="flex items-center shrink-0">
             <img src={logo} alt="shopbox" className="h-12 sm:h-16 lg:h-20 w-auto drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)] hover:scale-105 transition-transform" />
           </Link>
 
           <nav className="hidden md:flex items-center justify-center gap-1 lg:gap-2 text-sm font-semibold uppercase tracking-wider min-w-0">
             <Link to="/" className="px-2 lg:px-3 h-9 inline-flex items-center rounded-md hover:bg-secondary transition-colors">Início</Link>
-            <Link to="/loja" search={{ max: 50 }} className="px-2 lg:px-3 h-9 inline-flex items-center rounded-md hover:bg-secondary transition-colors">Ofertas</Link>
+            <Link to="/loja" className="px-2 lg:px-3 h-9 inline-flex items-center rounded-md hover:bg-secondary transition-colors">Ofertas</Link>
             <CategoriesDropdown />
+            <Link to="/faq" className="px-2 lg:px-3 h-9 inline-flex items-center rounded-md hover:bg-secondary transition-colors">FAQ</Link>
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-2 justify-end">
@@ -296,13 +297,13 @@ export function MobileBottomNav() {
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur border-t-2 border-primary safe-area">
       <div className="grid grid-cols-4">
         <Link
-          to="/loja"
+          to="/"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className={item(path === "/" || path === "/loja")}
+          className={item(path === "/")}
         >
           <Home className="h-5 w-5" /> Início
         </Link>
-        <Link to="/loja" search={{ max: 50 }} className={item(path === "/loja")}>
+        <Link to="/loja" className={item(path === "/loja")}>
           <Store className="h-5 w-5" /> Ofertas
         </Link>
         <Link
