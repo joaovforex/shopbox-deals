@@ -217,7 +217,18 @@ function Loja() {
       <Header />
       <AnnouncementBanner />
 
-      <section className="container mx-auto pl-6 pr-3 sm:pl-10 sm:pr-4 py-4 sm:py-6">
+      <section className="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
+        <div className="mb-4 sm:mb-5">
+          <h1 className="display text-2xl sm:text-4xl">Ofertas shopbox</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Catálogo completo com super descontos ·{" "}
+            <span className="font-semibold text-foreground">
+              {total} {total === 1 ? "produto" : "produtos"}
+            </span>
+            {cat ? ` em ${cat}` : ""}
+          </p>
+        </div>
+
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2 sm:gap-3 sm:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -458,6 +469,23 @@ function Loja() {
             </div>
           )}
         </div>
+
+        {!hasFilter && categories.length > 0 && (
+          <div className="mb-4 sm:mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
+            <div className="flex gap-2 w-max sm:w-auto sm:flex-wrap">
+              {categories.slice(0, 10).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => navigate({ to: "/loja", search: { cat: c } })}
+                  className="shrink-0 px-3 py-1.5 rounded-full bg-card border border-border text-xs font-semibold uppercase tracking-wider hover:border-primary hover:text-primary transition-colors"
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {!hasFilter && page === 1 && products.length > 0 && (
           <MegaOffersCarousel products={products as any} />

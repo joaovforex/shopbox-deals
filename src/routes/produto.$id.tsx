@@ -8,6 +8,7 @@ import { ProductCarousel } from "@/components/ProductCarousel";
 import { ProductForm } from "@/components/ProductForm";
 import { RelatedProducts } from "@/components/RelatedProducts";
 import { ProductReviews } from "@/components/ProductReviews";
+import { ProductTrustBlock } from "@/components/TrustBar";
 import { brl, discountPct, postDate } from "@/lib/format";
 import { installmentLabel } from "@/lib/installments";
 import { calculateCashback } from "@/lib/cashback-config";
@@ -467,6 +468,7 @@ function ProductPage() {
               </div>
             )}
 
+            <ProductTrustBlock />
 
             {admin && (
               <div className="border-t border-border pt-4">
