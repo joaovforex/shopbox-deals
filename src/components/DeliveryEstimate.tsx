@@ -6,7 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { useStoreAddress } from "@/lib/store-address";
 import { brl } from "@/lib/format";
-import { maskCep } from "@/lib/mask";
+
+function maskCep(v: string | null | undefined): string {
+  const d = (v ?? "").replace(/\D/g, "").slice(0, 8);
+  return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+}
 
 type Quote = { fee: number; distanceKm?: number; etaMinutes?: number };
 
