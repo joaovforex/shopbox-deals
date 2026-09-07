@@ -470,6 +470,23 @@ function Loja() {
           )}
         </div>
 
+        {!hasFilter && categories.length > 0 && (
+          <div className="mb-4 sm:mb-6 -mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
+            <div className="flex gap-2 w-max sm:w-auto sm:flex-wrap">
+              {categories.slice(0, 10).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => navigate({ to: "/loja", search: { cat: c } })}
+                  className="shrink-0 px-3 py-1.5 rounded-full bg-card border border-border text-xs font-semibold uppercase tracking-wider hover:border-primary hover:text-primary transition-colors"
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {!hasFilter && page === 1 && products.length > 0 && (
           <MegaOffersCarousel products={products as any} />
         )}
