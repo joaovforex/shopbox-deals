@@ -11,16 +11,17 @@ export default defineTool({
     if (!ctx.isAuthenticated()) return notAuthenticated();
     const supabase = supabaseForUser(ctx);
     const { data, error } = await supabase
-      .from("cashback_credits")
-      .select("amount,used_amount,expires_at,status")
-      .eq("user_id", ctx.getUserId());
+      .from("cashback_entries")
+      .select("amount,kind,consumed,expires_at,expired_at")
+      .eq("user_id", ctx.getUserId())
+      .eq("consumed", false)
+      .is("expired_at", null);
     if (error) return { content: [{ type: "text", text: error.message }], isError: true };
 
     const now = Date.now();
     const available = (data ?? []).reduce((sum, c) => {
       const expired = c.expires_at ? new Date(c.expires_at as string).getTime() < now : false;
-      if (expired || (c.status && c.status !== "active")) return sum;
-      return sum + (Number(c.amount ?? 0) - Number(c.used_amount ?? 0));
+      return expired ? sum : sum + Number(c.amount ?? 0);
     }, 0);
 
     return {
