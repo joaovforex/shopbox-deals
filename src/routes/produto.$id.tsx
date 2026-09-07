@@ -610,7 +610,7 @@ function ProductPage() {
       </div>
 
       {(effectiveStock > 0 || needsColorChoice) && !allColorsOut && (
-        <div className="md:hidden fixed bottom-14 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur px-4 py-2.5 flex items-center gap-3">
+        <div className="md:hidden fixed bottom-14 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur pl-4 pr-24 py-2.5 flex items-center gap-3">
           <div className="min-w-0">
             <div className="text-lg font-black text-price leading-none">{brl(product.price)}</div>
             {installmentLabel(product.price) && (
