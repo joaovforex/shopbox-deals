@@ -107,7 +107,7 @@ function ProfilePage() {
       }
     })();
 
-  }, [fetchCashback]);
+  }, [fetchCashback, reloadKey]);
 
   // Busca do CEP com o mesmo helper usado no checkout
   useEffect(() => {
