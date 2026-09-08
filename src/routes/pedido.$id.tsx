@@ -26,14 +26,17 @@ export const Route = createFileRoute("/pedido/$id")({
 function OrderPage() {
   const { id } = Route.useParams();
   const fetchOrder = useServerFn(getPublicOrder);
-  const fetchMine = useServerFn(getMyOrder);
-  const [signedIn, setSignedIn] = useState(false);
+  const [uid, setUid] = useState<string | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setSignedIn(!!data.user));
+    supabase.auth.getUser().then(({ data }) => {
+      setUid(data.user?.id ?? null);
+      setSessionChecked(true);
+    });
   }, []);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["order", id],
     queryFn: () => fetchOrder({ data: { id } }),
     refetchInterval: (q) => {
@@ -46,15 +49,17 @@ function OrderPage() {
   });
 
   // Quando quem abre é o próprio dono logado, mostramos o detalhe completo
-  // (variantes, endereço, frete e cashback) sem máscara. A leitura acima
-  // continua igual para links compartilhados.
+  // (variantes, endereço, frete e cashback). A leitura acima continua igual e
+  // mascarada para links compartilhados.
   const { data: mine } = useQuery({
-    queryKey: ["my-order-detail", id],
-    queryFn: () => fetchMine({ data: { id } }),
-    enabled: signedIn,
+    queryKey: ["my-order-detail", id, uid],
+    queryFn: () => fetchMyOrder(id, uid!),
+    enabled: !!uid,
     retry: false,
   });
   const owned = mine?.order ?? null;
+  const notFound = !isLoading && !isError && !data?.order;
+
 
 
   const order = data?.order;
