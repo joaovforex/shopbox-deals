@@ -205,9 +205,12 @@ export function Header() {
 
   const signOut = async () => {
     clearRolesCache();
+    try { localStorage.removeItem("shopbox_cart_v1"); } catch { /* noop */ }
     await supabase.auth.signOut();
+    // Reload completo: garante que nenhum dado em cache do cliente anterior fique na tela.
     window.location.href = "/";
   };
+
 
   return (
     <>
@@ -238,14 +241,15 @@ export function Header() {
             <OnlineCounter />
             {user && !hasTeamRole && (
               <Link
-                to="/meus-pedidos"
-                aria-label="Meus pedidos"
+                to="/minha-conta"
+                aria-label="Minha conta"
                 className="hidden md:inline-flex items-center gap-2 px-2 sm:px-3 h-10 rounded-md bg-secondary hover:bg-muted text-sm font-bold"
               >
                 <Package className="h-4 w-4" />
-                <span className="hidden lg:inline">Meus pedidos</span>
+                <span className="hidden lg:inline">Minha conta</span>
               </Link>
             )}
+
             {hasTeamRole && (
               <Link
                 to="/admin"
