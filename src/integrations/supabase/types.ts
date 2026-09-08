@@ -1451,6 +1451,51 @@ export type Database = {
         }
         Relationships: []
       }
+      site_banners: {
+        Row: {
+          alt_text: string
+          created_at: string
+          desktop_url: string
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          link_url: string | null
+          mobile_url: string
+          sort_order: number
+          starts_at: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          alt_text: string
+          created_at?: string
+          desktop_url: string
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          link_url?: string | null
+          mobile_url: string
+          sort_order?: number
+          starts_at?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          alt_text?: string
+          created_at?: string
+          desktop_url?: string
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          link_url?: string | null
+          mobile_url?: string
+          sort_order?: number
+          starts_at?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           banner_desktop_url: string | null
@@ -1881,6 +1926,7 @@ export type Database = {
         }
         Returns: {
           category: string
+          color_variants: Json
           created_at: string
           id: string
           image_url: string
