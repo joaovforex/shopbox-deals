@@ -22,6 +22,12 @@ export const Route = createFileRoute("/pedido/$id")({
 function OrderPage() {
   const { id } = Route.useParams();
   const fetchOrder = useServerFn(getPublicOrder);
+  const fetchMine = useServerFn(getMyOrder);
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setSignedIn(!!data.user));
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["order", id],
@@ -34,6 +40,18 @@ function OrderPage() {
       return false;
     },
   });
+
+  // Quando quem abre é o próprio dono logado, mostramos o detalhe completo
+  // (variantes, endereço, frete e cashback) sem máscara. A leitura acima
+  // continua igual para links compartilhados.
+  const { data: mine } = useQuery({
+    queryKey: ["my-order-detail", id],
+    queryFn: () => fetchMine({ data: { id } }),
+    enabled: signedIn,
+    retry: false,
+  });
+  const owned = mine?.order ?? null;
+
 
   const order = data?.order;
   const status = order?.status;
