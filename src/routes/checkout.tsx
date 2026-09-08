@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
@@ -17,6 +17,7 @@ import { useSiteSettings } from "@/lib/site-settings";
 import { fetchUnidades, unidadeEndereco, type Unidade } from "@/lib/unidades";
 import { quoteDelivery } from "@/lib/maisentregas.functions";
 import { RMC_CITIES, isRmcCity } from "@/lib/delivery-area";
+import { trackBeginCheckout } from "@/lib/analytics";
 
 
 
