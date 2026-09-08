@@ -139,10 +139,19 @@ function MobileMenu({ user, signOut, hasTeamRole }: { user: { email?: string } |
             </Link>
           )}
           {user && (
-            <Link to="/meus-pedidos" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
-              <Package className="h-4 w-4" /> Meus pedidos
-            </Link>
+            <>
+              <Link to="/minha-conta" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
+                <User className="h-4 w-4" /> Minha conta
+              </Link>
+              <Link to="/meus-pedidos" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
+                <Package className="h-4 w-4" /> Meus pedidos
+              </Link>
+              <Link to="/cashback" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
+                <Wallet className="h-4 w-4" /> Meu cashback
+              </Link>
+            </>
           )}
+
           {user ? (
             <button onClick={() => { setOpen(false); signOut(); }} className="flex items-center gap-3 w-full text-left px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
               <LogOut className="h-4 w-4" /> Sair
