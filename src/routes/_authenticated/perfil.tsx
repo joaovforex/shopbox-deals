@@ -303,3 +303,50 @@ function Field({
     </label>
   );
 }
+
+/**
+ * Troca de senha do usuário logado. Fica fora de <form> aninhado: os botões
+ * são type="button" e chamam a API de auth diretamente.
+ * Para sessão ativa, a API pode exigir a senha atual — por isso ela é pedida.
+ */
+function PasswordSection() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const change = async () => {
+    if (next.length < 6) return toast.error("A nova senha precisa ter ao menos 6 caracteres");
+    if (next !== confirm) return toast.error("A confirmação não confere");
+    if (!current) return toast.error("Informe sua senha atual");
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: next, current_password: current } as never);
+      if (error) throw error;
+      toast.success("Senha alterada!");
+      setCurrent(""); setNext(""); setConfirm("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível alterar a senha");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section title="Senha e segurança" icon={<Lock className="h-4 w-4" />}>
+      <div className="grid sm:grid-cols-3 gap-3">
+        <Field label="Senha atual" type="password" value={current} onChange={setCurrent} autoComplete="current-password" />
+        <Field label="Nova senha" type="password" value={next} onChange={setNext} autoComplete="new-password" />
+        <Field label="Repita a nova senha" type="password" value={confirm} onChange={setConfirm} autoComplete="new-password" />
+      </div>
+      <button
+        type="button"
+        onClick={() => void change()}
+        disabled={busy}
+        className="inline-flex items-center gap-2 rounded-md bg-secondary px-4 py-2.5 text-xs font-black uppercase tracking-wider hover:bg-muted disabled:opacity-60"
+      >
+        <Lock className="h-4 w-4" /> {busy ? "Alterando..." : "Alterar senha"}
+      </button>
+    </Section>
+  );
+}
