@@ -316,8 +316,9 @@ function OrderPage() {
             <div className="bg-card border border-border rounded-xl p-6 text-center text-sm text-muted-foreground">
               Não localizamos o pedido <span className="font-mono font-bold">#{shortId}</span>. Confira o link recebido ou
               veja a lista completa em <Link to="/meus-pedidos" className="underline">Meus Pedidos</Link>.
-
+            </div>
           )}
+
 
           {owned && (
             <div className="bg-card border border-border rounded-xl p-6 mt-4 space-y-3">
