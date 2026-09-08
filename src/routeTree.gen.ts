@@ -30,6 +30,7 @@ import { Route as EtiquetaQrcodeRouteImport } from './routes/etiqueta.qrcode'
 import { Route as EtiquetaFragilRouteImport } from './routes/etiqueta.fragil'
 import { Route as EtiquetaIdRouteImport } from './routes/etiqueta.$id'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
+import { Route as AuthenticatedMinhaContaRouteImport } from './routes/_authenticated/minha-conta'
 import { Route as AuthenticatedMeusPedidosRouteImport } from './routes/_authenticated/meus-pedidos'
 import { Route as AuthenticatedCashbackRouteImport } from './routes/_authenticated/cashback'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -164,6 +165,11 @@ const EtiquetaIdRoute = EtiquetaIdRouteImport.update({
 const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   id: '/perfil',
   path: '/perfil',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMinhaContaRoute = AuthenticatedMinhaContaRouteImport.update({
+  id: '/minha-conta',
+  path: '/minha-conta',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMeusPedidosRoute =
@@ -360,6 +366,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/cashback': typeof AuthenticatedCashbackRoute
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
+  '/minha-conta': typeof AuthenticatedMinhaContaRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/etiqueta/fragil': typeof EtiquetaFragilRoute
@@ -413,6 +420,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/cashback': typeof AuthenticatedCashbackRoute
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
+  '/minha-conta': typeof AuthenticatedMinhaContaRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/etiqueta/fragil': typeof EtiquetaFragilRoute
@@ -468,6 +476,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/cashback': typeof AuthenticatedCashbackRoute
   '/_authenticated/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
+  '/_authenticated/minha-conta': typeof AuthenticatedMinhaContaRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/etiqueta/fragil': typeof EtiquetaFragilRoute
@@ -523,6 +532,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/cashback'
     | '/meus-pedidos'
+    | '/minha-conta'
     | '/perfil'
     | '/etiqueta/$id'
     | '/etiqueta/fragil'
@@ -576,6 +586,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/cashback'
     | '/meus-pedidos'
+    | '/minha-conta'
     | '/perfil'
     | '/etiqueta/$id'
     | '/etiqueta/fragil'
@@ -630,6 +641,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/cashback'
     | '/_authenticated/meus-pedidos'
+    | '/_authenticated/minha-conta'
     | '/_authenticated/perfil'
     | '/etiqueta/$id'
     | '/etiqueta/fragil'
@@ -849,6 +861,13 @@ declare module '@tanstack/react-router' {
       path: '/perfil'
       fullPath: '/perfil'
       preLoaderRoute: typeof AuthenticatedPerfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/minha-conta': {
+      id: '/_authenticated/minha-conta'
+      path: '/minha-conta'
+      fullPath: '/minha-conta'
+      preLoaderRoute: typeof AuthenticatedMinhaContaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/meus-pedidos': {
@@ -1112,6 +1131,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedCashbackRoute: typeof AuthenticatedCashbackRoute
   AuthenticatedMeusPedidosRoute: typeof AuthenticatedMeusPedidosRoute
+  AuthenticatedMinhaContaRoute: typeof AuthenticatedMinhaContaRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
 }
 
@@ -1119,6 +1139,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedCashbackRoute: AuthenticatedCashbackRoute,
   AuthenticatedMeusPedidosRoute: AuthenticatedMeusPedidosRoute,
+  AuthenticatedMinhaContaRoute: AuthenticatedMinhaContaRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
 }
 
