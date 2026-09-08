@@ -286,6 +286,8 @@ function ProfilePage() {
 
             <PasswordSection />
 
+            <SignOutSection />
+
 
             <div className="flex items-center justify-end gap-3">
               <Link to="/meus-pedidos" className="text-sm text-muted-foreground hover:text-foreground">Cancelar</Link>
