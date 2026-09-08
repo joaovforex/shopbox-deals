@@ -230,6 +230,18 @@ function Loja() {
   const hasFilter = Boolean(qParam || cat || min || max || brandParam || sizeParam);
   const priceLabel = min && max ? `${brl(min)}–${brl(max)}` : max ? `Até ${brl(max)}` : min ? `A partir de ${brl(min)}` : null;
 
+  // Analytics: view_item_list com os produtos já carregados (sem query extra)
+  useEffect(() => {
+    trackViewItemList(
+      cat ? `Categoria: ${cat}` : qParam ? "Busca" : "Loja",
+      products.map((p) =>
+        toAnalyticsItem({ id: p.id, name: p.name, price: p.price, category: p.category }),
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cat, qParam, page, products.length]);
+
+
   return (
     <div className="min-h-screen flex flex-col">
       {preloadImgs.map((src) => (
