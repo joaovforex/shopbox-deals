@@ -10,6 +10,8 @@ import { optimizedImage } from "@/lib/image-url";
 import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
 import { brl } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
+import { trackViewItemList, toAnalyticsItem } from "@/lib/analytics";
+
 import { Search, X, ChevronLeft, ChevronRight, Tag, LayoutGrid, ChevronDown, SlidersHorizontal } from "lucide-react";
 
 type LojaSearch = { cat?: string; q?: string; focus?: number; min?: number; max?: number; page?: number; brand?: string; size?: string };
