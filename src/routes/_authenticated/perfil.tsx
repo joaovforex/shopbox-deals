@@ -9,7 +9,8 @@ import { getMyCashback } from "@/lib/cashback.functions";
 import { isValidCpf } from "@/lib/cpf";
 import { brl } from "@/lib/format";
 import { RMC_CITIES, maskCep, lookupCep, isRmcCity, outOfCoverageMessage } from "@/lib/delivery-area";
-import { User, MapPin, Save, ArrowLeft, Wallet, Lock } from "lucide-react";
+import { User, MapPin, Save, ArrowLeft, Wallet, Lock, LogOut } from "lucide-react";
+import { clearRolesCache } from "@/lib/products";
 
 
 export const Route = createFileRoute("/_authenticated/perfil")({
@@ -380,6 +381,44 @@ function PasswordSection() {
         className="inline-flex min-h-11 items-center gap-2 rounded-md bg-secondary px-4 py-2.5 text-xs font-black uppercase tracking-wider hover:bg-muted disabled:opacity-60"
       >
         <Lock className="h-4 w-4" /> {busy ? "Enviando..." : "Enviar link de troca de senha"}
+      </button>
+    </Section>
+  );
+}
+
+/**
+ * Sair da conta: acessível na área do cliente (no mobile o topo não mostra "Sair").
+ * Mesma limpeza do Header: caches privados + signOut + reload completo.
+ */
+function SignOutSection() {
+  const [busy, setBusy] = useState(false);
+
+  const signOut = async () => {
+    setBusy(true);
+    try {
+      clearRolesCache();
+      try { localStorage.removeItem("shopbox_cart_v1"); } catch { /* noop */ }
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      window.location.href = "/";
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível sair agora.");
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section title="Sessão" icon={<LogOut className="h-4 w-4" />}>
+      <p className="text-sm text-muted-foreground">
+        Encerra sua sessão neste aparelho com segurança.
+      </p>
+      <button
+        type="button"
+        onClick={() => void signOut()}
+        disabled={busy}
+        className="inline-flex min-h-11 items-center gap-2 rounded-md bg-secondary px-4 py-2.5 text-xs font-black uppercase tracking-wider hover:bg-muted disabled:opacity-60"
+      >
+        <LogOut className="h-4 w-4" /> {busy ? "Saindo..." : "Sair da conta"}
       </button>
     </Section>
   );
