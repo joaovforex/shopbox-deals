@@ -35,7 +35,7 @@ export const AdminButton = forwardRef<
       type="button"
       disabled={disabled || loading}
       className={cn(
-        "inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-3.5 text-xs font-black uppercase tracking-wider transition-colors",
+        "inline-flex min-h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md px-3.5 text-xs font-black uppercase tracking-wider transition-colors",
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
         "disabled:cursor-not-allowed disabled:opacity-60",
         block ? "w-full" : "w-auto",

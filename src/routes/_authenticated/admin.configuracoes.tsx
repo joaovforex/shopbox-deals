@@ -10,6 +10,7 @@ import { fetchSiteSettings, formatCashbackLabel } from "@/lib/site-settings";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import { fetchUnidades, saveUnidade, unidadeEndereco, type Unidade } from "@/lib/unidades";
 import { BannerManager } from "@/components/admin/BannerManager";
+import { AdminButton, AdminActionBar } from "@/components/admin/AdminButton";
 
 export const Route = createFileRoute("/_authenticated/admin/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações · Admin" }] }),
@@ -282,14 +283,17 @@ function SettingsPage() {
 
 
         <div className="sticky bottom-4 z-10">
-          <button
+          <AdminButton
+            variant="primary"
+            block
+            className="shadow-lg"
+            icon={<Save className="h-4 w-4" />}
             onClick={onSave}
+            loading={saving}
             disabled={saving || uploadingDesk || uploadingMob}
-            className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md hover:opacity-90 disabled:opacity-60 shadow-lg"
           >
-            <Save className="h-4 w-4" />
             {saving ? "Salvando…" : "Salvar configurações"}
-          </button>
+          </AdminButton>
         </div>
       </main>
 
@@ -328,24 +332,23 @@ function BannerSection(props: {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
+      <AdminActionBar>
+        <AdminButton
+          variant="primary"
+          icon={<Upload className="h-4 w-4" />}
           onClick={props.onPick}
-          disabled={props.uploading}
-          className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-3 py-2 rounded-md hover:opacity-90 disabled:opacity-60 text-xs"
+          loading={props.uploading}
         >
-          <Upload className="h-4 w-4" />
           {props.uploading ? "Enviando…" : props.url ? "Trocar imagem" : "Enviar imagem"}
-        </button>
+        </AdminButton>
         {props.url && (
-          <button
-            type="button"
+          <AdminButton
+            variant="destructive"
+            icon={<Trash2 className="h-4 w-4" />}
             onClick={props.onClear}
-            className="inline-flex items-center gap-2 bg-card border border-border font-black uppercase tracking-wider px-3 py-2 rounded-md hover:border-destructive hover:text-destructive text-xs"
           >
-            <Trash2 className="h-4 w-4" /> Remover
-          </button>
+            Remover
+          </AdminButton>
         )}
         <input
           ref={props.inputRef}
@@ -354,7 +357,7 @@ function BannerSection(props: {
           className="hidden"
           onChange={props.onChange}
         />
-      </div>
+      </AdminActionBar>
     </section>
   );
 }
@@ -529,8 +532,8 @@ function MassDiscountSection({ currentPct, onDone }: { currentPct: number; onDon
         </div>
       )}
 
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="flex-1 max-w-[200px]">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+        <div className="w-full sm:flex-1 sm:max-w-[200px]">
           <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Percentual (%)</label>
           <input
             type="number"
@@ -543,33 +546,33 @@ function MassDiscountSection({ currentPct, onDone }: { currentPct: number; onDon
             className="mt-1 w-full bg-background border-2 border-border rounded-md px-3 py-2 text-lg font-black"
           />
         </div>
-        <button
-          type="button"
+        <AdminButton
+          variant="primary"
+          icon={<Tag className="h-4 w-4" />}
           onClick={apply}
-          disabled={busy}
-          className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-2.5 rounded-md hover:opacity-90 disabled:opacity-60 text-xs"
+          loading={busy}
         >
-          <Tag className="h-4 w-4" /> {busy ? "Aplicando…" : scope === "all" ? "Aplicar em todos" : "Aplicar nas categorias"}
-        </button>
+          {busy ? "Aplicando…" : scope === "all" ? "Aplicar em todos" : "Aplicar nas categorias"}
+        </AdminButton>
         {scope === "category" && selected.length > 0 && (
-          <button
-            type="button"
+          <AdminButton
+            variant="secondary"
+            icon={<RotateCcw className="h-4 w-4" />}
             onClick={clearCategories}
             disabled={busy}
-            className="inline-flex items-center gap-2 bg-card border border-border font-black uppercase tracking-wider px-4 py-2.5 rounded-md hover:border-destructive hover:text-destructive disabled:opacity-60 text-xs"
           >
-            <RotateCcw className="h-4 w-4" /> Restaurar categorias
-          </button>
+            Restaurar categorias
+          </AdminButton>
         )}
         {scope === "all" && currentPct > 0 && (
-          <button
-            type="button"
+          <AdminButton
+            variant="secondary"
+            icon={<RotateCcw className="h-4 w-4" />}
             onClick={clearAll}
             disabled={busy}
-            className="inline-flex items-center gap-2 bg-card border border-border font-black uppercase tracking-wider px-4 py-2.5 rounded-md hover:border-destructive hover:text-destructive disabled:opacity-60 text-xs"
           >
-            <RotateCcw className="h-4 w-4" /> Restaurar todos
-          </button>
+            Restaurar todos
+          </AdminButton>
         )}
       </div>
       <p className="mt-3 text-[11px] text-muted-foreground">
@@ -598,13 +601,13 @@ function UnidadesSection() {
           <Store className="h-5 w-5 text-primary" />
           <h2 className="display text-xl">Unidades</h2>
         </div>
-        <button
-          type="button"
+        <AdminButton
+          variant="primary"
+          icon={<Plus className="h-4 w-4" />}
           onClick={() => { setCreating(true); setEditing(null); }}
-          className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-3 py-2 rounded-md hover:opacity-90 text-xs"
         >
-          <Plus className="h-4 w-4" /> Nova unidade
-        </button>
+          Nova unidade
+        </AdminButton>
       </div>
       <p className="text-sm text-muted-foreground mb-3">
         Lojas físicas disponíveis para retirada. Os endereços são públicos; apenas admin e gerente podem editar.
@@ -626,13 +629,13 @@ function UnidadesSection() {
                 </div>
                 {u.horario_retirada && <div className="text-[11px] text-muted-foreground">{u.horario_retirada}</div>}
               </div>
-              <button
-                type="button"
+              <AdminButton
+                variant="secondary"
+                className="shrink-0"
                 onClick={() => { setEditing(u); setCreating(false); }}
-                className="text-xs font-black uppercase tracking-wider border border-border rounded-md px-3 py-1.5 hover:border-primary shrink-0"
               >
                 Editar
-              </button>
+              </AdminButton>
             </div>
           </div>
         ))}
@@ -719,14 +722,14 @@ function UnidadeForm({ unidade, onCancel, onSaved }: { unidade: Unidade | null; 
           Unidade ativa
         </label>
       </div>
-      <div className="flex gap-2">
-        <button type="button" onClick={submit} disabled={busy} className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md hover:opacity-90 disabled:opacity-60 text-xs">
-          <Save className="h-4 w-4" /> {busy ? "Salvando…" : "Salvar unidade"}
-        </button>
-        <button type="button" onClick={onCancel} className="border border-border rounded-md px-4 py-2 text-xs font-black uppercase tracking-wider hover:border-destructive">
+      <AdminActionBar>
+        <AdminButton variant="primary" icon={<Save className="h-4 w-4" />} onClick={submit} loading={busy}>
+          {busy ? "Salvando…" : "Salvar unidade"}
+        </AdminButton>
+        <AdminButton variant="secondary" onClick={onCancel}>
           Cancelar
-        </button>
-      </div>
+        </AdminButton>
+      </AdminActionBar>
     </div>
   );
 }

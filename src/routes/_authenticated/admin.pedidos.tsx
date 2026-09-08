@@ -14,6 +14,7 @@ import { RefundModal } from "@/components/RefundModal";
 import { ExchangeVoucherModal } from "@/components/ExchangeVoucherModal";
 import { DeleteOrderDialog } from "@/components/admin/DeleteOrderDialog";
 import { AdminSkeleton } from "@/components/admin/AdminSkeleton";
+import { AdminButton, AdminActionBar } from "@/components/admin/AdminButton";
 import { supabase } from "@/integrations/supabase/client";
 import { isAdmin, isSuperAdmin, clearRolesCache } from "@/lib/products";
 import {
@@ -649,13 +650,14 @@ function OrdersPanel() {
                   <h2 className="display text-lg">Vendidos · {filterCategory}</h2>
                   <p className="text-xs text-muted-foreground">{stats.unitsSold} itens · {brl(stats.revenue)} · {periodLabel}</p>
                 </div>
-                <button
+                <AdminButton
+                  variant="primary"
+                  icon={<Share2 className="h-4 w-4" />}
                   onClick={() => shareCategoryReport()}
-                  className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-3 py-1.5 rounded hover:opacity-90"
                   title="Exportar relatório desta categoria"
                 >
-                  <Share2 className="h-3.5 w-3.5" /> WhatsApp
-                </button>
+                  WhatsApp
+                </AdminButton>
               </div>
               {metricsLoading ? (
                 <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
@@ -712,24 +714,25 @@ function OrdersPanel() {
                   : `Filtrando por: ${filterCategory}`}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
+            <AdminActionBar>
+              <AdminButton
+                variant="secondary"
+                icon={<Download className="h-4 w-4" />}
                 onClick={downloadCustomersCsv}
-                disabled={exportingCustomers}
-                className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-accent text-accent-foreground px-3 py-1.5 rounded hover:opacity-90 disabled:opacity-60"
+                loading={exportingCustomers}
                 title="Baixar lista atualizada de clientes (nome, email, WhatsApp) em CSV"
               >
-                <Download className="h-3.5 w-3.5" />
                 {exportingCustomers ? "Gerando..." : "Baixar clientes · CSV"}
-              </button>
-              <button
+              </AdminButton>
+              <AdminButton
+                variant="primary"
+                icon={<Share2 className="h-4 w-4" />}
                 onClick={() => shareReport(buildFullReport(), "Relatório Shopbox")}
-                className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-primary text-primary-foreground px-3 py-1.5 rounded hover:opacity-90"
                 title="Exportar relatório completo para WhatsApp"
               >
-                <Share2 className="h-3.5 w-3.5" /> Relatório completo · WhatsApp
-              </button>
-            </div>
+                Relatório completo · WhatsApp
+              </AdminButton>
+            </AdminActionBar>
 
           </div>
           {metricsLoading ? (
@@ -1083,25 +1086,23 @@ function OrdersPanel() {
 
           {ordersTotal > PAGE_SIZE && (
             <div className="flex items-center justify-between gap-2 border-t border-border px-4 py-3">
-              <button
-                type="button"
+              <AdminButton
+                variant="secondary"
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={page === 0 || ordersQuery.isFetching}
-                className="min-h-11 px-4 rounded border border-border text-xs font-bold uppercase tracking-wider disabled:opacity-40 hover:bg-secondary"
               >
                 Anterior
-              </button>
+              </AdminButton>
               <span className="text-xs text-muted-foreground">
                 {page * PAGE_SIZE + 1}–{Math.min(ordersTotal, (page + 1) * PAGE_SIZE)} de {ordersTotal}
               </span>
-              <button
-                type="button"
+              <AdminButton
+                variant="secondary"
                 onClick={() => setPage((p) => p + 1)}
                 disabled={(page + 1) * PAGE_SIZE >= ordersTotal || ordersQuery.isFetching}
-                className="min-h-11 px-4 rounded border border-border text-xs font-bold uppercase tracking-wider disabled:opacity-40 hover:bg-secondary"
               >
                 Próxima
-              </button>
+              </AdminButton>
             </div>
           )}
         </div>
@@ -1119,12 +1120,13 @@ function OrdersPanel() {
                   Apaga TODOS os pedidos e itens da base. As métricas serão zeradas. Não pode ser desfeito.
                 </p>
                 {!wipeOpen ? (
-                  <button
+                  <AdminButton
+                    variant="destructive"
+                    icon={<Trash2 className="h-4 w-4" />}
                     onClick={() => setWipeOpen(true)}
-                    className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-bold uppercase tracking-wider text-xs px-4 py-2 rounded hover:opacity-90"
                   >
-                    <Trash2 className="h-4 w-4" /> Limpar todos os pedidos
-                  </button>
+                    Limpar todos os pedidos
+                  </AdminButton>
                 ) : (
                   <div className="space-y-2 max-w-md">
                     <label className="text-xs font-bold uppercase tracking-wider text-destructive">
@@ -1137,22 +1139,24 @@ function OrdersPanel() {
                       placeholder="EXCLUIR TUDO"
                       className="w-full px-3 py-2 rounded border border-destructive/40 bg-background font-mono text-sm focus:outline-none focus:ring-2 focus:ring-destructive"
                     />
-                    <div className="flex gap-2">
-                      <button
+                    <AdminActionBar>
+                      <AdminButton
+                        variant="destructive"
+                        icon={<Trash2 className="h-4 w-4" />}
                         onClick={wipeAll}
+                        loading={busy}
                         disabled={busy || wipeConfirm !== "EXCLUIR TUDO"}
-                        className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-bold uppercase tracking-wider text-xs px-4 py-2 rounded hover:opacity-90 disabled:opacity-50"
                       >
-                        <Trash2 className="h-4 w-4" /> Confirmar exclusão total
-                      </button>
-                      <button
+                        Confirmar exclusão total
+                      </AdminButton>
+                      <AdminButton
+                        variant="secondary"
                         onClick={() => { setWipeOpen(false); setWipeConfirm(""); }}
                         disabled={busy}
-                        className="text-xs font-bold uppercase tracking-wider px-4 py-2 rounded border border-border hover:bg-secondary"
                       >
                         Cancelar
-                      </button>
-                    </div>
+                      </AdminButton>
+                    </AdminActionBar>
                   </div>
                 )}
               </div>

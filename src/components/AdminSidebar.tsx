@@ -134,8 +134,11 @@ export function AdminSidebar({ roles }: { roles: RoleSummary }) {
               <button
                 type="button"
                 onClick={() => setOpen(expanded ? null : g.id)}
+                aria-expanded={expanded}
+                aria-controls={`admin-group-${g.id}`}
                 className={cn(
-                  "w-full flex items-center gap-2 px-2 py-2 rounded-md text-[11px] font-bold uppercase tracking-wider transition-colors",
+                  "w-full flex items-center gap-2 px-2 min-h-11 rounded-md text-[11px] font-bold uppercase tracking-wider transition-colors",
+                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
                   expanded ? "text-foreground bg-secondary/60" : "text-muted-foreground hover:bg-secondary/40",
                 )}
               >
@@ -144,7 +147,7 @@ export function AdminSidebar({ roles }: { roles: RoleSummary }) {
                 <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", expanded && "rotate-180")} />
               </button>
               {expanded && (
-                <ul className="mt-1 mb-2 flex flex-col gap-0.5">
+                <ul id={`admin-group-${g.id}`} className="mt-1 mb-2 flex flex-col gap-0.5">
                   {g.items.map((it) => {
                     const active = isActive(pathname, it.to);
                     const Icon = it.icon;
@@ -152,10 +155,12 @@ export function AdminSidebar({ roles }: { roles: RoleSummary }) {
                       <li key={it.to}>
                         <Link
                           to={it.to}
+                          aria-current={active ? "page" : undefined}
                           className={cn(
-                            "flex items-center gap-2 pl-4 pr-2 py-2 rounded-md text-xs font-medium transition-colors",
+                            "flex items-center gap-2 pl-3 pr-2 min-h-11 rounded-md text-xs font-medium transition-colors",
+                            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
                             active
-                              ? "bg-secondary text-foreground"
+                              ? "bg-secondary text-foreground border-l-2 border-primary font-bold"
                               : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground",
                           )}
                         >
@@ -177,14 +182,17 @@ export function AdminSidebar({ roles }: { roles: RoleSummary }) {
         <button
           type="button"
           onClick={() => setMobileOpen((v) => !v)}
-          className="w-full flex items-center gap-2 px-4 min-h-12 text-xs font-bold uppercase tracking-wider"
+          aria-expanded={mobileOpen}
+          aria-controls="admin-mobile-menu"
+          aria-label={mobileOpen ? "Fechar menu do admin" : "Abrir menu do admin"}
+          className="w-full flex items-center gap-2 px-4 min-h-12 text-xs font-bold uppercase tracking-wider focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
         >
           <Menu className="h-4 w-4" />
           <span className="flex-1 text-left truncate">{activeItem?.label ?? "Menu"}</span>
           <ChevronDown className={cn("h-4 w-4 transition-transform", mobileOpen && "rotate-180")} />
         </button>
         {mobileOpen && (
-          <div className="border-t border-border max-h-[70vh] overflow-y-auto pb-2">
+          <div id="admin-mobile-menu" className="border-t border-border max-h-[70vh] overflow-y-auto overscroll-contain pb-2">
             {groups.map((g) => (
               <div key={g.id} className="px-3 pt-3">
                 <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">
@@ -198,10 +206,12 @@ export function AdminSidebar({ roles }: { roles: RoleSummary }) {
                       <li key={it.to}>
                         <Link
                           to={it.to}
+                          aria-current={active ? "page" : undefined}
                           className={cn(
                             "flex items-center gap-2 px-3 min-h-11 rounded-md border text-xs font-medium",
+                            "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary",
                             active
-                              ? "bg-secondary border-border text-foreground"
+                              ? "bg-secondary border-primary text-foreground font-bold"
                               : "border-border/60 text-muted-foreground",
                           )}
                         >

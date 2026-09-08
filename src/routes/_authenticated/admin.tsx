@@ -17,6 +17,7 @@ import { ProductForm, PRODUCT_FORM_DRAFT_KEY as DRAFT_KEY } from "@/components/P
 import { BulkShareDialog } from "@/components/BulkShareDialog";
 import { AdminSkeleton } from "@/components/admin/AdminSkeleton";
 import { BulkProductActions } from "@/components/admin/BulkProductActions";
+import { AdminButton, AdminActionBar } from "@/components/admin/AdminButton";
 import { optimizedImage, optimizedSrcSet } from "@/lib/image-url";
 
 
@@ -185,7 +186,9 @@ function AdminPage() {
               Você precisa ser o Super Admin (dono) ou ter uma função interna. Se for o primeiro
               acesso da loja, clique abaixo para se tornar o Super Admin inicial.
             </p>
-            <button
+            <AdminButton
+              variant="primary"
+              icon={<Crown className="h-4 w-4" />}
               onClick={async () => {
                 try {
                   const r = await claim({});
@@ -193,10 +196,9 @@ function AdminPage() {
                   else toast.error("Já existe um Super Admin. Peça acesso a ele.");
                 } catch (e: any) { toast.error(e.message ?? "Erro"); }
               }}
-              className="bg-primary text-primary-foreground font-black uppercase tracking-wider px-6 py-3 rounded-md shadow-deal"
             >
               Tornar-me Super Admin
-            </button>
+            </AdminButton>
           </div>
         </div>
         <Footer />
@@ -353,14 +355,15 @@ function AdminPage() {
               </p>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <button
+          <AdminActionBar className="w-full sm:w-auto">
+            <AdminButton
+              variant="primary"
+              icon={<Plus className="h-4 w-4" />}
               onClick={() => { setEditing(null); setShowForm(true); }}
-              className="inline-flex items-center gap-1.5 bg-foreground text-background font-semibold px-3 py-1.5 rounded-md text-xs hover:opacity-90 transition-opacity"
             >
-              <Plus className="h-3.5 w-3.5" /> Novo produto
-            </button>
-          </div>
+              Novo produto
+            </AdminButton>
+          </AdminActionBar>
         </div>
       </section>
 
@@ -406,86 +409,76 @@ function AdminPage() {
             </button>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
+          <AdminActionBar className="w-full sm:w-auto">
+            <AdminButton
+              variant={selectMode ? "primary" : "secondary"}
+              icon={<CheckSquare className="h-4 w-4" />}
+              aria-pressed={selectMode}
               onClick={() => {
                 setSelectMode((v) => {
                   if (v) setSelected(new Set());
                   return !v;
                 });
               }}
-              className={cn(
-                "inline-flex items-center gap-2 font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs border",
-                selectMode
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card border-border hover:bg-secondary",
-              )}
             >
-              <CheckSquare className="h-4 w-4" />
               {selectMode ? "Sair da seleção" : "Selecionar"}
-            </button>
+            </AdminButton>
 
             {selectMode && selected.size > 0 && (
-              <button
-                type="button"
+              <AdminButton
+                variant="secondary"
+                icon={<Share2 className="h-4 w-4" />}
                 onClick={() => setBulkShareOpen(true)}
-                className="inline-flex items-center gap-2 bg-[#25D366] text-white font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:opacity-90"
               >
-                <Share2 className="h-4 w-4" />
                 Compartilhar {selected.size}
-              </button>
+              </AdminButton>
             )}
 
             {tab === "esgotados" && (
               <>
                 {selected.size > 0 ? (
                   <>
-                    <button
-                      type="button"
-                      disabled={isBulkHiding}
+                    <AdminButton
+                      variant="secondary"
+                      icon={<EyeOff className="h-4 w-4" />}
+                      loading={isBulkHiding}
                       onClick={() => bulkHide(Array.from(selected))}
-                      className="inline-flex items-center gap-2 bg-card border border-border text-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-secondary disabled:opacity-50"
                     >
-                      <EyeOff className="h-4 w-4" />
                       Ocultar {selected.size}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isBulkDeleting}
+                    </AdminButton>
+                    <AdminButton
+                      variant="destructive"
+                      icon={<Trash2 className="h-4 w-4" />}
+                      loading={isBulkDeleting}
                       onClick={() => bulkDelete(Array.from(selected))}
-                      className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-destructive/90 disabled:opacity-50"
                     >
-                      <Trash2 className="h-4 w-4" />
                       Excluir {selected.size}
-                    </button>
+                    </AdminButton>
                   </>
                 ) : (
                   <>
-                    <button
-                      type="button"
-                      disabled={isBulkHiding}
+                    <AdminButton
+                      variant="secondary"
+                      icon={<EyeOff className="h-4 w-4" />}
+                      loading={isBulkHiding}
                       onClick={() => {
                         const ids = products.filter((p) => p.stock === 0 && p.active).map((p) => p.id);
                         bulkHide(ids);
                       }}
-                      className="inline-flex items-center gap-2 bg-card border border-border text-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-secondary disabled:opacity-50"
                     >
-                      <EyeOff className="h-4 w-4" />
                       Ocultar todos esgotados
-                    </button>
-                    <button
-                      type="button"
-                      disabled={isBulkDeleting}
+                    </AdminButton>
+                    <AdminButton
+                      variant="destructive"
+                      icon={<Trash2 className="h-4 w-4" />}
+                      loading={isBulkDeleting}
                       onClick={() => {
                         const ids = products.filter((p) => p.stock === 0).map((p) => p.id);
                         bulkDelete(ids);
                       }}
-                      className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-destructive/90 disabled:opacity-50"
                     >
-                      <Trash2 className="h-4 w-4" />
                       Excluir todos esgotados
-                    </button>
+                    </AdminButton>
                   </>
                 )}
               </>
@@ -493,31 +486,29 @@ function AdminPage() {
 
             {tab === "ocultos" && (
               selected.size > 0 ? (
-                <button
-                  type="button"
-                  disabled={isBulkDeleting}
+                <AdminButton
+                  variant="destructive"
+                  icon={<Trash2 className="h-4 w-4" />}
+                  loading={isBulkDeleting}
                   onClick={() => bulkDelete(Array.from(selected))}
-                  className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-destructive/90 disabled:opacity-50"
                 >
-                  <Trash2 className="h-4 w-4" />
                   Excluir {selected.size}
-                </button>
+                </AdminButton>
               ) : (
-                <button
-                  type="button"
-                  disabled={isBulkDeleting}
+                <AdminButton
+                  variant="destructive"
+                  icon={<Trash2 className="h-4 w-4" />}
+                  loading={isBulkDeleting}
                   onClick={() => {
                     const ids = products.filter((p) => !p.active).map((p) => p.id);
                     bulkDelete(ids);
                   }}
-                  className="inline-flex items-center gap-2 bg-destructive text-destructive-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs hover:bg-destructive/90 disabled:opacity-50"
                 >
-                  <Trash2 className="h-4 w-4" />
                   Excluir todos os ocultos
-                </button>
+                </AdminButton>
               )
             )}
-          </div>
+          </AdminActionBar>
         </div>
 
         <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -543,12 +534,12 @@ function AdminPage() {
               ))}
           </select>
           {(search || categoryFilter) && (
-            <button
+            <AdminButton
+              variant="ghost"
               onClick={() => { setSearch(""); setCategoryFilter(""); }}
-              className="text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground"
             >
-              Limpar
-            </button>
+              Limpar filtros
+            </AdminButton>
           )}
           <span className="text-xs text-muted-foreground ml-auto">
             {(() => {
@@ -575,14 +566,14 @@ function AdminPage() {
               Carregados {loadedCount} de {totalProducts}. Busca, abas e ações em massa consideram apenas o que está
               carregado.
             </span>
-            <button
-              type="button"
+            <AdminButton
+              variant="secondary"
+              className="ml-auto"
               onClick={loadAll}
-              disabled={loadingAll}
-              className="ml-auto inline-flex items-center gap-1.5 min-h-11 px-3 rounded-md border border-border bg-card font-bold uppercase tracking-wider hover:bg-secondary disabled:opacity-50"
+              loading={loadingAll}
             >
               {loadingAll ? "Carregando..." : "Carregar catálogo inteiro"}
-            </button>
+            </AdminButton>
           </div>
         )}
 
@@ -840,14 +831,14 @@ function AdminPage() {
             Exibindo {loadedCount} de {totalProducts} produtos
           </p>
           {hasNextPage && (
-            <button
-              type="button"
+            <AdminButton
+              variant="primary"
+              className="px-6"
               onClick={() => fetchNextPage()}
-              disabled={isFetchingNextPage}
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-6 py-3 rounded-md shadow-deal hover:scale-[1.02] text-sm disabled:opacity-60 disabled:cursor-wait"
+              loading={isFetchingNextPage}
             >
               {isFetchingNextPage ? "Carregando..." : `Carregar mais`}
-            </button>
+            </AdminButton>
           )}
           {!hasNextPage && loadedCount > 0 && isFetchingProducts === false && (
             <p className="text-[11px] text-muted-foreground">Todos os produtos foram carregados.</p>
