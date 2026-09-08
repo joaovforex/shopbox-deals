@@ -205,10 +205,10 @@ function MyOrdersPage() {
                     {isReady && (
                       <div className="mt-3 text-xs bg-primary/10 border border-primary/30 rounded px-3 py-2">
                         <strong className="text-primary">Pronto para retirada.</strong>{" "}
-                        Endereço: <span className="font-semibold">{STORE_ADDRESS}</span>.{" "}
-                        <span className="text-accent font-bold">Você tem até 5 dias para retirar.</span>
+                        Endereço: <span className="font-semibold">{STORE_ADDRESS}</span>.
                       </div>
                     )}
+
                     {isDelivery && (
                       <div className="mt-3 text-xs bg-primary/10 border border-primary/30 rounded px-3 py-2 flex flex-wrap items-center gap-2 justify-between">
                         <div>
@@ -231,6 +231,13 @@ function MyOrdersPage() {
                     o.fulfillment_status !== "delivered" && (
                       <DeliveryUpgradeButton orderId={o.id} />
                     )}
+
+                  {o.status === "paid" && (
+                    <div className="mt-2">
+                      <RepurchaseButton orderId={o.id} />
+                    </div>
+                  )}
+
                 </li>
 
               );
