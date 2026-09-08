@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { useNavigate } from "@tanstack/react-router";
 import { RotateCcw } from "lucide-react";
 import { toast } from "sonner";
-import { getRepurchasePlan } from "@/lib/account.functions";
+import { buildRepurchasePlan, currentUserId } from "@/lib/account-queries";
 import { useCart } from "@/lib/cart";
 import { trackAddToCart, toAnalyticsItem } from "@/lib/analytics";
 
@@ -11,22 +10,17 @@ const REASON_LABEL: Record<string, string> = {
   removed: "não está mais no catálogo",
   inactive: "não está mais à venda",
   out_of_stock: "está sem estoque",
-  variant_gone: "está sem a cor que você comprou",
+  variant_gone: "mudou de cores — escolha na página do produto",
+  needs_choice: "agora tem opções de cor — escolha na página do produto",
 };
 
 /**
- * "Comprar novamente": relê preço, estoque e variante ATUAIS no servidor
- * (`getRepurchasePlan`) e adiciona ao carrinho pela mesma função `add`, que já
- * reserva estoque. Nunca reutiliza o preço antigo do pedido.
+ * "Comprar novamente": relê preço, estoque e variante ATUAIS (consulta
+ * autenticada, filtrada pelo dono) e adiciona ao carrinho pela mesma função
+ * `add`, que já reserva estoque. Nunca reutiliza o preço antigo do pedido.
+ * Itens que exigem escolha de cor levam o cliente para a página do produto.
  */
-export function RepurchaseButton({
-  orderId,
-  className,
-}: {
-  orderId: string;
-  className?: string;
-}) {
-  const plan = useServerFn(getRepurchasePlan);
+export function RepurchaseButton({ orderId, className }: { orderId: string; className?: string }) {
   const { add } = useCart();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
@@ -34,14 +28,28 @@ export function RepurchaseButton({
   const run = async () => {
     setBusy(true);
     try {
-      const { items } = await plan({ data: { orderId } });
-      const unavailable = items.filter((i) => !i.available);
-      const available = items.filter((i) => i.available && i.product);
+      const uid = await currentUserId();
+      if (!uid) {
+        toast.error("Entre na sua conta para repetir o pedido.");
+        return;
+      }
+      const items = await buildRepurchasePlan(orderId, uid);
+      const ready = items.filter((i) => i.reason === "ok" && i.product);
+      const choices = items.filter((i) => i.reason === "needs_choice" || i.reason === "variant_gone");
+      const blocked = items.filter((i) => ["removed", "inactive", "out_of_stock"].includes(i.reason));
 
-      if (available.length === 0) {
+      if (ready.length === 0) {
+        // Um único item que só precisa de escolha: leva direto ao produto.
+        const pick = choices[0];
+        if (choices.length >= 1 && pick?.product) {
+          toast.info(`${pick.requested_name} ${REASON_LABEL[pick.reason]}.`);
+          navigate({ to: "/produto/$id", params: { id: pick.product.id } });
+          return;
+        }
+        const only = blocked[0];
         toast.error(
-          unavailable.length === 1 && unavailable[0]
-            ? `${unavailable[0].requested_name} ${REASON_LABEL[unavailable[0].reason] ?? "não está disponível"}.`
+          blocked.length === 1 && only
+            ? `${only.requested_name} ${REASON_LABEL[only.reason] ?? "não está disponível"}.`
             : "Nenhum item deste pedido está disponível hoje.",
         );
         return;
@@ -49,9 +57,9 @@ export function RepurchaseButton({
 
       const added: string[] = [];
       const failed: string[] = [];
-      for (const it of available) {
+      for (const it of ready) {
         const p = it.product!;
-        const qty = Math.min(it.requested_quantity, p.stock);
+        const qty = Math.max(1, Math.min(it.requested_quantity, p.stock));
         const res = await add(
           {
             id: p.id,
@@ -61,18 +69,19 @@ export function RepurchaseButton({
             variant_color: p.variant_color,
             unidade_id: p.unidade_id,
           },
-          Math.max(1, qty),
+          qty,
         );
         if (res === "ok") {
           added.push(p.name);
-          trackAddToCart(toAnalyticsItem({ id: p.id, name: p.name, price: p.price }, Math.max(1, qty)));
+          trackAddToCart(toAnalyticsItem({ id: p.id, name: p.name, price: p.price }, qty));
         } else {
           failed.push(p.name);
         }
       }
 
       const problems = [
-        ...unavailable.map((u) => `${u.requested_name} ${REASON_LABEL[u.reason] ?? "indisponível"}`),
+        ...choices.map((c) => `${c.requested_name} ${REASON_LABEL[c.reason]}`),
+        ...blocked.map((b) => `${b.requested_name} ${REASON_LABEL[b.reason] ?? "indisponível"}`),
         ...failed.map((f) => `${f} não pôde ser adicionado`),
       ];
 
@@ -104,7 +113,7 @@ export function RepurchaseButton({
       disabled={busy}
       className={
         className ??
-        "inline-flex items-center justify-center gap-2 rounded-md bg-secondary px-4 py-2.5 text-xs font-black uppercase tracking-wider hover:bg-muted disabled:opacity-60"
+        "inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-secondary px-4 py-2.5 text-xs font-black uppercase tracking-wider hover:bg-muted disabled:opacity-60"
       }
     >
       <RotateCcw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} />
