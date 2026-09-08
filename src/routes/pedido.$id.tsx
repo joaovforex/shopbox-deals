@@ -301,10 +301,22 @@ function OrderPage() {
                 <div><strong className="text-foreground">Pagamento:</strong> {data.order.payment_method.toUpperCase()}</div>
               </div>
             </div>
+          ) : isError ? (
+            <div className="bg-card border border-destructive/40 rounded-xl p-6 text-center text-sm">
+              <p className="font-bold text-destructive">Não conseguimos carregar este pedido</p>
+              <button
+                type="button"
+                onClick={() => void refetch()}
+                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-md bg-secondary px-4 py-2 text-xs font-black uppercase tracking-wider hover:bg-muted"
+              >
+                Tentar de novo
+              </button>
+            </div>
           ) : (
             <div className="bg-card border border-border rounded-xl p-6 text-center text-sm text-muted-foreground">
-              Seu pedido foi registrado. Guarde o número <span className="font-mono font-bold">#{shortId}</span> para retirar na loja.
-            </div>
+              Não localizamos o pedido <span className="font-mono font-bold">#{shortId}</span>. Confira o link recebido ou
+              veja a lista completa em <Link to="/meus-pedidos" className="underline">Meus Pedidos</Link>.
+
           )}
 
           {owned && (
