@@ -164,7 +164,7 @@ function OrderPage() {
                 )}
                 {isPaid && !isDelivered && (
                   <p className="mt-3 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-3 py-2 rounded">
-                    ⏱ Sua entrega chega em até <strong>2 dias úteis</strong>. Acompanhe o status em Meus Pedidos.
+                    🚚 Seu pedido está sendo preparado para a coleta do entregador. Acompanhe o status em Meus Pedidos.
                   </p>
                 )}
                 <p className="mt-2 text-[11px] text-muted-foreground">
