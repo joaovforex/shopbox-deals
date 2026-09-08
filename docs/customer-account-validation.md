@@ -50,14 +50,35 @@ confiança e um bloco curto de cashback/retirada. Saíram: grade de categorias, 
 e as ofertas apareçam cedo. SEO (title/description/OG/canonical/JSON-LD Store) e a taxa de
 cashback dinâmica foram preservados. Nenhuma urgência, escassez ou prazo inventado.
 
-### 4.1 Validação final da home sem banner
+### 4.1 Banner restaurado por solicitação do usuário
 
-- `src/routes/index.tsx`: import e uso de `AnnouncementBanner` removidos; componente preservado
-  em `src/components/AnnouncementBanner.tsx` para reutilização futura.
-- Smoke Playwright 390x844 e 1280x1800: sem overflow horizontal, busca visível em ~240 px do topo,
-  título “Ofertas de hoje” visível em ~390 px (mobile) / ~420 px (desktop), imagem de cashback
-  não mais presente na home.
-- Typecheck e `bun test` passaram após a alteração.
+- `src/routes/index.tsx`: o `<AnnouncementBanner />` foi **restaurado** logo após o `<Header />`,
+  a pedido explícito do usuário. A remoção anterior (registrada nesta seção) não se aplica mais.
+  O componente segue intacto em `src/components/AnnouncementBanner.tsx`, com imagens
+  desktop/mobile dinâmicas via `site_settings` (fallback para os assets locais).
+
+### 4.2 Topo mobile simplificado
+
+- `src/components/Header.tsx`: no mobile, o topo direito mostra apenas três controles diretos,
+  com toque uniforme (h-10 w-10) e aria-labels: **carrinho** (com badge de quantidade), **tema**
+  e **perfil/conta** (vai para `/minha-conta` autenticado ou `/auth` deslogado).
+- `OnlineCounter` ficou exclusivo do desktop (`hidden md:block`).
+- O botão “Sair” solto e o menu hamburger foram removidos do topo mobile. A navegação principal
+  mobile continua na barra inferior (início, ofertas, busca, carrinho, conta); categorias seguem
+  acessíveis pelos filtros da loja.
+- Saída de conta no mobile: nova seção “Sessão” em `src/routes/_authenticated/perfil.tsx`
+  (`SignOutSection`), que reutiliza a mesma limpeza do Header (cache de papéis, carrinho local,
+  `supabase.auth.signOut()` e reload completo), com feedback de erro.
+- Desktop inalterado: contador online, “Minha conta”, “Admin”, carrinho, tema e sair continuam
+  no topo como antes.
+
+### 4.3 Validação (Playwright, após 4.1 e 4.2)
+
+- 390x844 anônimo: sem overflow, banner presente, topo com Carrinho / tema / Entrar.
+- 390x844 autenticado: sem overflow, banner presente, topo com Carrinho / tema / Minha conta;
+  `/perfil` exibe a seção “Sessão” com o botão “Sair da conta” (não clicado — sem logout real).
+- 1280x1800 anônimo: sem overflow, navegação desktop completa preservada, banner presente.
+- Console sem erros nas três execuções. Typecheck (`tsgo`) e `bun test` (5 testes, 14 expect) OK.
 
 ## 5. Não testado de ponta a ponta
 
