@@ -276,6 +276,63 @@ function OrderPage() {
             </div>
           )}
 
+          {owned && (
+            <div className="bg-card border border-border rounded-xl p-6 mt-4 space-y-3">
+              <h2 className="font-bold uppercase text-xs tracking-wider text-muted-foreground">Detalhes da sua compra</h2>
+
+              <ul className="space-y-1 text-sm">
+                {(mine?.items ?? []).map((it) => (
+                  <li key={it.id} className="flex justify-between gap-2">
+                    <span>
+                      <span className="text-muted-foreground">{it.quantity}×</span> {it.product_name}
+                      {it.variant_color && <span className="text-muted-foreground"> · cor {it.variant_color}</span>}
+                    </span>
+                    <span className="font-semibold whitespace-nowrap">{brl(Number(it.unit_price) * it.quantity)}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="border-t border-border pt-3 text-xs text-muted-foreground space-y-1">
+                {Number(owned.delivery_fee) > 0 && (
+                  <div><strong className="text-foreground">Entrega:</strong> {brl(Number(owned.delivery_fee))}</div>
+                )}
+                {Number(owned.cashback_used) > 0 && (
+                  <div><strong className="text-foreground">Cashback usado:</strong> −{brl(Number(owned.cashback_used))}</div>
+                )}
+                {Number(owned.cashback_earned) > 0 && (
+                  <div><strong className="text-foreground">Cashback ganho:</strong> {brl(Number(owned.cashback_earned))}</div>
+                )}
+                {owned.delivery_method === "delivery" ? (
+                  owned.shipping_street && (
+                    <div>
+                      <strong className="text-foreground">Entrega em:</strong> {owned.shipping_street}, {owned.shipping_number}
+                      {owned.shipping_complement ? ` — ${owned.shipping_complement}` : ""}
+                      {owned.shipping_district ? `, ${owned.shipping_district}` : ""}
+                      {owned.shipping_city ? ` — ${owned.shipping_city}/${owned.shipping_state ?? ""}` : ""}
+                    </div>
+                  )
+                ) : (
+                  <div><strong className="text-foreground">Retirada:</strong> {STORE_ADDRESS}</div>
+                )}
+                {owned.maisentregas_tracking_url && (
+                  <div>
+                    <a href={owned.maisentregas_tracking_url} target="_blank" rel="noreferrer" className="text-primary font-bold hover:underline">
+                      Acompanhar entregador
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {owned.status === "paid" && (
+                <div className="pt-1">
+                  <RepurchaseButton orderId={id} />
+                </div>
+              )}
+            </div>
+          )}
+
+
+
           <div className="text-center mt-8">
             <Link
               to="/loja"
