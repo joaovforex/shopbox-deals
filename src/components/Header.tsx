@@ -144,7 +144,9 @@ export function Header() {
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-2 justify-end">
-            <OnlineCounter />
+            <div className="hidden md:block">
+              <OnlineCounter />
+            </div>
             {user && !hasTeamRole && (
               <Link
                 to="/minha-conta"
@@ -182,7 +184,7 @@ export function Header() {
             {user ? (
               <button
                 onClick={signOut}
-                className="inline-flex items-center justify-center h-10 w-10 rounded-md bg-secondary hover:bg-muted transition-colors"
+                className="hidden md:inline-flex items-center justify-center h-10 w-10 rounded-md bg-secondary hover:bg-muted transition-colors"
                 aria-label="Sair"
               >
                 <LogOut className="h-5 w-5" />
@@ -190,13 +192,20 @@ export function Header() {
             ) : (
               <Link
                 to="/auth"
-                className="inline-flex items-center justify-center h-10 w-10 rounded-md bg-secondary hover:bg-muted transition-colors"
+                className="hidden md:inline-flex items-center justify-center h-10 w-10 rounded-md bg-secondary hover:bg-muted transition-colors"
                 aria-label="Entrar"
               >
                 <User className="h-5 w-5" />
               </Link>
             )}
-            <MobileMenu user={user} signOut={signOut} hasTeamRole={hasTeamRole} />
+            {/* Mobile: acesso direto ao perfil/entrar. Sair fica na área da conta. */}
+            <Link
+              to={user ? "/minha-conta" : "/auth"}
+              className="md:hidden inline-flex items-center justify-center h-10 w-10 rounded-md bg-secondary hover:bg-muted transition-colors"
+              aria-label={user ? "Minha conta" : "Entrar"}
+            >
+              <User className="h-5 w-5" />
+            </Link>
           </div>
         </div>
       </header>
