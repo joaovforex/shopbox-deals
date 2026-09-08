@@ -9,6 +9,9 @@ import { ProductForm } from "@/components/ProductForm";
 import { RelatedProducts } from "@/components/RelatedProducts";
 import { ProductReviews } from "@/components/ProductReviews";
 import { ProductTrustBlock } from "@/components/TrustBar";
+import { DeliveryEstimate } from "@/components/DeliveryEstimate";
+import { StarRating } from "@/components/StarRating";
+import { reviewsSummaryQuery } from "@/lib/reviews";
 import { brl, discountPct, postDate } from "@/lib/format";
 import { installmentLabel } from "@/lib/installments";
 import { calculateCashback } from "@/lib/cashback-config";
@@ -22,15 +25,16 @@ import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
 
 export const Route = createFileRoute("/produto/$id")({
   loader: async ({ params, context }) => {
-    const [product, origin] = await Promise.all([
+    const [product, origin, reviews] = await Promise.all([
       context.queryClient.ensureQueryData({
         queryKey: ["product", params.id],
         queryFn: () => fetchProduct(params.id),
       }),
       getRequestOrigin(),
+      context.queryClient.ensureQueryData(reviewsSummaryQuery(params.id)).catch(() => ({ count: 0, average: 0 })),
     ]);
     if (!product) throw notFound();
-    return { product, origin };
+    return { product, origin, reviews };
   },
   head: ({ loaderData }) => {
     if (!loaderData) {
@@ -44,7 +48,11 @@ export const Route = createFileRoute("/produto/$id")({
         ],
       };
     }
-    const { product, origin } = loaderData as { product: Product; origin: string };
+    const { product, origin, reviews } = loaderData as {
+      product: Product;
+      origin: string;
+      reviews: { count: number; average: number };
+    };
 
     const imgs = productImages(product);
     const rawImage = imgs[0] ?? "";
@@ -56,7 +64,66 @@ export const Route = createFileRoute("/produto/$id")({
       : `Por ${brl(product.price)}`;
     const descBody = product.description ? `\n\n${product.description}` : "";
     const ogDescription = `${priceLine}${descBody}`;
+    const productUrl = `${origin}/produto/${product.id}`;
+    const availability = product.stock > 0
+      ? "https://schema.org/InStock"
+      : "https://schema.org/OutOfStock";
+    const jsonLdProduct: Record<string, unknown> = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: product.name,
+      url: productUrl,
+      ...(image ? { image: [image] } : {}),
+      ...(product.description ? { description: product.description } : {}),
+      ...(product.sku ? { sku: product.sku } : {}),
+      ...(product.brand ? { brand: { "@type": "Brand", name: product.brand } } : {}),
+      ...(product.category ? { category: product.category } : {}),
+      ...(reviews && reviews.count > 0
+        ? {
+            aggregateRating: {
+              "@type": "AggregateRating",
+              ratingValue: reviews.average.toFixed(1),
+              reviewCount: reviews.count,
+            },
+          }
+        : {}),
+      offers: {
+        "@type": "Offer",
+        url: productUrl,
+        priceCurrency: "BRL",
+        price: Number(product.price).toFixed(2),
+        availability,
+        itemCondition: "https://schema.org/NewCondition",
+      },
+    };
+    const breadcrumb = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Início", item: `${origin}/` },
+        { "@type": "ListItem", position: 2, name: "Loja", item: `${origin}/loja` },
+        ...(product.category
+          ? [{
+              "@type": "ListItem",
+              position: 3,
+              name: product.category,
+              item: `${origin}/loja?cat=${encodeURIComponent(product.category)}`,
+            }]
+          : []),
+        {
+          "@type": "ListItem",
+          position: product.category ? 4 : 3,
+          name: product.name,
+          item: productUrl,
+        },
+      ],
+    };
     return {
+      links: [{ rel: "canonical", href: productUrl }],
+      scripts: [
+        { type: "application/ld+json", children: JSON.stringify(jsonLdProduct) },
+        { type: "application/ld+json", children: JSON.stringify(breadcrumb) },
+      ],
       meta: [
         { title: `${product.name} — Shopbox` },
         { name: "description", content: priceLine + (product.description ? ` — ${product.description}` : "") },
@@ -104,6 +171,7 @@ export const Route = createFileRoute("/produto/$id")({
 function ProductPage() {
   const { product: loaderProduct } = Route.useLoaderData();
   const { id } = Route.useParams();
+  const { data: reviewSummary } = useQuery(reviewsSummaryQuery(id));
   const { data: settings } = useSiteSettings();
   const cashbackRate = settings?.cashback_rate ?? 0.05;
   const { data: product, isLoading } = useQuery({
@@ -320,6 +388,15 @@ function ProductPage() {
               <span className="text-xs font-bold uppercase tracking-widest text-accent">{product.category}</span>
             )}
             <h1 className="display text-3xl md:text-4xl leading-tight">{product.name}</h1>
+            {reviewSummary && reviewSummary.count > 0 && (
+              <a href="#avaliacoes" className="inline-flex items-center gap-2 text-sm hover:underline">
+                <StarRating value={reviewSummary.average} size={16} />
+                <span className="text-muted-foreground">
+                  {reviewSummary.average.toFixed(1).replace(".", ",")} · {reviewSummary.count}{" "}
+                  {reviewSummary.count === 1 ? "avaliação" : "avaliações"}
+                </span>
+              </a>
+            )}
             {admin && (product as any).created_by_name && (
               <div className="text-xs text-muted-foreground inline-flex items-center gap-1.5 bg-accent/10 border border-accent/30 rounded px-2 py-1 self-start">
                 <span className="font-bold uppercase tracking-wider text-accent">Cadastrado por</span>
@@ -468,7 +545,18 @@ function ProductPage() {
               </div>
             )}
 
+            <DeliveryEstimate />
+
             <ProductTrustBlock />
+
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+              <Link to="/trocas-e-garantia" className="text-primary hover:underline">
+                Trocas e garantia
+              </Link>
+              <Link to="/faq" className="text-primary hover:underline">
+                Dúvidas frequentes
+              </Link>
+            </div>
 
             {admin && (
               <div className="border-t border-border pt-4">
@@ -513,12 +601,31 @@ function ProductPage() {
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 pb-10">
+        <div id="avaliacoes" className="scroll-mt-24" />
         <ProductReviews productId={id} />
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 pb-10">
         <RelatedProducts category={product.category ?? null} excludeId={product.id} />
       </div>
+
+      {(effectiveStock > 0 || needsColorChoice) && !allColorsOut && (
+        <div className="md:hidden fixed bottom-14 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur pl-4 pr-24 py-2.5 flex items-center gap-3">
+          <div className="min-w-0">
+            <div className="text-lg font-black text-price leading-none">{brl(product.price)}</div>
+            {installmentLabel(product.price) && (
+              <div className="text-[11px] text-muted-foreground truncate">{installmentLabel(product.price)}</div>
+            )}
+          </div>
+          <button
+            onClick={buyNow}
+            disabled={needsColorChoice || variantOut}
+            className="flex-1 rounded-md bg-primary px-4 py-3 text-xs font-black uppercase tracking-wider text-primary-foreground disabled:opacity-50"
+          >
+            {needsColorChoice ? "Escolha uma cor" : variantOut ? "Cor esgotada" : "Comprar agora"}
+          </button>
+        </div>
+      )}
 
       <Footer />
       <MobileBottomNav />

@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /checkout
+Disallow: /carrinho
+Disallow: /auth
+Disallow: /reset-password
+Disallow: /pedido
+Disallow: /etiqueta
+Disallow: /api/
+
+Sitemap: https://shopboxonline.com/sitemap.xml
