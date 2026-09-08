@@ -55,6 +55,24 @@ function OrderPage() {
 
   const shortId = id.slice(0, 8).toUpperCase();
 
+  // Analytics: purchase somente quando o pedido está PAGO (deduplicado por id)
+  useEffect(() => {
+    if (!isPaid || !data?.order) return;
+    trackPurchase({
+      orderId: id,
+      value: Number(data.order.total),
+      shipping: Number((data.order as { delivery_fee?: number | null }).delivery_fee ?? 0) || undefined,
+      items: (data.items ?? []).map((it) => ({
+        item_id: it.product_id ?? it.id,
+        item_name: it.product_name,
+        price: Number(it.unit_price),
+        quantity: it.quantity,
+      })),
+    });
+  }, [isPaid, id, data]);
+
+
+
 
 
 
