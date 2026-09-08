@@ -1,5 +1,5 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { ShoppingCart } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { ShoppingCart, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -11,20 +11,31 @@ import { optimizedImage, optimizedSrcSet } from "@/lib/image-url";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StarRatingCompact } from "@/components/StarRating";
 import { reviewsSummaryQuery } from "@/lib/reviews";
+import { trackAddToCart, toAnalyticsItem } from "@/lib/analytics";
+
+/** Produto exige escolha de cor/variante antes de ir ao carrinho? */
+export function requiresVariantChoice(
+  product: Pick<Product | ProductCardData, "color_variants">,
+): boolean {
+  const variants = product.color_variants;
+  return Array.isArray(variants) && variants.length > 0;
+}
 
 export function ProductCard({ product, priority = false }: { product: Product | ProductCardData; priority?: boolean }) {
   const off = discountPct(product.original_price, product.price);
   const imgs = productImages(product);
   const cover = imgs[0];
   const { add } = useCart();
-  const navigate = useNavigate();
   const user = useAuthUser();
   const isTeam = useHasTeamRole();
   const ageDays = (Date.now() - new Date(product.created_at).getTime()) / 86_400_000;
   const stale = isTeam && product.stock > 0 && ageDays > 5;
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imgErrored, setImgErrored] = useState(false);
+  const [adding, setAdding] = useState(false);
   const { data: reviews } = useQuery(reviewsSummaryQuery(product.id));
+
+  const needsVariant = requiresVariantChoice(product);
 
   const cartItem = {
     id: product.id,
@@ -34,29 +45,42 @@ export function ProductCard({ product, priority = false }: { product: Product | 
     unidade_id: product.unidade_id ?? null,
   };
 
-  const requireLogin = (target: "/carrinho" | "/checkout") => {
-    if (user) return false;
-    toast.info("Crie sua conta ou entre para continuar");
-    window.location.href = loginRedirectHref(target);
-    return true;
-  };
-
-  const buyNow = async (e: React.MouseEvent) => {
+  const addToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (product.stock === 0) return;
-    if (requireLogin("/checkout")) return;
-    const result = await add(cartItem, 1);
-    if (result === "ok") navigate({ to: "/checkout" });
+    if (product.stock === 0 || needsVariant || adding) return;
+    // A reserva de estoque exige sessão: preserva o retorno atual para o carrinho.
+    if (!user) {
+      toast.info("Crie sua conta ou entre para continuar");
+      window.location.href = loginRedirectHref("/carrinho");
+      return;
+    }
+    setAdding(true);
+    try {
+      const result = await add(cartItem, 1);
+      if (result === "ok") {
+        // Evento só após sucesso real da adição/reserva.
+        trackAddToCart(
+          toAnalyticsItem(
+            { id: product.id, name: product.name, price: product.price, category: product.category },
+            1,
+          ),
+        );
+        toast.success("Adicionado ao carrinho");
+      }
+    } finally {
+      setAdding(false);
+    }
   };
 
   return (
-    <Link
-      to="/produto/$id"
-      params={{ id: product.id }}
-      className="group relative flex flex-col bg-card rounded-xl overflow-hidden border border-border hover:border-foreground/30 transition-colors"
-    >
-      <div className="aspect-[4/5] bg-muted overflow-hidden relative">
+    <div className="group relative flex flex-col bg-card rounded-xl overflow-hidden border border-border hover:border-foreground/30 transition-colors">
+      <Link
+        to="/produto/$id"
+        params={{ id: product.id }}
+        aria-label={product.name}
+        className="block aspect-[4/5] bg-muted overflow-hidden relative"
+      >
         {cover && !imgErrored ? (
           <>
             {!imgLoaded && (
