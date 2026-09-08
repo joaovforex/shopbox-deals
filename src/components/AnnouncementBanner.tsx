@@ -15,7 +15,14 @@ type Slide = {
   mobile_url: string;
   alt_text: string;
   link_url: string | null;
+  /** Slide padrão (assets/site_settings) tem proporção diferente do padrão 800x800. */
+  fallback?: boolean;
 };
+
+/** Proporção do quadro: slides do painel usam 800x800 / 1600x500. */
+function frameClass(slide: Slide): string {
+  return slide.fallback ? "aspect-[5/3] md:aspect-[16/5]" : "aspect-square md:aspect-[16/5]";
+}
 
 function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
@@ -37,7 +44,7 @@ function SlideImage({ slide, eager }: { slide: Slide; eager: boolean }) {
       <img
         src={slide.mobile_url}
         alt={slide.alt_text}
-        className="w-full h-full object-cover"
+        className={`w-full h-full ${slide.fallback ? "object-contain" : "object-cover"}`}
         loading={eager ? "eager" : "lazy"}
         fetchPriority={eager ? "high" : "auto"}
         decoding={eager ? "sync" : "async"}
@@ -119,6 +126,7 @@ export function AnnouncementBanner() {
           mobile_url: settings.banner_mobile_url,
           alt_text: alt,
           link_url: "/loja",
+          fallback: true,
         },
       ];
     }
@@ -129,6 +137,7 @@ export function AnnouncementBanner() {
         mobile_url: mobileAsset.url,
         alt_text: alt,
         link_url: "/loja",
+        fallback: true,
       },
     ];
   }, [banners, settings, label]);
@@ -212,7 +221,7 @@ export function AnnouncementBanner() {
     const only = slides[0];
     return (
       <div className="w-full bg-black">
-        <div className="aspect-square md:aspect-[16/5]">
+        <div className={frameClass(only)}>
           <SlideFrame slide={only} index={0} total={1}>
             <SlideImage slide={only} eager />
           </SlideFrame>
@@ -243,7 +252,7 @@ export function AnnouncementBanner() {
             role="group"
             aria-roledescription="slide"
             aria-label={`Banner ${i + 1} de ${total}`}
-            className="snap-start shrink-0 w-full aspect-square md:aspect-[16/5]"
+            className={`snap-start shrink-0 w-full ${frameClass(s)}`}
           >
             <SlideFrame slide={s} index={i} total={total}>
               <SlideImage slide={s} eager={i === 0} />
