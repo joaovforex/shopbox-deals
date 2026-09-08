@@ -12,6 +12,8 @@ import { resumeCieloPayment } from "@/lib/cielo.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { DeliveryUpgradeButton } from "@/components/DeliveryUpgradeButton";
 import { RepurchaseButton } from "@/components/RepurchaseButton";
+import { currentUserId } from "@/lib/account-queries";
+
 import { toast } from "sonner";
 
 
