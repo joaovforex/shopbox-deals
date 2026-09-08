@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchSiteSettings, formatCashbackLabel } from "@/lib/site-settings";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import { fetchUnidades, saveUnidade, unidadeEndereco, type Unidade } from "@/lib/unidades";
+import { BannerManager } from "@/components/admin/BannerManager";
 
 export const Route = createFileRoute("/_authenticated/admin/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações · Admin" }] }),
