@@ -139,11 +139,14 @@ function AccountHome() {
               </div>
               <div className="min-w-0">
                 <div className="text-xs uppercase tracking-widest font-bold text-[#25D366]">Meu cashback</div>
-                {cashbackQ.isLoading ? (
+                {cashbackQ.isLoading || userQ.isLoading ? (
                   <div className="mt-1 h-7 w-28 rounded bg-muted animate-pulse" />
+                ) : balanceFailed ? (
+                  <div className="text-sm font-bold text-destructive">Saldo indisponível agora</div>
                 ) : (
                   <div className="display text-2xl text-[#25D366]">{brl(balance)}</div>
                 )}
+
                 {nextExpiry && nextExpiry.amount > 0 && (
                   <div className="text-xs text-muted-foreground">
                     {brl(nextExpiry.amount)} vence em{" "}
