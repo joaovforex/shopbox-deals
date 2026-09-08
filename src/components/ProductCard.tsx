@@ -129,7 +129,7 @@ export function ProductCard({ product, priority = false }: { product: Product | 
             </span>
           </div>
         )}
-      </div>
+      </Link>
 
       <div className="p-3 sm:p-4 flex-1 flex flex-col gap-1.5">
         {product.category && (
@@ -139,7 +139,13 @@ export function ProductCard({ product, priority = false }: { product: Product | 
         )}
 
         <h3 className="text-sm font-medium text-foreground line-clamp-2 min-h-[2.5rem] leading-snug">
-          {product.name}
+          <Link
+            to="/produto/$id"
+            params={{ id: product.id }}
+            className="hover:text-primary transition-colors"
+          >
+            {product.name}
+          </Link>
         </h3>
 
         <div className="min-h-[1.25rem]">
@@ -166,18 +172,37 @@ export function ProductCard({ product, priority = false }: { product: Product | 
           </div>
         </div>
 
-        {product.stock > 0 && (
+        {product.stock > 0 && needsVariant && (
+          <Link
+            to="/produto/$id"
+            params={{ id: product.id }}
+            className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-border bg-secondary px-3 text-xs font-black uppercase tracking-wider hover:bg-muted transition-colors"
+            aria-label={`Escolher opções de ${product.name}`}
+          >
+            <SlidersHorizontal className="h-4 w-4" aria-hidden />
+            Escolher opções
+          </Link>
+        )}
+
+        {product.stock > 0 && !needsVariant && (
           <button
             type="button"
-            onClick={buyNow}
-            className="mt-3 inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider py-2.5 rounded-md shadow-sm hover:opacity-90 transition-opacity"
-            aria-label={`Comprar ${product.name}`}
+            onClick={addToCart}
+            disabled={adding}
+            className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 bg-primary text-primary-foreground text-xs font-black uppercase tracking-wider px-3 rounded-md shadow-sm hover:opacity-90 transition-opacity disabled:opacity-60"
+            aria-label={`Adicionar ${product.name} ao carrinho`}
           >
             <ShoppingCart className="h-4 w-4" aria-hidden />
-            Comprar
+            {adding ? "Adicionando..." : "Adicionar ao carrinho"}
           </button>
         )}
+
+        {product.stock === 0 && (
+          <span className="mt-3 inline-flex min-h-11 items-center justify-center rounded-md border border-border px-3 text-xs font-black uppercase tracking-wider text-muted-foreground">
+            Esgotado
+          </span>
+        )}
       </div>
-    </Link>
+    </div>
   );
 }
