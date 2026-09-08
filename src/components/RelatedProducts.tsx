@@ -7,6 +7,8 @@ import { pageProductsQuery, type ProductCard as ProductCardData } from "@/lib/pr
 import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { brl } from "@/lib/format";
+import { trackAddToCart, toAnalyticsItem } from "@/lib/analytics";
+
 
 const MAX_SELECTION = 3;
 
