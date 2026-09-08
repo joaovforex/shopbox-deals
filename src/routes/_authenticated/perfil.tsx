@@ -8,7 +8,9 @@ import { updateMyProfile } from "@/lib/profile.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { isValidCpf } from "@/lib/cpf";
 import { brl } from "@/lib/format";
-import { User, MapPin, Save, ArrowLeft, Wallet } from "lucide-react";
+import { RMC_CITIES, maskCep, lookupCep, isRmcCity, outOfCoverageMessage } from "@/lib/delivery-area";
+import { User, MapPin, Save, ArrowLeft, Wallet, Lock } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/perfil")({
   head: () => ({ meta: [{ title: "Meu perfil · shopbox" }] }),
@@ -28,13 +30,10 @@ function maskCpf(v: string) {
   if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
   return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
 }
-function maskCep(v: string) {
-  const d = v.replace(/\D/g, "").slice(0, 8);
-  if (d.length <= 5) return d;
-  return `${d.slice(0, 5)}-${d.slice(5)}`;
-}
 
-const RMC_CITIES = ["Curitiba","Almirante Tamandaré","Araucária","Campina Grande do Sul","Campo Largo","Campo Magro","Colombo","Fazenda Rio Grande","Pinhais","Piraquara","Quatro Barras","São José dos Pinhais"];
+// CEP, lista de cidades atendidas e consulta do endereço vêm do módulo
+// compartilhado com o checkout — evita listas divergentes.
+
 
 function ProfilePage() {
   const update = useServerFn(updateMyProfile);
