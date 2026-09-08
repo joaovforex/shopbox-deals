@@ -27,12 +27,17 @@ export const Route = createFileRoute("/loja")({
   }),
   loaderDeps: ({ search }) => ({ cat: search.cat, q: search.q, min: search.min, max: search.max, page: search.page ?? 1 }),
   head: ({ match }) => {
-    const cat = (match.search as LojaSearch)?.cat;
+    const s = (match.search as LojaSearch) ?? {};
+    const cat = s.cat;
     const base = "https://shopboxonline.com";
     const title = cat ? `${cat} em promoção | shopbox` : "Ofertas · shopbox";
     const description = cat
       ? `Produtos de ${cat} com desconto na shopbox. Pagamento no Pix ou cartão e retirada em Colombo/PR.`
       : "Catálogo completo da shopbox com todas as ofertas.";
+    // Categoria "pura" é indexável; combinações internas de busca/preço/marca/
+    // tamanho/paginação recebem noindex,follow e apontam o canonical para a
+    // versão limpa, evitando duplicatas no índice.
+    const isFiltered = Boolean(s.q || s.min || s.max || s.brand || s.size || (s.page && s.page > 1));
     const canonical = cat ? `${base}/loja?cat=${encodeURIComponent(cat)}` : `${base}/loja`;
     return {
       meta: [
@@ -42,10 +47,12 @@ export const Route = createFileRoute("/loja")({
         { property: "og:description", content: description },
         { property: "og:type", content: "website" },
         { property: "og:url", content: canonical },
+        ...(isFiltered ? [{ name: "robots", content: "noindex,follow" }] : []),
       ],
       links: [{ rel: "canonical", href: canonical }],
     };
   },
+
   loader: ({ context, deps }) =>
     // prefetch (não ensure) para que timeouts transitórios do Postgres
     // não derrubem o SSR — o cliente reexecuta a query com retry.
