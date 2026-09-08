@@ -10,7 +10,8 @@ import { brl } from "@/lib/format";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
 import { mpStatusDetailMessage } from "@/lib/cpf";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { trackPurchase } from "@/lib/analytics";
 
 
 export const Route = createFileRoute("/pedido/$id")({
@@ -54,6 +55,24 @@ function OrderPage() {
   const rejectionInfo = showRejection ? mpStatusDetailMessage(mpDetail) : null;
 
   const shortId = id.slice(0, 8).toUpperCase();
+
+  // Analytics: purchase somente quando o pedido está PAGO (deduplicado por id)
+  useEffect(() => {
+    if (!isPaid || !data?.order) return;
+    trackPurchase({
+      orderId: id,
+      value: Number(data.order.total),
+      shipping: Number((data.order as { delivery_fee?: number | null }).delivery_fee ?? 0) || undefined,
+      items: (data.items ?? []).map((it) => ({
+        item_id: it.id,
+        item_name: it.product_name,
+        price: Number(it.unit_price),
+        quantity: it.quantity,
+      })),
+    });
+  }, [isPaid, id, data]);
+
+
 
 
 
@@ -164,7 +183,7 @@ function OrderPage() {
                 )}
                 {isPaid && !isDelivered && (
                   <p className="mt-3 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-3 py-2 rounded">
-                    ⏱ Sua entrega chega em até <strong>2 dias úteis</strong>. Acompanhe o status em Meus Pedidos.
+                    🚚 Seu pedido está sendo preparado para a coleta do entregador. Acompanhe o status em Meus Pedidos.
                   </p>
                 )}
                 <p className="mt-2 text-[11px] text-muted-foreground">

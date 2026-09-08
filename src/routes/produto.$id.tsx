@@ -21,6 +21,8 @@ import { getRequestOrigin } from "@/lib/origin.functions";
 import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
+import { trackViewItem, trackAddToCart, toAnalyticsItem } from "@/lib/analytics";
+
 
 
 export const Route = createFileRoute("/produto/$id")({
@@ -242,6 +244,20 @@ function ProductPage() {
     });
   }, [selectedColor, effectiveStock]);
 
+  // Analytics: view_item (sem dados pessoais)
+  useEffect(() => {
+    trackViewItem(
+      toAnalyticsItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        category: product.category,
+        brand: product.brand,
+      }),
+    );
+  }, [product.id, product.name, product.price, product.category, product.brand]);
+
+
   const off = discountPct(product.original_price, product.price);
   const url = typeof window !== "undefined" ? window.location.href : "";
   const hasDiscount = !!(product.original_price && product.original_price > product.price);
@@ -322,8 +338,15 @@ function ProductPage() {
       unidade_id: product.unidade_id ?? null,
     }, qty);
     if (result === "ok") {
+      trackAddToCart(
+        toAnalyticsItem(
+          { id: product.id, name: product.name, price: product.price, category: product.category, brand: product.brand },
+          qty,
+        ),
+      );
       toast.success(`Adicionado ao carrinho (${qty}x)${selectedColor ? ` · ${selectedColor}` : ""}`);
     }
+
   };
 
   const buyNow = async () => {
@@ -340,7 +363,16 @@ function ProductPage() {
       variant_color: selectedColor,
       unidade_id: product.unidade_id ?? null,
     }, qty);
-    if (result === "ok") navigate({ to: "/checkout" });
+    if (result === "ok") {
+      trackAddToCart(
+        toAnalyticsItem(
+          { id: product.id, name: product.name, price: product.price, category: product.category, brand: product.brand },
+          qty,
+        ),
+      );
+      navigate({ to: "/checkout" });
+    }
+
   };
 
 
@@ -545,7 +577,7 @@ function ProductPage() {
               </div>
             )}
 
-            <DeliveryEstimate />
+            <DeliveryEstimate productPath={`/produto/${product.id}`} />
 
             <ProductTrustBlock />
 

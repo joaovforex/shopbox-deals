@@ -10,6 +10,8 @@ import { optimizedImage } from "@/lib/image-url";
 import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
 import { brl } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
+import { trackViewItemList, toAnalyticsItem } from "@/lib/analytics";
+
 import { Search, X, ChevronLeft, ChevronRight, Tag, LayoutGrid, ChevronDown, SlidersHorizontal } from "lucide-react";
 
 type LojaSearch = { cat?: string; q?: string; focus?: number; min?: number; max?: number; page?: number; brand?: string; size?: string };
@@ -27,12 +29,17 @@ export const Route = createFileRoute("/loja")({
   }),
   loaderDeps: ({ search }) => ({ cat: search.cat, q: search.q, min: search.min, max: search.max, page: search.page ?? 1 }),
   head: ({ match }) => {
-    const cat = (match.search as LojaSearch)?.cat;
+    const s = (match.search as LojaSearch) ?? {};
+    const cat = s.cat;
     const base = "https://shopboxonline.com";
     const title = cat ? `${cat} em promoção | shopbox` : "Ofertas · shopbox";
     const description = cat
       ? `Produtos de ${cat} com desconto na shopbox. Pagamento no Pix ou cartão e retirada em Colombo/PR.`
       : "Catálogo completo da shopbox com todas as ofertas.";
+    // Categoria "pura" é indexável; combinações internas de busca/preço/marca/
+    // tamanho/paginação recebem noindex,follow e apontam o canonical para a
+    // versão limpa, evitando duplicatas no índice.
+    const isFiltered = Boolean(s.q || s.min || s.max || s.brand || s.size || (s.page && s.page > 1));
     const canonical = cat ? `${base}/loja?cat=${encodeURIComponent(cat)}` : `${base}/loja`;
     return {
       meta: [
@@ -42,10 +49,12 @@ export const Route = createFileRoute("/loja")({
         { property: "og:description", content: description },
         { property: "og:type", content: "website" },
         { property: "og:url", content: canonical },
+        ...(isFiltered ? [{ name: "robots", content: "noindex,follow" }] : []),
       ],
       links: [{ rel: "canonical", href: canonical }],
     };
   },
+
   loader: ({ context, deps }) =>
     // prefetch (não ensure) para que timeouts transitórios do Postgres
     // não derrubem o SSR — o cliente reexecuta a query com retry.
@@ -222,6 +231,18 @@ function Loja() {
 
   const hasFilter = Boolean(qParam || cat || min || max || brandParam || sizeParam);
   const priceLabel = min && max ? `${brl(min)}–${brl(max)}` : max ? `Até ${brl(max)}` : min ? `A partir de ${brl(min)}` : null;
+
+  // Analytics: view_item_list com os produtos já carregados (sem query extra)
+  useEffect(() => {
+    trackViewItemList(
+      cat ? `Categoria: ${cat}` : qParam ? "Busca" : "Loja",
+      products.map((p) =>
+        toAnalyticsItem({ id: p.id, name: p.name, price: p.price, category: p.category }),
+      ),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cat, qParam, page, products.length]);
+
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -529,9 +550,36 @@ function Loja() {
         )}
 
         {products.length === 0 ? (
-          <div className="text-center py-16 sm:py-20 bg-card rounded-xl border border-border">
-            <p className="text-muted-foreground">Nenhum produto encontrado.</p>
+          <div className="text-center py-14 sm:py-20 bg-card rounded-xl border border-border px-4">
+            <p className="font-bold text-foreground">Nenhum produto encontrado</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {hasFilter
+                ? "Tente remover os filtros ou buscar por outro termo."
+                : "Em breve novos produtos por aqui."}
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              {hasFilter && (
+                <button
+                  type="button"
+                  onClick={() => navigate({ to: "/loja", search: {} })}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-black uppercase tracking-wider text-primary-foreground hover:opacity-90"
+                >
+                  <X className="h-3.5 w-3.5" /> Limpar filtros
+                </button>
+              )}
+              {categories.slice(0, 6).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => navigate({ to: "/loja", search: { cat: c } })}
+                  className="rounded-full border border-border px-3 py-1.5 text-xs font-bold hover:bg-secondary"
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
           </div>
+
         ) : (
           <>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">

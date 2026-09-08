@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
@@ -16,6 +16,9 @@ import { calculateCashback } from "@/lib/cashback-config";
 import { useSiteSettings } from "@/lib/site-settings";
 import { fetchUnidades, unidadeEndereco, type Unidade } from "@/lib/unidades";
 import { quoteDelivery } from "@/lib/maisentregas.functions";
+import { RMC_CITIES, isRmcCity } from "@/lib/delivery-area";
+import { trackBeginCheckout } from "@/lib/analytics";
+
 
 
 
@@ -87,30 +90,29 @@ function isValidCpf(v: string) {
 
 type DeliveryChoice = "pickup" | "delivery";
 
-// Curitiba + Região Metropolitana (atendidas pela Mais Entregas)
-const RMC_CITIES = [
-  "Curitiba",
-  "Almirante Tamandaré",
-  "Araucária",
-  "Campina Grande do Sul",
-  "Campo Largo",
-  "Campo Magro",
-  "Colombo",
-  "Fazenda Rio Grande",
-  "Pinhais",
-  "Piraquara",
-  "Quatro Barras",
-  "São José dos Pinhais",
-] as const;
+// Curitiba + Região Metropolitana (atendidas pela Mais Entregas).
+// Lista compartilhada com o bloco "Calcular entrega" da página de produto.
 
-function isRmcCity(name: string | undefined | null): boolean {
-  if (!name) return false;
-  const norm = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-  return RMC_CITIES.some((c) => c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === norm);
-}
 
 function CheckoutPage() {
   const { items, total, clear } = useCart();
+
+  // Analytics: begin_checkout uma vez, quando o carrinho carrega
+  const beganRef = useRef(false);
+  useEffect(() => {
+    if (beganRef.current || items.length === 0) return;
+    beganRef.current = true;
+    trackBeginCheckout(
+      items.map((i) => ({
+        item_id: i.id,
+        item_name: i.name,
+        price: i.price,
+        quantity: i.quantity,
+      })),
+      total,
+    );
+  }, [items, total]);
+
   const [busy, setBusy] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const createAsaasCheckout = useServerFn(createAsaasPayment);
@@ -471,14 +473,14 @@ function CheckoutPage() {
                 onClick={() => setDelivery("pickup")}
                 title="Retirar na loja"
                 subtitle="Grátis"
-                description="Retire no mesmo dia após a confirmação"
+                description="Avisamos assim que o pedido estiver pronto para retirada"
               />
               <DeliveryOption
                 active={delivery === "delivery"}
                 onClick={() => setDelivery("delivery")}
                 title="Receber em casa"
                 subtitle={shippingQuote != null ? `FRETE ${brl(shippingQuote)}` : "FRETE CALCULADO"}
-                description="Frete calculado pelo endereço. Entrega em até 2 dias úteis."
+                description="Frete calculado pelo endereço, com transportadora parceira."
                 highlight
               />
             </div>
@@ -518,7 +520,7 @@ function CheckoutPage() {
             ) : (
                 <div className="space-y-3">
                 <div className="bg-accent/10 border border-accent/30 text-accent rounded-md px-3 py-2 text-xs font-bold uppercase tracking-wider">
-                  ⏱ Entrega em até 2 dias úteis · somente Curitiba e região metropolitana
+                  🚚 Entregamos somente em Curitiba e região metropolitana
                 </div>
                 <div className="bg-primary/10 border border-primary/30 text-primary rounded-md px-3 py-2 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                   <span>🚚</span>
@@ -602,7 +604,7 @@ function CheckoutPage() {
                   </div>
                 )}
                 <p className="text-[11px] text-muted-foreground">
-                  Um entregador parceiro da Mais Entregas leva seu pedido em até 2 dias úteis após a confirmação do pagamento. Acompanhe em "Meus pedidos".
+                  Após a confirmação do pagamento, o pedido é separado e um entregador parceiro da Mais Entregas faz a coleta. Acompanhe cada etapa em "Meus pedidos".
                 </p>
               </div>
             )}
