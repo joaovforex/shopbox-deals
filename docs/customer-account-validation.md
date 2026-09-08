@@ -72,6 +72,14 @@ cashback dinâmica foram preservados. Nenhuma urgência, escassez ou prazo inven
 - Desktop inalterado: contador online, “Minha conta”, “Admin”, carrinho, tema e sair continuam
   no topo como antes.
 
+### 4.3 Validação (Playwright, após 4.1 e 4.2)
+
+- 390x844 anônimo: sem overflow, banner presente, topo com Carrinho / tema / Entrar.
+- 390x844 autenticado: sem overflow, banner presente, topo com Carrinho / tema / Minha conta;
+  `/perfil` exibe a seção “Sessão” com o botão “Sair da conta” (não clicado — sem logout real).
+- 1280x1800 anônimo: sem overflow, navegação desktop completa preservada, banner presente.
+- Console sem erros nas três execuções. Typecheck (`tsgo`) e `bun test` (5 testes, 14 expect) OK.
+
 ## 5. Não testado de ponta a ponta
 
 - Conclusão de recompra até o carrinho com reserva de estoque em produto real.
