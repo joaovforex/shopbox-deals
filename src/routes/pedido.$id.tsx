@@ -215,15 +215,15 @@ function OrderPage() {
             </div>
           )}
 
-          {/* DELIVERY OR PICKUP INFO */}
-          {isDelivery ? (
+          {/* DELIVERY OR PICKUP INFO — só quando o pedido realmente carregou */}
+          {order && (isDelivery ? (
             <div className="rounded-xl border-2 p-5 mb-6 flex gap-4 border-primary bg-primary/5">
               <div className="shrink-0 h-11 w-11 rounded-full flex items-center justify-center bg-primary text-primary-foreground">
                 <Truck className="h-5 w-5" />
               </div>
               <div className="text-sm flex-1">
                 <p className="font-bold text-foreground mb-1">Entrega em casa</p>
-                {order?.shipping_city && (
+                {order.shipping_city && (
                   <p className="text-foreground font-semibold">
                     {order.shipping_city}/{order.shipping_state ?? "PR"}
                   </p>
@@ -258,13 +258,14 @@ function OrderPage() {
                   <Clock className="h-3.5 w-3.5" /> {STORE_HOURS}
                 </p>
                 {isPaid && !isDone && !isCancelled && (
-                  <p className="mt-3 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-3 py-2 rounded">
-                    ⏰ Você tem até 5 dias para retirar o produto na loja.
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Avisamos por aqui e em Meus Pedidos assim que a separação terminar.
                   </p>
                 )}
               </div>
             </div>
-          )}
+          ))}
+
 
 
           {/* ORDER DETAILS */}
