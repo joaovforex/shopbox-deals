@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchSiteSettings, formatCashbackLabel } from "@/lib/site-settings";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import { fetchUnidades, saveUnidade, unidadeEndereco, type Unidade } from "@/lib/unidades";
+import { BannerManager } from "@/components/admin/BannerManager";
 
 export const Route = createFileRoute("/_authenticated/admin/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações · Admin" }] }),
@@ -191,29 +192,43 @@ function SettingsPage() {
           </div>
         </section>
 
-        {/* Banner desktop */}
-        <BannerSection
-          title="Banner da home — Desktop"
-          spec={DESKTOP_SPEC}
-          url={desktopUrl}
-          uploading={uploadingDesk}
-          onPick={() => deskInput.current?.click()}
-          onClear={() => setDesktopUrl("")}
-          inputRef={deskInput}
-          onChange={onPickDesktop}
-        />
+        {/* Carrossel de banners (principal) */}
+        <section className="bg-card border-2 border-border rounded-lg p-5">
+          <BannerManager />
+        </section>
 
-        {/* Banner mobile */}
-        <BannerSection
-          title="Banner da home — Mobile"
-          spec={MOBILE_SPEC}
-          url={mobileUrl}
-          uploading={uploadingMob}
-          onPick={() => mobInput.current?.click()}
-          onClear={() => setMobileUrl("")}
-          inputRef={mobInput}
-          onChange={onPickMobile}
-        />
+        {/* Banner único antigo — mantido como reserva enquanto migramos */}
+        <details className="bg-card border-2 border-border rounded-lg p-5">
+          <summary className="cursor-pointer text-sm font-bold uppercase tracking-wider">
+            Banner antigo (reserva)
+          </summary>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Usado apenas quando não houver nenhum banner do carrossel aparecendo.
+          </p>
+          <div className="mt-3 space-y-4">
+            <BannerSection
+              title="Banner da home — Desktop"
+              spec={DESKTOP_SPEC}
+              url={desktopUrl}
+              uploading={uploadingDesk}
+              onPick={() => deskInput.current?.click()}
+              onClear={() => setDesktopUrl("")}
+              inputRef={deskInput}
+              onChange={onPickDesktop}
+            />
+            <BannerSection
+              title="Banner da home — Mobile"
+              spec={MOBILE_SPEC}
+              url={mobileUrl}
+              uploading={uploadingMob}
+              onPick={() => mobInput.current?.click()}
+              onClear={() => setMobileUrl("")}
+              inputRef={mobInput}
+              onChange={onPickMobile}
+            />
+          </div>
+        </details>
+
 
         {/* Endereço físico */}
         <section className="bg-card border-2 border-border rounded-lg p-5">

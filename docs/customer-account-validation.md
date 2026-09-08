@@ -95,3 +95,19 @@ cashback dinâmica foram preservados. Nenhuma urgência, escassez ou prazo inven
 - Falha proposital das RPCs de cashback (validada por leitura de código e tipagem).
 - Salvamento do perfil de um cliente real e envio real do e-mail de troca de senha.
 - Troca de conta/logout com duas contas reais distintas.
+
+## Carrossel de banners + botões do admin (implementado)
+
+- Tabela `site_banners` criada com autorização explícita do usuário (RLS: leitura pública só de
+  banners ativos e dentro da janela; escrita apenas super admin). Plano: `docs/banner-carousel-plan.md`.
+- `AnnouncementBanner` agora tem três níveis de fallback (banners ativos → `site_settings` →
+  assets locais), autoplay 6s só com vários slides, pausa em hover/foco/aba oculta,
+  swipe, setas, indicadores, teclado, `aria-live` e respeito a `prefers-reduced-motion`.
+- Admin: `BannerManager` em Configurações (adicionar/editar/ativar/reordenar/remover,
+  upload por par desktop/celular ≤5 MB, validação de descrição, link e janela).
+- Padrão de botão administrativo em `src/components/admin/AdminButton.tsx` (alvo ≥44px,
+  foco visível, estados de carregando/desabilitado).
+- `ProductCard`: produto simples adiciona ao carrinho na própria listagem (evento `add_to_cart`
+  só após sucesso), produto com variantes leva a "Escolher opções", esgotado sem ação ativa.
+- Validação: typecheck limpo, `bun test` 16 testes/32 expectativas, Playwright 390px e 1280px em
+  home, loja e Configurações sem overflow nem erros de console.

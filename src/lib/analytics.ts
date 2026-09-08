@@ -137,3 +137,42 @@ export function trackPurchase(args: {
     items: args.items,
   });
 }
+
+/* ---------------- Banners da home (sem dados pessoais) ---------------- */
+
+const bannerImpressions = new Set<string>();
+
+/** Uma impressão por banner por carregamento de página. */
+export function trackBannerImpression(args: {
+  bannerId: string;
+  index: number;
+  total: number;
+}): void {
+  if (typeof window === "undefined") return;
+  if (bannerImpressions.has(args.bannerId)) return;
+  bannerImpressions.add(args.bannerId);
+  pushEvent("banner_impression", {
+    banner_id: args.bannerId,
+    banner_index: args.index,
+    banner_total: args.total,
+  });
+}
+
+export function trackBannerClick(args: {
+  bannerId: string;
+  index: number;
+  total: number;
+  destination?: string | null;
+}): void {
+  pushEvent("banner_click", {
+    banner_id: args.bannerId,
+    banner_index: args.index,
+    banner_total: args.total,
+    ...(args.destination ? { banner_destination: args.destination } : {}),
+  });
+}
+
+/** Exposto só para testes: limpa a deduplicação de impressões. */
+export function __resetBannerImpressions() {
+  bannerImpressions.clear();
+}
