@@ -11,6 +11,16 @@ import { brl } from "@/lib/format";
 const MAX_SELECTION = 3;
 
 /**
+ * Produtos com variantes de cor precisam de escolha explícita do cliente —
+ * não podem entrar no carrinho com `variant_color: null`. O campo
+ * `color_variants` já vem na query do catálogo, então isso não gera N+1.
+ */
+function requiresVariantChoice(p: ProductCardData): boolean {
+  return Array.isArray(p.color_variants) && p.color_variants.length > 0;
+}
+
+
+/**
  * "Combine com este produto": produtos reais da mesma categoria, com estoque,
  * excluindo o produto atual. Permite selecionar até 3 complementos e
  * adicioná-los ao carrinho usando a MESMA função `add` do carrinho (que já
