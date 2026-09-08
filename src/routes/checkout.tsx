@@ -16,6 +16,8 @@ import { calculateCashback } from "@/lib/cashback-config";
 import { useSiteSettings } from "@/lib/site-settings";
 import { fetchUnidades, unidadeEndereco, type Unidade } from "@/lib/unidades";
 import { quoteDelivery } from "@/lib/maisentregas.functions";
+import { RMC_CITIES, isRmcCity } from "@/lib/delivery-area";
+
 
 
 
