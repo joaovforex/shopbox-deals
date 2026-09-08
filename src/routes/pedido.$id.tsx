@@ -10,7 +10,8 @@ import { brl } from "@/lib/format";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
 import { mpStatusDetailMessage } from "@/lib/cpf";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { trackPurchase } from "@/lib/analytics";
 
 
 export const Route = createFileRoute("/pedido/$id")({
@@ -63,7 +64,7 @@ function OrderPage() {
       value: Number(data.order.total),
       shipping: Number((data.order as { delivery_fee?: number | null }).delivery_fee ?? 0) || undefined,
       items: (data.items ?? []).map((it) => ({
-        item_id: it.product_id ?? it.id,
+        item_id: it.id,
         item_name: it.product_name,
         price: Number(it.unit_price),
         quantity: it.quantity,
