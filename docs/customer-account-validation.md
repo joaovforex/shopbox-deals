@@ -46,8 +46,18 @@ Captura da home em `/tmp/browser/home/home_m.png` (ambiente temporário de teste
 `src/routes/index.tsx`: hero compacto (título, subtítulo, busca, uma ação principal), vitrine
 única “Ofertas de hoje” (até 12 produtos reais em estoque, maior desconto primeiro), faixa de
 confiança e um bloco curto de cashback/retirada. Saíram: grade de categorias, segunda vitrine
-“Mais ofertas” e CTA final duplicado. SEO (title/description/OG/canonical/JSON-LD Store) e a
-taxa de cashback dinâmica foram preservados. Nenhuma urgência, escassez ou prazo inventado.
+“Mais ofertas”, CTA final duplicado e o `<AnnouncementBanner />` de imagem alta, para que a busca
+e as ofertas apareçam cedo. SEO (title/description/OG/canonical/JSON-LD Store) e a taxa de
+cashback dinâmica foram preservados. Nenhuma urgência, escassez ou prazo inventado.
+
+### 4.1 Validação final da home sem banner
+
+- `src/routes/index.tsx`: import e uso de `AnnouncementBanner` removidos; componente preservado
+  em `src/components/AnnouncementBanner.tsx` para reutilização futura.
+- Smoke Playwright 390x844 e 1280x1800: sem overflow horizontal, busca visível em ~240 px do topo,
+  título “Ofertas de hoje” visível em ~390 px (mobile) / ~420 px (desktop), imagem de cashback
+  não mais presente na home.
+- Typecheck e `bun test` passaram após a alteração.
 
 ## 5. Não testado de ponta a ponta
 

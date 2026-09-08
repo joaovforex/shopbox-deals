@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Search, Tag, Wallet } from "lucide-react";
 import { Header, Footer, MobileBottomNav } from "@/components/Header";
-import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { TrustBar } from "@/components/TrustBar";
 import { ProductCard } from "@/components/ProductCard";
 import { pageProductsQuery, type ProductCard as ProductCardData } from "@/lib/products";
@@ -75,7 +74,6 @@ function HomePage() {
   return (
     <div className="min-h-screen flex flex-col overflow-x-hidden">
       <Header />
-      <AnnouncementBanner />
 
       <script
         type="application/ld+json"
