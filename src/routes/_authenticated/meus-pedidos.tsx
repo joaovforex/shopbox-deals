@@ -273,7 +273,20 @@ function MyOrdersPage() {
             })}
           </ul>
         )}
+        {page?.hasMore && (
+          <div className="text-center pt-2">
+            <button
+              type="button"
+              onClick={() => setLimit((l) => l + PAGE)}
+              disabled={isFetching}
+              className="inline-flex items-center gap-2 rounded-md bg-secondary px-5 py-3 text-xs font-black uppercase tracking-wider hover:bg-muted disabled:opacity-60"
+            >
+              {isFetching ? "Carregando..." : "Carregar mais pedidos"}
+            </button>
+          </div>
+        )}
       </section>
+
       <Footer />
     </div>
   );
