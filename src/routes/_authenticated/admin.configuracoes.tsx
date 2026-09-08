@@ -10,6 +10,7 @@ import { fetchSiteSettings, formatCashbackLabel } from "@/lib/site-settings";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import { fetchUnidades, saveUnidade, unidadeEndereco, type Unidade } from "@/lib/unidades";
 import { BannerManager } from "@/components/admin/BannerManager";
+import { AdminButton, AdminActionBar } from "@/components/admin/AdminButton";
 
 export const Route = createFileRoute("/_authenticated/admin/configuracoes")({
   head: () => ({ meta: [{ title: "Configurações · Admin" }] }),
@@ -282,14 +283,17 @@ function SettingsPage() {
 
 
         <div className="sticky bottom-4 z-10">
-          <button
+          <AdminButton
+            variant="primary"
+            block
+            className="shadow-lg"
+            icon={<Save className="h-4 w-4" />}
             onClick={onSave}
+            loading={saving}
             disabled={saving || uploadingDesk || uploadingMob}
-            className="w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md hover:opacity-90 disabled:opacity-60 shadow-lg"
           >
-            <Save className="h-4 w-4" />
             {saving ? "Salvando…" : "Salvar configurações"}
-          </button>
+          </AdminButton>
         </div>
       </main>
 
@@ -328,24 +332,23 @@ function BannerSection(props: {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
+      <AdminActionBar>
+        <AdminButton
+          variant="primary"
+          icon={<Upload className="h-4 w-4" />}
           onClick={props.onPick}
-          disabled={props.uploading}
-          className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-3 py-2 rounded-md hover:opacity-90 disabled:opacity-60 text-xs"
+          loading={props.uploading}
         >
-          <Upload className="h-4 w-4" />
           {props.uploading ? "Enviando…" : props.url ? "Trocar imagem" : "Enviar imagem"}
-        </button>
+        </AdminButton>
         {props.url && (
-          <button
-            type="button"
+          <AdminButton
+            variant="destructive"
+            icon={<Trash2 className="h-4 w-4" />}
             onClick={props.onClear}
-            className="inline-flex items-center gap-2 bg-card border border-border font-black uppercase tracking-wider px-3 py-2 rounded-md hover:border-destructive hover:text-destructive text-xs"
           >
-            <Trash2 className="h-4 w-4" /> Remover
-          </button>
+            Remover
+          </AdminButton>
         )}
         <input
           ref={props.inputRef}
