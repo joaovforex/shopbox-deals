@@ -363,7 +363,16 @@ function ProductPage() {
       variant_color: selectedColor,
       unidade_id: product.unidade_id ?? null,
     }, qty);
-    if (result === "ok") navigate({ to: "/checkout" });
+    if (result === "ok") {
+      trackAddToCart(
+        toAnalyticsItem(
+          { id: product.id, name: product.name, price: product.price, category: product.category, brand: product.brand },
+          qty,
+        ),
+      );
+      navigate({ to: "/checkout" });
+    }
+
   };
 
 
