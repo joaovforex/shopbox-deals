@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Package, Store, Clock, ArrowRight, Sparkles, Truck, AlertTriangle, CreditCard } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { getPublicOrder } from "@/lib/orders.functions";
-import { getMyOrder } from "@/lib/account.functions";
+import { fetchMyOrder } from "@/lib/account-queries";
 import { RepurchaseButton } from "@/components/RepurchaseButton";
 import { supabase } from "@/integrations/supabase/client";
 
