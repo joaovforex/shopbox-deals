@@ -131,7 +131,12 @@ export function RelatedProducts({
           return (
             <div key={p.id} className="relative">
               <ProductCard product={p as any} />
-              {p.stock > 0 && (
+              {p.stock > 0 && requiresVariantChoice(p) && (
+                <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                  Abra o produto para escolher a cor
+                </p>
+              )}
+              {p.stock > 0 && !requiresVariantChoice(p) && (
                 <button
                   type="button"
                   onClick={() => toggle(p)}
@@ -147,6 +152,7 @@ export function RelatedProducts({
                   {isSel ? "Selecionado" : "Selecionar"}
                 </button>
               )}
+
             </div>
           );
         })}
