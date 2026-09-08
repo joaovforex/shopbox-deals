@@ -2,13 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  Package, Wallet, User, ArrowRight, AlertTriangle, RefreshCw, ShoppingBag, HelpCircle,
+  Package, Wallet, User, ArrowRight, AlertTriangle, RefreshCw, ShoppingBag, HelpCircle, LayoutDashboard,
 } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { RepurchaseButton } from "@/components/RepurchaseButton";
 import { currentUserId } from "@/lib/account-queries";
+import { getRoleSummary } from "@/lib/products";
 
 import { brl } from "@/lib/format";
 
