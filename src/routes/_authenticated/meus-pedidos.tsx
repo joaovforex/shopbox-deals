@@ -83,23 +83,30 @@ function MyOrdersPage() {
       } catch { /* noop */ }
     })();
   }, [fetchCashback]);
-  const { data: orders, isLoading } = useQuery({
-    queryKey: ["my-orders"],
+  // Paginação simples: começa com 10 pedidos e vai carregando mais sob demanda.
+  const PAGE = 10;
+  const [limit, setLimit] = useState(PAGE);
+  const { data: page, isLoading, isError, isFetching, refetch } = useQuery({
+    queryKey: ["my-orders", limit],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [] as Row[];
+      if (!user) return { rows: [] as Row[], hasMore: false };
       const { data, error } = await supabase
         .from("orders")
         .select("id, created_at, status, fulfillment_status, total, payment_method, delivery_method, shipping_street, shipping_number, shipping_district, shipping_city, maisentregas_order_id, maisentregas_status, order_items(id, product_name, quantity)")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(limit + 1);
       if (error) throw error;
-      return (data ?? []) as Row[];
+      const all = (data ?? []) as Row[];
+      return { rows: all.slice(0, limit), hasMore: all.length > limit };
     },
     // Realtime channel abaixo já invalida a query quando há mudanças.
     // Mantemos apenas refetch ao focar a janela; sem polling de 5s.
     refetchOnWindowFocus: true,
   });
+  const orders = page?.rows;
+
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
