@@ -502,7 +502,7 @@ function CheckoutPage() {
             ) : (
                 <div className="space-y-3">
                 <div className="bg-accent/10 border border-accent/30 text-accent rounded-md px-3 py-2 text-xs font-bold uppercase tracking-wider">
-                  ⏱ Entrega em até 2 dias úteis · somente Curitiba e região metropolitana
+                  🚚 Entregamos somente em Curitiba e região metropolitana
                 </div>
                 <div className="bg-primary/10 border border-primary/30 text-primary rounded-md px-3 py-2 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                   <span>🚚</span>
