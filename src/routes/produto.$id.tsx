@@ -21,6 +21,8 @@ import { getRequestOrigin } from "@/lib/origin.functions";
 import { useCart } from "@/lib/cart";
 import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
 import { useRealtimeProducts } from "@/hooks/useRealtimeProducts";
+import { trackViewItem, trackAddToCart, toAnalyticsItem } from "@/lib/analytics";
+
 
 
 export const Route = createFileRoute("/produto/$id")({
