@@ -168,8 +168,25 @@ function MyOrdersPage() {
           </div>
         )}
         {isLoading ? (
-          <div className="text-muted-foreground">Carregando...</div>
+          <ul className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="h-36 rounded-xl border border-border bg-card animate-pulse" />
+            ))}
+          </ul>
+        ) : isError ? (
+          <div className="bg-destructive/5 border border-destructive/40 rounded-xl p-6 text-sm">
+            <p className="font-bold text-destructive">Não conseguimos carregar seus pedidos</p>
+            <p className="text-muted-foreground mt-1">Verifique sua conexão e tente novamente.</p>
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              className="mt-3 inline-flex items-center gap-2 rounded-md bg-secondary px-4 py-2 text-xs font-black uppercase tracking-wider hover:bg-muted"
+            >
+              Tentar de novo
+            </button>
+          </div>
         ) : !orders || orders.length === 0 ? (
+
           <div className="bg-card border border-border rounded-xl p-10 text-center">
             <Package className="h-10 w-10 mx-auto mb-3 text-primary" />
             <p className="font-bold mb-1">Você ainda não fez pedidos</p>
