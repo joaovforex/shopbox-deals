@@ -8,7 +8,9 @@ import { updateMyProfile } from "@/lib/profile.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { isValidCpf } from "@/lib/cpf";
 import { brl } from "@/lib/format";
-import { User, MapPin, Save, ArrowLeft, Wallet } from "lucide-react";
+import { RMC_CITIES, maskCep, lookupCep, isRmcCity, outOfCoverageMessage } from "@/lib/delivery-area";
+import { User, MapPin, Save, ArrowLeft, Wallet, Lock } from "lucide-react";
+
 
 export const Route = createFileRoute("/_authenticated/perfil")({
   head: () => ({ meta: [{ title: "Meu perfil · shopbox" }] }),
@@ -28,13 +30,10 @@ function maskCpf(v: string) {
   if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
   return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
 }
-function maskCep(v: string) {
-  const d = v.replace(/\D/g, "").slice(0, 8);
-  if (d.length <= 5) return d;
-  return `${d.slice(0, 5)}-${d.slice(5)}`;
-}
 
-const RMC_CITIES = ["Curitiba","Almirante Tamandaré","Araucária","Campina Grande do Sul","Campo Largo","Campo Magro","Colombo","Fazenda Rio Grande","Pinhais","Piraquara","Quatro Barras","São José dos Pinhais"];
+// CEP, lista de cidades atendidas e consulta do endereço vêm do módulo
+// compartilhado com o checkout — evita listas divergentes.
+
 
 function ProfilePage() {
   const update = useServerFn(updateMyProfile);
@@ -56,6 +55,8 @@ function ProfilePage() {
   const [city, setCity] = useState("Curitiba");
   const [stateUf, setStateUf] = useState("PR");
   const [cepBusy, setCepBusy] = useState(false);
+  const [coverageWarning, setCoverageWarning] = useState<string | null>(null);
+
 
   useEffect(() => {
     (async () => {
@@ -89,27 +90,30 @@ function ProfilePage() {
     })();
   }, [fetchCashback]);
 
-  // ViaCEP
+  // Busca do CEP com o mesmo helper usado no checkout
   useEffect(() => {
     const d = zip.replace(/\D/g, "");
-    if (d.length !== 8) return;
+    if (d.length !== 8) { setCoverageWarning(null); return; }
     let cancelled = false;
     (async () => {
       setCepBusy(true);
       try {
-        const res = await fetch(`https://viacep.com.br/ws/${d}/json/`);
-        const j = (await res.json()) as { logradouro?: string; bairro?: string; localidade?: string; uf?: string; erro?: boolean };
-        if (cancelled || j.erro) return;
-        if (j.logradouro) setStreet((s) => s || j.logradouro!);
-        if (j.bairro) setDistrict((b) => b || j.bairro!);
-        if (j.localidade) setCity(j.localidade);
-        if (j.uf) setStateUf(j.uf.toUpperCase());
+        const r = await lookupCep(d);
+        if (cancelled) return;
+        if (r.street) setStreet((s) => s || r.street);
+        if (r.district) setDistrict((b) => b || r.district);
+        if (r.city) setCity(r.city);
+        if (r.uf) setStateUf(r.uf.toUpperCase());
+        setCoverageWarning(isRmcCity(r.city) ? null : outOfCoverageMessage(r.city, r.uf));
+      } catch (e) {
+        if (!cancelled) setCoverageWarning(e instanceof Error ? e.message : "Não conseguimos buscar este CEP");
       } finally {
         if (!cancelled) setCepBusy(false);
       }
     })();
     return () => { cancelled = true; };
   }, [zip]);
+
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,6 +218,11 @@ function ProfilePage() {
                   {cepBusy ? "Buscando..." : "Preenche o resto automaticamente"}
                 </div>
               </div>
+              {coverageWarning && (
+                <p className="text-xs rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-destructive">
+                  {coverageWarning}
+                </p>
+              )}
               <Field label="Rua / Avenida" value={street} onChange={setStreet} placeholder="Ex.: Av. Marechal Floriano" />
               <div className="grid sm:grid-cols-[140px_1fr] gap-3">
                 <Field label="Número" value={number} onChange={setNumber} placeholder="123" inputMode="numeric" />
@@ -228,11 +237,15 @@ function ProfilePage() {
                     onChange={(e) => setCity(e.target.value)}
                     className="w-full bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary mt-1"
                   >
+                    {!RMC_CITIES.some((c) => c === city) && city && <option value={city}>{city} (fora da área)</option>}
                     {RMC_CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </label>
               </div>
             </Section>
+
+            <PasswordSection />
+
 
             <div className="flex items-center justify-end gap-3">
               <Link to="/meus-pedidos" className="text-sm text-muted-foreground hover:text-foreground">Cancelar</Link>
@@ -288,5 +301,52 @@ function Field({
         className="w-full bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary mt-1"
       />
     </label>
+  );
+}
+
+/**
+ * Troca de senha do usuário logado. Fica fora de <form> aninhado: os botões
+ * são type="button" e chamam a API de auth diretamente.
+ * Para sessão ativa, a API pode exigir a senha atual — por isso ela é pedida.
+ */
+function PasswordSection() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const change = async () => {
+    if (next.length < 6) return toast.error("A nova senha precisa ter ao menos 6 caracteres");
+    if (next !== confirm) return toast.error("A confirmação não confere");
+    if (!current) return toast.error("Informe sua senha atual");
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: next, current_password: current } as never);
+      if (error) throw error;
+      toast.success("Senha alterada!");
+      setCurrent(""); setNext(""); setConfirm("");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível alterar a senha");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section title="Senha e segurança" icon={<Lock className="h-4 w-4" />}>
+      <div className="grid sm:grid-cols-3 gap-3">
+        <Field label="Senha atual" type="password" value={current} onChange={setCurrent} autoComplete="current-password" />
+        <Field label="Nova senha" type="password" value={next} onChange={setNext} autoComplete="new-password" />
+        <Field label="Repita a nova senha" type="password" value={confirm} onChange={setConfirm} autoComplete="new-password" />
+      </div>
+      <button
+        type="button"
+        onClick={() => void change()}
+        disabled={busy}
+        className="inline-flex items-center gap-2 rounded-md bg-secondary px-4 py-2.5 text-xs font-black uppercase tracking-wider hover:bg-muted disabled:opacity-60"
+      >
+        <Lock className="h-4 w-4" /> {busy ? "Alterando..." : "Alterar senha"}
+      </button>
+    </Section>
   );
 }

@@ -1,5 +1,5 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { ShoppingCart, User, LogOut, LayoutDashboard, Home, Store, Search, Menu, Tag, X, Package } from "lucide-react";
+import { ShoppingCart, User, LogOut, LayoutDashboard, Home, Store, Search, Menu, Tag, X, Package, Wallet } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -139,10 +139,19 @@ function MobileMenu({ user, signOut, hasTeamRole }: { user: { email?: string } |
             </Link>
           )}
           {user && (
-            <Link to="/meus-pedidos" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
-              <Package className="h-4 w-4" /> Meus pedidos
-            </Link>
+            <>
+              <Link to="/minha-conta" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
+                <User className="h-4 w-4" /> Minha conta
+              </Link>
+              <Link to="/meus-pedidos" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
+                <Package className="h-4 w-4" /> Meus pedidos
+              </Link>
+              <Link to="/cashback" onClick={() => setOpen(false)} className="flex items-center gap-3 px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
+                <Wallet className="h-4 w-4" /> Meu cashback
+              </Link>
+            </>
           )}
+
           {user ? (
             <button onClick={() => { setOpen(false); signOut(); }} className="flex items-center gap-3 w-full text-left px-4 py-3 font-bold uppercase tracking-wider hover:bg-secondary">
               <LogOut className="h-4 w-4" /> Sair
@@ -196,9 +205,12 @@ export function Header() {
 
   const signOut = async () => {
     clearRolesCache();
+    try { localStorage.removeItem("shopbox_cart_v1"); } catch { /* noop */ }
     await supabase.auth.signOut();
+    // Reload completo: garante que nenhum dado em cache do cliente anterior fique na tela.
     window.location.href = "/";
   };
+
 
   return (
     <>
@@ -229,14 +241,15 @@ export function Header() {
             <OnlineCounter />
             {user && !hasTeamRole && (
               <Link
-                to="/meus-pedidos"
-                aria-label="Meus pedidos"
+                to="/minha-conta"
+                aria-label="Minha conta"
                 className="hidden md:inline-flex items-center gap-2 px-2 sm:px-3 h-10 rounded-md bg-secondary hover:bg-muted text-sm font-bold"
               >
                 <Package className="h-4 w-4" />
-                <span className="hidden lg:inline">Meus pedidos</span>
+                <span className="hidden lg:inline">Minha conta</span>
               </Link>
             )}
+
             {hasTeamRole && (
               <Link
                 to="/admin"
@@ -295,7 +308,7 @@ export function MobileBottomNav() {
     }`;
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur border-t-2 border-primary safe-area">
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-5">
         <Link
           to="/"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
@@ -323,16 +336,23 @@ export function MobileBottomNav() {
         <Link to="/carrinho" className={item(path === "/carrinho") + " relative"}>
           <ShoppingCart className="h-5 w-5" />
           {count > 0 && (
-            <span className="absolute top-1 right-[22%] bg-accent text-accent-foreground text-[9px] font-bold rounded-full h-4 min-w-4 flex items-center justify-center px-1">
+            <span className="absolute top-1 right-[18%] bg-accent text-accent-foreground text-[9px] font-bold rounded-full h-4 min-w-4 flex items-center justify-center px-1">
               {count}
             </span>
           )}
           Carrinho
         </Link>
+        <Link
+          to="/minha-conta"
+          className={item(path.startsWith("/minha-conta") || path === "/perfil" || path === "/meus-pedidos" || path === "/cashback")}
+        >
+          <User className="h-5 w-5" /> Conta
+        </Link>
       </div>
     </nav>
   );
 }
+
 
 export function Footer() {
   return (

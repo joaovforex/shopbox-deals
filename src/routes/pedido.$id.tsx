@@ -4,6 +4,10 @@ import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Package, Store, Clock, ArrowRight, Sparkles, Truck, AlertTriangle, CreditCard } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { getPublicOrder } from "@/lib/orders.functions";
+import { getMyOrder } from "@/lib/account.functions";
+import { RepurchaseButton } from "@/components/RepurchaseButton";
+import { supabase } from "@/integrations/supabase/client";
+
 import { resumeAsaasPayment } from "@/lib/asaas.functions";
 import { resumeCieloPayment } from "@/lib/cielo.functions";
 import { brl } from "@/lib/format";
@@ -22,6 +26,12 @@ export const Route = createFileRoute("/pedido/$id")({
 function OrderPage() {
   const { id } = Route.useParams();
   const fetchOrder = useServerFn(getPublicOrder);
+  const fetchMine = useServerFn(getMyOrder);
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setSignedIn(!!data.user));
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ["order", id],
@@ -34,6 +44,18 @@ function OrderPage() {
       return false;
     },
   });
+
+  // Quando quem abre é o próprio dono logado, mostramos o detalhe completo
+  // (variantes, endereço, frete e cashback) sem máscara. A leitura acima
+  // continua igual para links compartilhados.
+  const { data: mine } = useQuery({
+    queryKey: ["my-order-detail", id],
+    queryFn: () => fetchMine({ data: { id } }),
+    enabled: signedIn,
+    retry: false,
+  });
+  const owned = mine?.order ?? null;
+
 
   const order = data?.order;
   const status = order?.status;
@@ -253,6 +275,63 @@ function OrderPage() {
               Seu pedido foi registrado. Guarde o número <span className="font-mono font-bold">#{shortId}</span> para retirar na loja.
             </div>
           )}
+
+          {owned && (
+            <div className="bg-card border border-border rounded-xl p-6 mt-4 space-y-3">
+              <h2 className="font-bold uppercase text-xs tracking-wider text-muted-foreground">Detalhes da sua compra</h2>
+
+              <ul className="space-y-1 text-sm">
+                {(mine?.items ?? []).map((it) => (
+                  <li key={it.id} className="flex justify-between gap-2">
+                    <span>
+                      <span className="text-muted-foreground">{it.quantity}×</span> {it.product_name}
+                      {it.variant_color && <span className="text-muted-foreground"> · cor {it.variant_color}</span>}
+                    </span>
+                    <span className="font-semibold whitespace-nowrap">{brl(Number(it.unit_price) * it.quantity)}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="border-t border-border pt-3 text-xs text-muted-foreground space-y-1">
+                {Number(owned.delivery_fee) > 0 && (
+                  <div><strong className="text-foreground">Entrega:</strong> {brl(Number(owned.delivery_fee))}</div>
+                )}
+                {Number(owned.cashback_used) > 0 && (
+                  <div><strong className="text-foreground">Cashback usado:</strong> −{brl(Number(owned.cashback_used))}</div>
+                )}
+                {Number(owned.cashback_earned) > 0 && (
+                  <div><strong className="text-foreground">Cashback ganho:</strong> {brl(Number(owned.cashback_earned))}</div>
+                )}
+                {owned.delivery_method === "delivery" ? (
+                  owned.shipping_street && (
+                    <div>
+                      <strong className="text-foreground">Entrega em:</strong> {owned.shipping_street}, {owned.shipping_number}
+                      {owned.shipping_complement ? ` — ${owned.shipping_complement}` : ""}
+                      {owned.shipping_district ? `, ${owned.shipping_district}` : ""}
+                      {owned.shipping_city ? ` — ${owned.shipping_city}/${owned.shipping_state ?? ""}` : ""}
+                    </div>
+                  )
+                ) : (
+                  <div><strong className="text-foreground">Retirada:</strong> {STORE_ADDRESS}</div>
+                )}
+                {owned.maisentregas_tracking_url && (
+                  <div>
+                    <a href={owned.maisentregas_tracking_url} target="_blank" rel="noreferrer" className="text-primary font-bold hover:underline">
+                      Acompanhar entregador
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {owned.status === "paid" && (
+                <div className="pt-1">
+                  <RepurchaseButton orderId={id} />
+                </div>
+              )}
+            </div>
+          )}
+
+
 
           <div className="text-center mt-8">
             <Link

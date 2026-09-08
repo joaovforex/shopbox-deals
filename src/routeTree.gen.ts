@@ -30,7 +30,9 @@ import { Route as EtiquetaQrcodeRouteImport } from './routes/etiqueta.qrcode'
 import { Route as EtiquetaFragilRouteImport } from './routes/etiqueta.fragil'
 import { Route as EtiquetaIdRouteImport } from './routes/etiqueta.$id'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
+import { Route as AuthenticatedMinhaContaRouteImport } from './routes/_authenticated/minha-conta'
 import { Route as AuthenticatedMeusPedidosRouteImport } from './routes/_authenticated/meus-pedidos'
+import { Route as AuthenticatedCashbackRouteImport } from './routes/_authenticated/cashback'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as ApiCheckoutAsaasCardRouteImport } from './routes/api/checkout/asaas-card'
@@ -165,12 +167,22 @@ const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMinhaContaRoute = AuthenticatedMinhaContaRouteImport.update({
+  id: '/minha-conta',
+  path: '/minha-conta',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMeusPedidosRoute =
   AuthenticatedMeusPedidosRouteImport.update({
     id: '/meus-pedidos',
     path: '/meus-pedidos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCashbackRoute = AuthenticatedCashbackRouteImport.update({
+  id: '/cashback',
+  path: '/cashback',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -352,7 +364,9 @@ export interface FileRoutesByFullPath {
   '/trocas-e-garantia': typeof TrocasEGarantiaRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/cashback': typeof AuthenticatedCashbackRoute
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
+  '/minha-conta': typeof AuthenticatedMinhaContaRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/etiqueta/fragil': typeof EtiquetaFragilRoute
@@ -404,7 +418,9 @@ export interface FileRoutesByTo {
   '/trocas-e-garantia': typeof TrocasEGarantiaRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/cashback': typeof AuthenticatedCashbackRoute
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
+  '/minha-conta': typeof AuthenticatedMinhaContaRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/etiqueta/fragil': typeof EtiquetaFragilRoute
@@ -458,7 +474,9 @@ export interface FileRoutesById {
   '/trocas-e-garantia': typeof TrocasEGarantiaRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/cashback': typeof AuthenticatedCashbackRoute
   '/_authenticated/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
+  '/_authenticated/minha-conta': typeof AuthenticatedMinhaContaRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
   '/etiqueta/fragil': typeof EtiquetaFragilRoute
@@ -512,7 +530,9 @@ export interface FileRouteTypes {
     | '/trocas-e-garantia'
     | '/.well-known/oauth-protected-resource'
     | '/admin'
+    | '/cashback'
     | '/meus-pedidos'
+    | '/minha-conta'
     | '/perfil'
     | '/etiqueta/$id'
     | '/etiqueta/fragil'
@@ -564,7 +584,9 @@ export interface FileRouteTypes {
     | '/trocas-e-garantia'
     | '/.well-known/oauth-protected-resource'
     | '/admin'
+    | '/cashback'
     | '/meus-pedidos'
+    | '/minha-conta'
     | '/perfil'
     | '/etiqueta/$id'
     | '/etiqueta/fragil'
@@ -617,7 +639,9 @@ export interface FileRouteTypes {
     | '/trocas-e-garantia'
     | '/.well-known/oauth-protected-resource'
     | '/_authenticated/admin'
+    | '/_authenticated/cashback'
     | '/_authenticated/meus-pedidos'
+    | '/_authenticated/minha-conta'
     | '/_authenticated/perfil'
     | '/etiqueta/$id'
     | '/etiqueta/fragil'
@@ -839,11 +863,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPerfilRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/minha-conta': {
+      id: '/_authenticated/minha-conta'
+      path: '/minha-conta'
+      fullPath: '/minha-conta'
+      preLoaderRoute: typeof AuthenticatedMinhaContaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/meus-pedidos': {
       id: '/_authenticated/meus-pedidos'
       path: '/meus-pedidos'
       fullPath: '/meus-pedidos'
       preLoaderRoute: typeof AuthenticatedMeusPedidosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cashback': {
+      id: '/_authenticated/cashback'
+      path: '/cashback'
+      fullPath: '/cashback'
+      preLoaderRoute: typeof AuthenticatedCashbackRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin': {
@@ -1091,13 +1129,17 @@ const AuthenticatedAdminRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedCashbackRoute: typeof AuthenticatedCashbackRoute
   AuthenticatedMeusPedidosRoute: typeof AuthenticatedMeusPedidosRoute
+  AuthenticatedMinhaContaRoute: typeof AuthenticatedMinhaContaRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedCashbackRoute: AuthenticatedCashbackRoute,
   AuthenticatedMeusPedidosRoute: AuthenticatedMeusPedidosRoute,
+  AuthenticatedMinhaContaRoute: AuthenticatedMinhaContaRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
 }
 

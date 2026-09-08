@@ -11,7 +11,9 @@ import { resumeAsaasPayment } from "@/lib/asaas.functions";
 import { resumeCieloPayment } from "@/lib/cielo.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { DeliveryUpgradeButton } from "@/components/DeliveryUpgradeButton";
+import { RepurchaseButton } from "@/components/RepurchaseButton";
 import { toast } from "sonner";
+
 
 
 export const Route = createFileRoute("/_authenticated/meus-pedidos")({
@@ -81,23 +83,30 @@ function MyOrdersPage() {
       } catch { /* noop */ }
     })();
   }, [fetchCashback]);
-  const { data: orders, isLoading } = useQuery({
-    queryKey: ["my-orders"],
+  // Paginação simples: começa com 10 pedidos e vai carregando mais sob demanda.
+  const PAGE = 10;
+  const [limit, setLimit] = useState(PAGE);
+  const { data: page, isLoading, isError, isFetching, refetch } = useQuery({
+    queryKey: ["my-orders", limit],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [] as Row[];
+      if (!user) return { rows: [] as Row[], hasMore: false };
       const { data, error } = await supabase
         .from("orders")
         .select("id, created_at, status, fulfillment_status, total, payment_method, delivery_method, shipping_street, shipping_number, shipping_district, shipping_city, maisentregas_order_id, maisentregas_status, order_items(id, product_name, quantity)")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(limit + 1);
       if (error) throw error;
-      return (data ?? []) as Row[];
+      const all = (data ?? []) as Row[];
+      return { rows: all.slice(0, limit), hasMore: all.length > limit };
     },
     // Realtime channel abaixo já invalida a query quando há mudanças.
     // Mantemos apenas refetch ao focar a janela; sem polling de 5s.
     refetchOnWindowFocus: true,
   });
+  const orders = page?.rows;
+
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
@@ -127,13 +136,16 @@ function MyOrdersPage() {
       <section className="bg-card border-b-4 border-primary">
         <div className="container mx-auto px-4 py-8 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <div className="text-xs uppercase tracking-widest text-accent font-bold">Sua conta</div>
+            <Link to="/minha-conta" className="text-xs uppercase tracking-widest text-accent font-bold hover:underline">
+              ← Minha conta
+            </Link>
             <h1 className="display text-3xl md:text-4xl">Meus pedidos</h1>
             <p className="text-sm text-muted-foreground">Acompanhe o status dos seus pedidos e a retirada na loja.</p>
           </div>
           <Link to="/perfil" className="text-xs uppercase tracking-wider font-bold bg-secondary hover:bg-secondary/80 text-foreground px-4 py-2 rounded-md inline-flex items-center gap-2">
-            Meu perfil
+            Meus dados
           </Link>
+
         </div>
       </section>
 
@@ -156,8 +168,25 @@ function MyOrdersPage() {
           </div>
         )}
         {isLoading ? (
-          <div className="text-muted-foreground">Carregando...</div>
+          <ul className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="h-36 rounded-xl border border-border bg-card animate-pulse" />
+            ))}
+          </ul>
+        ) : isError ? (
+          <div className="bg-destructive/5 border border-destructive/40 rounded-xl p-6 text-sm">
+            <p className="font-bold text-destructive">Não conseguimos carregar seus pedidos</p>
+            <p className="text-muted-foreground mt-1">Verifique sua conexão e tente novamente.</p>
+            <button
+              type="button"
+              onClick={() => void refetch()}
+              className="mt-3 inline-flex items-center gap-2 rounded-md bg-secondary px-4 py-2 text-xs font-black uppercase tracking-wider hover:bg-muted"
+            >
+              Tentar de novo
+            </button>
+          </div>
         ) : !orders || orders.length === 0 ? (
+
           <div className="bg-card border border-border rounded-xl p-10 text-center">
             <Package className="h-10 w-10 mx-auto mb-3 text-primary" />
             <p className="font-bold mb-1">Você ainda não fez pedidos</p>
@@ -205,10 +234,10 @@ function MyOrdersPage() {
                     {isReady && (
                       <div className="mt-3 text-xs bg-primary/10 border border-primary/30 rounded px-3 py-2">
                         <strong className="text-primary">Pronto para retirada.</strong>{" "}
-                        Endereço: <span className="font-semibold">{STORE_ADDRESS}</span>.{" "}
-                        <span className="text-accent font-bold">Você tem até 5 dias para retirar.</span>
+                        Endereço: <span className="font-semibold">{STORE_ADDRESS}</span>.
                       </div>
                     )}
+
                     {isDelivery && (
                       <div className="mt-3 text-xs bg-primary/10 border border-primary/30 rounded px-3 py-2 flex flex-wrap items-center gap-2 justify-between">
                         <div>
@@ -231,13 +260,33 @@ function MyOrdersPage() {
                     o.fulfillment_status !== "delivered" && (
                       <DeliveryUpgradeButton orderId={o.id} />
                     )}
+
+                  {o.status === "paid" && (
+                    <div className="mt-2">
+                      <RepurchaseButton orderId={o.id} />
+                    </div>
+                  )}
+
                 </li>
 
               );
             })}
           </ul>
         )}
+        {page?.hasMore && (
+          <div className="text-center pt-2">
+            <button
+              type="button"
+              onClick={() => setLimit((l) => l + PAGE)}
+              disabled={isFetching}
+              className="inline-flex items-center gap-2 rounded-md bg-secondary px-5 py-3 text-xs font-black uppercase tracking-wider hover:bg-muted disabled:opacity-60"
+            >
+              {isFetching ? "Carregando..." : "Carregar mais pedidos"}
+            </button>
+          </div>
+        )}
       </section>
+
       <Footer />
     </div>
   );
