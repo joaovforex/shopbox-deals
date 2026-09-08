@@ -88,27 +88,30 @@ function ProfilePage() {
     })();
   }, [fetchCashback]);
 
-  // ViaCEP
+  // Busca do CEP com o mesmo helper usado no checkout
   useEffect(() => {
     const d = zip.replace(/\D/g, "");
-    if (d.length !== 8) return;
+    if (d.length !== 8) { setCoverageWarning(null); return; }
     let cancelled = false;
     (async () => {
       setCepBusy(true);
       try {
-        const res = await fetch(`https://viacep.com.br/ws/${d}/json/`);
-        const j = (await res.json()) as { logradouro?: string; bairro?: string; localidade?: string; uf?: string; erro?: boolean };
-        if (cancelled || j.erro) return;
-        if (j.logradouro) setStreet((s) => s || j.logradouro!);
-        if (j.bairro) setDistrict((b) => b || j.bairro!);
-        if (j.localidade) setCity(j.localidade);
-        if (j.uf) setStateUf(j.uf.toUpperCase());
+        const r = await lookupCep(d);
+        if (cancelled) return;
+        if (r.street) setStreet((s) => s || r.street);
+        if (r.district) setDistrict((b) => b || r.district);
+        if (r.city) setCity(r.city);
+        if (r.uf) setStateUf(r.uf.toUpperCase());
+        setCoverageWarning(isRmcCity(r.city) ? null : outOfCoverageMessage(r.city, r.uf));
+      } catch (e) {
+        if (!cancelled) setCoverageWarning(e instanceof Error ? e.message : "Não conseguimos buscar este CEP");
       } finally {
         if (!cancelled) setCepBusy(false);
       }
     })();
     return () => { cancelled = true; };
   }, [zip]);
+
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
