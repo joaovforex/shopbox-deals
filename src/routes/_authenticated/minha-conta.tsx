@@ -8,6 +8,8 @@ import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { RepurchaseButton } from "@/components/RepurchaseButton";
+import { currentUserId } from "@/lib/account-queries";
+
 import { brl } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/minha-conta")({
