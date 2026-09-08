@@ -52,17 +52,24 @@ function orderStateLabel(o: LastOrder): string {
 function AccountHome() {
   const fetchCashback = useServerFn(getMyCashback);
 
+  // Sessão primeiro: todas as chaves de cache carregam o id do usuário, para
+  // que trocar de conta (ou sair) nunca reaproveite dados de outra pessoa.
+  const userQ = useQuery({ queryKey: ["session-user-id"], queryFn: currentUserId, staleTime: 0 });
+  const uid = userQ.data ?? null;
+
   const profileQ = useQuery({
-    queryKey: ["account-profile"],
+    queryKey: ["account-profile", uid],
+    enabled: !!uid,
     queryFn: async () => {
       const { data: auth } = await supabase.auth.getUser();
       const user = auth.user;
       if (!user) return null;
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select("full_name, address_city, address_street")
         .eq("id", user.id)
         .maybeSingle();
+      if (error) throw error;
       return { email: user.email ?? "", ...(data ?? {}) } as {
         email: string;
         full_name?: string | null;
@@ -72,17 +79,20 @@ function AccountHome() {
     },
   });
 
-  const cashbackQ = useQuery({ queryKey: ["cashback-balance"], queryFn: () => fetchCashback() });
+  const cashbackQ = useQuery({
+    queryKey: ["cashback-balance", uid],
+    queryFn: () => fetchCashback(),
+    enabled: !!uid,
+  });
 
   const ordersQ = useQuery({
-    queryKey: ["account-last-orders"],
+    queryKey: ["account-last-orders", uid],
+    enabled: !!uid,
     queryFn: async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return [] as LastOrder[];
       const { data, error } = await supabase
         .from("orders")
         .select("id, created_at, status, fulfillment_status, delivery_method, total, maisentregas_status")
-        .eq("user_id", auth.user.id)
+        .eq("user_id", uid!)
         .order("created_at", { ascending: false })
         .limit(2);
       if (error) throw error;
@@ -91,9 +101,12 @@ function AccountHome() {
   });
 
   const firstName = (profileQ.data?.full_name ?? "").trim().split(" ")[0];
+  const balanceFailed = cashbackQ.isError;
   const balance = Number(cashbackQ.data?.balance ?? 0);
   const nextExpiry = cashbackQ.data?.nextExpiry ?? null;
   const orders = ordersQ.data ?? [];
+  const loadingOrders = ordersQ.isLoading || userQ.isLoading;
+
 
   return (
     <div className="min-h-screen flex flex-col">
