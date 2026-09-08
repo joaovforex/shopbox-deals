@@ -344,28 +344,25 @@ function Field({
 }
 
 /**
- * Troca de senha do usuário logado. Fica fora de <form> aninhado: os botões
- * são type="button" e chamam a API de auth diretamente.
- * Para sessão ativa, a API pode exigir a senha atual — por isso ela é pedida.
+ * Segurança: reutiliza o fluxo de recuperação de senha que já existe em /auth.
+ * Não implementamos um mecanismo novo de troca de senha aqui.
  */
 function PasswordSection() {
-  const [current, setCurrent] = useState("");
-  const [next, setNext] = useState("");
-  const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const change = async () => {
-    if (next.length < 6) return toast.error("A nova senha precisa ter ao menos 6 caracteres");
-    if (next !== confirm) return toast.error("A confirmação não confere");
-    if (!current) return toast.error("Informe sua senha atual");
+  const sendReset = async () => {
     setBusy(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: next, current_password: current } as never);
+      const { data } = await supabase.auth.getUser();
+      const mail = data.user?.email;
+      if (!mail) throw new Error("Sessão não encontrada");
+      const { error } = await supabase.auth.resetPasswordForEmail(mail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
       if (error) throw error;
-      toast.success("Senha alterada!");
-      setCurrent(""); setNext(""); setConfirm("");
+      toast.success("Enviamos um link de troca de senha para o seu e-mail de acesso.");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível alterar a senha");
+      toast.error(e instanceof Error ? e.message : "Não foi possível enviar o link agora.");
     } finally {
       setBusy(false);
     }
@@ -373,19 +370,18 @@ function PasswordSection() {
 
   return (
     <Section title="Senha e segurança" icon={<Lock className="h-4 w-4" />}>
-      <div className="grid sm:grid-cols-3 gap-3">
-        <Field label="Senha atual" type="password" value={current} onChange={setCurrent} autoComplete="current-password" />
-        <Field label="Nova senha" type="password" value={next} onChange={setNext} autoComplete="new-password" />
-        <Field label="Repita a nova senha" type="password" value={confirm} onChange={setConfirm} autoComplete="new-password" />
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Para trocar a senha, enviamos um link seguro para o seu e-mail de acesso.
+      </p>
       <button
         type="button"
-        onClick={() => void change()}
+        onClick={() => void sendReset()}
         disabled={busy}
-        className="inline-flex items-center gap-2 rounded-md bg-secondary px-4 py-2.5 text-xs font-black uppercase tracking-wider hover:bg-muted disabled:opacity-60"
+        className="inline-flex min-h-11 items-center gap-2 rounded-md bg-secondary px-4 py-2.5 text-xs font-black uppercase tracking-wider hover:bg-muted disabled:opacity-60"
       >
-        <Lock className="h-4 w-4" /> {busy ? "Alterando..." : "Alterar senha"}
+        <Lock className="h-4 w-4" /> {busy ? "Enviando..." : "Enviar link de troca de senha"}
       </button>
     </Section>
   );
 }
+
