@@ -357,7 +357,7 @@ function BannerSection(props: {
           className="hidden"
           onChange={props.onChange}
         />
-      </div>
+      </AdminActionBar>
     </section>
   );
 }
