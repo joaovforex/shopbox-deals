@@ -577,7 +577,7 @@ function ProductPage() {
               </div>
             )}
 
-            <DeliveryEstimate />
+            <DeliveryEstimate productPath={`/produto/${product.id}`} />
 
             <ProductTrustBlock />
 
