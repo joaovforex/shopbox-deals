@@ -2,13 +2,14 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  Package, Wallet, User, ArrowRight, AlertTriangle, RefreshCw, ShoppingBag, HelpCircle,
+  Package, Wallet, User, ArrowRight, AlertTriangle, RefreshCw, ShoppingBag, HelpCircle, LayoutDashboard,
 } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { supabase } from "@/integrations/supabase/client";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { RepurchaseButton } from "@/components/RepurchaseButton";
 import { currentUserId } from "@/lib/account-queries";
+import { getRoleSummary } from "@/lib/products";
 
 import { brl } from "@/lib/format";
 
@@ -101,6 +102,13 @@ function AccountHome() {
       return (data ?? []) as LastOrder[];
     },
   });
+
+  const rolesQ = useQuery({
+    queryKey: ["account-team-role", uid],
+    enabled: !!uid,
+    queryFn: getRoleSummary,
+  });
+  const hasTeamRole = !!rolesQ.data?.hasAnyTeamRole;
 
   const firstName = (profileQ.data?.full_name ?? "").trim().split(" ")[0];
   const balanceFailed = cashbackQ.isError;
@@ -228,6 +236,23 @@ function AccountHome() {
             </ul>
           )}
         </div>
+
+        {/* EQUIPE: acesso ao painel administrativo (visível só para quem tem cargo) */}
+        {hasTeamRole && (
+          <Link
+            to="/admin"
+            className="flex items-center gap-3 rounded-xl border-2 border-accent bg-accent/10 p-4 hover:border-accent transition-colors"
+          >
+            <span className="h-10 w-10 shrink-0 rounded-md bg-accent text-accent-foreground flex items-center justify-center">
+              <LayoutDashboard className="h-5 w-5" />
+            </span>
+            <span className="min-w-0">
+              <span className="block font-bold text-sm">Área administrativa</span>
+              <span className="block text-xs text-muted-foreground">Produtos, pedidos, expedição e configurações</span>
+            </span>
+            <ArrowRight className="h-4 w-4 ml-auto text-muted-foreground shrink-0" />
+          </Link>
+        )}
 
         {/* ATALHOS */}
         <div className="grid gap-3 sm:grid-cols-2">

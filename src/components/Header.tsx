@@ -198,7 +198,16 @@ export function Header() {
                 <User className="h-5 w-5" />
               </Link>
             )}
-            {/* Mobile: acesso direto ao perfil/entrar. Sair fica na área da conta. */}
+            {/* Mobile: equipe vai direto ao Admin; demais ao perfil/entrar. Sair fica na área da conta. */}
+            {hasTeamRole && (
+              <Link
+                to="/admin"
+                className="md:hidden inline-flex items-center justify-center h-10 w-10 rounded-md bg-accent text-accent-foreground hover:opacity-90 transition-opacity"
+                aria-label="Área administrativa"
+              >
+                <LayoutDashboard className="h-5 w-5" />
+              </Link>
+            )}
             <Link
               to={user ? "/minha-conta" : "/auth"}
               className="md:hidden inline-flex items-center justify-center h-10 w-10 rounded-md bg-secondary hover:bg-muted transition-colors"
