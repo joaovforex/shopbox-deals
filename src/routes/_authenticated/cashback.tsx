@@ -83,29 +83,47 @@ function CashbackPage() {
             </div>
             <div>
               <div className="text-xs uppercase tracking-widest font-bold text-[#25D366]">Saldo disponível</div>
-              {balanceQ.isLoading ? (
+              {balanceQ.isLoading || userQ.isLoading ? (
                 <div className="mt-1 h-8 w-32 rounded bg-muted animate-pulse" />
+              ) : balanceFailed ? (
+                <div className="text-sm font-bold text-destructive">Saldo indisponível no momento</div>
               ) : (
                 <div className="display text-3xl text-[#25D366]">{brl(balance)}</div>
               )}
             </div>
           </div>
-          {nextExpiry && nextExpiry.amount > 0 && (
-            <p className="mt-3 text-xs text-muted-foreground">
-              <strong className="text-foreground">{brl(nextExpiry.amount)}</strong> expira em {daysUntil(nextExpiry.expiresAt)} dia(s).
-            </p>
+          {balanceFailed ? (
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => void balanceQ.refetch()}
+                className="inline-flex min-h-11 items-center gap-2 rounded-md bg-secondary px-4 py-2 text-xs font-black uppercase tracking-wider hover:bg-muted"
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Tentar de novo
+              </button>
+            </div>
+          ) : (
+            <>
+              {nextExpiry && nextExpiry.amount > 0 && (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  <strong className="text-foreground">{brl(nextExpiry.amount)}</strong> expira em {daysUntil(nextExpiry.expiresAt)} dia(s).
+                </p>
+              )}
+              <p className="mt-2 text-xs text-muted-foreground">
+                O cashback entra como desconto direto no checkout da próxima compra.
+                {rate ? ` Hoje você recebe ${rate.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}% de volta em cada compra concluída.` : ""}
+              </p>
+              {balance > 0 && (
+                <Link
+                  to="/loja"
+                  className="mt-4 inline-flex min-h-11 items-center justify-center rounded-md bg-[#25D366] px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white"
+                >
+                  Usar agora na loja
+                </Link>
+              )}
+            </>
           )}
-          <p className="mt-2 text-xs text-muted-foreground">
-            O cashback entra como desconto direto no checkout da próxima compra.
-          </p>
-          {balance > 0 && (
-            <Link
-              to="/loja"
-              className="mt-4 inline-flex items-center justify-center rounded-md bg-[#25D366] px-4 py-2.5 text-xs font-black uppercase tracking-wider text-white"
-            >
-              Usar agora na loja
-            </Link>
-          )}
+
         </div>
 
         <div>
