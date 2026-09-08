@@ -31,6 +31,7 @@ import { Route as EtiquetaFragilRouteImport } from './routes/etiqueta.fragil'
 import { Route as EtiquetaIdRouteImport } from './routes/etiqueta.$id'
 import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedMeusPedidosRouteImport } from './routes/_authenticated/meus-pedidos'
+import { Route as AuthenticatedCashbackRouteImport } from './routes/_authenticated/cashback'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as ApiCheckoutAsaasCardRouteImport } from './routes/api/checkout/asaas-card'
@@ -171,6 +172,11 @@ const AuthenticatedMeusPedidosRoute =
     path: '/meus-pedidos',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCashbackRoute = AuthenticatedCashbackRouteImport.update({
+  id: '/cashback',
+  path: '/cashback',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -352,6 +358,7 @@ export interface FileRoutesByFullPath {
   '/trocas-e-garantia': typeof TrocasEGarantiaRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/cashback': typeof AuthenticatedCashbackRoute
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
@@ -404,6 +411,7 @@ export interface FileRoutesByTo {
   '/trocas-e-garantia': typeof TrocasEGarantiaRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/cashback': typeof AuthenticatedCashbackRoute
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
@@ -458,6 +466,7 @@ export interface FileRoutesById {
   '/trocas-e-garantia': typeof TrocasEGarantiaRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
+  '/_authenticated/cashback': typeof AuthenticatedCashbackRoute
   '/_authenticated/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/etiqueta/$id': typeof EtiquetaIdRoute
@@ -512,6 +521,7 @@ export interface FileRouteTypes {
     | '/trocas-e-garantia'
     | '/.well-known/oauth-protected-resource'
     | '/admin'
+    | '/cashback'
     | '/meus-pedidos'
     | '/perfil'
     | '/etiqueta/$id'
@@ -564,6 +574,7 @@ export interface FileRouteTypes {
     | '/trocas-e-garantia'
     | '/.well-known/oauth-protected-resource'
     | '/admin'
+    | '/cashback'
     | '/meus-pedidos'
     | '/perfil'
     | '/etiqueta/$id'
@@ -617,6 +628,7 @@ export interface FileRouteTypes {
     | '/trocas-e-garantia'
     | '/.well-known/oauth-protected-resource'
     | '/_authenticated/admin'
+    | '/_authenticated/cashback'
     | '/_authenticated/meus-pedidos'
     | '/_authenticated/perfil'
     | '/etiqueta/$id'
@@ -844,6 +856,13 @@ declare module '@tanstack/react-router' {
       path: '/meus-pedidos'
       fullPath: '/meus-pedidos'
       preLoaderRoute: typeof AuthenticatedMeusPedidosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cashback': {
+      id: '/_authenticated/cashback'
+      path: '/cashback'
+      fullPath: '/cashback'
+      preLoaderRoute: typeof AuthenticatedCashbackRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin': {
@@ -1091,12 +1110,14 @@ const AuthenticatedAdminRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
+  AuthenticatedCashbackRoute: typeof AuthenticatedCashbackRoute
   AuthenticatedMeusPedidosRoute: typeof AuthenticatedMeusPedidosRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
+  AuthenticatedCashbackRoute: AuthenticatedCashbackRoute,
   AuthenticatedMeusPedidosRoute: AuthenticatedMeusPedidosRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
 }
