@@ -95,6 +95,23 @@ type DeliveryChoice = "pickup" | "delivery";
 
 function CheckoutPage() {
   const { items, total, clear } = useCart();
+
+  // Analytics: begin_checkout uma vez, quando o carrinho carrega
+  const beganRef = useRef(false);
+  useEffect(() => {
+    if (beganRef.current || items.length === 0) return;
+    beganRef.current = true;
+    trackBeginCheckout(
+      items.map((i) => ({
+        item_id: i.id,
+        item_name: i.name,
+        price: i.price,
+        quantity: i.quantity,
+      })),
+      total,
+    );
+  }, [items, total]);
+
   const [busy, setBusy] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const createAsaasCheckout = useServerFn(createAsaasPayment);
