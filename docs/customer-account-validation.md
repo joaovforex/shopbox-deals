@@ -111,3 +111,26 @@ cashback dinâmica foram preservados. Nenhuma urgência, escassez ou prazo inven
   só após sucesso), produto com variantes leva a "Escolher opções", esgotado sem ação ativa.
 - Validação: typecheck limpo, `bun test` 16 testes/32 expectativas, Playwright 390px e 1280px em
   home, loja e Configurações sem overflow nem erros de console.
+
+## Cobertura real dos botões administrativos (correção final)
+
+Padrão `AdminButton`/`AdminActionBar` aplicado além do BannerManager, preservando handlers,
+permissões, confirmações e lógica existentes:
+
+- `src/routes/_authenticated/admin.tsx` (produtos/painel): tornar-se Super Admin, novo produto,
+  modo de seleção, compartilhar seleção, ocultar/excluir em massa (destrutivo em vermelho),
+  limpar filtros, carregar catálogo inteiro e carregar mais.
+- `src/routes/_authenticated/admin.pedidos.tsx`: relatório por categoria no WhatsApp, CSV de
+  clientes, relatório completo, paginação anterior/próxima e a zona de perigo (confirmar exclusão
+  total + cancelar), mantendo a exigência de digitar "EXCLUIR TUDO".
+- `src/routes/_authenticated/admin.configuracoes.tsx`: salvar configurações, enviar/trocar/remover
+  imagem, desconto em massa (aplicar/restaurar), nova unidade, editar unidade e salvar/cancelar
+  unidade. `BannerManager` permanece como já estava.
+- `src/components/AdminSidebar.tsx`: mesmos destinos e mesma visibilidade por papel; ganhou
+  `aria-current` no item ativo, `aria-expanded`/`aria-controls` nos grupos, rótulo do botão de
+  menu no celular, foco visível e alvos de 44px.
+
+Validação: typecheck limpo, `bun test` 16 testes/32 expectativas e Playwright autenticado em 390px
+e 1280px nas telas de painel/produtos, pedidos e configurações — sem overflow horizontal, sem
+texto cortado nos botões e sem erros de console no desktop (no celular apenas falhas transitórias
+de rede do Supabase durante a restauração de sessão). Nenhuma ação mutável foi executada.
