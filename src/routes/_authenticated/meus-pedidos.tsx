@@ -11,7 +11,9 @@ import { resumeAsaasPayment } from "@/lib/asaas.functions";
 import { resumeCieloPayment } from "@/lib/cielo.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { DeliveryUpgradeButton } from "@/components/DeliveryUpgradeButton";
+import { RepurchaseButton } from "@/components/RepurchaseButton";
 import { toast } from "sonner";
+
 
 
 export const Route = createFileRoute("/_authenticated/meus-pedidos")({
