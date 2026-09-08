@@ -168,7 +168,7 @@ function AccountHome() {
             </Link>
           </div>
 
-          {ordersQ.isLoading ? (
+          {loadingOrders ? (
             <div className="space-y-2">
               <div className="h-28 rounded-xl border border-border bg-card animate-pulse" />
               <div className="h-28 rounded-xl border border-border bg-card animate-pulse" />
