@@ -40,6 +40,13 @@ Somente produtos **ativos**, **com estoque > 0**, com **nome**, **imagem** e
 - **Frete e prazo**: configurados no próprio Merchant Center, já que o frete é
   cotado em tempo real pela transportadora por endereço.
 
+## Imagens
+
+As imagens ficam num bucket privado, então as URLs do feed são **assinadas com
+validade longa (cerca de 5 anos)** — estáveis o bastante para o rastreamento do
+Google e idênticas às exibidas no site. Se um dia o bucket virar público, troque
+por URLs `/object/public/...`, que dispensam token.
+
 ## Passos manuais para conectar (não automatizados)
 
 1. Acesse o Google Merchant Center e crie/entre na conta da loja.
