@@ -218,6 +218,11 @@ function ProfilePage() {
                   {cepBusy ? "Buscando..." : "Preenche o resto automaticamente"}
                 </div>
               </div>
+              {coverageWarning && (
+                <p className="text-xs rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-destructive">
+                  {coverageWarning}
+                </p>
+              )}
               <Field label="Rua / Avenida" value={street} onChange={setStreet} placeholder="Ex.: Av. Marechal Floriano" />
               <div className="grid sm:grid-cols-[140px_1fr] gap-3">
                 <Field label="Número" value={number} onChange={setNumber} placeholder="123" inputMode="numeric" />
@@ -232,11 +237,15 @@ function ProfilePage() {
                     onChange={(e) => setCity(e.target.value)}
                     className="w-full bg-input rounded-md px-3 py-2 border border-border focus:outline-none focus:border-primary mt-1"
                   >
+                    {!RMC_CITIES.some((c) => c === city) && city && <option value={city}>{city} (fora da área)</option>}
                     {RMC_CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </label>
               </div>
             </Section>
+
+            <PasswordSection />
+
 
             <div className="flex items-center justify-end gap-3">
               <Link to="/meus-pedidos" className="text-sm text-muted-foreground hover:text-foreground">Cancelar</Link>
