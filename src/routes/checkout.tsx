@@ -455,7 +455,7 @@ function CheckoutPage() {
                 onClick={() => setDelivery("pickup")}
                 title="Retirar na loja"
                 subtitle="Grátis"
-                description="Retire no mesmo dia após a confirmação"
+                description="Avisamos assim que o pedido estiver pronto para retirada"
               />
               <DeliveryOption
                 active={delivery === "delivery"}
