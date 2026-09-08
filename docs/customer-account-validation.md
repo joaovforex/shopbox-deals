@@ -1,39 +1,57 @@
-# Área do cliente — validação executada
+# Área do cliente + home simplificada — validação executada
 
 Ambiente: preview local (`localhost:8080`), sessão de teste já injetada no ambiente.
 Nada foi publicado. Nenhum pedido, pagamento ou cashback foi criado/alterado.
 
-## 1. Typecheck
+## 1. Typecheck e testes
 
-`bunx tsgo --noEmit -p tsconfig.json` → **exit 0, sem erros**.
+- `bunx tsgo --noEmit -p tsconfig.json` → **exit 0, sem erros**.
+- `bun test` → **5 testes, 14 verificações, 0 falhas** (`src/lib/__tests__/cashback-config.test.ts`).
+  Os testes importam `bun:test`; rodar com `bun test`, não com vitest.
 
-## 2. Testes automatizados
+## 2. Navegação real (Playwright, sessão injetada)
 
-`bun test` → **5 testes, 14 verificações, 0 falhas** (`src/lib/__tests__/cashback-config.test.ts`).
-Observação: os testes importam `bun:test`; devem ser rodados com `bun test`, não com vitest.
+Rodado em 390x844 (celular) e 1280x1800 (desktop).
 
-## 3. Navegação real (Playwright, 390x844, sessão injetada)
+| Rota | 390px | 1280px |
+| --- | --- | --- |
+| `/` (home nova) | H1 “Super descontos todos os dias”, sem overflow | idem |
+| `/loja` | “Ofertas shopbox”, sem overflow | idem |
+| `/faq` | carregou, sem overflow | idem |
+| `/minha-conta` | “Olá, Joao!”, sem overflow | idem |
+| `/meus-pedidos` | carregou, sem overflow | idem |
+| `/cashback` | carregou, sem overflow | idem |
+| `/perfil` | carregou, sem overflow | idem |
 
-| Rota | Resultado |
-| --- | --- |
-| `/minha-conta` | carregou — “Olá, Joao!”, saldo R$ 74,00 com validade em 23 dias, 2 últimos pedidos com botão Comprar novamente |
-| `/meus-pedidos` | carregou — “Meus pedidos” |
-| `/cashback` | carregou — “Meu cashback” |
-| `/perfil` | carregou — “Meu perfil” |
+Console: **nenhum erro no desktop**. No celular apareceram apenas `TypeError: Failed to fetch`
+do cliente de dados durante navegações encadeadas rápidas (requisição abortada ao trocar de
+página no script), com fallback já existente no catálogo; as telas renderizaram normalmente.
+Captura da home em `/tmp/browser/home/home_m.png` (ambiente temporário de teste).
 
-Erros de console: **nenhum**. Overflow horizontal: **nenhum** nas quatro telas.
-Capturas em `/tmp/browser/conta_*.png` (ambiente temporário de teste).
+## 3. Revisão da área do cliente (commit atual)
 
-## 4. O que é real e o que não foi testado de ponta a ponta
+- Única mudança server-side: tratamento de erro em `getMyCashback` (`src/lib/cashback.functions.ts`),
+  que agora falha com mensagem genérica em vez de virar R$ 0,00. RPCs e formato de sucesso intactos.
+- `src/lib/account.functions.ts` **não existe** — as leituras privadas usam
+  `src/lib/account-queries.ts` com cliente autenticado, RLS e filtro explícito por `user_id`.
+- Chaves de cache privadas incluem o id do usuário e só habilitam após a sessão
+  (`minha-conta`, `meus-pedidos`, `cashback`).
+- Troca de senha própria **removida**: `/perfil` agora só dispara o link de recuperação já
+  existente (`resetPasswordForEmail` → `/reset-password`).
+- Recompra: exige escolha na página do produto quando há variante nova/ausente, informa itens
+  indisponíveis, sucesso parcial e agora também **redução de quantidade** por estoque.
 
-Real: leitura de conta autenticada, saldo/validade de cashback, lista e resumo de pedidos,
-renderização e responsividade das telas.
+## 4. Home simplificada
 
-**Não testado com execução real** (por decisão de não tocar em dados de clientes nem em
-pagamento):
-- Conclusão de recompra até o carrinho com reserva de estoque em um produto real.
-- Falha proposital das RPCs de cashback (o novo tratamento de erro foi validado por leitura
-  de código e tipagem, não por indisponibilidade forçada do banco).
-- Salvamento do perfil de um cliente real.
-- Troca de conta/logout com duas contas reais distintas; a proteção foi implementada pelas
-  chaves de cache com id do usuário e `enabled` após a sessão.
+`src/routes/index.tsx`: hero compacto (título, subtítulo, busca, uma ação principal), vitrine
+única “Ofertas de hoje” (até 12 produtos reais em estoque, maior desconto primeiro), faixa de
+confiança e um bloco curto de cashback/retirada. Saíram: grade de categorias, segunda vitrine
+“Mais ofertas” e CTA final duplicado. SEO (title/description/OG/canonical/JSON-LD Store) e a
+taxa de cashback dinâmica foram preservados. Nenhuma urgência, escassez ou prazo inventado.
+
+## 5. Não testado de ponta a ponta
+
+- Conclusão de recompra até o carrinho com reserva de estoque em produto real.
+- Falha proposital das RPCs de cashback (validada por leitura de código e tipagem).
+- Salvamento do perfil de um cliente real e envio real do e-mail de troca de senha.
+- Troca de conta/logout com duas contas reais distintas.
