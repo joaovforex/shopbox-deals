@@ -87,27 +87,9 @@ function isValidCpf(v: string) {
 
 type DeliveryChoice = "pickup" | "delivery";
 
-// Curitiba + Região Metropolitana (atendidas pela Mais Entregas)
-const RMC_CITIES = [
-  "Curitiba",
-  "Almirante Tamandaré",
-  "Araucária",
-  "Campina Grande do Sul",
-  "Campo Largo",
-  "Campo Magro",
-  "Colombo",
-  "Fazenda Rio Grande",
-  "Pinhais",
-  "Piraquara",
-  "Quatro Barras",
-  "São José dos Pinhais",
-] as const;
+// Curitiba + Região Metropolitana (atendidas pela Mais Entregas).
+// Lista compartilhada com o bloco "Calcular entrega" da página de produto.
 
-function isRmcCity(name: string | undefined | null): boolean {
-  if (!name) return false;
-  const norm = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-  return RMC_CITIES.some((c) => c.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() === norm);
-}
 
 function CheckoutPage() {
   const { items, total, clear } = useCart();
