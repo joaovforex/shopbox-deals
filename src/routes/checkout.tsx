@@ -586,7 +586,7 @@ function CheckoutPage() {
                   </div>
                 )}
                 <p className="text-[11px] text-muted-foreground">
-                  Um entregador parceiro da Mais Entregas leva seu pedido em até 2 dias úteis após a confirmação do pagamento. Acompanhe em "Meus pedidos".
+                  Após a confirmação do pagamento, o pedido é separado e um entregador parceiro da Mais Entregas faz a coleta. Acompanhe cada etapa em "Meus pedidos".
                 </p>
               </div>
             )}
