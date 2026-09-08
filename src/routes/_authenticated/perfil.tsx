@@ -55,6 +55,8 @@ function ProfilePage() {
   const [city, setCity] = useState("Curitiba");
   const [stateUf, setStateUf] = useState("PR");
   const [cepBusy, setCepBusy] = useState(false);
+  const [coverageWarning, setCoverageWarning] = useState<string | null>(null);
+
 
   useEffect(() => {
     (async () => {
