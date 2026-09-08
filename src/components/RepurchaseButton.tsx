@@ -57,6 +57,7 @@ export function RepurchaseButton({ orderId, className }: { orderId: string; clas
 
       const added: string[] = [];
       const failed: string[] = [];
+      const reduced: string[] = [];
       for (const it of ready) {
         const p = it.product!;
         const qty = Math.max(1, Math.min(it.requested_quantity, p.stock));
@@ -73,6 +74,9 @@ export function RepurchaseButton({ orderId, className }: { orderId: string; clas
         );
         if (res === "ok") {
           added.push(p.name);
+          if (qty < it.requested_quantity) {
+            reduced.push(`${p.name}: só ${qty} de ${it.requested_quantity} em estoque`);
+          }
           trackAddToCart(toAnalyticsItem({ id: p.id, name: p.name, price: p.price }, qty));
         } else {
           failed.push(p.name);
@@ -82,6 +86,7 @@ export function RepurchaseButton({ orderId, className }: { orderId: string; clas
       const problems = [
         ...choices.map((c) => `${c.requested_name} ${REASON_LABEL[c.reason]}`),
         ...blocked.map((b) => `${b.requested_name} ${REASON_LABEL[b.reason] ?? "indisponível"}`),
+        ...reduced,
         ...failed.map((f) => `${f} não pôde ser adicionado`),
       ];
 
