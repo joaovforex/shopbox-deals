@@ -242,6 +242,20 @@ function ProductPage() {
     });
   }, [selectedColor, effectiveStock]);
 
+  // Analytics: view_item (sem dados pessoais)
+  useEffect(() => {
+    trackViewItem(
+      toAnalyticsItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        category: product.category,
+        brand: product.brand,
+      }),
+    );
+  }, [product.id, product.name, product.price, product.category, product.brand]);
+
+
   const off = discountPct(product.original_price, product.price);
   const url = typeof window !== "undefined" ? window.location.href : "";
   const hasDiscount = !!(product.original_price && product.original_price > product.price);
