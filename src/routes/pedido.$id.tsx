@@ -116,34 +116,59 @@ function OrderPage() {
             <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
 
             <div className="relative inline-flex h-20 w-20 items-center justify-center rounded-full bg-primary/20 text-primary mb-4 ring-4 ring-primary/10">
-              <CheckCircle2 className="h-12 w-12" strokeWidth={2.5} />
-              <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-accent" />
+              {isLoading || isError || notFound ? (
+                <Package className="h-11 w-11" strokeWidth={2.2} />
+              ) : (
+                <>
+                  <CheckCircle2 className="h-12 w-12" strokeWidth={2.5} />
+                  <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-accent" />
+                </>
+              )}
             </div>
 
             <h1 className="display text-3xl md:text-5xl mb-2">
-              {isCancelled ? "Pagamento não concluído"
+              {isLoading ? "Carregando pedido..."
+                : isError ? "Não conseguimos carregar"
+                : notFound ? "Pedido não encontrado"
+                : isCancelled ? "Pagamento não concluído"
                 : isPending ? "Aguardando pagamento"
-                : isDone ? (isDelivery ? "Pedido entregue!" : "Pedido entregue!")
+                : isDone ? "Pedido entregue!"
                 : isDelivery ? "EM ROTA DE ENTREGA"
                 : isReady ? "PRONTO PARA RETIRADA"
                 : isPreparing ? "EM SEPARAÇÃO"
                 : "Pagamento confirmado!"}
             </h1>
             <p className="text-muted-foreground">
-              {isCancelled
-                ? "Não recebemos a confirmação do pagamento."
-                : isPending
-                  ? "Assim que o pagamento for confirmado, atualizamos esta página automaticamente."
-                  : isDone
-                    ? "Obrigado pela compra! 💚"
-                    : isDelivery
-                      ? (meStatus ? `Status atual: ${meStatus}` : "Estamos preparando seu envio.")
-                      : isReady
-                        ? "Seu pedido já está separado e te aguarda na loja."
-                        : isPreparing
-                          ? "Nosso time está separando seus itens. Acompanhe o status em Meus Pedidos."
-                          : "Recebemos seu pedido com sucesso 🎉"}
+              {isLoading
+                ? "Buscando as informações deste pedido."
+                : isError
+                  ? "Verifique sua conexão e tente novamente."
+                  : notFound
+                    ? "Confira o link ou o número do pedido. Se você comprou agora, aguarde alguns instantes e atualize."
+                    : isCancelled
+                      ? "Não recebemos a confirmação do pagamento."
+                      : isPending
+                        ? "Assim que o pagamento for confirmado, atualizamos esta página automaticamente."
+                        : isDone
+                          ? "Obrigado pela compra! 💚"
+                          : isDelivery
+                            ? (meStatus ? `Status atual: ${meStatus.replace(/_/g, " ")}` : "Estamos preparando seu envio.")
+                            : isReady
+                              ? "Seu pedido já está separado e te aguarda na loja."
+                              : isPreparing
+                                ? "Nosso time está separando seus itens. Acompanhe o status em Meus Pedidos."
+                                : "Recebemos seu pedido com sucesso 🎉"}
             </p>
+            {isError && (
+              <button
+                type="button"
+                onClick={() => void refetch()}
+                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-md bg-secondary px-4 py-2 text-xs font-black uppercase tracking-wider hover:bg-muted"
+              >
+                Tentar de novo
+              </button>
+            )}
+
 
 
             <div className="inline-flex items-center gap-2 mt-4 bg-background/60 backdrop-blur border border-border px-4 py-2 rounded-full">
