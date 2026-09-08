@@ -39,8 +39,12 @@ function ProfilePage() {
   const update = useServerFn(updateMyProfile);
   const fetchCashback = useServerFn(getMyCashback);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [cashback, setCashback] = useState<{ balance: number; nextExpiry: { amount: number; expiresAt: string } | null }>({ balance: 0, nextExpiry: null });
+  const [loginEmail, setLoginEmail] = useState("");
+  const [cashback, setCashback] = useState<{ balance: number; nextExpiry: { amount: number; expiresAt: string } | null } | null>(null);
+  const [cashbackError, setCashbackError] = useState(false);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -60,34 +64,49 @@ function ProfilePage() {
 
   useEffect(() => {
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, phone, cpf, email, birth_date, address_zip, address_street, address_number, address_complement, address_district, address_city, address_state")
-        .eq("id", user.id)
-        .maybeSingle();
-      const p = (data ?? {}) as Record<string, string | null>;
-      setFullName(p.full_name ?? "");
-      setEmail(p.email ?? user.email ?? "");
-      setPhone(p.phone ? maskPhone(p.phone) : "");
-      setCpf(p.cpf ? maskCpf(p.cpf) : "");
-      setBirthDate(p.birth_date ?? "");
-      setZip(p.address_zip ? maskCep(p.address_zip) : "");
-      setStreet(p.address_street ?? "");
-      setNumber(p.address_number ?? "");
-      setComplement(p.address_complement ?? "");
-      setDistrict(p.address_district ?? "");
-      setCity(p.address_city ?? "Curitiba");
-      setStateUf(p.address_state ?? "PR");
-      setLoading(false);
+      setLoading(true);
+      setLoadError(null);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Sessão expirada. Entre novamente.");
+        setLoginEmail(user.email ?? "");
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("full_name, phone, cpf, email, birth_date, address_zip, address_street, address_number, address_complement, address_district, address_city, address_state")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (error) throw error;
+        const p = (data ?? {}) as Record<string, string | null>;
+        setFullName(p.full_name ?? "");
+        setEmail(p.email ?? user.email ?? "");
+        setPhone(p.phone ? maskPhone(p.phone) : "");
+        setCpf(p.cpf ? maskCpf(p.cpf) : "");
+        setBirthDate(p.birth_date ?? "");
+        setZip(p.address_zip ? maskCep(p.address_zip) : "");
+        setStreet(p.address_street ?? "");
+        setNumber(p.address_number ?? "");
+        setComplement(p.address_complement ?? "");
+        setDistrict(p.address_district ?? "");
+        setCity(p.address_city ?? "Curitiba");
+        setStateUf(p.address_state ?? "PR");
+      } catch (e) {
+        setLoadError(e instanceof Error ? e.message : "Não conseguimos carregar seus dados agora.");
+      } finally {
+        setLoading(false);
+      }
     })();
     (async () => {
+      // Falha de serviço não pode virar "R$ 0,00": guardamos o erro.
       try {
         const r = await fetchCashback();
+        setCashbackError(false);
         setCashback({ balance: Number(r.balance ?? 0), nextExpiry: r.nextExpiry ?? null });
-      } catch { /* noop */ }
+      } catch {
+        setCashback(null);
+        setCashbackError(true);
+      }
     })();
+
   }, [fetchCashback]);
 
   // Busca do CEP com o mesmo helper usado no checkout
