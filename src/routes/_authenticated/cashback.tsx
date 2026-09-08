@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, Wallet, AlertTriangle, RefreshCw } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { getMyCashback } from "@/lib/cashback.functions";
-import { getMyCashbackLedger } from "@/lib/account.functions";
+import { fetchMyCashbackLedger, fetchCashbackRate, currentUserId } from "@/lib/account-queries";
 import { brl } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/cashback")({
@@ -36,14 +36,30 @@ function entryLabel(kind: string): string {
 
 function CashbackPage() {
   const fetchBalance = useServerFn(getMyCashback);
-  const fetchLedger = useServerFn(getMyCashbackLedger);
 
-  const balanceQ = useQuery({ queryKey: ["cashback-balance"], queryFn: () => fetchBalance() });
-  const ledgerQ = useQuery({ queryKey: ["cashback-ledger"], queryFn: () => fetchLedger() });
+  // Sessão primeiro: as chaves de cache carregam o id do usuário, então
+  // trocar de conta (ou sair) nunca reaproveita dados de outra pessoa.
+  const userQ = useQuery({ queryKey: ["session-user-id"], queryFn: currentUserId, staleTime: 0 });
+  const uid = userQ.data ?? null;
 
+  const balanceQ = useQuery({
+    queryKey: ["cashback-balance", uid],
+    queryFn: () => fetchBalance(),
+    enabled: !!uid,
+  });
+  const ledgerQ = useQuery({
+    queryKey: ["cashback-ledger", uid],
+    queryFn: () => fetchMyCashbackLedger(uid!),
+    enabled: !!uid,
+  });
+  const rateQ = useQuery({ queryKey: ["cashback-rate"], queryFn: fetchCashbackRate, staleTime: 300_000 });
+
+  const balanceFailed = balanceQ.isError;
   const balance = Number(balanceQ.data?.balance ?? 0);
   const nextExpiry = balanceQ.data?.nextExpiry ?? null;
-  const entries = ledgerQ.data?.entries ?? [];
+  const entries = ledgerQ.data ?? [];
+  const rate = rateQ.data ?? null;
+
 
   return (
     <div className="min-h-screen flex flex-col">
