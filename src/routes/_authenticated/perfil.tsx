@@ -187,6 +187,17 @@ function ProfilePage() {
       <form onSubmit={submit} className="container mx-auto px-4 py-6 flex-1 max-w-3xl space-y-5">
         {loading ? (
           <div className="text-muted-foreground">Carregando...</div>
+        ) : loadError ? (
+          <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-5 text-sm">
+            <p className="font-bold text-destructive">{loadError}</p>
+            <button
+              type="button"
+              onClick={() => setReloadKey((k) => k + 1)}
+              className="mt-3 inline-flex min-h-11 items-center rounded-md bg-secondary px-4 py-2 text-xs font-black uppercase tracking-wider hover:bg-muted"
+            >
+              Tentar de novo
+            </button>
+          </div>
         ) : (
           <>
             <div className="bg-gradient-to-br from-[#25D366]/15 to-[#25D366]/5 border-2 border-[#25D366]/40 rounded-xl p-5">
@@ -197,10 +208,14 @@ function ProfilePage() {
                   </div>
                   <div>
                     <div className="text-xs uppercase tracking-widest text-[#25D366] font-bold">Saldo de cashback</div>
-                    <div className="display text-3xl text-[#25D366]">{brl(cashback.balance)}</div>
+                    {cashbackError || !cashback ? (
+                      <div className="text-sm font-bold text-destructive">Saldo indisponível agora</div>
+                    ) : (
+                      <div className="display text-3xl text-[#25D366]">{brl(cashback.balance)}</div>
+                    )}
                   </div>
                 </div>
-                {cashback.nextExpiry && cashback.nextExpiry.amount > 0 && (
+                {cashback?.nextExpiry && cashback.nextExpiry.amount > 0 && (
                   <div className="text-xs text-right">
                     <div className="text-muted-foreground">A vencer:</div>
                     <div className="font-bold">{brl(cashback.nextExpiry.amount)}</div>
@@ -211,7 +226,7 @@ function ProfilePage() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground mt-3">
-                Você ganha <strong>5% de cashback</strong> em todas as compras. O valor fica disponível por 30 dias e pode ser usado como desconto em qualquer pedido futuro.
+                Você ganha cashback nas suas compras. O valor fica disponível por 30 dias e pode ser usado como desconto em qualquer pedido futuro.
               </p>
             </div>
 
@@ -221,6 +236,11 @@ function ProfilePage() {
                 <Field required label="Email" type="email" value={email} onChange={setEmail} placeholder="voce@email.com" />
                 <Field required label="WhatsApp" value={phone} onChange={(v) => setPhone(maskPhone(v))} placeholder="(41) 99999-9999" inputMode="tel" />
               </div>
+              <p className="text-xs text-muted-foreground">
+                Esse é o e-mail para contato sobre os pedidos. Ele não altera o e-mail que você usa para entrar na conta
+                {loginEmail ? <> (<strong>{loginEmail}</strong>)</> : null}.
+              </p>
+
               <div className="grid sm:grid-cols-2 gap-3">
                 <Field label="CPF" value={cpf} onChange={(v) => setCpf(maskCpf(v))} placeholder="000.000.000-00" inputMode="numeric" />
                 <Field label="Data de nascimento" type="date" value={birthDate} onChange={setBirthDate} />
