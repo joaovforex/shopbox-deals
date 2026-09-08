@@ -75,6 +75,7 @@ function HomePage() {
   return (
     <div className="min-h-screen flex flex-col overflow-x-hidden">
       <Header />
+      <AnnouncementBanner />
 
       <script
         type="application/ld+json"
