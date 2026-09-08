@@ -52,8 +52,8 @@ export function RelatedProducts({
       .slice(0, 4);
   }, [data, excludeId]);
 
-  const inStock = items.filter((p) => p.stock > 0);
-  const selectedItems = inStock.filter((p) => selected.includes(p.id));
+  const selectable = items.filter((p) => p.stock > 0 && !requiresVariantChoice(p));
+  const selectedItems = selectable.filter((p) => selected.includes(p.id));
   const selectedTotal = selectedItems.reduce((s, p) => s + p.price, 0);
 
   if (!enabled || !data || items.length === 0) return null;
@@ -77,9 +77,9 @@ export function RelatedProducts({
       return;
     }
     setBusy(true);
-    let ok = 0;
+    const added: string[] = [];
+    const failed: string[] = [];
     for (const p of selectedItems) {
-      if (p.stock <= 0) continue;
       const res = await add(
         {
           id: p.id,
@@ -91,14 +91,30 @@ export function RelatedProducts({
         },
         1,
       );
-      if (res === "ok") ok += 1;
+      if (res === "ok") {
+        added.push(p.id);
+        trackAddToCart(
+          toAnalyticsItem({ id: p.id, name: p.name, price: p.price, category }, 1),
+        );
+      } else {
+        failed.push(p.name);
+      }
     }
     setBusy(false);
-    if (ok > 0) {
-      toast.success(`${ok} ${ok === 1 ? "produto adicionado" : "produtos adicionados"} ao carrinho`);
-      setSelected([]);
+    setSelected((prev) => prev.filter((id) => !added.includes(id)));
+    if (added.length > 0 && failed.length === 0) {
+      toast.success(
+        `${added.length} ${added.length === 1 ? "produto adicionado" : "produtos adicionados"} ao carrinho`,
+      );
+    } else if (added.length > 0) {
+      toast.warning(
+        `${added.length} adicionado(s). Não foi possível adicionar: ${failed.join(", ")}.`,
+      );
+    } else {
+      toast.error("Não foi possível adicionar os itens selecionados.");
     }
   };
+
 
   return (
     <section className="mt-12 border-t border-border pt-8">
