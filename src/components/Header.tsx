@@ -295,7 +295,7 @@ export function MobileBottomNav() {
     }`;
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur border-t-2 border-primary safe-area">
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-5">
         <Link
           to="/"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
@@ -323,16 +323,23 @@ export function MobileBottomNav() {
         <Link to="/carrinho" className={item(path === "/carrinho") + " relative"}>
           <ShoppingCart className="h-5 w-5" />
           {count > 0 && (
-            <span className="absolute top-1 right-[22%] bg-accent text-accent-foreground text-[9px] font-bold rounded-full h-4 min-w-4 flex items-center justify-center px-1">
+            <span className="absolute top-1 right-[18%] bg-accent text-accent-foreground text-[9px] font-bold rounded-full h-4 min-w-4 flex items-center justify-center px-1">
               {count}
             </span>
           )}
           Carrinho
         </Link>
+        <Link
+          to="/minha-conta"
+          className={item(path.startsWith("/minha-conta") || path === "/perfil" || path === "/meus-pedidos" || path === "/cashback")}
+        >
+          <User className="h-5 w-5" /> Conta
+        </Link>
       </div>
     </nav>
   );
 }
+
 
 export function Footer() {
   return (
