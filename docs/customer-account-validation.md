@@ -80,6 +80,15 @@ cashback dinâmica foram preservados. Nenhuma urgência, escassez ou prazo inven
 - 1280x1800 anônimo: sem overflow, navegação desktop completa preservada, banner presente.
 - Console sem erros nas três execuções. Typecheck (`tsgo`) e `bun test` (5 testes, 14 expect) OK.
 
+### 4.4 Carrossel de banners: auditado e bloqueado antes do schema
+
+- O carrossel administrável **não** foi implementado: `public.site_settings` só tem
+  `banner_desktop_url` e `banner_mobile_url`, o que não comporta vários slides. A mudança
+  exige nova tabela, então parou-se para documentar antes de qualquer alteração de banco.
+- Proposta completa (tabela, RLS, storage, migração, admin, frontend, analytics, aceite,
+  riscos): `docs/banner-carousel-plan.md`.
+- Auditoria de conversão/UX priorizada (P0/P1/P2): `docs/conversion-ux-audit.md`.
+
 ## 5. Não testado de ponta a ponta
 
 - Conclusão de recompra até o carrinho com reserva de estoque em produto real.
