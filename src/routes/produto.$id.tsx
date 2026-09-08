@@ -338,8 +338,15 @@ function ProductPage() {
       unidade_id: product.unidade_id ?? null,
     }, qty);
     if (result === "ok") {
+      trackAddToCart(
+        toAnalyticsItem(
+          { id: product.id, name: product.name, price: product.price, category: product.category, brand: product.brand },
+          qty,
+        ),
+      );
       toast.success(`Adicionado ao carrinho (${qty}x)${selectedColor ? ` · ${selectedColor}` : ""}`);
     }
+
   };
 
   const buyNow = async () => {
