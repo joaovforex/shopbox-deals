@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Package, Store, Clock, ArrowRight, Sparkles, Truck, AlertTriangle, CreditCard } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { getPublicOrder } from "@/lib/orders.functions";
-import { getMyOrder } from "@/lib/account.functions";
+import { fetchMyOrder } from "@/lib/account-queries";
 import { RepurchaseButton } from "@/components/RepurchaseButton";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -26,14 +26,17 @@ export const Route = createFileRoute("/pedido/$id")({
 function OrderPage() {
   const { id } = Route.useParams();
   const fetchOrder = useServerFn(getPublicOrder);
-  const fetchMine = useServerFn(getMyOrder);
-  const [signedIn, setSignedIn] = useState(false);
+  const [uid, setUid] = useState<string | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setSignedIn(!!data.user));
+    supabase.auth.getUser().then(({ data }) => {
+      setUid(data.user?.id ?? null);
+      setSessionChecked(true);
+    });
   }, []);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["order", id],
     queryFn: () => fetchOrder({ data: { id } }),
     refetchInterval: (q) => {
@@ -46,15 +49,17 @@ function OrderPage() {
   });
 
   // Quando quem abre é o próprio dono logado, mostramos o detalhe completo
-  // (variantes, endereço, frete e cashback) sem máscara. A leitura acima
-  // continua igual para links compartilhados.
+  // (variantes, endereço, frete e cashback). A leitura acima continua igual e
+  // mascarada para links compartilhados.
   const { data: mine } = useQuery({
-    queryKey: ["my-order-detail", id],
-    queryFn: () => fetchMine({ data: { id } }),
-    enabled: signedIn,
+    queryKey: ["my-order-detail", id, uid],
+    queryFn: () => fetchMyOrder(id, uid!),
+    enabled: !!uid,
     retry: false,
   });
   const owned = mine?.order ?? null;
+  const notFound = !isLoading && !isError && !data?.order;
+
 
 
   const order = data?.order;
@@ -111,34 +116,59 @@ function OrderPage() {
             <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
 
             <div className="relative inline-flex h-20 w-20 items-center justify-center rounded-full bg-primary/20 text-primary mb-4 ring-4 ring-primary/10">
-              <CheckCircle2 className="h-12 w-12" strokeWidth={2.5} />
-              <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-accent" />
+              {isLoading || isError || notFound ? (
+                <Package className="h-11 w-11" strokeWidth={2.2} />
+              ) : (
+                <>
+                  <CheckCircle2 className="h-12 w-12" strokeWidth={2.5} />
+                  <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-accent" />
+                </>
+              )}
             </div>
 
             <h1 className="display text-3xl md:text-5xl mb-2">
-              {isCancelled ? "Pagamento não concluído"
+              {isLoading ? "Carregando pedido..."
+                : isError ? "Não conseguimos carregar"
+                : notFound ? "Pedido não encontrado"
+                : isCancelled ? "Pagamento não concluído"
                 : isPending ? "Aguardando pagamento"
-                : isDone ? (isDelivery ? "Pedido entregue!" : "Pedido entregue!")
+                : isDone ? "Pedido entregue!"
                 : isDelivery ? "EM ROTA DE ENTREGA"
                 : isReady ? "PRONTO PARA RETIRADA"
                 : isPreparing ? "EM SEPARAÇÃO"
                 : "Pagamento confirmado!"}
             </h1>
             <p className="text-muted-foreground">
-              {isCancelled
-                ? "Não recebemos a confirmação do pagamento."
-                : isPending
-                  ? "Assim que o pagamento for confirmado, atualizamos esta página automaticamente."
-                  : isDone
-                    ? "Obrigado pela compra! 💚"
-                    : isDelivery
-                      ? (meStatus ? `Status atual: ${meStatus}` : "Estamos preparando seu envio.")
-                      : isReady
-                        ? "Seu pedido já está separado e te aguarda na loja."
-                        : isPreparing
-                          ? "Nosso time está separando seus itens. Acompanhe o status em Meus Pedidos."
-                          : "Recebemos seu pedido com sucesso 🎉"}
+              {isLoading
+                ? "Buscando as informações deste pedido."
+                : isError
+                  ? "Verifique sua conexão e tente novamente."
+                  : notFound
+                    ? "Confira o link ou o número do pedido. Se você comprou agora, aguarde alguns instantes e atualize."
+                    : isCancelled
+                      ? "Não recebemos a confirmação do pagamento."
+                      : isPending
+                        ? "Assim que o pagamento for confirmado, atualizamos esta página automaticamente."
+                        : isDone
+                          ? "Obrigado pela compra! 💚"
+                          : isDelivery
+                            ? (meStatus ? `Status atual: ${meStatus.replace(/_/g, " ")}` : "Estamos preparando seu envio.")
+                            : isReady
+                              ? "Seu pedido já está separado e te aguarda na loja."
+                              : isPreparing
+                                ? "Nosso time está separando seus itens. Acompanhe o status em Meus Pedidos."
+                                : "Recebemos seu pedido com sucesso 🎉"}
             </p>
+            {isError && (
+              <button
+                type="button"
+                onClick={() => void refetch()}
+                className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-md bg-secondary px-4 py-2 text-xs font-black uppercase tracking-wider hover:bg-muted"
+              >
+                Tentar de novo
+              </button>
+            )}
+
 
 
             <div className="inline-flex items-center gap-2 mt-4 bg-background/60 backdrop-blur border border-border px-4 py-2 rounded-full">
@@ -185,15 +215,15 @@ function OrderPage() {
             </div>
           )}
 
-          {/* DELIVERY OR PICKUP INFO */}
-          {isDelivery ? (
+          {/* DELIVERY OR PICKUP INFO — só quando o pedido realmente carregou */}
+          {order && (isDelivery ? (
             <div className="rounded-xl border-2 p-5 mb-6 flex gap-4 border-primary bg-primary/5">
               <div className="shrink-0 h-11 w-11 rounded-full flex items-center justify-center bg-primary text-primary-foreground">
                 <Truck className="h-5 w-5" />
               </div>
               <div className="text-sm flex-1">
                 <p className="font-bold text-foreground mb-1">Entrega em casa</p>
-                {order?.shipping_city && (
+                {order.shipping_city && (
                   <p className="text-foreground font-semibold">
                     {order.shipping_city}/{order.shipping_state ?? "PR"}
                   </p>
@@ -228,13 +258,14 @@ function OrderPage() {
                   <Clock className="h-3.5 w-3.5" /> {STORE_HOURS}
                 </p>
                 {isPaid && !isDone && !isCancelled && (
-                  <p className="mt-3 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-3 py-2 rounded">
-                    ⏰ Você tem até 5 dias para retirar o produto na loja.
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Avisamos por aqui e em Meus Pedidos assim que a separação terminar.
                   </p>
                 )}
               </div>
             </div>
-          )}
+          ))}
+
 
 
           {/* ORDER DETAILS */}
@@ -270,11 +301,24 @@ function OrderPage() {
                 <div><strong className="text-foreground">Pagamento:</strong> {data.order.payment_method.toUpperCase()}</div>
               </div>
             </div>
+          ) : isError ? (
+            <div className="bg-card border border-destructive/40 rounded-xl p-6 text-center text-sm">
+              <p className="font-bold text-destructive">Não conseguimos carregar este pedido</p>
+              <button
+                type="button"
+                onClick={() => void refetch()}
+                className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-md bg-secondary px-4 py-2 text-xs font-black uppercase tracking-wider hover:bg-muted"
+              >
+                Tentar de novo
+              </button>
+            </div>
           ) : (
             <div className="bg-card border border-border rounded-xl p-6 text-center text-sm text-muted-foreground">
-              Seu pedido foi registrado. Guarde o número <span className="font-mono font-bold">#{shortId}</span> para retirar na loja.
+              Não localizamos o pedido <span className="font-mono font-bold">#{shortId}</span>. Confira o link recebido ou
+              veja a lista completa em <Link to="/meus-pedidos" className="underline">Meus Pedidos</Link>.
             </div>
           )}
+
 
           {owned && (
             <div className="bg-card border border-border rounded-xl p-6 mt-4 space-y-3">

@@ -39,8 +39,12 @@ function ProfilePage() {
   const update = useServerFn(updateMyProfile);
   const fetchCashback = useServerFn(getMyCashback);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [cashback, setCashback] = useState<{ balance: number; nextExpiry: { amount: number; expiresAt: string } | null }>({ balance: 0, nextExpiry: null });
+  const [loginEmail, setLoginEmail] = useState("");
+  const [cashback, setCashback] = useState<{ balance: number; nextExpiry: { amount: number; expiresAt: string } | null } | null>(null);
+  const [cashbackError, setCashbackError] = useState(false);
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -60,35 +64,50 @@ function ProfilePage() {
 
   useEffect(() => {
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, phone, cpf, email, birth_date, address_zip, address_street, address_number, address_complement, address_district, address_city, address_state")
-        .eq("id", user.id)
-        .maybeSingle();
-      const p = (data ?? {}) as Record<string, string | null>;
-      setFullName(p.full_name ?? "");
-      setEmail(p.email ?? user.email ?? "");
-      setPhone(p.phone ? maskPhone(p.phone) : "");
-      setCpf(p.cpf ? maskCpf(p.cpf) : "");
-      setBirthDate(p.birth_date ?? "");
-      setZip(p.address_zip ? maskCep(p.address_zip) : "");
-      setStreet(p.address_street ?? "");
-      setNumber(p.address_number ?? "");
-      setComplement(p.address_complement ?? "");
-      setDistrict(p.address_district ?? "");
-      setCity(p.address_city ?? "Curitiba");
-      setStateUf(p.address_state ?? "PR");
-      setLoading(false);
+      setLoading(true);
+      setLoadError(null);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Sessão expirada. Entre novamente.");
+        setLoginEmail(user.email ?? "");
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("full_name, phone, cpf, email, birth_date, address_zip, address_street, address_number, address_complement, address_district, address_city, address_state")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (error) throw error;
+        const p = (data ?? {}) as Record<string, string | null>;
+        setFullName(p.full_name ?? "");
+        setEmail(p.email ?? user.email ?? "");
+        setPhone(p.phone ? maskPhone(p.phone) : "");
+        setCpf(p.cpf ? maskCpf(p.cpf) : "");
+        setBirthDate(p.birth_date ?? "");
+        setZip(p.address_zip ? maskCep(p.address_zip) : "");
+        setStreet(p.address_street ?? "");
+        setNumber(p.address_number ?? "");
+        setComplement(p.address_complement ?? "");
+        setDistrict(p.address_district ?? "");
+        setCity(p.address_city ?? "Curitiba");
+        setStateUf(p.address_state ?? "PR");
+      } catch (e) {
+        setLoadError(e instanceof Error ? e.message : "Não conseguimos carregar seus dados agora.");
+      } finally {
+        setLoading(false);
+      }
     })();
     (async () => {
+      // Falha de serviço não pode virar "R$ 0,00": guardamos o erro.
       try {
         const r = await fetchCashback();
+        setCashbackError(false);
         setCashback({ balance: Number(r.balance ?? 0), nextExpiry: r.nextExpiry ?? null });
-      } catch { /* noop */ }
+      } catch {
+        setCashback(null);
+        setCashbackError(true);
+      }
     })();
-  }, [fetchCashback]);
+
+  }, [fetchCashback, reloadKey]);
 
   // Busca do CEP com o mesmo helper usado no checkout
   useEffect(() => {
@@ -168,6 +187,17 @@ function ProfilePage() {
       <form onSubmit={submit} className="container mx-auto px-4 py-6 flex-1 max-w-3xl space-y-5">
         {loading ? (
           <div className="text-muted-foreground">Carregando...</div>
+        ) : loadError ? (
+          <div className="rounded-xl border border-destructive/40 bg-destructive/5 p-5 text-sm">
+            <p className="font-bold text-destructive">{loadError}</p>
+            <button
+              type="button"
+              onClick={() => setReloadKey((k) => k + 1)}
+              className="mt-3 inline-flex min-h-11 items-center rounded-md bg-secondary px-4 py-2 text-xs font-black uppercase tracking-wider hover:bg-muted"
+            >
+              Tentar de novo
+            </button>
+          </div>
         ) : (
           <>
             <div className="bg-gradient-to-br from-[#25D366]/15 to-[#25D366]/5 border-2 border-[#25D366]/40 rounded-xl p-5">
@@ -178,10 +208,14 @@ function ProfilePage() {
                   </div>
                   <div>
                     <div className="text-xs uppercase tracking-widest text-[#25D366] font-bold">Saldo de cashback</div>
-                    <div className="display text-3xl text-[#25D366]">{brl(cashback.balance)}</div>
+                    {cashbackError || !cashback ? (
+                      <div className="text-sm font-bold text-destructive">Saldo indisponível agora</div>
+                    ) : (
+                      <div className="display text-3xl text-[#25D366]">{brl(cashback.balance)}</div>
+                    )}
                   </div>
                 </div>
-                {cashback.nextExpiry && cashback.nextExpiry.amount > 0 && (
+                {cashback?.nextExpiry && cashback.nextExpiry.amount > 0 && (
                   <div className="text-xs text-right">
                     <div className="text-muted-foreground">A vencer:</div>
                     <div className="font-bold">{brl(cashback.nextExpiry.amount)}</div>
@@ -192,7 +226,7 @@ function ProfilePage() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground mt-3">
-                Você ganha <strong>5% de cashback</strong> em todas as compras. O valor fica disponível por 30 dias e pode ser usado como desconto em qualquer pedido futuro.
+                Você ganha cashback nas suas compras. O valor fica disponível por 30 dias e pode ser usado como desconto em qualquer pedido futuro.
               </p>
             </div>
 
@@ -202,6 +236,11 @@ function ProfilePage() {
                 <Field required label="Email" type="email" value={email} onChange={setEmail} placeholder="voce@email.com" />
                 <Field required label="WhatsApp" value={phone} onChange={(v) => setPhone(maskPhone(v))} placeholder="(41) 99999-9999" inputMode="tel" />
               </div>
+              <p className="text-xs text-muted-foreground">
+                Esse é o e-mail para contato sobre os pedidos. Ele não altera o e-mail que você usa para entrar na conta
+                {loginEmail ? <> (<strong>{loginEmail}</strong>)</> : null}.
+              </p>
+
               <div className="grid sm:grid-cols-2 gap-3">
                 <Field label="CPF" value={cpf} onChange={(v) => setCpf(maskCpf(v))} placeholder="000.000.000-00" inputMode="numeric" />
                 <Field label="Data de nascimento" type="date" value={birthDate} onChange={setBirthDate} />

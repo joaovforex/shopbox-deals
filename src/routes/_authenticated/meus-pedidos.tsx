@@ -12,6 +12,8 @@ import { resumeCieloPayment } from "@/lib/cielo.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { DeliveryUpgradeButton } from "@/components/DeliveryUpgradeButton";
 import { RepurchaseButton } from "@/components/RepurchaseButton";
+import { currentUserId } from "@/lib/account-queries";
+
 import { toast } from "sonner";
 
 
@@ -86,15 +88,18 @@ function MyOrdersPage() {
   // Paginação simples: começa com 10 pedidos e vai carregando mais sob demanda.
   const PAGE = 10;
   const [limit, setLimit] = useState(PAGE);
+  // A chave de cache carrega o id do usuário: trocar de conta nunca mostra
+  // pedidos da conta anterior.
+  const userQ = useQuery({ queryKey: ["session-user-id"], queryFn: currentUserId, staleTime: 0 });
+  const uid = userQ.data ?? null;
   const { data: page, isLoading, isError, isFetching, refetch } = useQuery({
-    queryKey: ["my-orders", limit],
+    queryKey: ["my-orders", uid, limit],
+    enabled: !!uid,
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return { rows: [] as Row[], hasMore: false };
       const { data, error } = await supabase
         .from("orders")
         .select("id, created_at, status, fulfillment_status, total, payment_method, delivery_method, shipping_street, shipping_number, shipping_district, shipping_city, maisentregas_order_id, maisentregas_status, order_items(id, product_name, quantity)")
-        .eq("user_id", user.id)
+        .eq("user_id", uid!)
         .order("created_at", { ascending: false })
         .limit(limit + 1);
       if (error) throw error;
@@ -106,6 +111,7 @@ function MyOrdersPage() {
     refetchOnWindowFocus: true,
   });
   const orders = page?.rows;
+
 
 
   useEffect(() => {
