@@ -140,6 +140,7 @@ function AgendadorCanalPage() {
         .from("products")
         .select("id,name,description,price,original_price,category,image_url,stock,active")
         .eq("active", true)
+        .gt("stock", 0)
         .order("created_at", { ascending: false })
         .limit(2000);
       if (cancelled) return;
@@ -171,7 +172,12 @@ function AgendadorCanalPage() {
     return m;
   }, [products]);
 
-  const pending = queue.filter((q) => !q.sent_at);
+  // Produtos esgotados (ou inativos) nunca entram no rodízio de compartilhamento.
+  const pending = queue.filter((q) => {
+    if (q.sent_at) return false;
+    const p = productById.get(q.product_id);
+    return !!p && p.stock > 0;
+  });
   const done = queue.filter((q) => !!q.sent_at);
 
   // Motor: quando next fire chega, sinaliza produto pronto
