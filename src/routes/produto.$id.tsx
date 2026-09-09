@@ -270,6 +270,7 @@ function ProductPage() {
     "",
     hasDiscount ? `DE ~${brl(product.original_price!)}~` : null,
     `POR ${brl(product.price)}${off > 0 ? ` (${off}% OFF)` : ""}`,
+    (() => { const inst = installmentLabel(product.price); return inst ? `💳 ${inst}` : null; })(),
     product.description ? "" : null,
     product.description ?? null,
     "",
