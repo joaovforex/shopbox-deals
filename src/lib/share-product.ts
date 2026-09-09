@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { brl, discountPct } from "@/lib/format";
 import { optimizedImage } from "@/lib/image-url";
+import { installmentLabel } from "@/lib/installments";
 
 export type ShareableProduct = {
   id: string;
@@ -22,6 +23,11 @@ export function buildShareText(p: ShareableProduct): string {
     lines.push(`De ~${brl(p.original_price)}~ por *${brl(p.price)}*${off > 0 ? ` (${off}% OFF!)` : ""}`);
   } else {
     lines.push(`Por *${brl(p.price)}*${off > 0 ? ` (${off}% OFF!)` : ""}`);
+  }
+
+  const installment = installmentLabel(p.price);
+  if (installment) {
+    lines.push(`💳 *${installment}*`);
   }
 
   if (typeof p.cashback_percent === "number" && p.cashback_percent > 0) {

@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StarRatingCompact } from "@/components/StarRating";
 import { reviewsSummaryQuery } from "@/lib/reviews";
 import { trackAddToCart, toAnalyticsItem } from "@/lib/analytics";
+import { installmentLabel } from "@/lib/installments";
 
 /** Produto exige escolha de cor/variante antes de ir ao carrinho? */
 export function requiresVariantChoice(
@@ -36,6 +37,7 @@ export function ProductCard({ product, priority = false }: { product: Product | 
   const { data: reviews } = useQuery(reviewsSummaryQuery(product.id));
 
   const needsVariant = requiresVariantChoice(product);
+  const installment = installmentLabel(product.price);
 
   const cartItem = {
     id: product.id,
@@ -170,6 +172,11 @@ export function ProductCard({ product, priority = false }: { product: Product | 
               </span>
             )}
           </div>
+          {installment && (
+            <span className="mt-1 block min-h-4 text-[11px] leading-tight text-muted-foreground sm:text-xs">
+              {installment}
+            </span>
+          )}
         </div>
 
         {product.stock > 0 && needsVariant && (
