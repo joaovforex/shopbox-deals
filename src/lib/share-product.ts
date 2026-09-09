@@ -93,6 +93,44 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
+/** Converte qualquer imagem para PNG (formato aceito pela área de transferência). */
+async function toPngBlob(file: File): Promise<Blob | null> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(bitmap, 0, 0);
+    bitmap.close?.();
+    return await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Copia foto + texto juntos: um único ClipboardItem com image/png e text/plain.
+ * No WhatsApp Web o primeiro Ctrl+V anexa a foto e o segundo (na legenda) cola o texto.
+ */
+async function copyImageWithText(file: File, text: string): Promise<boolean> {
+  try {
+    if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write) return false;
+    const png = await toPngBlob(file);
+    if (!png) return false;
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        "image/png": png,
+        "text/plain": new Blob([text], { type: "text/plain" }),
+      }),
+    ]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function triggerImageDownload(file: File) {
   try {
     const url = URL.createObjectURL(file);
@@ -150,13 +188,30 @@ export async function shareProduct(p: ShareableProduct): Promise<boolean> {
     }
   }
 
-  // 3) Fallback desktop: baixa foto + copia texto + abre WhatsApp Web
+  // 3) Desktop: copia foto + texto juntos (mesmo conteúdo do celular, em um só item)
+  if (file) {
+    const bundled = await copyImageWithText(file, text);
+    if (bundled) {
+      toast.success(
+        "Foto e texto copiados juntos. No WhatsApp Web: Ctrl+V para anexar a foto e Ctrl+V de novo na legenda para o texto.",
+        { duration: 9000 },
+      );
+      try {
+        window.open(`https://web.whatsapp.com/`, "_blank", "noopener,noreferrer");
+      } catch {
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+      }
+      return true;
+    }
+  }
+
+  // 4) Último recurso: baixa a foto + copia o texto
   const copied = await copyText(text);
   if (file) triggerImageDownload(file);
 
   if (file && copied) {
     toast.success(
-      "No computador o WhatsApp não anexa a foto sozinho. Baixamos a imagem e copiamos o texto — arraste a imagem para o Canal e cole o texto.",
+      "Baixamos a imagem e copiamos o texto — arraste a imagem para o Canal e cole o texto na legenda.",
       { duration: 9000 },
     );
   } else if (file) {
