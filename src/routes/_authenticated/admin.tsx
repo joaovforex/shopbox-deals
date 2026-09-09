@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { adminProductsInfiniteQuery, getRoleSummary, type Product, type RoleSummary } from "@/lib/products";
 import { claimFirstAdmin } from "@/lib/admin.functions";
 import { brl, discountPct, postDate } from "@/lib/format";
+import { installmentLabel } from "@/lib/installments";
 import { cn } from "@/lib/utils";
 import { ProductForm, PRODUCT_FORM_DRAFT_KEY as DRAFT_KEY } from "@/components/ProductForm";
 import { BulkShareDialog } from "@/components/BulkShareDialog";
