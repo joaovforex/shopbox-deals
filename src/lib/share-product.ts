@@ -93,6 +93,44 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
+/** Converte qualquer imagem para PNG (formato aceito pela área de transferência). */
+async function toPngBlob(file: File): Promise<Blob | null> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(bitmap, 0, 0);
+    bitmap.close?.();
+    return await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Copia foto + texto juntos: um único ClipboardItem com image/png e text/plain.
+ * No WhatsApp Web o primeiro Ctrl+V anexa a foto e o segundo (na legenda) cola o texto.
+ */
+async function copyImageWithText(file: File, text: string): Promise<boolean> {
+  try {
+    if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write) return false;
+    const png = await toPngBlob(file);
+    if (!png) return false;
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        "image/png": png,
+        "text/plain": new Blob([text], { type: "text/plain" }),
+      }),
+    ]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function triggerImageDownload(file: File) {
   try {
     const url = URL.createObjectURL(file);
