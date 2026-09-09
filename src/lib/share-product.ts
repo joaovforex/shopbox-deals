@@ -188,13 +188,30 @@ export async function shareProduct(p: ShareableProduct): Promise<boolean> {
     }
   }
 
-  // 3) Fallback desktop: baixa foto + copia texto + abre WhatsApp Web
+  // 3) Desktop: copia foto + texto juntos (mesmo conteúdo do celular, em um só item)
+  if (file) {
+    const bundled = await copyImageWithText(file, text);
+    if (bundled) {
+      toast.success(
+        "Foto e texto copiados juntos. No WhatsApp Web: Ctrl+V para anexar a foto e Ctrl+V de novo na legenda para o texto.",
+        { duration: 9000 },
+      );
+      try {
+        window.open(`https://web.whatsapp.com/`, "_blank", "noopener,noreferrer");
+      } catch {
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+      }
+      return true;
+    }
+  }
+
+  // 4) Último recurso: baixa a foto + copia o texto
   const copied = await copyText(text);
   if (file) triggerImageDownload(file);
 
   if (file && copied) {
     toast.success(
-      "No computador o WhatsApp não anexa a foto sozinho. Baixamos a imagem e copiamos o texto — arraste a imagem para o Canal e cole o texto.",
+      "Baixamos a imagem e copiamos o texto — arraste a imagem para o Canal e cole o texto na legenda.",
       { duration: 9000 },
     );
   } else if (file) {
