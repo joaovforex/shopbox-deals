@@ -293,6 +293,7 @@ function AdminPage() {
     const text = [
       `🔥 *${p.name}*`,
       `Por ${brl(p.price)}${off > 0 ? ` (${off}% OFF!)` : ""}`,
+      (() => { const inst = installmentLabel(p.price); return inst ? `💳 *${inst}*` : null; })(),
       p.description ? "" : null,
       p.description ?? null,
       "",
