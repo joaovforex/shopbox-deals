@@ -121,7 +121,8 @@ function DeliveryUpgradeDialog({ orderId, onClose }: { orderId: string; onClose:
             <div className="text-xs uppercase tracking-widest text-accent font-bold">Converter para entrega</div>
             <h2 className="display text-xl">Endereço de entrega</h2>
             <p className="text-xs text-muted-foreground mt-1">
-              Frete pago por Pix. Entregamos apenas em Curitiba e região metropolitana.
+              O frete é calculado pelo endereço, igual ao checkout. Entregamos apenas em Curitiba e
+              região metropolitana.
             </p>
           </div>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground p-1" aria-label="Fechar">
