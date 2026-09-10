@@ -2,7 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const DELIVERY_UPGRADE_FEE = 12;
+// O frete da conversão é sempre cotado na transportadora (mesmo cálculo do
+// checkout). Nada de valor fixo — antes ficava travado em R$12.
 
 const RMC = [
   "curitiba","almirante tamandare","araucaria","campina grande do sul",
