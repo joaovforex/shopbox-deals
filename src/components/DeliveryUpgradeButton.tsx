@@ -145,17 +145,32 @@ function DeliveryUpgradeDialog({ orderId, onClose }: { orderId: string; onClose:
             <Field label="Nome do recebedor" value={form.recipient_name} onChange={update("recipient_name")} />
             <Field label="Telefone" value={form.recipient_phone} onChange={update("recipient_phone")} />
           </div>
+          {quoted && (
+            <div className="rounded-lg border border-accent/30 bg-accent/10 px-3 py-2 text-xs">
+              <div className="font-bold text-accent uppercase tracking-wider">Frete calculado</div>
+              <div className="text-foreground text-sm font-black">{brl(quoted.fee)}</div>
+              {quoted.etaMinutes ? (
+                <div className="text-muted-foreground">Tempo estimado: {quoted.etaMinutes} min</div>
+              ) : null}
+            </div>
+          )}
           <div className="pt-2 flex flex-wrap items-center justify-end gap-2">
             <button type="button" onClick={onClose} className="text-xs uppercase tracking-wider font-bold px-4 py-2.5 rounded-md bg-secondary text-foreground">
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || quoting}
               className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider text-xs px-4 py-2.5 rounded-md hover:bg-primary/90 disabled:opacity-60"
             >
               <Truck className="h-4 w-4" />
-              {loading ? "Abrindo..." : "Pagar frete (Pix)"}
+              {quoting
+                ? "Calculando..."
+                : loading
+                  ? "Abrindo..."
+                  : quoted
+                    ? `Pagar ${brl(quoted.fee)}`
+                    : "Calcular frete"}
             </button>
           </div>
         </form>
