@@ -4,6 +4,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Truck, X } from "lucide-react";
 import { toast } from "sonner";
 import { createDeliveryUpgrade } from "@/lib/delivery-upgrade.functions";
+import { quoteDelivery } from "@/lib/maisentregas.functions";
+import { brl } from "@/lib/format";
 
 /**
  * Botão + modal para converter um pedido de RETIRADA para ENTREGA
@@ -41,7 +43,10 @@ export function DeliveryUpgradeButton({ orderId }: { orderId: string }) {
 function DeliveryUpgradeDialog({ orderId, onClose }: { orderId: string; onClose: () => void }) {
   const queryClient = useQueryClient();
   const create = useServerFn(createDeliveryUpgrade);
+  const quote = useServerFn(quoteDelivery);
   const [loading, setLoading] = useState(false);
+  const [quoting, setQuoting] = useState(false);
+  const [quoted, setQuoted] = useState<{ fee: number; etaMinutes?: number } | null>(null);
   const [form, setForm] = useState({
     zip: "",
     street: "",
@@ -54,11 +59,39 @@ function DeliveryUpgradeDialog({ orderId, onClose }: { orderId: string; onClose:
     recipient_phone: "",
   });
 
-  const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuoted(null);
     setForm((f) => ({ ...f, [k]: e.target.value }));
+  };
+
+  const onQuote = async () => {
+    setQuoting(true);
+    try {
+      const res = await quote({
+        data: {
+          zip: form.zip,
+          street: form.street,
+          number: form.number,
+          district: form.district,
+          complement: form.complement,
+          city: form.city,
+        },
+      });
+      setQuoted({ fee: res.fee, etaMinutes: res.etaMinutes });
+    } catch (err) {
+      setQuoted(null);
+      toast.error(err instanceof Error ? err.message : "Não foi possível calcular o frete");
+    } finally {
+      setQuoting(false);
+    }
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!quoted) {
+      await onQuote();
+      return;
+    }
     setLoading(true);
     try {
       const res = await create({ data: { order_id: orderId, shipping: form } });
@@ -88,7 +121,8 @@ function DeliveryUpgradeDialog({ orderId, onClose }: { orderId: string; onClose:
             <div className="text-xs uppercase tracking-widest text-accent font-bold">Converter para entrega</div>
             <h2 className="display text-xl">Endereço de entrega</h2>
             <p className="text-xs text-muted-foreground mt-1">
-              Frete pago por Pix. Entregamos apenas em Curitiba e região metropolitana.
+              O frete é calculado pelo endereço, igual ao checkout. Entregamos apenas em Curitiba e
+              região metropolitana.
             </p>
           </div>
           <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground p-1" aria-label="Fechar">
@@ -111,17 +145,32 @@ function DeliveryUpgradeDialog({ orderId, onClose }: { orderId: string; onClose:
             <Field label="Nome do recebedor" value={form.recipient_name} onChange={update("recipient_name")} />
             <Field label="Telefone" value={form.recipient_phone} onChange={update("recipient_phone")} />
           </div>
+          {quoted && (
+            <div className="rounded-lg border border-accent/30 bg-accent/10 px-3 py-2 text-xs">
+              <div className="font-bold text-accent uppercase tracking-wider">Frete calculado</div>
+              <div className="text-foreground text-sm font-black">{brl(quoted.fee)}</div>
+              {quoted.etaMinutes ? (
+                <div className="text-muted-foreground">Tempo estimado: {quoted.etaMinutes} min</div>
+              ) : null}
+            </div>
+          )}
           <div className="pt-2 flex flex-wrap items-center justify-end gap-2">
             <button type="button" onClick={onClose} className="text-xs uppercase tracking-wider font-bold px-4 py-2.5 rounded-md bg-secondary text-foreground">
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || quoting}
               className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider text-xs px-4 py-2.5 rounded-md hover:bg-primary/90 disabled:opacity-60"
             >
               <Truck className="h-4 w-4" />
-              {loading ? "Abrindo..." : "Pagar frete (Pix)"}
+              {quoting
+                ? "Calculando..."
+                : loading
+                  ? "Abrindo..."
+                  : quoted
+                    ? `Pagar ${brl(quoted.fee)}`
+                    : "Calcular frete"}
             </button>
           </div>
         </form>

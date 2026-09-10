@@ -2,7 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const DELIVERY_UPGRADE_FEE = 12;
+// O frete da conversão é sempre cotado na transportadora (mesmo cálculo do
+// checkout). Nada de valor fixo — antes ficava travado em R$12.
 
 const RMC = [
   "curitiba","almirante tamandare","araucaria","campina grande do sul",
@@ -88,22 +89,44 @@ export const createDeliveryUpgrade = createServerFn({ method: "POST" })
       throw new Error("Este pedido já foi retirado — não pode mais ser convertido");
     }
 
-    // 2) Já existe upgrade pendente? Reutiliza.
+    const s = data.shipping;
+
+    // 2) Cotação real do frete (mesmo cálculo do checkout convencional).
+    const { quoteDeliveryFee } = await import("@/lib/maisentregas.functions");
+    const quote = await quoteDeliveryFee({
+      zip: s.zip.replace(/\D/g, ""),
+      street: s.street.trim(),
+      number: String(s.number).trim(),
+      district: s.district?.trim() || undefined,
+      complement: s.complement?.trim() || undefined,
+      city: s.city.trim(),
+    });
+    const fee = quote.fee;
+
+    // 3) Já existe upgrade pendente com o MESMO endereço e valor? Reutiliza.
     const { data: existing } = await supabaseAdmin
       .from("delivery_upgrades")
-      .select("id, mp_init_point")
+      .select("id, mp_init_point, fee, shipping_zip, shipping_number")
       .eq("order_id", data.order_id)
       .eq("status", "pending")
       .maybeSingle();
-    if (existing && (existing as { mp_init_point: string | null }).mp_init_point) {
-      return { upgradeId: (existing as { id: string }).id, initPoint: (existing as { mp_init_point: string }).mp_init_point };
+    const ex = existing as
+      | { id: string; mp_init_point: string | null; fee: number | null; shipping_zip: string | null; shipping_number: string | null }
+      | null;
+    if (
+      ex?.mp_init_point &&
+      Number(ex.fee) === fee &&
+      (ex.shipping_zip ?? "") === s.zip.replace(/\D/g, "") &&
+      (ex.shipping_number ?? "") === String(s.number).trim()
+    ) {
+      return { upgradeId: ex.id, initPoint: ex.mp_init_point, fee };
     }
 
-    const s = data.shipping;
+
     const shippingRow = {
       order_id: data.order_id,
       user_id: context.userId,
-      fee: DELIVERY_UPGRADE_FEE,
+      fee,
       status: "pending",
       shipping_zip: s.zip.replace(/\D/g, ""),
       shipping_street: s.street.trim(),
@@ -156,7 +179,7 @@ export const createDeliveryUpgrade = createServerFn({ method: "POST" })
         });
         const payment = await createPayment({
           customerId,
-          value: DELIVERY_UPGRADE_FEE,
+          value: fee,
           externalReference: `upgrade:${upgradeId}`,
           description: title,
           ...(isPublicHttpsOrigin(origin) ? { successUrl: `${origin}/pedido/${data.order_id}` } : {}),
@@ -164,7 +187,7 @@ export const createDeliveryUpgrade = createServerFn({ method: "POST" })
         chargeId = payment.id;
         initPoint = payment.invoiceUrl;
       } else {
-        const link = await createPaymentLink({ name: title.slice(0, 100), value: DELIVERY_UPGRADE_FEE });
+        const link = await createPaymentLink({ name: title.slice(0, 100), value: fee });
         chargeId = link.id;
         initPoint = link.url;
       }
@@ -178,7 +201,7 @@ export const createDeliveryUpgrade = createServerFn({ method: "POST" })
       .update({ mp_preference_id: chargeId, mp_init_point: initPoint } as never)
       .eq("id", upgradeId);
 
-    return { upgradeId, initPoint };
+    return { upgradeId, initPoint, fee };
 
   });
 
