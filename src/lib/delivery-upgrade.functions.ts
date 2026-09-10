@@ -201,7 +201,7 @@ export const createDeliveryUpgrade = createServerFn({ method: "POST" })
       .update({ mp_preference_id: chargeId, mp_init_point: initPoint } as never)
       .eq("id", upgradeId);
 
-    return { upgradeId, initPoint };
+    return { upgradeId, initPoint, fee };
 
   });
 
