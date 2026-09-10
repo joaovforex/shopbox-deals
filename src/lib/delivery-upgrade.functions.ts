@@ -89,20 +89,9 @@ export const createDeliveryUpgrade = createServerFn({ method: "POST" })
       throw new Error("Este pedido já foi retirado — não pode mais ser convertido");
     }
 
-    // 2) Já existe upgrade pendente? Reutiliza.
-    const { data: existing } = await supabaseAdmin
-      .from("delivery_upgrades")
-      .select("id, mp_init_point")
-      .eq("order_id", data.order_id)
-      .eq("status", "pending")
-      .maybeSingle();
-    if (existing && (existing as { mp_init_point: string | null }).mp_init_point) {
-      return { upgradeId: (existing as { id: string }).id, initPoint: (existing as { mp_init_point: string }).mp_init_point };
-    }
-
     const s = data.shipping;
 
-    // Cotação real do frete (mesmo cálculo do checkout convencional).
+    // 2) Cotação real do frete (mesmo cálculo do checkout convencional).
     const { quoteDeliveryFee } = await import("@/lib/maisentregas.functions");
     const quote = await quoteDeliveryFee({
       zip: s.zip.replace(/\D/g, ""),
@@ -113,6 +102,26 @@ export const createDeliveryUpgrade = createServerFn({ method: "POST" })
       city: s.city.trim(),
     });
     const fee = quote.fee;
+
+    // 3) Já existe upgrade pendente com o MESMO endereço e valor? Reutiliza.
+    const { data: existing } = await supabaseAdmin
+      .from("delivery_upgrades")
+      .select("id, mp_init_point, fee, shipping_zip, shipping_number")
+      .eq("order_id", data.order_id)
+      .eq("status", "pending")
+      .maybeSingle();
+    const ex = existing as
+      | { id: string; mp_init_point: string | null; fee: number | null; shipping_zip: string | null; shipping_number: string | null }
+      | null;
+    if (
+      ex?.mp_init_point &&
+      Number(ex.fee) === fee &&
+      (ex.shipping_zip ?? "") === s.zip.replace(/\D/g, "") &&
+      (ex.shipping_number ?? "") === String(s.number).trim()
+    ) {
+      return { upgradeId: ex.id, initPoint: ex.mp_init_point, fee };
+    }
+
 
     const shippingRow = {
       order_id: data.order_id,
