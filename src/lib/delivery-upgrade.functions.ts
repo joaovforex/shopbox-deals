@@ -101,10 +101,23 @@ export const createDeliveryUpgrade = createServerFn({ method: "POST" })
     }
 
     const s = data.shipping;
+
+    // Cotação real do frete (mesmo cálculo do checkout convencional).
+    const { quoteDeliveryFee } = await import("@/lib/maisentregas.functions");
+    const quote = await quoteDeliveryFee({
+      zip: s.zip.replace(/\D/g, ""),
+      street: s.street.trim(),
+      number: String(s.number).trim(),
+      district: s.district?.trim() || undefined,
+      complement: s.complement?.trim() || undefined,
+      city: s.city.trim(),
+    });
+    const fee = quote.fee;
+
     const shippingRow = {
       order_id: data.order_id,
       user_id: context.userId,
-      fee: DELIVERY_UPGRADE_FEE,
+      fee,
       status: "pending",
       shipping_zip: s.zip.replace(/\D/g, ""),
       shipping_street: s.street.trim(),
