@@ -4,6 +4,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Truck, X } from "lucide-react";
 import { toast } from "sonner";
 import { createDeliveryUpgrade } from "@/lib/delivery-upgrade.functions";
+import { quoteDelivery } from "@/lib/maisentregas.functions";
+import { formatBRL } from "@/lib/format";
 
 /**
  * Botão + modal para converter um pedido de RETIRADA para ENTREGA
