@@ -41,7 +41,10 @@ export function DeliveryUpgradeButton({ orderId }: { orderId: string }) {
 function DeliveryUpgradeDialog({ orderId, onClose }: { orderId: string; onClose: () => void }) {
   const queryClient = useQueryClient();
   const create = useServerFn(createDeliveryUpgrade);
+  const quote = useServerFn(quoteDelivery);
   const [loading, setLoading] = useState(false);
+  const [quoting, setQuoting] = useState(false);
+  const [quoted, setQuoted] = useState<{ fee: number; etaMinutes?: number } | null>(null);
   const [form, setForm] = useState({
     zip: "",
     street: "",
