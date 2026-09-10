@@ -170,7 +170,7 @@ export const createDeliveryUpgrade = createServerFn({ method: "POST" })
         });
         const payment = await createPayment({
           customerId,
-          value: DELIVERY_UPGRADE_FEE,
+          value: fee,
           externalReference: `upgrade:${upgradeId}`,
           description: title,
           ...(isPublicHttpsOrigin(origin) ? { successUrl: `${origin}/pedido/${data.order_id}` } : {}),
@@ -178,7 +178,7 @@ export const createDeliveryUpgrade = createServerFn({ method: "POST" })
         chargeId = payment.id;
         initPoint = payment.invoiceUrl;
       } else {
-        const link = await createPaymentLink({ name: title.slice(0, 100), value: DELIVERY_UPGRADE_FEE });
+        const link = await createPaymentLink({ name: title.slice(0, 100), value: fee });
         chargeId = link.id;
         initPoint = link.url;
       }
