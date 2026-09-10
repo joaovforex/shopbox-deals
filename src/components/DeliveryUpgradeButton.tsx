@@ -59,11 +59,39 @@ function DeliveryUpgradeDialog({ orderId, onClose }: { orderId: string; onClose:
     recipient_phone: "",
   });
 
-  const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+  const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setQuoted(null);
     setForm((f) => ({ ...f, [k]: e.target.value }));
+  };
+
+  const onQuote = async () => {
+    setQuoting(true);
+    try {
+      const res = await quote({
+        data: {
+          zip: form.zip,
+          street: form.street,
+          number: form.number,
+          district: form.district,
+          complement: form.complement,
+          city: form.city,
+        },
+      });
+      setQuoted({ fee: res.fee, etaMinutes: res.etaMinutes });
+    } catch (err) {
+      setQuoted(null);
+      toast.error(err instanceof Error ? err.message : "Não foi possível calcular o frete");
+    } finally {
+      setQuoting(false);
+    }
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!quoted) {
+      await onQuote();
+      return;
+    }
     setLoading(true);
     try {
       const res = await create({ data: { order_id: orderId, shipping: form } });
