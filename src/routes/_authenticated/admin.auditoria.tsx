@@ -109,27 +109,26 @@ function AuditLogPage() {
             <div className="md:hidden flex flex-col gap-3">
               {rows.map((r) => {
                 const href = auditLink(r);
-                const body = (
-                  <>
+                const isOpen = openId === r.id;
+                return (
+                  <div key={r.id} className="bg-card border border-border rounded-lg p-3">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-bold text-sm truncate">{actionLabel(r)}</span>
                       <span className="text-[11px] text-muted-foreground shrink-0">{fmt(r.created_at)}</span>
                     </div>
+                    <div className="text-[10px] text-muted-foreground font-mono mt-0.5 break-all">{r.action}{r.entity ? ` · ${r.entity}` : ""}{r.entity_id ? ` · ${r.entity_id.slice(0, 8)}` : ""}</div>
                     <div className="text-xs mt-1">{r.user_name ?? "—"}</div>
                     <div className="text-xs text-muted-foreground mt-1">{situationText(r)}</div>
-                    {href && (
-                      <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary">
-                        Ver <ExternalLink className="h-3 w-3" />
-                      </span>
-                    )}
-                  </>
-                );
-                return href ? (
-                  <Link key={r.id} to={href as never} className="bg-card border border-border rounded-lg p-3 block hover:border-primary">
-                    {body}
-                  </Link>
-                ) : (
-                  <div key={r.id} className="bg-card border border-border rounded-lg p-3">{body}</div>
+                    <div className="mt-2 flex items-center gap-4">
+                      {href && (
+                        <Link to={href as never} className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary">Ver <ExternalLink className="h-3 w-3" /></Link>
+                      )}
+                      <button type="button" onClick={() => setOpenId(isOpen ? null : r.id)} className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {isOpen ? "Ocultar" : "Detalhes"} {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      </button>
+                    </div>
+                    {isOpen && <div className="mt-3 border-t border-border/50 pt-3"><AuditDetail row={r} /></div>}
+                  </div>
                 );
               })}
             </div>
