@@ -16,7 +16,7 @@ import { brl } from "@/lib/format";
 import { refundOrder, listCieloRefundQueue, retryCieloRefundNow, type CieloRefundQueueRow } from "@/lib/refunds.functions";
 import { createExchangeVoucher } from "@/lib/exchange-vouchers.functions";
 import { printVoucherReceipt } from "@/lib/voucherReceipt";
-import { openWhatsApp, orderReminderMessage, orderContactMessage } from "@/lib/whatsapp";
+import { openWhatsApp, orderReminderMessage, orderContactMessage, orderRecoveryMessage } from "@/lib/whatsapp";
 import { dispatchDelivery } from "@/lib/maisentregas.functions";
 import { fetchUnidades, fetchMyUnidadeScope } from "@/lib/unidades";
 import { Calendar } from "@/components/ui/calendar";
@@ -1482,6 +1482,23 @@ function NotificationsPanel({ rows, itemsByOrder }: { rows: NotifRow[]; itemsByO
                 <span>{paymentInfo(o).label} · {o.delivery_method === "pickup" ? "Retirada" : "Entrega"}</span>
                 <span className="font-bold text-foreground">{brl(Number(o.total))}</span>
               </div>
+              {o.customer_phone && o.cancellation_reason !== "out_of_stock" && (() => {
+                const primary = items[0];
+                const productName = primary?.product_name ?? "seu produto";
+                const productUrl = primary?.product_id
+                  ? `${window.location.origin}/produto/${primary.product_id}`
+                  : window.location.origin;
+                return (
+                  <button
+                    type="button"
+                    onClick={() => openWhatsApp(o.customer_phone, orderRecoveryMessage(o.customer_name, productName, Math.max(0, items.length - 1), Number(o.total), productUrl))}
+                    className="mt-1 inline-flex items-center justify-center gap-1.5 w-full text-xs font-bold uppercase tracking-wider bg-[#25D366] text-white hover:opacity-90 px-3 py-2 rounded"
+                    title="Enviar mensagem de recuperação no WhatsApp do cliente"
+                  >
+                    <MessageCircle className="h-4 w-4" /> Recuperar pedido
+                  </button>
+                );
+              })()}
             </article>
           );
         })}
