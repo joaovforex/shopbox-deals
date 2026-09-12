@@ -246,3 +246,48 @@ export function auditLink(row: AuditLogRow): string | null {
     return `/pedido/${id}`;
   return null;
 }
+
+/** Todas as alterações campo a campo (antes → depois), sem limite. */
+export function changedFields(row: AuditLogRow): { label: string; before: string; after: string }[] {
+  const d = (row.details ?? {}) as Record<string, unknown>;
+  const antes = (d["antes"] ?? null) as Record<string, unknown> | null;
+  const depois = (d["depois"] ?? d["payload"] ?? null) as Record<string, unknown> | null;
+  const out: { label: string; before: string; after: string }[] = [];
+  if (antes && depois) {
+    for (const [k, nv] of Object.entries(depois)) {
+      if (k === "updated_at" || k === "search_norm") continue;
+      const ov = antes[k];
+      if (JSON.stringify(ov) === JSON.stringify(nv)) continue;
+      out.push({ label: fieldLabel(k), before: valueText(k, ov), after: valueText(k, nv) });
+    }
+  } else if (depois) {
+    for (const [k, v] of Object.entries(depois)) {
+      if (["updated_at", "search_norm"].includes(k)) continue;
+      out.push({ label: fieldLabel(k), before: "—", after: valueText(k, v) });
+    }
+  }
+  return out;
+}
+
+/** Contexto extra do registro (ação, entidade, ids, ip, argumentos, afetados). */
+export function auditContext(row: AuditLogRow): { label: string; value: string }[] {
+  const d = (row.details ?? {}) as Record<string, unknown>;
+  const ctx: { label: string; value: string }[] = [];
+  ctx.push({ label: "Ação (código)", value: row.action });
+  ctx.push({ label: "Entidade", value: ENTITY_PT[row.entity] ?? row.entity });
+  if (row.entity_id) ctx.push({ label: "ID do registro", value: row.entity_id });
+  if (row.user_id) ctx.push({ label: "ID do usuário", value: row.user_id });
+  const ip = d["ip"] ?? d["ip_address"];
+  if (ip) ctx.push({ label: "IP", value: String(ip) });
+  const ua = d["user_agent"] ?? d["ua"];
+  if (ua) ctx.push({ label: "Dispositivo", value: String(ua) });
+  const args = d["args"] as Record<string, unknown> | undefined;
+  if (args && typeof args === "object") {
+    for (const [k, v] of Object.entries(args)) {
+      ctx.push({ label: fieldLabel(k.replace(/^_/, "")), value: valueText(k.replace(/^_/, ""), v) });
+    }
+  }
+  const count = d["count"] ?? d["affected"] ?? d["afetados"];
+  if (count !== undefined && count !== null) ctx.push({ label: "Registros afetados", value: String(count) });
+  return ctx;
+}

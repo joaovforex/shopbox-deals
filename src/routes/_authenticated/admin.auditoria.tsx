@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ScrollText, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { ScrollText, ChevronLeft, ChevronRight, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getRoleSummary, type RoleSummary } from "@/lib/products";
 import { normalizeSearchTerm } from "@/lib/pgrst";
 import { AdminSkeleton } from "@/components/admin/AdminSkeleton";
-import { actionLabel, situationText, auditLink, type AuditLogRow } from "@/lib/audit-format";
+import { actionLabel, situationText, auditLink, changedFields, auditContext, type AuditLogRow } from "@/lib/audit-format";
 import { Link } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
 
@@ -32,7 +32,7 @@ function AuditLogPage() {
   const [roles, setRoles] = useState<RoleSummary | null>(null);
   const [page, setPage] = useState(0);
   const [term, setTerm] = useState("");
-  const navigate = Route.useNavigate();
+  const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => { getRoleSummary().then(setRoles); }, []);
 
@@ -109,27 +109,26 @@ function AuditLogPage() {
             <div className="md:hidden flex flex-col gap-3">
               {rows.map((r) => {
                 const href = auditLink(r);
-                const body = (
-                  <>
+                const isOpen = openId === r.id;
+                return (
+                  <div key={r.id} className="bg-card border border-border rounded-lg p-3">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-bold text-sm truncate">{actionLabel(r)}</span>
                       <span className="text-[11px] text-muted-foreground shrink-0">{fmt(r.created_at)}</span>
                     </div>
+                    <div className="text-[10px] text-muted-foreground font-mono mt-0.5 break-all">{r.action}{r.entity ? ` · ${r.entity}` : ""}{r.entity_id ? ` · ${r.entity_id.slice(0, 8)}` : ""}</div>
                     <div className="text-xs mt-1">{r.user_name ?? "—"}</div>
                     <div className="text-xs text-muted-foreground mt-1">{situationText(r)}</div>
-                    {href && (
-                      <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary">
-                        Ver <ExternalLink className="h-3 w-3" />
-                      </span>
-                    )}
-                  </>
-                );
-                return href ? (
-                  <Link key={r.id} to={href as never} className="bg-card border border-border rounded-lg p-3 block hover:border-primary">
-                    {body}
-                  </Link>
-                ) : (
-                  <div key={r.id} className="bg-card border border-border rounded-lg p-3">{body}</div>
+                    <div className="mt-2 flex items-center gap-4">
+                      {href && (
+                        <Link to={href as never} className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-primary">Ver <ExternalLink className="h-3 w-3" /></Link>
+                      )}
+                      <button type="button" onClick={() => setOpenId(isOpen ? null : r.id)} className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {isOpen ? "Ocultar" : "Detalhes"} {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                      </button>
+                    </div>
+                    {isOpen && <div className="mt-3 border-t border-border/50 pt-3"><AuditDetail row={r} /></div>}
+                  </div>
                 );
               })}
             </div>
@@ -149,20 +148,34 @@ function AuditLogPage() {
                 <tbody>
                   {rows.map((r) => {
                     const href = auditLink(r);
+                    const isOpen = openId === r.id;
                     return (
-                      <tr
-                        key={r.id}
-                        className={`border-t border-border align-top ${href ? "hover:bg-secondary/60 cursor-pointer" : ""}`}
-                        onClick={href ? () => navigate({ to: href as never }) : undefined}
-                      >
-                        <td className="p-3 whitespace-nowrap text-xs text-muted-foreground">{fmt(r.created_at)}</td>
-                        <td className="p-3">{r.user_name ?? "—"}</td>
-                        <td className="p-3 font-semibold">{actionLabel(r)}</td>
-                        <td className="p-3 text-xs text-muted-foreground max-w-xl">{situationText(r)}</td>
-                        <td className="p-3">
-                          {href && <ExternalLink className="h-4 w-4 text-primary" />}
-                        </td>
-                      </tr>
+                      <Fragment key={r.id}>
+                        <tr className="border-t border-border align-top hover:bg-secondary/60">
+                          <td className="p-3 whitespace-nowrap text-xs text-muted-foreground">{fmt(r.created_at)}</td>
+                          <td className="p-3">{r.user_name ?? "—"}</td>
+                          <td className="p-3">
+                            <div className="font-semibold">{actionLabel(r)}</div>
+                            <div className="text-[10px] text-muted-foreground font-mono break-all">{r.action}{r.entity ? ` · ${r.entity}` : ""}{r.entity_id ? ` · ${r.entity_id.slice(0, 8)}` : ""}</div>
+                          </td>
+                          <td className="p-3 text-xs text-muted-foreground max-w-xl">{situationText(r)}</td>
+                          <td className="p-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              {href && (
+                                <Link to={href as never} className="text-primary" title="Abrir registro"><ExternalLink className="h-4 w-4" /></Link>
+                              )}
+                              <button type="button" onClick={() => setOpenId(isOpen ? null : r.id)} className="text-muted-foreground hover:text-foreground" title="Ver detalhes">
+                                {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        {isOpen && (
+                          <tr className="border-t border-border bg-secondary/30">
+                            <td colSpan={5} className="p-4"><AuditDetail row={r} /></td>
+                          </tr>
+                        )}
+                      </Fragment>
                     );
                   })}
                 </tbody>
@@ -191,6 +204,49 @@ function AuditLogPage() {
           </>
         )}
       </section>
+    </div>
+  );
+}
+
+function AuditDetail({ row }: { row: AuditRow }) {
+  const changes = changedFields(row);
+  const ctx = auditContext(row);
+  const [showRaw, setShowRaw] = useState(false);
+  return (
+    <div className="space-y-3 text-xs">
+      {ctx.length > 0 && (
+        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1">
+          {ctx.map((c, i) => (
+            <div key={i} className="flex gap-2">
+              <span className="text-muted-foreground shrink-0">{c.label}:</span>
+              <span className="font-medium break-all">{c.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {changes.length > 0 && (
+        <div className="border-t border-border/50 pt-2">
+          <div className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Alterações ({changes.length})</div>
+          <div className="space-y-1">
+            {changes.map((c, i) => (
+              <div key={i} className="flex flex-wrap items-center gap-1">
+                <span className="font-semibold">{c.label}:</span>
+                <span className="line-through text-muted-foreground break-all">{c.before}</span>
+                <span>→</span>
+                <span className="text-foreground font-medium break-all">{c.after}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="border-t border-border/50 pt-2">
+        <button type="button" onClick={() => setShowRaw((v) => !v)} className="text-[11px] font-bold uppercase tracking-wider text-primary">
+          {showRaw ? "Ocultar dados brutos" : "Ver dados brutos (JSON)"}
+        </button>
+        {showRaw && (
+          <pre className="mt-2 max-h-80 overflow-auto rounded bg-background border border-border p-3 text-[11px] whitespace-pre-wrap break-all">{JSON.stringify(row.details ?? {}, null, 2)}</pre>
+        )}
+      </div>
     </div>
   );
 }
