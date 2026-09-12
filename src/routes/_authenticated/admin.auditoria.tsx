@@ -148,20 +148,34 @@ function AuditLogPage() {
                 <tbody>
                   {rows.map((r) => {
                     const href = auditLink(r);
+                    const isOpen = openId === r.id;
                     return (
-                      <tr
-                        key={r.id}
-                        className={`border-t border-border align-top ${href ? "hover:bg-secondary/60 cursor-pointer" : ""}`}
-                        onClick={href ? () => navigate({ to: href as never }) : undefined}
-                      >
-                        <td className="p-3 whitespace-nowrap text-xs text-muted-foreground">{fmt(r.created_at)}</td>
-                        <td className="p-3">{r.user_name ?? "—"}</td>
-                        <td className="p-3 font-semibold">{actionLabel(r)}</td>
-                        <td className="p-3 text-xs text-muted-foreground max-w-xl">{situationText(r)}</td>
-                        <td className="p-3">
-                          {href && <ExternalLink className="h-4 w-4 text-primary" />}
-                        </td>
-                      </tr>
+                      <Fragment key={r.id}>
+                        <tr className="border-t border-border align-top hover:bg-secondary/60">
+                          <td className="p-3 whitespace-nowrap text-xs text-muted-foreground">{fmt(r.created_at)}</td>
+                          <td className="p-3">{r.user_name ?? "—"}</td>
+                          <td className="p-3">
+                            <div className="font-semibold">{actionLabel(r)}</div>
+                            <div className="text-[10px] text-muted-foreground font-mono break-all">{r.action}{r.entity ? ` · ${r.entity}` : ""}{r.entity_id ? ` · ${r.entity_id.slice(0, 8)}` : ""}</div>
+                          </td>
+                          <td className="p-3 text-xs text-muted-foreground max-w-xl">{situationText(r)}</td>
+                          <td className="p-3 whitespace-nowrap">
+                            <div className="flex items-center gap-2">
+                              {href && (
+                                <Link to={href as never} className="text-primary" title="Abrir registro"><ExternalLink className="h-4 w-4" /></Link>
+                              )}
+                              <button type="button" onClick={() => setOpenId(isOpen ? null : r.id)} className="text-muted-foreground hover:text-foreground" title="Ver detalhes">
+                                {isOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        {isOpen && (
+                          <tr className="border-t border-border bg-secondary/30">
+                            <td colSpan={5} className="p-4"><AuditDetail row={r} /></td>
+                          </tr>
+                        )}
+                      </Fragment>
                     );
                   })}
                 </tbody>
