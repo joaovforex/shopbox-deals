@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ScrollText, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { ScrollText, ChevronLeft, ChevronRight, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getRoleSummary, type RoleSummary } from "@/lib/products";
 import { normalizeSearchTerm } from "@/lib/pgrst";
 import { AdminSkeleton } from "@/components/admin/AdminSkeleton";
-import { actionLabel, situationText, auditLink, type AuditLogRow } from "@/lib/audit-format";
+import { actionLabel, situationText, auditLink, changedFields, auditContext, type AuditLogRow } from "@/lib/audit-format";
 import { Link } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
 
