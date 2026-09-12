@@ -1,4 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import {
+  cieloAmountMatches,
+  normalizeCieloKey,
+  resolveCieloOrderKey,
+} from "@/lib/cielo-webhook-guards";
 
 /**
  * Webhook (POST de notificação) da Cielo Checkout.
@@ -6,6 +11,11 @@ import { createFileRoute } from "@tanstack/react-router";
  * A Cielo envia o `order_number` (nosso ID sem hífens, 20 chars),
  * `checkout_cielo_order_number` e `payment_status`.
  * Regra de ouro: SEMPRE responder 200 para a Cielo não pausar a fila.
+ *
+ * Segurança: a Cielo não assina o payload, então nada do corpo é confiável.
+ * A transação é sempre reconsultada na Cielo, o pedido é identificado pelo
+ * order_number QUE A CIELO DEVOLVE (nunca pelo do payload) e o valor cobrado é
+ * conferido com o valor do pedido antes de confirmar o pagamento.
  *
  * Observabilidade: cada notificação é registrada em `cielo_webhook_events`
  * (com o desfecho dentro de `raw_payload._log`) e qualquer falha gera um
@@ -18,7 +28,10 @@ export const Route = createFileRoute("/api/public/cielo/webhook")({
         const startedAt = Date.now();
         try {
           const outcome = await handleCieloNotification(request);
-          console.info("[cielo:webhook]", JSON.stringify({ ...outcome, ms: Date.now() - startedAt }));
+          console.info(
+            "[cielo:webhook]",
+            JSON.stringify({ ...outcome, ms: Date.now() - startedAt }),
+          );
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           console.error("[cielo:webhook] unexpected", message, err);
@@ -39,9 +52,7 @@ type Outcome = {
   key?: string;
 };
 
-function normalizeKey(id: string): string {
-  return id.replace(/[^a-zA-Z0-9]/g, "").slice(0, 20).toLowerCase();
-}
+const normalizeKey = normalizeCieloKey;
 
 /** Registra o desfecho da notificação para o painel de saúde. */
 async function logEvent(params: {
@@ -59,12 +70,19 @@ async function logEvent(params: {
         payment_id: params.paymentId || "desconhecido",
         // change_type é numérico; usamos o timestamp pra permitir múltiplas
         // notificações do mesmo pagamento sem colidir com a unique (payment_id, change_type).
-        change_type: Number.isFinite(params.changeType) && params.changeType > 0 ? params.changeType : Date.now() % 2147483647,
+        change_type:
+          Number.isFinite(params.changeType) && params.changeType > 0
+            ? params.changeType
+            : Date.now() % 2147483647,
         order_id: params.orderId ?? null,
         // A coluna cielo_status é integer; o status textual da Cielo vai no payload.
         cielo_status: null,
         processed_at: new Date().toISOString(),
-        raw_payload: { ...params.payload, _log: params.outcome, _cielo_status: params.cieloStatus ?? null } as never,
+        raw_payload: {
+          ...params.payload,
+          _log: params.outcome,
+          _cielo_status: params.cieloStatus ?? null,
+        } as never,
       } as never,
       { onConflict: "payment_id,change_type" } as never,
     );
@@ -126,20 +144,30 @@ async function handleCieloNotification(request: Request): Promise<Outcome> {
     body["merchant_order_number"] ??
     urlTail;
   const checkoutId =
-    body["checkout_cielo_order_number"] ?? body["checkoutcieloordernumber"] ?? body["order_id"] ?? "";
+    body["checkout_cielo_order_number"] ??
+    body["checkoutcieloordernumber"] ??
+    body["order_id"] ??
+    "";
   const statusRaw = body["payment_status"] ?? body["status"] ?? "";
   const changeType = Number(statusRaw) || 0;
 
   if (!orderNumber && !checkoutId) {
-    const outcome: Outcome = { stage: "parse", status: "error", detail: "payload sem identificadores" };
+    const outcome: Outcome = {
+      stage: "parse",
+      status: "error",
+      detail: "payload sem identificadores",
+    };
     console.error("[cielo:webhook] payload sem identificadores", body);
     await logEvent({ paymentId: "sem-id", changeType, payload: body, outcome });
-    await alertFailure("payload", "Notificação recebida sem order_number nem checkout id", { body });
+    await alertFailure("payload", "Notificação recebida sem order_number nem checkout id", {
+      body,
+    });
     return outcome;
   }
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { getOrder, getOrderByOrderNumber, mapCieloStatus } = await import("@/lib/cielo.server");
+  const { getOrder, getOrderByOrderNumber, listCheckoutsByOrderNumber, mapCieloStatus } =
+    await import("@/lib/cielo.server");
 
   // Sempre reconsulta a Cielo — nunca confiamos apenas no payload recebido.
   let tx: Awaited<ReturnType<typeof getOrder>> = null;
@@ -155,15 +183,87 @@ async function handleCieloNotification(request: Request): Promise<Outcome> {
   }
 
   if (!tx) {
-    const outcome: Outcome = { stage: "consulta-cielo", status: "error", detail: "transação não encontrada na Cielo" };
-    console.error("[cielo:webhook] transação não encontrada", { orderNumber, checkoutId, statusRaw });
+    const outcome: Outcome = {
+      stage: "consulta-cielo",
+      status: "error",
+      detail: "transação não encontrada na Cielo",
+    };
+    console.error("[cielo:webhook] transação não encontrada", {
+      orderNumber,
+      checkoutId,
+      statusRaw,
+    });
     await logEvent({ paymentId: checkoutId || orderNumber, changeType, payload: body, outcome });
-    await alertFailure("consulta-cielo", "Transação não encontrada na Cielo", { orderNumber, checkoutId, statusRaw });
+    await alertFailure("consulta-cielo", "Transação não encontrada na Cielo", {
+      orderNumber,
+      checkoutId,
+      statusRaw,
+    });
     return outcome;
   }
 
   const mapped = mapCieloStatus(tx.status);
-  const key = normalizeKey(orderNumber || tx.orderNumber || "");
+
+  // A chave do pedido vem da transação consultada na Cielo. O order_number do
+  // payload só localiza a transação e precisa bater com o que a Cielo devolveu;
+  // do contrário um checkout pago poderia confirmar outro pedido.
+  const resolved = resolveCieloOrderKey({
+    bodyOrderNumber: orderNumber,
+    cieloOrderNumber: tx.orderNumber,
+  });
+  if (!resolved.ok) {
+    const detail =
+      resolved.reason === "order_number_divergente"
+        ? "order_number do payload diverge do order_number da transação na Cielo"
+        : "transação da Cielo sem order_number identificável";
+    const outcome: Outcome = { stage: "vinculo-pedido", status: "error", detail };
+    console.error("[cielo:webhook] vínculo rejeitado", {
+      orderNumber,
+      checkoutId,
+      cieloOrderNumber: tx.orderNumber,
+    });
+    await logEvent({
+      paymentId: checkoutId || orderNumber,
+      changeType,
+      cieloStatus: mapped.cielo_status,
+      payload: body,
+      outcome,
+    });
+    await alertFailure("vinculo-pedido", detail, {
+      orderNumber,
+      checkoutId,
+      cieloOrderNumber: tx.orderNumber ?? null,
+    });
+    return outcome;
+  }
+  // Quando a Cielo não devolve o order_number e a transação foi consultada pelo
+  // checkout id do payload, comprovamos que esse checkout pertence ao
+  // order_number informado antes de confiar nele.
+  if (checkoutId && !normalizeKey(tx.orderNumber ?? "")) {
+    const txCheckoutId = tx.checkoutOrderNumber;
+    let linked = false;
+    try {
+      const ids = await listCheckoutsByOrderNumber(orderNumber);
+      linked = ids.some((id) => id === checkoutId || id === txCheckoutId);
+    } catch (err) {
+      console.error("[cielo:webhook] falha ao comprovar vínculo do checkout", err);
+    }
+    if (!linked) {
+      const detail = "checkout informado não pertence ao order_number do payload";
+      const outcome: Outcome = { stage: "vinculo-pedido", status: "error", detail };
+      console.error("[cielo:webhook] vínculo rejeitado", { orderNumber, checkoutId });
+      await logEvent({
+        paymentId: checkoutId,
+        changeType,
+        cieloStatus: mapped.cielo_status,
+        payload: body,
+        outcome,
+      });
+      await alertFailure("vinculo-pedido", detail, { orderNumber, checkoutId });
+      return outcome;
+    }
+  }
+  const key = resolved.key;
   const paymentId = tx.checkoutOrderNumber || checkoutId || key;
 
   const finish = async (outcome: Outcome, orderId?: string | null): Promise<Outcome> => {
@@ -186,10 +286,24 @@ async function handleCieloNotification(request: Request): Promise<Outcome> {
     .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
     .limit(500);
   const charge = (charges ?? []).find((c) => normalizeKey((c as { id: string }).id) === key) as
-    | { id: string; status: string }
+    | { id: string; status: string; total: number | null }
     | undefined;
   if (charge) {
     if (mapped.order_action === "paid" && charge.status !== "paid") {
+      if (!cieloAmountMatches(tx.amount, charge.total, 0)) {
+        const detail = `valor cobrado (${tx.amount} centavos) diverge do valor da cobrança`;
+        console.error("[cielo:webhook] caixa-qr valor divergente", {
+          chargeId: charge.id,
+          amount: tx.amount,
+          total: charge.total,
+        });
+        await alertFailure("caixa-qr", detail, {
+          chargeId: charge.id,
+          amount: tx.amount,
+          total: charge.total,
+        });
+        return finish({ stage: "caixa-qr", status: "error", detail, key });
+      }
       await supabaseAdmin
         .from("pos_charges")
         .update({
@@ -211,7 +325,12 @@ async function handleCieloNotification(request: Request): Promise<Outcome> {
         last_event_at: new Date().toISOString(),
       } as never)
       .eq("id", charge.id);
-    return finish({ stage: "caixa-qr", status: "ok", detail: `status ${mapped.cielo_status}`, key });
+    return finish({
+      stage: "caixa-qr",
+      status: "ok",
+      detail: `status ${mapped.cielo_status}`,
+      key,
+    });
   }
 
   // 2) Pedido da loja / venda manual
@@ -225,9 +344,20 @@ async function handleCieloNotification(request: Request): Promise<Outcome> {
     | { id: string; status: string; total: number | null; delivery_fee: number | null }
     | undefined;
   if (!order) {
-    const outcome: Outcome = { stage: "pedido", status: "error", detail: "pedido não localizado no banco", key };
+    const outcome: Outcome = {
+      stage: "pedido",
+      status: "error",
+      detail: "pedido não localizado no banco",
+      key,
+    };
     console.error("[cielo:webhook] pedido não localizado", { key, orderNumber, paymentId });
-    await logEvent({ paymentId, changeType, cieloStatus: mapped.cielo_status, payload: body, outcome });
+    await logEvent({
+      paymentId,
+      changeType,
+      cieloStatus: mapped.cielo_status,
+      payload: body,
+      outcome,
+    });
     await alertFailure("pedido", `Pagamento recebido sem pedido correspondente (ref ${key})`, {
       key,
       orderNumber,
@@ -249,7 +379,10 @@ async function handleCieloNotification(request: Request): Promise<Outcome> {
     cielo_return_message: tx.returnMessage ?? null,
     cielo_last_check_at: new Date().toISOString(),
   };
-  const { error: patchErr } = await supabaseAdmin.from("orders").update(patch as never).eq("id", order.id);
+  const { error: patchErr } = await supabaseAdmin
+    .from("orders")
+    .update(patch as never)
+    .eq("id", order.id);
   if (patchErr) {
     console.error("[cielo:webhook] falha ao atualizar pedido", order.id, patchErr.message);
     await alertFailure("atualizar-pedido", patchErr.message, { orderId: order.id }, order.id);
@@ -257,38 +390,107 @@ async function handleCieloNotification(request: Request): Promise<Outcome> {
 
   if (mapped.order_action !== "paid" || order.status === "paid") {
     return finish(
-      { stage: "pedido", status: "ok", detail: `status ${mapped.cielo_status}`, orderId: order.id, key },
+      {
+        stage: "pedido",
+        status: "ok",
+        detail: `status ${mapped.cielo_status}`,
+        orderId: order.id,
+        key,
+      },
       order.id,
     );
   }
 
-  const { data: result, error: rpcErr } = await supabaseAdmin.rpc("confirm_order_paid" as never, {
-    p_order_id: order.id,
-    p_mp_payment_id: tx.checkoutOrderNumber,
-  } as never);
+  // Confere o valor cobrado (só itens; a Cielo não soma o frete) com o pedido,
+  // como já faz a reconciliação. Valor divergente nunca confirma o pagamento.
+  if (!cieloAmountMatches(tx.amount, order.total, order.delivery_fee)) {
+    const detail = `valor cobrado (${tx.amount} centavos) diverge do valor do pedido`;
+    console.error("[cielo:webhook] valor divergente", {
+      orderId: order.id,
+      amount: tx.amount,
+      total: order.total,
+      deliveryFee: order.delivery_fee,
+    });
+    await alertFailure(
+      "valor-divergente",
+      detail,
+      { orderId: order.id, amount: tx.amount, total: order.total },
+      order.id,
+    );
+    return finish(
+      { stage: "valor-divergente", status: "error", detail, orderId: order.id, key },
+      order.id,
+    );
+  }
+
+  const { data: result, error: rpcErr } = await supabaseAdmin.rpc(
+    "confirm_order_paid" as never,
+    {
+      p_order_id: order.id,
+      p_mp_payment_id: tx.checkoutOrderNumber,
+    } as never,
+  );
   if (rpcErr) {
-    const outcome: Outcome = { stage: "confirmar-pagamento", status: "error", detail: rpcErr.message, orderId: order.id, key };
+    const outcome: Outcome = {
+      stage: "confirmar-pagamento",
+      status: "error",
+      detail: rpcErr.message,
+      orderId: order.id,
+      key,
+    };
     console.error("[cielo:webhook] confirm error", order.id, rpcErr);
-    await logEvent({ paymentId, changeType, orderId: order.id, cieloStatus: mapped.cielo_status, payload: body, outcome });
+    await logEvent({
+      paymentId,
+      changeType,
+      orderId: order.id,
+      cieloStatus: mapped.cielo_status,
+      payload: body,
+      outcome,
+    });
     await alertFailure("confirmar-pagamento", rpcErr.message, { orderId: order.id }, order.id);
     return outcome;
   }
   if (result !== "ok" && result !== "already_paid") {
-    const outcome: Outcome = { stage: "confirmar-pagamento", status: "error", detail: String(result), orderId: order.id, key };
+    const outcome: Outcome = {
+      stage: "confirmar-pagamento",
+      status: "error",
+      detail: String(result),
+      orderId: order.id,
+      key,
+    };
     console.error("[cielo:webhook] confirm inesperado", order.id, result);
-    await logEvent({ paymentId, changeType, orderId: order.id, cieloStatus: mapped.cielo_status, payload: body, outcome });
-    await alertFailure("confirmar-pagamento", `Retorno "${String(result)}" ao confirmar o pedido`, { orderId: order.id }, order.id);
+    await logEvent({
+      paymentId,
+      changeType,
+      orderId: order.id,
+      cieloStatus: mapped.cielo_status,
+      payload: body,
+      outcome,
+    });
+    await alertFailure(
+      "confirmar-pagamento",
+      `Retorno "${String(result)}" ao confirmar o pedido`,
+      { orderId: order.id },
+      order.id,
+    );
     return outcome;
   }
 
-  try {
-    const { createDeliveryForOrder } = await import("@/lib/maisentregas.functions");
-    await createDeliveryForOrder(order.id);
-  } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
-    console.error("[cielo:webhook] maisentregas error", order.id, detail);
-    await alertFailure("entrega-tbt", detail, { orderId: order.id }, order.id);
+  // Dispara a transportadora somente na primeira transição para pago. Um
+  // webhook repetido recebe already_paid e não pode criar uma segunda entrega.
+  if (result === "ok") {
+    try {
+      const { createDeliveryForOrder } = await import("@/lib/maisentregas.functions");
+      await createDeliveryForOrder(order.id);
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err);
+      console.error("[cielo:webhook] maisentregas error", order.id, detail);
+      await alertFailure("entrega-tbt", detail, { orderId: order.id }, order.id);
+    }
   }
 
-  return finish({ stage: "pedido", status: "ok", detail: "pagamento confirmado", orderId: order.id, key }, order.id);
+  return finish(
+    { stage: "pedido", status: "ok", detail: "pagamento confirmado", orderId: order.id, key },
+    order.id,
+  );
 }
