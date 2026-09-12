@@ -1,3 +1,5 @@
+import { installmentLabel } from "./installments";
+
 // Helpers para abrir WhatsApp com mensagem pronta (wa.me).
 // Envio 100% automático exige WhatsApp Business API (paga).
 
@@ -86,4 +88,31 @@ export function orderDeliveredMessage(customerName: string, orderId: string) {
     ``,
     `Se puder, conte para a gente como foi sua experiência — sua opinião é muito importante!`,
   ].join("\n");
+}
+
+export function orderRecoveryMessage(
+  customerName: string,
+  productName: string,
+  extraCount: number,
+  total: number,
+  productUrl: string,
+): string {
+  const brl = Number(total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const parcela = installmentLabel(Number(total));
+  const extra = extraCount > 0 ? ` (e mais ${extraCount} ${extraCount === 1 ? "item" : "itens"} do seu pedido)` : "";
+  const linhas = [
+    `Olá, ${customerName}! 👋`,
+    ``,
+    `Vi que você começou a compra do *${productName}*${extra} aqui na shopbox e não chegou a finalizar — e essa unidade *ainda está disponível e reservada* pra você! 🛍️`,
+    ``,
+    `💰 Por *${brl}*`,
+  ];
+  if (parcela) linhas.push(`💳 ou ${parcela}`);
+  linhas.push(`🎁 E você ainda ganha *5% de cashback* pra usar na próxima compra.`);
+  linhas.push(``);
+  linhas.push(`É rapidinho, é só finalizar por aqui:`);
+  linhas.push(productUrl);
+  linhas.push(``);
+  linhas.push(`Corre que o estoque é limitado! Qualquer dúvida, é só me chamar por aqui. 😉`);
+  return linhas.join("\n");
 }
