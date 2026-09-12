@@ -32,19 +32,17 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
           ).trim();
           const tokenOk = expected.length > 0 && safeCompare(token, expected);
 
-          const payload = (await request.json().catch(() => null)) as
-            | {
-                event?: string;
-                payment?: {
-                  id?: string;
-                  externalReference?: string | null;
-                  status?: string;
-                  paymentLink?: string | null;
-                  checkoutSession?: string | null;
-                  billingType?: string | null;
-                };
-              }
-            | null;
+          const payload = (await request.json().catch(() => null)) as {
+            event?: string;
+            payment?: {
+              id?: string;
+              externalReference?: string | null;
+              status?: string;
+              paymentLink?: string | null;
+              checkoutSession?: string | null;
+              billingType?: string | null;
+            };
+          } | null;
 
           const event = payload?.event ?? "";
           const payment = payload?.payment;
@@ -108,41 +106,46 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
           if (tokenOk) {
             isPaid = PAID_EVENTS.has(event);
             isCancel = CANCEL_EVENTS.has(event);
-          }
 
-          // === Análise de risco (cartão) ===
-          // Aguardando análise: só registra o status, mantém pendente.
-          // Reprovado: registra e cancela (se ainda pendente) para o cliente
-          // poder tentar de novo, de preferência via Pix.
-          if (event === "PAYMENT_AWAITING_RISK_ANALYSIS") {
-            isPaid = false;
-            isCancel = false;
-          } else if (
-            event === "PAYMENT_REPROVED_BY_RISK_ANALYSIS" ||
-            // Recusa de captura no cartão (checkout transparente): não pago,
-            // cancela para o cliente poder tentar outro cartão ou Pix.
-            event === "PAYMENT_CREDIT_CARD_CAPTURE_REFUSED"
-          ) {
-            isPaid = false;
-            isCancel = true;
+            // === Análise de risco (cartão) ===
+            // Aguardando análise: só registra o status, mantém pendente.
+            // Reprovado: registra e cancela (se ainda pendente) para o cliente
+            // poder tentar de novo, de preferência via Pix.
+            // Só vale com token válido: no fallback o nome do evento é forjável
+            // e apenas o status remoto (já aplicado acima) decide.
+            if (event === "PAYMENT_AWAITING_RISK_ANALYSIS") {
+              isPaid = false;
+              isCancel = false;
+            } else if (
+              event === "PAYMENT_REPROVED_BY_RISK_ANALYSIS" ||
+              // Recusa de captura no cartão (checkout transparente): não pago,
+              // cancela para o cliente poder tentar outro cartão ou Pix.
+              event === "PAYMENT_CREDIT_CARD_CAPTURE_REFUSED"
+            ) {
+              isPaid = false;
+              isCancel = true;
+            }
           }
-
 
           // === Eventos de ESTORNO ===
           // A devolução Pix é assíncrona e pode ser CANCELADA pelo banco do
           // cliente depois de criada. Refletimos isso no histórico para nunca
           // dar como concluído um estorno que não chegou ao cliente.
+          // Com token válido aplicamos o evento; no fallback reconsultamos a
+          // Asaas, porque o evento do payload poderia marcar como devolvido um
+          // estorno que nunca aconteceu.
           if (REFUND_EVENTS.has(event) && paymentId) {
             try {
-              const { applyRefundWebhookEvent } = await import("@/lib/refund-sync.server");
-              await applyRefundWebhookEvent(paymentId, event);
+              const { applyRefundWebhookEvent, syncRefundForPayment } =
+                await import("@/lib/refund-sync.server");
+              if (tokenOk) await applyRefundWebhookEvent(paymentId, event);
+              else await syncRefundForPayment(paymentId);
             } catch (err) {
               console.error("[asaas:webhook] refund event error", err);
             }
           }
 
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
 
           // === Caixa QR / venda manual via link de pagamento ===
           if (paymentLinkId) {
@@ -160,7 +163,10 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
                 last_event_at: new Date().toISOString(),
               };
               if (isPaid) patch.paid_at = new Date().toISOString();
-              await supabaseAdmin.from("pos_charges").update(patch as never).eq("id", (charge as { id: string }).id);
+              await supabaseAdmin
+                .from("pos_charges")
+                .update(patch as never)
+                .eq("id", (charge as { id: string }).id);
               return new Response("ok", { status: 200 });
             }
 
@@ -170,7 +176,14 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
               .eq("mp_preference_id", paymentLinkId)
               .maybeSingle();
             if (upgradeByLink) {
-              await handleUpgrade(supabaseAdmin, (upgradeByLink as { id: string }).id, paymentId, payment?.status ?? event, isPaid, isCancel);
+              await handleUpgrade(
+                supabaseAdmin,
+                (upgradeByLink as { id: string }).id,
+                paymentId,
+                payment?.status ?? event,
+                isPaid,
+                isCancel,
+              );
               return new Response("ok", { status: 200 });
             }
 
@@ -180,7 +193,14 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
               .eq("mp_preference_id", paymentLinkId)
               .maybeSingle();
             if (manualOrder) {
-              await handleOrder(supabaseAdmin, (manualOrder as { id: string }).id, paymentId, payment?.status ?? event, isPaid, isCancel);
+              await handleOrder(
+                supabaseAdmin,
+                (manualOrder as { id: string }).id,
+                paymentId,
+                payment?.status ?? event,
+                isPaid,
+                isCancel,
+              );
               return new Response("ok", { status: 200 });
             }
             return new Response("ok", { status: 200 });
@@ -188,7 +208,14 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
 
           // === Conversão retirada → entrega ===
           if (reference.startsWith("upgrade:")) {
-            await handleUpgrade(supabaseAdmin, reference.slice("upgrade:".length), paymentId, payment?.status ?? event, isPaid, isCancel);
+            await handleUpgrade(
+              supabaseAdmin,
+              reference.slice("upgrade:".length),
+              paymentId,
+              payment?.status ?? event,
+              isPaid,
+              isCancel,
+            );
             return new Response("ok", { status: 200 });
           }
 
@@ -204,8 +231,14 @@ export const Route = createFileRoute("/api/public/asaas/webhook")({
             orderRef = (byCheckout as { id: string } | null)?.id ?? "";
           }
 
-          await handleOrder(supabaseAdmin, orderRef, paymentId, payment?.status ?? event, isPaid, isCancel);
-
+          await handleOrder(
+            supabaseAdmin,
+            orderRef,
+            paymentId,
+            payment?.status ?? event,
+            isPaid,
+            isCancel,
+          );
 
           return new Response("ok", { status: 200 });
         } catch (err) {
@@ -255,7 +288,6 @@ async function handleOrder(
   ) {
     return;
   }
-
 
   if (isPaid) {
     const { data: result, error } = await admin.rpc("confirm_order_paid", {
@@ -327,7 +359,6 @@ async function handleUpgrade(
     } catch (err) {
       console.error("[asaas:webhook] maisentregas upgrade dispatch error", upgradeId, err);
     }
-
 
     try {
       const { data: up } = await admin

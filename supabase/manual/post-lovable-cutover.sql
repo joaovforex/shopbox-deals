@@ -4,6 +4,16 @@
 
 BEGIN;
 
+-- Este job pertence ao provedor antigo Mercado Pago e aponta para uma rota que
+-- não existe mais. Não o replique no novo domínio.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'reconcile-mp-orders') THEN
+    PERFORM cron.unschedule('reconcile-mp-orders');
+  END IF;
+END
+$$;
+
 DO $$
 DECLARE
   job record;
@@ -12,8 +22,12 @@ BEGIN
   FOR job IN
     SELECT jobname, schedule, command
     FROM cron.job
-    WHERE command LIKE '%shopbox-share-and-sell.lovable.app%'
-       OR command LIKE '%project--c4f78e45-fe9f-4685-9b8e-5d44272c204b.lovable.app%'
+    WHERE jobname IS NOT NULL
+      AND jobname <> 'reconcile-mp-orders'
+      AND (
+        command LIKE '%shopbox-share-and-sell.lovable.app%'
+        OR command LIKE '%project--c4f78e45-fe9f-4685-9b8e-5d44272c204b.lovable.app%'
+      )
   LOOP
     new_command := replace(
       replace(

@@ -1,5 +1,21 @@
 BEGIN;
 
+-- Falhar de forma segura em vez de remover silenciosamente o acesso de um
+-- expedidor que ainda não foi associado a uma unidade.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM public.user_roles
+    WHERE role::text = 'fulfillment'
+      AND unidade_id IS NULL
+  ) THEN
+    RAISE EXCEPTION
+      'Migration abortada: existem usuarios fulfillment sem unidade_id';
+  END IF;
+END
+$$;
+
 -- Apenas o backend com service role pode confirmar que o frete adicional foi
 -- pago. Repetimos os REVOKEs explicitamente para corrigir permissões divergentes
 -- que possam existir no banco real.

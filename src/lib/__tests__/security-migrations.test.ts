@@ -20,8 +20,6 @@ describe("migrations de segurança", () => {
   test("nega escopo nulo para fulfillment", async () => {
     const sql = await readFile(migrationUrl, "utf8");
     expect(sql).toContain("_unidade IS NOT NULL AND EXISTS");
-    expect(sql).toContain(
-      "fulfillment_scope_unidade(auth.uid()) IS NOT NULL",
-    );
+    expect(sql).toContain("fulfillment_scope_unidade(auth.uid()) IS NOT NULL");
   });
 });

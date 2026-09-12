@@ -63,7 +63,13 @@ export const Route = createFileRoute("/api/public/cielo/reconcile")({
           return new Response("query failed", { status: 500 });
         }
 
-        const summary = { scanned: orders?.length ?? 0, expired, recovered: 0, stillOpen: 0, errors: 0 };
+        const summary = {
+          scanned: orders?.length ?? 0,
+          expired,
+          recovered: 0,
+          stillOpen: 0,
+          errors: 0,
+        };
 
         for (const row of orders ?? []) {
           const o = row as {
@@ -105,8 +111,16 @@ export const Route = createFileRoute("/api/public/cielo/reconcile")({
 
             // Confere o valor cobrado (centavos) antes de confirmar.
             const paidValue = tx.amount != null ? Number(tx.amount) / 100 : null;
-            if (paidValue != null && expectedTotal > 0 && Math.abs(paidValue - expectedTotal) > 0.02) {
-              console.warn("[cielo:reconcile] value mismatch", { orderId: o.id, paidValue, expectedTotal });
+            if (
+              paidValue != null &&
+              expectedTotal > 0 &&
+              Math.abs(paidValue - expectedTotal) > 0.02
+            ) {
+              console.warn("[cielo:reconcile] value mismatch", {
+                orderId: o.id,
+                paidValue,
+                expectedTotal,
+              });
               summary.stillOpen++;
               continue;
             }
@@ -138,15 +152,22 @@ export const Route = createFileRoute("/api/public/cielo/reconcile")({
 
             if (result === "ok" || result === "already_paid") {
               summary.recovered++;
-              try {
-                const { createDeliveryForOrder } = await import("@/lib/maisentregas.functions");
-                await createDeliveryForOrder(o.id);
-              } catch (err) {
-                console.error("[cielo:reconcile] maisentregas create error", o.id, err);
+              // already_paid significa que outro worker venceu a corrida.
+              // Somente a primeira confirmação pode solicitar a entrega.
+              if (result === "ok") {
+                try {
+                  const { createDeliveryForOrder } = await import("@/lib/maisentregas.functions");
+                  await createDeliveryForOrder(o.id);
+                } catch (err) {
+                  console.error("[cielo:reconcile] maisentregas create error", o.id, err);
+                }
               }
             } else {
               summary.errors++;
-              console.warn("[cielo:reconcile] cannot auto-confirm", { orderId: o.id, reason: result });
+              console.warn("[cielo:reconcile] cannot auto-confirm", {
+                orderId: o.id,
+                reason: result,
+              });
             }
           } catch (err) {
             console.error("[cielo:reconcile] unexpected", o.id, err);
