@@ -58,7 +58,7 @@ function addSecurityHeaders(response: Response, request: Request): Response {
   headers.set("X-Frame-Options", "DENY");
   headers.set(
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=(), payment=()",
+    "camera=(self), microphone=(), geolocation=(), payment=()",
   );
 
   // Add these only if the upstream handler did not already set them.
