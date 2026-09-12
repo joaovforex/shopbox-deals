@@ -32,7 +32,7 @@ function AuditLogPage() {
   const [roles, setRoles] = useState<RoleSummary | null>(null);
   const [page, setPage] = useState(0);
   const [term, setTerm] = useState("");
-  const navigate = Route.useNavigate();
+  const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => { getRoleSummary().then(setRoles); }, []);
 
