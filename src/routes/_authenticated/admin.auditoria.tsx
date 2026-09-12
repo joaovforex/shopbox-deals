@@ -207,3 +207,46 @@ function AuditLogPage() {
     </div>
   );
 }
+
+function AuditDetail({ row }: { row: AuditRow }) {
+  const changes = changedFields(row);
+  const ctx = auditContext(row);
+  const [showRaw, setShowRaw] = useState(false);
+  return (
+    <div className="space-y-3 text-xs">
+      {ctx.length > 0 && (
+        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1">
+          {ctx.map((c, i) => (
+            <div key={i} className="flex gap-2">
+              <span className="text-muted-foreground shrink-0">{c.label}:</span>
+              <span className="font-medium break-all">{c.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {changes.length > 0 && (
+        <div className="border-t border-border/50 pt-2">
+          <div className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Alterações ({changes.length})</div>
+          <div className="space-y-1">
+            {changes.map((c, i) => (
+              <div key={i} className="flex flex-wrap items-center gap-1">
+                <span className="font-semibold">{c.label}:</span>
+                <span className="line-through text-muted-foreground break-all">{c.before}</span>
+                <span>→</span>
+                <span className="text-foreground font-medium break-all">{c.after}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="border-t border-border/50 pt-2">
+        <button type="button" onClick={() => setShowRaw((v) => !v)} className="text-[11px] font-bold uppercase tracking-wider text-primary">
+          {showRaw ? "Ocultar dados brutos" : "Ver dados brutos (JSON)"}
+        </button>
+        {showRaw && (
+          <pre className="mt-2 max-h-80 overflow-auto rounded bg-background border border-border p-3 text-[11px] whitespace-pre-wrap break-all">{JSON.stringify(row.details ?? {}, null, 2)}</pre>
+        )}
+      </div>
+    </div>
+  );
+}
