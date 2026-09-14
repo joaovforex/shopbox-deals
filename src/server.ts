@@ -43,6 +43,14 @@ function isApiRoute(request: Request): boolean {
   return url.pathname.startsWith("/api");
 }
 
+// Páginas de catálogo devem sempre refletir o estoque/cadastro atual: nunca
+// podem ser servidas de cache (borda/CDN/navegador). Assim um produto recém
+// cadastrado aparece imediatamente para todos, sem janela de "leitura velha".
+function isFreshCatalogPath(request: Request): boolean {
+  const { pathname } = new URL(request.url);
+  return pathname === "/" || pathname === "/loja" || pathname.startsWith("/produto/");
+}
+
 function isHtmlResponse(response: Response): boolean {
   const contentType = response.headers.get("content-type") ?? "";
   return contentType.includes("text/html");
@@ -74,6 +82,11 @@ function addSecurityHeaders(response: Response, request: Request): Response {
   }
   if (!headers.has("Referrer-Policy")) {
     headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  }
+
+  // Catálogo/home/produto: força HTML sempre fresco (sem cache de borda/CDN/navegador).
+  if (isFreshCatalogPath(request)) {
+    headers.set("Cache-Control", "no-store, must-revalidate");
   }
 
   // Report-Only CSP: broad enough for checkout/payment providers while we collect reports.
