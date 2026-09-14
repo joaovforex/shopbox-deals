@@ -5,7 +5,9 @@
 const env = process.env;
 env.SUPABASE_URL ||= env.NEXT_PUBLIC_SUPABASE_URL || env.VITE_SUPABASE_URL || "";
 env.SUPABASE_PUBLISHABLE_KEY ||=
-  env.SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+  env.SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_ANON_KEY || env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+// chave secreta do servidor: aceita o nome novo (sb_secret_*) da integracao
+env.SUPABASE_SERVICE_ROLE_KEY ||= env.SUPABASE_SECRET_KEY || "";
 if (!env.SUPABASE_PROJECT_ID && env.SUPABASE_URL) {
   try { env.SUPABASE_PROJECT_ID = new URL(env.SUPABASE_URL).hostname.split(".")[0]; } catch { /* ignore */ }
 }
