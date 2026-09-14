@@ -11,6 +11,11 @@ e gera `.vercel/output` (Build Output API v3). Não há passo de pós-build.
 5. Deploy → testar na URL `*.vercel.app` antes de apontar o domínio.
 
 ## Variáveis de ambiente
+
+> Atalho: instalando a **integração Supabase** no projeto da Vercel (Marketplace → Supabase → conectar o projeto
+> `shopbox-loja-v2`), as variáveis `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` são injetadas
+> automaticamente e o app as aceita (ver `src/lib/env-shim.ts` e `vite.config.ts`). Só os segredos de Cielo/Asaas/etc.
+> precisam ser cadastrados à mão.
 Valores do **Supabase novo** (`ivvghjzzhldcvzxaxwty`): Project Settings → API.
 
 | Variável | Onde pegar | Obrigatória |
