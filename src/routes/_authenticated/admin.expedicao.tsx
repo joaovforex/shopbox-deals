@@ -751,7 +751,8 @@ function FulfillmentPage() {
 
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex bg-secondary rounded-md p-1">
+          <div className="w-full sm:w-auto overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="inline-flex bg-secondary rounded-md p-1 min-w-max">
             <TabBtn active={tab === "separation"} onClick={() => setTab("separation")} icon={<Hourglass className="h-4 w-4" />}>
               Em separação ({tabCounts?.separation ?? 0})
             </TabBtn>
@@ -772,6 +773,7 @@ function FulfillmentPage() {
             <TabBtn active={tab === "notifications"} onClick={() => setTab("notifications")} icon={<BellRing className="h-4 w-4" />}>
               Notificações ({(notifData?.orders ?? []).length})
             </TabBtn>
+          </div>
           </div>
 
 
@@ -1226,7 +1228,7 @@ function TabBtn({ active, onClick, icon, children }: { active: boolean; onClick:
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded ${active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded whitespace-nowrap shrink-0 ${active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
     >
       {icon} {children}
     </button>
