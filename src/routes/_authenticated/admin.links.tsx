@@ -134,7 +134,7 @@ function ShortLinksAdmin() {
       <div className="flex items-center gap-3">
         <Link2 className="h-6 w-6 text-primary" />
         <div>
-          <h1 className="text-2xl font-black uppercase tracking-wider">Links curtos</h1>
+          <h1 className="text-2xl font-semibold uppercase tracking-wide">Links curtos</h1>
           <p className="text-sm text-muted-foreground">
             Redirecionamentos personalizados a partir do seu domínio (ex: <span className="font-mono">{origin || "shopboxonline.com"}/grupo</span>).
           </p>

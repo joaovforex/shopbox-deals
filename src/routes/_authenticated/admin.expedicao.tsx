@@ -672,7 +672,7 @@ function FulfillmentPage() {
 
   return (
     <Shell>
-      <section className="bg-card border-b-4 border-primary">
+      <section className="bg-card border-b border-border">
         <div className="container mx-auto px-4 py-6">
           <Link to="/admin" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-2">
             <ArrowLeft className="h-4 w-4" /> Voltar ao admin
@@ -690,7 +690,7 @@ function FulfillmentPage() {
                 href="/etiqueta/qrcode"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-foreground text-background font-black uppercase tracking-widest text-xs px-4 py-2.5 rounded shadow hover:opacity-90"
+                className="inline-flex items-center gap-2 bg-foreground text-background font-semibold uppercase tracking-widest text-xs px-4 py-2.5 rounded shadow hover:opacity-90"
                 title="Imprimir etiqueta com QR Code da loja"
               >
                 <QrCode className="h-4 w-4" strokeWidth={2.5} /> QR Code Loja
@@ -699,7 +699,7 @@ function FulfillmentPage() {
                 href="/etiqueta/fragil"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-[#E11D1D] text-white font-black uppercase tracking-widest text-xs px-4 py-2.5 rounded shadow hover:opacity-90"
+                className="inline-flex items-center gap-2 bg-[#E11D1D] text-white font-semibold uppercase tracking-widest text-xs px-4 py-2.5 rounded shadow hover:opacity-90"
                 title="Imprimir etiqueta FRÁGIL para encomendas com vidro"
               >
                 <AlertTriangle className="h-4 w-4" strokeWidth={3} /> Etiqueta Frágil
@@ -1604,7 +1604,7 @@ function RefundsPanel({
                     {new Date(o.created_at).toLocaleString("pt-BR")} · {brl(o.total)}
                   </div>
                 </div>
-                <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded border ${tone}`}>
+                <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-1 rounded border ${tone}`}>
                   {st.label}
                 </span>
               </header>
@@ -1650,7 +1650,7 @@ function RefundsPanel({
                 <div className="flex justify-end">
                   <button
                     onClick={() => onRetry(q.id)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-primary text-primary-foreground text-[11px] font-black uppercase tracking-wider hover:opacity-90"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-primary text-primary-foreground text-[11px] font-semibold uppercase tracking-wide hover:opacity-90"
                   >
                     <RotateCcw className="h-3.5 w-3.5" /> Tentar agora
                   </button>

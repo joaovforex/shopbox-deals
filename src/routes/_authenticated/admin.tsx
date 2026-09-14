@@ -228,7 +228,7 @@ function AdminPage() {
               Você é responsável pelo envio e retirada dos pedidos. Catálogo e relatórios são
               restritos ao Super Admin.
             </p>
-            <Link to="/admin/expedicao" className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-5 py-3 rounded-md">
+            <Link to="/admin/expedicao" className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold uppercase tracking-wide px-5 py-3 rounded-md">
               <Truck className="h-4 w-4" /> Ir para Expedição
             </Link>
           </div>
@@ -385,7 +385,7 @@ function AdminPage() {
       <div className="flex-1 min-w-0 w-full flex flex-col">
       <Header />
 
-      <section className="bg-card border-b-4 border-primary">
+      <section className="bg-card border-b border-border">
         <div className="container mx-auto px-4 py-8 flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-widest text-accent font-bold flex items-center gap-2">

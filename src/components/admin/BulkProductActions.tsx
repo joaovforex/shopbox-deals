@@ -175,7 +175,7 @@ export function BulkProductActions({
   return (
     <div className="mb-4 rounded-lg border border-border bg-card p-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-black uppercase tracking-wider text-muted-foreground mr-1">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mr-1">
           {hasSel ? `${n} selecionado(s)` : "Ações em lote"}
         </span>
         <button type="button" className={btn} disabled={!hasSel || busy} onClick={() => setPanel(panel === "discount" ? null : "discount")}>
@@ -295,7 +295,7 @@ export function BulkProductActions({
       {panel === "import" && diffs && (
         <div className="mt-3 border-t border-border pt-3">
           <div className="flex items-center justify-between gap-2 mb-2">
-            <h3 className="text-sm font-black uppercase tracking-wider">Prévia da importação</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wide">Prévia da importação</h3>
             <button type="button" onClick={() => { setPanel(null); setDiffs(null); }} className="p-2 hover:bg-secondary rounded">
               <X className="h-4 w-4" />
             </button>

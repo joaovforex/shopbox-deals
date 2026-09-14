@@ -80,7 +80,7 @@ export function DeleteOrderDialog({
           <button
             onClick={onConfirm}
             disabled={!ok || busy}
-            className="min-h-11 px-4 py-2 rounded bg-destructive text-destructive-foreground text-sm font-black uppercase tracking-wider hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="min-h-11 px-4 py-2 rounded bg-destructive text-destructive-foreground text-sm font-semibold uppercase tracking-wide hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {busy ? "Excluindo…" : "Excluir definitivamente"}
           </button>

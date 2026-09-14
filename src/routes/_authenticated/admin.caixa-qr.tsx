@@ -198,7 +198,7 @@ function CaixaQrPage() {
 
       <section className="container mx-auto px-4 py-8 flex-1">
         <div className="mb-6">
-          <h1 className="text-3xl font-black uppercase tracking-tight">Caixa QR</h1>
+          <h1 className="text-3xl font-semibold uppercase tracking-tight">Caixa QR</h1>
           <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
             Solução provisória: cadastre os itens vendidos no balcão, gere um QR code e peça para o cliente
             escanear com o celular. O pagamento acontece direto na Cielo e o status atualiza aqui.
@@ -291,12 +291,12 @@ function CaixaQrPage() {
 
             <aside className="bg-card border border-border rounded-md p-4 h-fit lg:sticky lg:top-24">
               <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total</div>
-              <div className="text-3xl font-black">{brl(total)}</div>
+              <div className="text-3xl font-bold">{brl(total)}</div>
               <button
                 type="button"
                 onClick={onGenerate}
                 disabled={loading || total <= 0}
-                className="mt-4 w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-4 w-full inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-semibold uppercase tracking-wide px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <QrCode className="h-4 w-4" />
                 {loading ? "Gerando..." : "Gerar QR code"}
@@ -313,7 +313,7 @@ function CaixaQrPage() {
               <QRCodeSVG value={result.initPoint} size={320} level="M" includeMargin={false} />
               <div className="mt-4 text-center">
                 <div className="text-xs font-bold uppercase tracking-wider text-black/70">Total a pagar</div>
-                <div className="text-3xl font-black text-black">{brl(result.total)}</div>
+                <div className="text-3xl font-bold text-black">{brl(result.total)}</div>
               </div>
             </div>
 
@@ -328,7 +328,7 @@ function CaixaQrPage() {
               {status === "paid" ? (
                 <div className="bg-emerald-500/10 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 rounded-md p-4 text-sm space-y-3">
                   <div>
-                    <strong className="font-black uppercase tracking-wider block mb-1">Pagamento confirmado</strong>
+                    <strong className="font-semibold uppercase tracking-wide block mb-1">Pagamento confirmado</strong>
                     Já pode liberar a mercadoria. O registro ficou salvo no histórico do caixa.
                   </div>
                   <button
@@ -370,14 +370,14 @@ function CaixaQrPage() {
                         });
                       }
                     }}
-                    className="inline-flex items-center gap-2 bg-emerald-600 text-white font-black uppercase tracking-wider px-4 py-2.5 rounded-md shadow-deal hover:bg-emerald-700"
+                    className="inline-flex items-center gap-2 bg-emerald-600 text-white font-semibold uppercase tracking-wide px-4 py-2.5 rounded-md shadow-deal hover:bg-emerald-700"
                   >
                     <Printer className="h-4 w-4" /> Imprimir comprovante (80mm)
                   </button>
                 </div>
               ) : (
                 <div className="bg-emerald-500/10 border border-emerald-500/40 text-emerald-800 dark:text-emerald-300 rounded-md p-4 text-sm">
-                  <strong className="font-black uppercase tracking-wider block mb-1">QR pronto</strong>
+                  <strong className="font-semibold uppercase tracking-wide block mb-1">QR pronto</strong>
                   Peça ao cliente para abrir a câmera do celular, escanear este QR e finalizar o pagamento.
                   A confirmação chega aqui automaticamente pelo webhook da Cielo.
                 </div>
@@ -417,7 +417,7 @@ function CaixaQrPage() {
               <button
                 type="button"
                 onClick={reset}
-                className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] print:hidden"
+                className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold uppercase tracking-wide px-4 py-3 rounded-md shadow-deal hover:scale-[1.02] print:hidden"
               >
                 <RotateCcw className="h-4 w-4" /> Nova venda
               </button>
@@ -427,7 +427,7 @@ function CaixaQrPage() {
 
         {/* Histórico */}
         <div className="mt-10 print:hidden">
-          <h2 className="text-lg font-black uppercase tracking-wider mb-3">Últimas cobranças do caixa</h2>
+          <h2 className="text-lg font-semibold uppercase tracking-wide mb-3">Últimas cobranças do caixa</h2>
           <div className="bg-card border border-border rounded-md overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -457,7 +457,7 @@ function CaixaQrPage() {
                           <div className="font-bold">{c.operator_name ?? "—"}</div>
                           {c.note && <div className="text-muted-foreground">{c.note}</div>}
                         </td>
-                        <td className="px-3 py-2 text-right font-black">{brl(Number(c.total))}</td>
+                        <td className="px-3 py-2 text-right font-bold">{brl(Number(c.total))}</td>
                         <td className="px-3 py-2">
                           <StatusBadge status={c.status} />
                         </td>

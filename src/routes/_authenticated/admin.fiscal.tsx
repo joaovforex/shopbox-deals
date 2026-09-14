@@ -180,7 +180,7 @@ function FiscalPage() {
           <Link to="/admin" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" /> Admin
           </Link>
-          <h1 className="text-2xl font-black uppercase tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-semibold uppercase tracking-tight flex items-center gap-2">
             <FileText className="h-6 w-6" /> Configuração Fiscal
           </h1>
         </div>
@@ -230,7 +230,7 @@ function FiscalPage() {
           </div>
 
           <div className="border-t border-border pt-4">
-            <h2 className="font-black uppercase tracking-wider text-sm mb-3">Endereço</h2>
+            <h2 className="font-semibold uppercase tracking-wide text-sm mb-3">Endereço</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Field label="Logradouro" value={form.endereco_logradouro ?? ""} onChange={(v) => setForm({ ...form, endereco_logradouro: v })} />
               <Field label="Número" value={form.endereco_numero ?? ""} onChange={(v) => setForm({ ...form, endereco_numero: v })} />
@@ -244,7 +244,7 @@ function FiscalPage() {
           </div>
 
           <div className="border-t border-border pt-4">
-            <h2 className="font-black uppercase tracking-wider text-sm mb-3">NFC-e (CSC) & Séries</h2>
+            <h2 className="font-semibold uppercase tracking-wide text-sm mb-3">NFC-e (CSC) & Séries</h2>
             <p className="text-xs text-muted-foreground mb-3">
               O certificado digital (.pfx) fica no painel da Focus NFe. Aqui você informa apenas o CSC (ID + token) usado para gerar o QR-Code da NFC-e.
             </p>
@@ -262,7 +262,7 @@ function FiscalPage() {
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-5 py-3 rounded-md disabled:opacity-60"
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold uppercase tracking-wide px-5 py-3 rounded-md disabled:opacity-60"
             >
               <Save className="h-4 w-4" /> {saving ? "Salvando…" : "Salvar configuração"}
             </button>
@@ -271,7 +271,7 @@ function FiscalPage() {
 
         {/* Validação Focus NFe */}
         <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-3">
-          <h2 className="font-black uppercase tracking-wider text-sm flex items-center gap-2">
+          <h2 className="font-semibold uppercase tracking-wide text-sm flex items-center gap-2">
             <RefreshCw className="h-4 w-4" /> Validação Focus NFe (token + CNPJ)
           </h2>
           <p className="text-xs text-muted-foreground">
@@ -300,7 +300,7 @@ function FiscalPage() {
 
         {/* Emissão de teste */}
         <div className="bg-card border border-border rounded-lg p-4 md:p-6 space-y-4">
-          <h2 className="font-black uppercase tracking-wider text-sm flex items-center gap-2">
+          <h2 className="font-semibold uppercase tracking-wide text-sm flex items-center gap-2">
             <Send className="h-4 w-4" /> Emissão de teste
           </h2>
           <p className="text-xs text-muted-foreground">

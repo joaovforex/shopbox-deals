@@ -338,7 +338,7 @@ function AgendadorCanalPage() {
             <ChevronLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl md:text-3xl font-black uppercase tracking-wider flex items-center gap-2">
+            <h1 className="text-2xl md:text-3xl font-semibold uppercase tracking-wide flex items-center gap-2">
               <Radio className="h-6 w-6 text-[#25D366]" /> Agendador · Canal ShopBox
             </h1>
             <p className="text-xs text-muted-foreground mt-1">
@@ -360,21 +360,21 @@ function AgendadorCanalPage() {
               <button
                 onClick={handleStart}
                 disabled={pending.length === 0}
-                className="inline-flex items-center gap-2 bg-[#25D366] text-white font-black uppercase tracking-wider px-5 py-3 rounded-md text-sm disabled:opacity-50"
+                className="inline-flex items-center gap-2 bg-[#25D366] text-white font-semibold uppercase tracking-wide px-5 py-3 rounded-md text-sm disabled:opacity-50"
               >
                 <Play className="h-4 w-4" /> Iniciar
               </button>
             ) : (
               <button
                 onClick={handlePause}
-                className="inline-flex items-center gap-2 bg-amber-500 text-white font-black uppercase tracking-wider px-5 py-3 rounded-md text-sm"
+                className="inline-flex items-center gap-2 bg-amber-500 text-white font-semibold uppercase tracking-wide px-5 py-3 rounded-md text-sm"
               >
                 <Pause className="h-4 w-4" /> Pausar
               </button>
             )}
             <button
               onClick={() => setShowPicker(true)}
-              className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md text-sm"
+              className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold uppercase tracking-wide px-4 py-3 rounded-md text-sm"
             >
               <Plus className="h-4 w-4" /> Adicionar produtos
             </button>
@@ -415,14 +415,14 @@ function AgendadorCanalPage() {
           <div className="mt-4 flex flex-wrap items-center gap-4 text-xs">
             <div>
               <span className="text-muted-foreground">Na fila: </span>
-              <span className="font-black">{pending.length}</span>
+              <span className="font-bold">{pending.length}</span>
             </div>
             <div>
               <span className="text-muted-foreground">Enviados: </span>
-              <span className="font-black text-primary">{done.length}</span>
+              <span className="font-bold text-primary">{done.length}</span>
             </div>
             {secondsToNext !== null && (
-              <div className="ml-auto font-mono font-black text-lg">
+              <div className="ml-auto font-mono font-bold text-lg">
                 Próximo em {String(Math.floor(secondsToNext / 60)).padStart(2, "0")}:
                 {String(secondsToNext % 60).padStart(2, "0")}
               </div>
@@ -433,7 +433,7 @@ function AgendadorCanalPage() {
         {/* Card do produto pronto para enviar */}
         {readyProduct && (
           <div className="bg-gradient-to-br from-[#25D366]/20 to-[#128C7E]/10 border-2 border-[#25D366] rounded-lg p-4 mb-4 animate-pulse-slow">
-            <div className="text-[10px] uppercase tracking-widest text-[#25D366] font-black mb-2">
+            <div className="text-[10px] uppercase tracking-widest text-[#25D366] font-bold mb-2">
               🔴 Hora de postar no Canal ShopBox
             </div>
             <div className="flex gap-4 items-center">
@@ -445,8 +445,8 @@ function AgendadorCanalPage() {
                 />
               )}
               <div className="flex-1 min-w-0">
-                <div className="font-black text-lg md:text-xl truncate">{readyProduct.name}</div>
-                <div className="text-price font-black text-2xl">{brl(readyProduct.price)}</div>
+                <div className="font-bold text-lg md:text-xl truncate">{readyProduct.name}</div>
+                <div className="text-price font-bold text-2xl">{brl(readyProduct.price)}</div>
                 {readyProduct.category && (
                   <div className="text-xs text-muted-foreground">{readyProduct.category}</div>
                 )}
@@ -456,7 +456,7 @@ function AgendadorCanalPage() {
               <button
                 onClick={handleShareCurrent}
                 autoFocus
-                className="inline-flex items-center justify-center gap-2 bg-[#25D366] text-white font-black uppercase tracking-wider px-6 py-4 rounded-md text-base hover:opacity-90"
+                className="inline-flex items-center justify-center gap-2 bg-[#25D366] text-white font-semibold uppercase tracking-wide px-6 py-4 rounded-md text-base hover:opacity-90"
               >
                 <Share2 className="h-5 w-5" /> Compartilhar no Canal
               </button>
@@ -473,7 +473,7 @@ function AgendadorCanalPage() {
         {/* Lista da fila */}
         <div className="bg-card border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-3 border-b border-border bg-secondary/40">
-            <h2 className="font-black uppercase tracking-wider text-sm">Fila</h2>
+            <h2 className="font-semibold uppercase tracking-wide text-sm">Fila</h2>
           </div>
           {loading ? (
             <div className="p-8 text-center text-muted-foreground text-sm">Carregando...</div>
@@ -482,7 +482,7 @@ function AgendadorCanalPage() {
               <p className="text-muted-foreground text-sm mb-3">Fila vazia.</p>
               <button
                 onClick={() => setShowPicker(true)}
-                className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-2.5 rounded-md text-xs"
+                className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold uppercase tracking-wide px-4 py-2.5 rounded-md text-xs"
               >
                 <Plus className="h-4 w-4" /> Adicionar produtos
               </button>
@@ -625,7 +625,7 @@ function ProductPickerDialog({
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-card w-full max-w-2xl rounded-lg border border-border shadow-2xl flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="font-black uppercase tracking-wider text-sm">
+          <h2 className="font-semibold uppercase tracking-wide text-sm">
             Adicionar produtos à fila
           </h2>
           <button onClick={onClose} className="text-xs px-3 py-1.5 rounded hover:bg-secondary">
@@ -713,7 +713,7 @@ function ProductPickerDialog({
           <button
             onClick={() => onAdd(Array.from(selected))}
             disabled={selected.size === 0}
-            className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-xs disabled:opacity-50"
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-semibold uppercase tracking-wide px-4 py-2 rounded-md text-xs disabled:opacity-50"
           >
             <Plus className="h-4 w-4" /> Adicionar {selected.size > 0 ? selected.size : ""}
           </button>

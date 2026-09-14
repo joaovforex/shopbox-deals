@@ -186,7 +186,7 @@ function TeamPage() {
 
   return (
     <Shell>
-      <section className="bg-card border-b-4 border-primary">
+      <section className="bg-card border-b border-border">
         <div className="container mx-auto px-4 py-6">
           <Link to="/admin" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-2">
             <ArrowLeft className="h-4 w-4" /> Voltar ao admin
@@ -216,7 +216,7 @@ function TeamPage() {
             <button
               onClick={findUser}
               disabled={searching}
-              className="bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-2 rounded-md text-sm disabled:opacity-60"
+              className="bg-primary text-primary-foreground font-semibold uppercase tracking-wide px-4 py-2 rounded-md text-sm disabled:opacity-60"
             >
               {searching ? "..." : "Buscar"}
             </button>

@@ -177,7 +177,7 @@ function ManualSalePage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <section className="bg-card border-b-4 border-primary">
+      <section className="bg-card border-b border-border">
         <div className="container mx-auto px-4 py-6 flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="text-xs uppercase tracking-widest text-accent font-bold inline-flex items-center gap-2">
@@ -262,7 +262,7 @@ function ManualSalePage() {
           )}
 
           <div className="bg-card border border-border rounded-lg p-4">
-            <h2 className="font-black uppercase text-sm tracking-wider mb-3">
+            <h2 className="font-semibold uppercase text-sm tracking-wider mb-3">
               Itens ({cart.length})
             </h2>
             {cart.length === 0 ? (
@@ -285,7 +285,7 @@ function ManualSalePage() {
                         <button onClick={() => setQty(i, l.quantity + 1)} className="p-1.5"><Plus className="h-3 w-3" /></button>
                       </div>
                     )}
-                    <div className="text-sm font-black w-20 text-right">{brl(l.unit_price * l.quantity)}</div>
+                    <div className="text-sm font-bold w-20 text-right">{brl(l.unit_price * l.quantity)}</div>
                     {!result && (
                       <button onClick={() => removeLine(i)} className="text-destructive p-1.5">
                         <Trash2 className="h-4 w-4" />
@@ -295,7 +295,7 @@ function ManualSalePage() {
                 ))}
               </ul>
             )}
-            <div className="mt-3 pt-3 border-t border-border flex justify-between text-lg font-black">
+            <div className="mt-3 pt-3 border-t border-border flex justify-between text-lg font-bold">
               <span>Total</span><span>{brl(total)}</span>
             </div>
           </div>
@@ -304,7 +304,7 @@ function ManualSalePage() {
         <aside className="space-y-4">
           {!result ? (
             <div className="bg-card border border-border rounded-lg p-4 space-y-3">
-              <h2 className="font-black uppercase text-sm tracking-wider">Cliente</h2>
+              <h2 className="font-semibold uppercase text-sm tracking-wider">Cliente</h2>
               <div>
                 <label className="block text-xs font-bold mb-1">Nome</label>
                 <input
@@ -355,7 +355,7 @@ function ManualSalePage() {
               <button
                 onClick={generateLink}
                 disabled={generating || cart.length === 0}
-                className="w-full bg-primary text-primary-foreground font-black uppercase tracking-wider px-4 py-3 rounded-md shadow-deal disabled:opacity-50"
+                className="w-full bg-primary text-primary-foreground font-semibold uppercase tracking-wide px-4 py-3 rounded-md shadow-deal disabled:opacity-50"
               >
                 {generating
                   ? "Registrando..."
@@ -371,7 +371,7 @@ function ManualSalePage() {
             </div>
           ) : (
             <div className="bg-card border-2 border-primary rounded-lg p-4 space-y-3">
-              <h2 className="font-black uppercase text-sm tracking-wider text-primary">
+              <h2 className="font-semibold uppercase text-sm tracking-wider text-primary">
                 {result.initPoint ? "Cobrança pronta" : "Venda registrada"}
               </h2>
               {result.initPoint ? (

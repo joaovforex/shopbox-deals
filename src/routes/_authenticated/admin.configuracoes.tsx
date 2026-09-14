@@ -144,7 +144,7 @@ function SettingsPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <section className="bg-card border-b-4 border-primary">
+      <section className="bg-card border-b border-border">
         <div className="container mx-auto px-4 py-6 flex items-center justify-between gap-4">
           <div>
             <div className="text-xs uppercase tracking-widest text-accent font-bold">Super Admin · Dono</div>
@@ -155,7 +155,7 @@ function SettingsPage() {
           </div>
           <Link
             to="/admin"
-            className="inline-flex items-center gap-2 bg-card border border-border font-black uppercase tracking-wider px-3 py-2 rounded-md hover:border-primary text-xs"
+            className="inline-flex items-center gap-2 bg-card border border-border font-semibold uppercase tracking-wide px-3 py-2 rounded-md hover:border-primary text-xs"
           >
             <ArrowLeft className="h-4 w-4" /> Admin
           </Link>
@@ -184,7 +184,7 @@ function SettingsPage() {
                 step="0.1"
                 value={ratePct}
                 onChange={(e) => setRatePct(e.target.value)}
-                className="mt-1 w-full bg-background border-2 border-border rounded-md px-3 py-2 text-lg font-black"
+                className="mt-1 w-full bg-background border-2 border-border rounded-md px-3 py-2 text-lg font-bold"
               />
             </div>
             <div className="text-sm text-muted-foreground pb-2">
@@ -463,7 +463,7 @@ function MassDiscountSection({ currentPct, onDone }: { currentPct: number; onDon
           <button
             type="button"
             onClick={() => setScope("all")}
-            className={`px-3 py-2 rounded-md border-2 text-xs font-black uppercase tracking-wider ${
+            className={`px-3 py-2 rounded-md border-2 text-xs font-semibold uppercase tracking-wide ${
               scope === "all" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background hover:border-primary/50"
             }`}
           >
@@ -472,7 +472,7 @@ function MassDiscountSection({ currentPct, onDone }: { currentPct: number; onDon
           <button
             type="button"
             onClick={() => setScope("category")}
-            className={`px-3 py-2 rounded-md border-2 text-xs font-black uppercase tracking-wider ${
+            className={`px-3 py-2 rounded-md border-2 text-xs font-semibold uppercase tracking-wide ${
               scope === "category" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background hover:border-primary/50"
             }`}
           >
@@ -543,7 +543,7 @@ function MassDiscountSection({ currentPct, onDone }: { currentPct: number; onDon
             value={pct}
             onChange={(e) => setPct(e.target.value)}
             placeholder="Ex.: 15"
-            className="mt-1 w-full bg-background border-2 border-border rounded-md px-3 py-2 text-lg font-black"
+            className="mt-1 w-full bg-background border-2 border-border rounded-md px-3 py-2 text-lg font-bold"
           />
         </div>
         <AdminButton
@@ -620,7 +620,7 @@ function UnidadesSection() {
           <div key={u.id} className="border-2 border-border rounded-md p-3 bg-background">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="font-black flex items-center gap-2">
+                <div className="font-bold flex items-center gap-2">
                   {u.nome}
                   {!u.ativa && <span className="text-[10px] uppercase bg-muted px-1.5 py-0.5 rounded">inativa</span>}
                 </div>

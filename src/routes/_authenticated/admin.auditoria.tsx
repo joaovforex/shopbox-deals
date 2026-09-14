@@ -69,7 +69,7 @@ function AuditLogPage() {
 
   return (
     <div className="flex-1 flex flex-col">
-      <section className="bg-card border-b-4 border-primary">
+      <section className="bg-card border-b border-border">
         <div className="container mx-auto px-4 py-6 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
           <div className="min-w-0">
             <div className="text-xs uppercase tracking-widest text-accent font-bold flex items-center gap-2">

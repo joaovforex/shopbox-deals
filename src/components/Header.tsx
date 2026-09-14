@@ -120,16 +120,6 @@ export function Header() {
 
   return (
     <>
-      <div className="bg-foreground text-background text-[10px] sm:text-xs py-1.5 px-3">
-        <div className="container mx-auto flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-center">
-          <span>Entrega em Curitiba e região · Retirada grátis</span>
-          <span className="opacity-40">·</span>
-          <span>Pix e cartões</span>
-          <span className="opacity-40">·</span>
-          <span>Retire na loja em Colombo</span>
-        </div>
-      </div>
-
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b-4 border-primary">
         <div className="container mx-auto px-3 sm:px-4 h-16 sm:h-20 grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4">
           <Link to="/" className="flex items-center shrink-0">

@@ -451,7 +451,7 @@ function OrdersPanel() {
 
   return (
     <Shell>
-      <section className="bg-card border-b-4 border-primary">
+      <section className="bg-card border-b border-border">
         <div className="container mx-auto px-4 py-6">
           <Link to="/admin" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-2">
             <ArrowLeft className="h-4 w-4" /> Voltar ao admin
@@ -972,7 +972,7 @@ function OrdersPanel() {
                               onClick={() => setDeleteTarget(o)}
                               disabled={busy}
                               title="Excluir pedido (Super Admin)"
-                              className="min-h-9 inline-flex items-center gap-1 text-xs font-black uppercase tracking-wider text-destructive-foreground bg-destructive hover:opacity-90 px-2 py-1 rounded disabled:opacity-50"
+                              className="min-h-9 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-destructive-foreground bg-destructive hover:opacity-90 px-2 py-1 rounded disabled:opacity-50"
                             >
                               <Trash2 className="h-3.5 w-3.5" /> Excluir
                             </button>
@@ -993,7 +993,7 @@ function OrdersPanel() {
                       <Link to="/pedido/$id" params={{ id: o.id }} className="font-mono text-xs text-primary font-bold">
                         #{o.id.slice(0, 8).toUpperCase()}
                       </Link>
-                      <span className="font-black text-price text-base">{brl(Number(o.total))}</span>
+                      <span className="font-bold text-price text-base">{brl(Number(o.total))}</span>
                     </div>
                     <div className="text-sm font-semibold break-words">{o.customer_name}</div>
                     {o.customer_cpf && (
@@ -1071,7 +1071,7 @@ function OrdersPanel() {
                         <button
                           onClick={() => setDeleteTarget(o)}
                           disabled={busy}
-                          className="min-h-11 ml-auto inline-flex items-center gap-1 text-[11px] font-black uppercase tracking-wider bg-destructive text-destructive-foreground px-3 py-2 rounded disabled:opacity-50"
+                          className="min-h-11 ml-auto inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide bg-destructive text-destructive-foreground px-3 py-2 rounded disabled:opacity-50"
                         >
                           <Trash2 className="h-3 w-3" /> Excluir
                         </button>
