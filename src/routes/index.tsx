@@ -6,9 +6,8 @@ import { Header, Footer, MobileBottomNav } from "@/components/Header";
 import { AnnouncementBanner } from "@/components/AnnouncementBanner";
 import { TrustBar } from "@/components/TrustBar";
 import { ProductCard } from "@/components/ProductCard";
-import { pageProductsQuery, type ProductCard as ProductCardData } from "@/lib/products";
+import { homeShowcaseQuery, type ProductCard as ProductCardData } from "@/lib/products";
 import { useSiteSettings, formatCashbackLabel } from "@/lib/site-settings";
-import { discountPct } from "@/lib/format";
 
 const TITLE = "shopbox · Super descontos todos os dias em Colombo/PR";
 const DESCRIPTION =
@@ -28,7 +27,7 @@ export const Route = createFileRoute("/")({
     links: [{ rel: "canonical", href: "https://shopboxonline.com/" }],
   }),
   loader: ({ context }) =>
-    context.queryClient.prefetchQuery(pageProductsQuery({ page: 1 })).catch(() => undefined),
+    context.queryClient.prefetchQuery(homeShowcaseQuery()).catch(() => undefined),
   component: HomePage,
   pendingMs: 0,
 });
@@ -49,20 +48,13 @@ const STORE_JSON_LD = {
 };
 
 function HomePage() {
-  const { data } = useQuery(pageProductsQuery({ page: 1 }));
+  const { data } = useQuery(homeShowcaseQuery());
   const { data: settings } = useSiteSettings();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
 
-  const products = useMemo(() => (data?.items ?? []) as ProductCardData[], [data]);
-
-  /** Uma única vitrine: em estoque, maiores descontos primeiro. */
-  const offers = useMemo(() => {
-    const inStock = products.filter((p) => p.stock > 0);
-    return [...inStock]
-      .sort((a, b) => discountPct(b.original_price, b.price) - discountPct(a.original_price, a.price))
-      .slice(0, 12);
-  }, [products]);
+  /** Vitrine mista: produtos de várias categorias intercalados (não só autopeças). */
+  const offers = useMemo(() => (data ?? []) as ProductCardData[], [data]);
 
   const cashbackLabel = formatCashbackLabel(settings?.cashback_rate ?? 0.05);
 

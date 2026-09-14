@@ -1,6 +1,7 @@
 import { queryOptions, infiniteQueryOptions, useQuery } from "@tanstack/react-query";
 import { normalizeSearchTerm } from "@/lib/pgrst";
 import { supabase } from "@/integrations/supabase/client";
+import { discountPct } from "@/lib/format";
 
 
 export type ColorVariant = {
@@ -348,6 +349,77 @@ export const usedCategoriesQuery = () =>
     queryFn: fetchUsedCategories,
     staleTime: 30 * 60_000,
     gcTime: 60 * 60_000,
+  });
+
+const byDiscountDesc = (a: ProductCard, b: ProductCard) =>
+  discountPct(b.original_price, b.price) - discountPct(a.original_price, a.price);
+
+/** Vitrine da home: top ofertas por página 1 (usado como fallback). */
+async function fetchHomeTopOffers(limit: number): Promise<ProductCard[]> {
+  const page = await fetchProductsPaged({ stock: "in_stock", offset: 0, limit: 50 });
+  return page.items
+    .filter((p) => p.stock > 0)
+    .sort(byDiscountDesc)
+    .slice(0, limit);
+}
+
+/**
+ * Vitrine MISTA da home: intercala produtos de várias categorias (round-robin),
+ * para a home não ficar 100% autopeças. Busca um punhado de cada categoria em
+ * estoque e alterna entre elas; dentro de cada categoria, maiores descontos primeiro.
+ * Se houver só uma categoria (ou falha), cai na vitrine de top ofertas.
+ */
+export async function fetchHomeShowcase(limit = 12): Promise<ProductCard[]> {
+  let cats: string[] = [];
+  try {
+    cats = (await fetchUsedCategories()).filter(Boolean);
+  } catch {
+    cats = [];
+  }
+
+  if (cats.length <= 1) {
+    return fetchHomeTopOffers(limit);
+  }
+
+  const perCat = Math.max(3, Math.ceil(limit / cats.length) + 2);
+  const buckets = await Promise.all(
+    cats.map(async (c) => {
+      try {
+        const r = await fetchProductsPaged({ category: c, stock: "in_stock", offset: 0, limit: perCat });
+        return r.items.filter((p) => p.stock > 0).sort(byDiscountDesc);
+      } catch {
+        return [] as ProductCard[];
+      }
+    }),
+  );
+
+  // Round-robin entre as categorias que retornaram algo.
+  const active = buckets.filter((b) => b.length > 0);
+  const mixed: ProductCard[] = [];
+  const seen = new Set<string>();
+  let i = 0;
+  let guard = 0;
+  const maxGuard = limit * active.length + active.length;
+  while (mixed.length < limit && active.some((b) => b.length > 0) && guard < maxGuard) {
+    const b = active[i % active.length];
+    const p = b.shift();
+    if (p && !seen.has(p.id)) {
+      seen.add(p.id);
+      mixed.push(p);
+    }
+    i++;
+    guard++;
+  }
+
+  if (mixed.length === 0) return fetchHomeTopOffers(limit);
+  return mixed.slice(0, limit);
+}
+
+export const homeShowcaseQuery = () =>
+  queryOptions({
+    queryKey: ["products", "home-showcase"],
+    queryFn: () => fetchHomeShowcase(12),
+    staleTime: 60_000,
   });
 
 export async function fetchProduct(id: string) {
