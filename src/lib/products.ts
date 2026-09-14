@@ -26,6 +26,8 @@ export type Product = {
   brand?: string | null;
   size?: string | null;
   unidade_id?: string | null;
+  created_by?: string | null;
+  created_by_name?: string | null;
 };
 
 /** Versão enxuta usada na listagem (sem description). */
@@ -109,6 +111,73 @@ export async function fetchAdminProductsPaged(args: { offset: number; limit: num
   const total = count ?? items.length;
   const nextOffset = args.offset + items.length < total ? args.offset + items.length : null;
   return { items, total, nextOffset };
+}
+
+/** Agente que cadastrou o produto (created_by_name), com contagem de ativos/ocultos. */
+export type ProductAgent = { name: string; total: number; ativos: number; ocultos: number };
+
+/**
+ * Lista os agentes que já cadastraram produtos, com contagens.
+ * Percorre o catálogo em lotes de 1000 (limite do PostgREST) para não perder
+ * agentes quando há mais de 1000 produtos. Somente colunas leves.
+ */
+export async function fetchProductAgents(): Promise<ProductAgent[]> {
+  const map = new Map<string, ProductAgent>();
+  const PAGE = 1000;
+  let from = 0;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { data, error } = await supabase
+      .from("products")
+      .select("created_by_name, active")
+      .not("created_by_name", "is", null)
+      .neq("created_by_name", "")
+      .order("created_by_name", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as { created_by_name: string | null; active: boolean }[];
+    for (const r of rows) {
+      const name = (r.created_by_name ?? "").trim();
+      if (!name) continue;
+      const cur = map.get(name) ?? { name, total: 0, ativos: 0, ocultos: 0 };
+      cur.total += 1;
+      if (r.active) cur.ativos += 1;
+      else cur.ocultos += 1;
+      map.set(name, cur);
+    }
+    if (rows.length < PAGE) break;
+    from += PAGE;
+  }
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+}
+
+export const productAgentsQuery = () =>
+  queryOptions({
+    queryKey: ["admin", "product-agents"],
+    queryFn: fetchProductAgents,
+    staleTime: 60_000,
+  });
+
+/** IDs dos produtos de um agente num dado estado ativo/oculto (para ações em massa). */
+export async function fetchAgentProductIds(agent: string, active: boolean): Promise<string[]> {
+  const ids: string[] = [];
+  const PAGE = 1000;
+  let from = 0;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const { data, error } = await supabase
+      .from("products")
+      .select("id")
+      .eq("created_by_name", agent)
+      .eq("active", active)
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as { id: string }[];
+    for (const r of rows) ids.push(r.id);
+    if (rows.length < PAGE) break;
+    from += PAGE;
+  }
+  return ids;
 }
 
 export const adminProductsInfiniteQuery = () =>

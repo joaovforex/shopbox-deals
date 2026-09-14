@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useRouterState, Link, useNavigate } from "@tanstack/react-router";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -9,7 +9,7 @@ import { AdminSidebar } from "@/components/AdminSidebar";
 import { startAutoAudit, auditPageView } from "@/lib/audit-auto";
 
 import { supabase } from "@/integrations/supabase/client";
-import { adminProductsInfiniteQuery, getRoleSummary, type Product, type RoleSummary } from "@/lib/products";
+import { adminProductsInfiniteQuery, productAgentsQuery, fetchAgentProductIds, getRoleSummary, type Product, type RoleSummary } from "@/lib/products";
 import { claimFirstAdmin } from "@/lib/admin.functions";
 import { brl, discountPct, postDate } from "@/lib/format";
 import { installmentLabel } from "@/lib/installments";
@@ -114,6 +114,15 @@ function AdminPage() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"todos" | "esgotados" | "ocultos">("todos");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [agentFilter, setAgentFilter] = useState<string>("");
+  const [isAgentBulk, setIsAgentBulk] = useState(false);
+
+  // Lista de agentes (quem cadastrou produtos), com contagem de ativos/ocultos.
+  const { data: agents } = useQuery({
+    ...productAgentsQuery(),
+    enabled: canManageProducts && !isChildRoute,
+  });
+  const selectedAgent = agents?.find((a) => a.name === agentFilter);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [isBulkHiding, setIsBulkHiding] = useState(false);
@@ -282,6 +291,50 @@ function AdminPage() {
     toast.success(`${removed} produto(s) apagado(s)`);
     refetch();
     qc.invalidateQueries({ queryKey: ["products"] });
+  };
+
+  // Oculta (active=false) ou reexibe (active=true) TODOS os produtos de um agente,
+  // buscando os ids direto no banco — funciona mesmo com o catálogo só parcialmente
+  // carregado na tela. Reversível: reexibir volta os produtos para a loja.
+  const setAgentProductsActive = async (agent: string, makeActive: boolean) => {
+    if (!agent) return;
+    let ids: string[];
+    try {
+      // Para ocultar buscamos os ativos; para reexibir, os ocultos.
+      ids = await fetchAgentProductIds(agent, !makeActive);
+    } catch (e: any) {
+      return toast.error(e?.message ?? "Erro ao buscar produtos do agente.");
+    }
+    if (ids.length === 0) {
+      return toast.error(
+        makeActive
+          ? `Nenhum produto oculto de "${agent}".`
+          : `Nenhum produto ativo de "${agent}".`,
+      );
+    }
+    const verbo = makeActive ? "Reexibir na loja" : "Ocultar da loja";
+    if (!confirm(`${verbo} ${ids.length} ${ids.length === 1 ? "produto" : "produtos"} de "${agent}"?`)) return;
+    setIsAgentBulk(true);
+    const BATCH = 500;
+    let changed = 0;
+    let firstError: string | null = null;
+    for (let i = 0; i < ids.length; i += BATCH) {
+      const slice = ids.slice(i, i + BATCH);
+      const { data, error } = await supabase.rpc("admin_set_products_active" as never, { p_ids: slice, p_active: makeActive } as never);
+      if (error) { firstError = error.message; break; }
+      changed += Number(data ?? 0);
+    }
+    setIsAgentBulk(false);
+    if (firstError) return toast.error(firstError);
+    if (changed === 0) return toast.error("Nenhum produto alterado.");
+    toast.success(
+      makeActive
+        ? `${changed} produto(s) de "${agent}" reexibido(s) na loja`
+        : `${changed} produto(s) de "${agent}" ocultado(s) da loja`,
+    );
+    refetch();
+    qc.invalidateQueries({ queryKey: ["products"] });
+    qc.invalidateQueries({ queryKey: ["admin", "product-agents"] });
   };
 
 
@@ -535,10 +588,23 @@ function AdminPage() {
                 <option key={c} value={c}>{c}</option>
               ))}
           </select>
-          {(search || categoryFilter) && (
+          <select
+            value={agentFilter}
+            onChange={(e) => setAgentFilter(e.target.value)}
+            className="h-11 rounded-md border border-border bg-card text-sm px-3 focus:outline-none focus:border-primary min-w-[200px]"
+            title="Filtrar por agente que cadastrou o produto"
+          >
+            <option value="">Todos os agentes</option>
+            {(agents ?? []).map((a) => (
+              <option key={a.name} value={a.name}>
+                {a.name} ({a.ativos} ativo{a.ativos === 1 ? "" : "s"}{a.ocultos ? ` · ${a.ocultos} oculto${a.ocultos === 1 ? "" : "s"}` : ""})
+              </option>
+            ))}
+          </select>
+          {(search || categoryFilter || agentFilter) && (
             <AdminButton
               variant="ghost"
-              onClick={() => { setSearch(""); setCategoryFilter(""); }}
+              onClick={() => { setSearch(""); setCategoryFilter(""); setAgentFilter(""); }}
             >
               Limpar filtros
             </AdminButton>
@@ -552,15 +618,55 @@ function AdminPage() {
                   ? products.filter((p) => !p.active)
                   : products;
               const byCat = categoryFilter ? byTab.filter((p) => p.category === categoryFilter) : byTab;
+              const byAgent = agentFilter ? byCat.filter((p) => (p.created_by_name ?? "") === agentFilter) : byCat;
               const match = (p: typeof products[number]) =>
                 p.name.toLowerCase().includes(t)
                 || (p.category ?? "").toLowerCase().includes(t)
                 || (p.sku ?? "").toLowerCase().includes(t);
-              const n = t ? byCat.filter(match).length : byCat.length;
+              const n = t ? byAgent.filter(match).length : byAgent.length;
               return `${n} ${n === 1 ? "resultado" : "resultados"}`;
             })()}
           </span>
         </div>
+
+        {agentFilter && (
+          <div className="mb-4 flex flex-wrap items-center gap-3 rounded-md border border-primary/30 bg-primary/5 px-3 py-2.5 text-sm">
+            <span className="min-w-0 inline-flex items-center gap-2">
+              <EyeOff className="h-4 w-4 text-primary shrink-0" />
+              <span>
+                Agente <strong>{agentFilter}</strong>
+                {selectedAgent ? (
+                  <span className="text-muted-foreground">
+                    {" "}· {selectedAgent.ativos} ativo{selectedAgent.ativos === 1 ? "" : "s"} na loja
+                    {selectedAgent.ocultos ? `, ${selectedAgent.ocultos} oculto${selectedAgent.ocultos === 1 ? "" : "s"}` : ""}
+                  </span>
+                ) : null}
+              </span>
+            </span>
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              <AdminButton
+                variant="primary"
+                icon={<EyeOff className="h-4 w-4" />}
+                loading={isAgentBulk}
+                disabled={isAgentBulk || (selectedAgent ? selectedAgent.ativos === 0 : false)}
+                onClick={() => setAgentProductsActive(agentFilter, false)}
+              >
+                Ocultar todos deste agente
+              </AdminButton>
+              {(!selectedAgent || selectedAgent.ocultos > 0) && (
+                <AdminButton
+                  variant="secondary"
+                  icon={<Eye className="h-4 w-4" />}
+                  loading={isAgentBulk}
+                  disabled={isAgentBulk}
+                  onClick={() => setAgentProductsActive(agentFilter, true)}
+                >
+                  Reexibir todos deste agente
+                </AdminButton>
+              )}
+            </div>
+          </div>
+        )}
 
         {hasNextPage && (
           <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
@@ -600,11 +706,12 @@ function AdminPage() {
               ? products.filter((p) => !p.active)
               : products;
           const byCat = categoryFilter ? byTab.filter((p) => p.category === categoryFilter) : byTab;
+          const byAgent = agentFilter ? byCat.filter((p) => (p.created_by_name ?? "") === agentFilter) : byCat;
           const match = (p: typeof products[number]) =>
             p.name.toLowerCase().includes(t)
             || (p.category ?? "").toLowerCase().includes(t)
             || (p.sku ?? "").toLowerCase().includes(t);
-          const filtered = t ? byCat.filter(match) : byCat;
+          const filtered = t ? byAgent.filter(match) : byAgent;
           if (products.length === 0) {
             if (isFetchingProducts) {
               return <AdminSkeleton variant="cards" rows={8} />;
@@ -617,15 +724,29 @@ function AdminPage() {
           }
 
           if (filtered.length === 0) {
+            const agentHint = agentFilter && selectedAgent && selectedAgent.total > 0 && hasNextPage;
             return (
               <div className="text-center py-20 bg-card rounded-lg border border-border">
                 <p className="text-muted-foreground">
-                  {tab === "esgotados"
-                    ? "Nenhum produto esgotado."
-                    : tab === "ocultos"
-                      ? "Nenhum produto oculto."
-                      : `Nenhum produto encontrado para "${search}".`}
+                  {agentFilter
+                    ? `Nenhum produto de "${agentFilter}" na lista carregada.`
+                    : tab === "esgotados"
+                      ? "Nenhum produto esgotado."
+                      : tab === "ocultos"
+                        ? "Nenhum produto oculto."
+                        : `Nenhum produto encontrado para "${search}".`}
                 </p>
+                {agentHint && (
+                  <div className="mt-3">
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Esse agente tem {selectedAgent.total} produto(s) no catálogo, mas nem todos estão carregados na tela.
+                      As ações de ocultar/reexibir acima já funcionam sobre <strong>todos</strong> eles mesmo assim.
+                    </p>
+                    <AdminButton variant="secondary" onClick={loadAll} loading={loadingAll}>
+                      {loadingAll ? "Carregando..." : "Carregar catálogo inteiro para ver a lista"}
+                    </AdminButton>
+                  </div>
+                )}
               </div>
             );
           }
