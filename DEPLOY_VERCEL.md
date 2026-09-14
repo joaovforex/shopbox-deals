@@ -1,34 +1,45 @@
-# Deploy na Vercel
+# Deploy na Vercel (Supabase próprio, sem Lovable)
 
-Este projeto está configurado para deploy na Vercel usando o preset `vercel` do Nitro (Node serverless functions). O build gera a estrutura `.vercel/output` esperada pela Vercel automaticamente.
+O build usa o preset `vercel` do Nitro (ativado automaticamente pela variável `VERCEL` que a Vercel injeta)
+e gera `.vercel/output` (Build Output API v3). Não há passo de pós-build.
 
-## Passos
+## Importar o projeto
+1. https://vercel.com/new → importar `joaovforex/shopbox-deals`.
+2. **Framework Preset**: `Other` (o `vercel.json` define `bun run build` / `bun install`).
+3. **Output Directory**: em branco.
+4. Cadastrar as variáveis abaixo em **Settings → Environment Variables** (Production + Preview).
+5. Deploy → testar na URL `*.vercel.app` antes de apontar o domínio.
 
-1. Faça push do repositório para o GitHub/GitLab/Bitbucket.
-2. Acesse https://vercel.com/new e importe o repositório.
-3. **Framework Preset**: deixe como `Other` (o `vercel.json` já cuida do resto).
-4. **Build Command**: `bun run build` (já no `vercel.json`).
-5. **Output Directory**: deixe em branco (Nitro grava em `.vercel/output`).
-6. Configure as variáveis de ambiente abaixo em **Settings → Environment Variables**.
+## Variáveis de ambiente
+Valores do **Supabase novo** (`ivvghjzzhldcvzxaxwty`): Project Settings → API.
 
-## Variáveis de ambiente obrigatórias
+| Variável | Onde pegar | Obrigatória |
+|---|---|---|
+| `VITE_SUPABASE_URL` | `https://ivvghjzzhldcvzxaxwty.supabase.co` | sim |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | anon / publishable key | sim |
+| `VITE_SUPABASE_PROJECT_ID` | `ivvghjzzhldcvzxaxwty` | sim |
+| `SUPABASE_URL` | mesma URL acima | sim |
+| `SUPABASE_PUBLISHABLE_KEY` | mesma anon key | sim |
+| `SUPABASE_SERVICE_ROLE_KEY` | service_role (secret) — usada nas rotas de cron/webhook e admin | sim |
+| `CIELO_MERCHANT_ID`, `CIELO_CLIENT_ID`, `CIELO_CLIENT_SECRET` | painel Cielo (mesmos valores usados na Lovable) | sim (pagamento) |
+| `ASAAS_API_KEY`, `ASAAS_API_URL`, `ASAAS_WEBHOOK_TOKEN` | painel Asaas | se usar Asaas |
+| `MAISENTREGAS_EMAIL`, `MAISENTREGAS_APIKEY`, `MAISENTREGAS_APP_ID`, `MAISENTREGAS_BASE_URL` | Mais Entregas | se usar entregas |
+| `FOCUSNFE_TOKEN`, `FOCUSNFE_TOKEN_HOMOLOG` | Focus NFe | se emitir NF |
 
-Copie os valores do seu `.env` local:
+Na Lovable esses segredos ficam em Cloud → Secrets; copie os mesmos valores (não os cole em chat).
 
-### Client (build-time, prefixo `VITE_`)
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
-- `VITE_SUPABASE_PROJECT_ID`
+## No Supabase novo (uma vez)
+- **Authentication → URL Configuration**: Site URL = URL do site (Vercel e depois `https://shopboxonline.com`);
+  Redirect URLs: `https://<site>/**`.
+- **Authentication → Providers → Email**: manter "Confirm email" igual ao ambiente antigo (na Lovable os
+  cadastros eram confirmados automaticamente).
+- **Authentication → SMTP**: configurar um SMTP próprio (ex.: Resend) — o SMTP padrão do Supabase tem limite
+  baixíssimo e os clientes vão usar "Esqueci minha senha" após a migração.
+- `app_secrets`: `cron_secret` e `cron_allowed_ips` (criados pelo script de migração).
+- Crons (pg_cron) apontam para `APP_BASE_URL/api/public/...` — reagendar quando a URL final mudar
+  (`python3 run_migration.py crons` no pacote de migração).
 
-### Server (runtime)
-- `SUPABASE_URL`
-- `SUPABASE_PUBLISHABLE_KEY`
-
-> `SUPABASE_SERVICE_ROLE_KEY` não é mais obrigatória para buscar equipe ou dar/remover cargos. Essas ações agora usam funções seguras do banco autenticadas pelo usuário logado.
-
-Aplique todas em **Production**, **Preview** e **Development**.
-
-## Após o deploy
-
-- A Vercel cuida do roteamento via `.vercel/output/config.json` gerado pelo Nitro.
-- Cada push para `main` faz deploy em produção; outras branches viram previews automáticos.
+## O que foi removido do código na saída da Lovable
+- Servidor MCP (`/mcp`, `/.well-known/oauth-protected-resource`, `src/lib/mcp`) — dependia de `cloudflare:workers`.
+- Fila de e-mail `@lovable.dev/email-js` (`/lovable/email/queue/process`) — nunca foi usada (0 envios).
+- `@lovable.dev/cloud-auth-js` (login social via Lovable) — não era usado; login é e-mail/senha do Supabase.

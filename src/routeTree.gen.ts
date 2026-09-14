@@ -15,7 +15,6 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RedirecionandoRouteImport } from './routes/redirecionando'
 import { Route as PoliticaPrivacidadeRouteImport } from './routes/politica-privacidade'
-import { Route as McpRouteImport } from './routes/mcp'
 import { Route as LojaRouteImport } from './routes/loja'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -34,7 +33,6 @@ import { Route as AuthenticatedMinhaContaRouteImport } from './routes/_authentic
 import { Route as AuthenticatedMeusPedidosRouteImport } from './routes/_authenticated/meus-pedidos'
 import { Route as AuthenticatedCashbackRouteImport } from './routes/_authenticated/cashback'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
-import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as ApiCheckoutAsaasCardRouteImport } from './routes/api/checkout/asaas-card'
 import { Route as AuthenticatedAdminVendaManualRouteImport } from './routes/_authenticated/admin.venda-manual'
 import { Route as AuthenticatedAdminValeTrocaRouteImport } from './routes/_authenticated/admin.vale-troca'
@@ -51,7 +49,6 @@ import { Route as AuthenticatedAdminCaixaQrRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminAuditoriaRouteImport } from './routes/_authenticated/admin.auditoria'
 import { Route as AuthenticatedAdminAgendadorCanalRouteImport } from './routes/_authenticated/admin.agendador-canal'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
-import { Route as LovableEmailQueueProcessRouteImport } from './routes/lovable/email/queue/process'
 import { Route as ApiPublicMaisentregasPollRouteImport } from './routes/api/public/maisentregas/poll'
 import { Route as ApiPublicHooksCieloRefundRetryRouteImport } from './routes/api/public/hooks/cielo-refund-retry'
 import { Route as ApiPublicFeedGoogleDotxmlRouteImport } from './routes/api/public/feed/google[.]xml'
@@ -91,11 +88,6 @@ const RedirecionandoRoute = RedirecionandoRouteImport.update({
 const PoliticaPrivacidadeRoute = PoliticaPrivacidadeRouteImport.update({
   id: '/politica-privacidade',
   path: '/politica-privacidade',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LojaRoute = LojaRouteImport.update({
@@ -188,12 +180,6 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const Char91DotwellKnownChar93OauthProtectedResourceRoute =
-  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
-    id: '/.well-known/oauth-protected-resource',
-    path: '/.well-known/oauth-protected-resource',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiCheckoutAsaasCardRoute = ApiCheckoutAsaasCardRouteImport.update({
   id: '/api/checkout/asaas-card',
   path: '/api/checkout/asaas-card',
@@ -286,12 +272,6 @@ const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LovableEmailQueueProcessRoute =
-  LovableEmailQueueProcessRouteImport.update({
-    id: '/lovable/email/queue/process',
-    path: '/lovable/email/queue/process',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicMaisentregasPollRoute =
   ApiPublicMaisentregasPollRouteImport.update({
     id: '/api/public/maisentregas/poll',
@@ -355,14 +335,12 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/faq': typeof FaqRoute
   '/loja': typeof LojaRoute
-  '/mcp': typeof McpRoute
   '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
   '/trocas-e-garantia': typeof TrocasEGarantiaRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/cashback': typeof AuthenticatedCashbackRoute
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
@@ -399,7 +377,6 @@ export interface FileRoutesByFullPath {
   '/api/public/feed/google.xml': typeof ApiPublicFeedGoogleDotxmlRoute
   '/api/public/hooks/cielo-refund-retry': typeof ApiPublicHooksCieloRefundRetryRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
-  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -409,14 +386,12 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/faq': typeof FaqRoute
   '/loja': typeof LojaRoute
-  '/mcp': typeof McpRoute
   '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
   '/trocas-e-garantia': typeof TrocasEGarantiaRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/cashback': typeof AuthenticatedCashbackRoute
   '/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
@@ -453,7 +428,6 @@ export interface FileRoutesByTo {
   '/api/public/feed/google.xml': typeof ApiPublicFeedGoogleDotxmlRoute
   '/api/public/hooks/cielo-refund-retry': typeof ApiPublicHooksCieloRefundRetryRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
-  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -465,14 +439,12 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/faq': typeof FaqRoute
   '/loja': typeof LojaRoute
-  '/mcp': typeof McpRoute
   '/politica-privacidade': typeof PoliticaPrivacidadeRoute
   '/redirecionando': typeof RedirecionandoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/termos': typeof TermosRoute
   '/trocas-e-garantia': typeof TrocasEGarantiaRoute
-  '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/cashback': typeof AuthenticatedCashbackRoute
   '/_authenticated/meus-pedidos': typeof AuthenticatedMeusPedidosRoute
@@ -509,7 +481,6 @@ export interface FileRoutesById {
   '/api/public/feed/google.xml': typeof ApiPublicFeedGoogleDotxmlRoute
   '/api/public/hooks/cielo-refund-retry': typeof ApiPublicHooksCieloRefundRetryRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
-  '/lovable/email/queue/process': typeof LovableEmailQueueProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -521,14 +492,12 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/faq'
     | '/loja'
-    | '/mcp'
     | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos'
     | '/trocas-e-garantia'
-    | '/.well-known/oauth-protected-resource'
     | '/admin'
     | '/cashback'
     | '/meus-pedidos'
@@ -565,7 +534,6 @@ export interface FileRouteTypes {
     | '/api/public/feed/google.xml'
     | '/api/public/hooks/cielo-refund-retry'
     | '/api/public/maisentregas/poll'
-    | '/lovable/email/queue/process'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -575,14 +543,12 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/faq'
     | '/loja'
-    | '/mcp'
     | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos'
     | '/trocas-e-garantia'
-    | '/.well-known/oauth-protected-resource'
     | '/admin'
     | '/cashback'
     | '/meus-pedidos'
@@ -619,7 +585,6 @@ export interface FileRouteTypes {
     | '/api/public/feed/google.xml'
     | '/api/public/hooks/cielo-refund-retry'
     | '/api/public/maisentregas/poll'
-    | '/lovable/email/queue/process'
   id:
     | '__root__'
     | '/'
@@ -630,14 +595,12 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/faq'
     | '/loja'
-    | '/mcp'
     | '/politica-privacidade'
     | '/redirecionando'
     | '/reset-password'
     | '/sitemap.xml'
     | '/termos'
     | '/trocas-e-garantia'
-    | '/.well-known/oauth-protected-resource'
     | '/_authenticated/admin'
     | '/_authenticated/cashback'
     | '/_authenticated/meus-pedidos'
@@ -674,7 +637,6 @@ export interface FileRouteTypes {
     | '/api/public/feed/google.xml'
     | '/api/public/hooks/cielo-refund-retry'
     | '/api/public/maisentregas/poll'
-    | '/lovable/email/queue/process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -686,14 +648,12 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   FaqRoute: typeof FaqRoute
   LojaRoute: typeof LojaRoute
-  McpRoute: typeof McpRoute
   PoliticaPrivacidadeRoute: typeof PoliticaPrivacidadeRoute
   RedirecionandoRoute: typeof RedirecionandoRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermosRoute: typeof TermosRoute
   TrocasEGarantiaRoute: typeof TrocasEGarantiaRoute
-  Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   EtiquetaIdRoute: typeof EtiquetaIdRoute
   EtiquetaFragilRoute: typeof EtiquetaFragilRoute
   EtiquetaQrcodeRoute: typeof EtiquetaQrcodeRoute
@@ -711,7 +671,6 @@ export interface RootRouteChildren {
   ApiPublicFeedGoogleDotxmlRoute: typeof ApiPublicFeedGoogleDotxmlRoute
   ApiPublicHooksCieloRefundRetryRoute: typeof ApiPublicHooksCieloRefundRetryRoute
   ApiPublicMaisentregasPollRoute: typeof ApiPublicMaisentregasPollRoute
-  LovableEmailQueueProcessRoute: typeof LovableEmailQueueProcessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -756,13 +715,6 @@ declare module '@tanstack/react-router' {
       path: '/politica-privacidade'
       fullPath: '/politica-privacidade'
       preLoaderRoute: typeof PoliticaPrivacidadeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/loja': {
@@ -891,13 +843,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/.well-known/oauth-protected-resource': {
-      id: '/.well-known/oauth-protected-resource'
-      path: '/.well-known/oauth-protected-resource'
-      fullPath: '/.well-known/oauth-protected-resource'
-      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/checkout/asaas-card': {
       id: '/api/checkout/asaas-card'
       path: '/api/checkout/asaas-card'
@@ -1008,13 +953,6 @@ declare module '@tanstack/react-router' {
       path: '/.lovable/oauth/consent'
       fullPath: '/.lovable/oauth/consent'
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/queue/process': {
-      id: '/lovable/email/queue/process'
-      path: '/lovable/email/queue/process'
-      fullPath: '/lovable/email/queue/process'
-      preLoaderRoute: typeof LovableEmailQueueProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/maisentregas/poll': {
@@ -1155,15 +1093,12 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   FaqRoute: FaqRoute,
   LojaRoute: LojaRoute,
-  McpRoute: McpRoute,
   PoliticaPrivacidadeRoute: PoliticaPrivacidadeRoute,
   RedirecionandoRoute: RedirecionandoRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermosRoute: TermosRoute,
   TrocasEGarantiaRoute: TrocasEGarantiaRoute,
-  Char91DotwellKnownChar93OauthProtectedResourceRoute:
-    Char91DotwellKnownChar93OauthProtectedResourceRoute,
   EtiquetaIdRoute: EtiquetaIdRoute,
   EtiquetaFragilRoute: EtiquetaFragilRoute,
   EtiquetaQrcodeRoute: EtiquetaQrcodeRoute,
@@ -1182,7 +1117,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicFeedGoogleDotxmlRoute: ApiPublicFeedGoogleDotxmlRoute,
   ApiPublicHooksCieloRefundRetryRoute: ApiPublicHooksCieloRefundRetryRoute,
   ApiPublicMaisentregasPollRoute: ApiPublicMaisentregasPollRoute,
-  LovableEmailQueueProcessRoute: LovableEmailQueueProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
