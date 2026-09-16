@@ -1174,6 +1174,7 @@ export type Database = {
         Row: {
           active: boolean
           brand: string | null
+          cashback_redeemable: boolean
           category: string | null
           cest: string | null
           cfop: string | null
@@ -1205,6 +1206,7 @@ export type Database = {
         Insert: {
           active?: boolean
           brand?: string | null
+          cashback_redeemable?: boolean
           category?: string | null
           cest?: string | null
           cfop?: string | null
@@ -1236,6 +1238,7 @@ export type Database = {
         Update: {
           active?: boolean
           brand?: string | null
+          cashback_redeemable?: boolean
           category?: string | null
           cest?: string | null
           cfop?: string | null

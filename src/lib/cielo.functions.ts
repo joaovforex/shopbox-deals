@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { isValidCpf } from "@/lib/cpf";
+import { computeCashbackEligibleSubtotal, type CashbackQueryClient } from "@/lib/cashback-eligibility";
 
 type CartItemInput = { product_id: string; quantity: number; color?: string | null };
 
@@ -179,13 +180,20 @@ export const createCieloPayment = createServerFn({ method: "POST" })
     // 2) Itens / totais
     const { data: orderItems, error: itemsErr } = await supabaseAdmin
       .from("order_items")
-      .select("product_name, unit_price, quantity")
+      .select("product_id, product_name, unit_price, quantity")
       .eq("order_id", orderId as string);
     if (itemsErr || !orderItems) throw new Error("Falha ao carregar itens do pedido");
 
     const subtotal = orderItems.reduce(
       (acc, it) => acc + Number(it.unit_price) * Number(it.quantity),
       0,
+    );
+
+    // Teto do cashback = subtotal só dos itens ELEGÍVEIS (cashback_redeemable=true).
+    const cashbackEligibleSubtotal = await computeCashbackEligibleSubtotal(
+      supabaseAdmin as unknown as CashbackQueryClient,
+      orderItems,
+      subtotal,
     );
     // Frete real cotado na TBT/Mais Entregas (nunca confiar em valor do cliente).
     let shippingFee = 0;
@@ -214,7 +222,7 @@ export const createCieloPayment = createServerFn({ method: "POST" })
     }
 
     let cashbackUsed = 0;
-    const requestedCashback = Math.max(0, Math.min(Number(data.use_cashback ?? 0), subtotal));
+    const requestedCashback = Math.max(0, Math.min(Number(data.use_cashback ?? 0), cashbackEligibleSubtotal));
     if (requestedCashback > 0) {
       const { data: applied, error: cbErr } = await context.supabase.rpc(
         "apply_cashback_to_order" as never,

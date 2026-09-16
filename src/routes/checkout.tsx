@@ -162,6 +162,34 @@ function CheckoutPage() {
 
   }, [user, fetchCashback]);
 
+  // Produtos do carrinho que NÃO aceitam abatimento de cashback (cashback_redeemable=false).
+  // Só para exibir o teto correto; o servidor reforça o mesmo limite.
+  const [cashbackBlockedIds, setCashbackBlockedIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const ids = Array.from(new Set(items.map((i) => i.id)));
+    if (ids.length === 0) { setCashbackBlockedIds(new Set()); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("products")
+          .select("id")
+          .in("id", ids)
+          .eq("cashback_redeemable", false);
+        if (!cancelled) setCashbackBlockedIds(new Set((data ?? []).map((r) => (r as { id: string }).id)));
+      } catch {
+        if (!cancelled) setCashbackBlockedIds(new Set());
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [items]);
+
+  // Subtotal elegível a abatimento de cashback (exclui itens bloqueados).
+  const cashbackEligibleSubtotal = items.reduce(
+    (acc, i) => acc + (cashbackBlockedIds.has(i.id) ? 0 : i.price * i.quantity),
+    0,
+  );
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -388,7 +416,7 @@ function CheckoutPage() {
           shipping,
           items: items.map((i) => ({ product_id: i.id, quantity: i.quantity, color: i.variant_color ?? null })),
           save_profile: saveProfile,
-          use_cashback: useCashback ? Math.min(cashbackBalance, total) : 0,
+          use_cashback: useCashback ? Math.min(cashbackBalance, cashbackEligibleSubtotal) : 0,
 
         },
       });
@@ -659,7 +687,9 @@ function CheckoutPage() {
           </div>
           {(() => {
             const shippingFee = delivery === "delivery" ? (shippingQuote ?? 0) : 0;
-            const cashbackApply = useCashback ? Math.min(cashbackBalance, total) : 0;
+            const cashbackCap = Math.min(cashbackBalance, cashbackEligibleSubtotal);
+            const cashbackApply = useCashback ? cashbackCap : 0;
+            const someItemBlocksCashback = cashbackEligibleSubtotal < total - 0.001;
             const grandTotal = Math.max(0, total - cashbackApply) + shippingFee;
             const expiresInDays = cashbackExpiry
               ? Math.max(0, Math.ceil((new Date(cashbackExpiry.expiresAt).getTime() - Date.now()) / 86400000))
@@ -670,7 +700,13 @@ function CheckoutPage() {
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="font-semibold">{brl(total)}</span>
                 </div>
-                {cashbackBalance > 0 && (
+                {cashbackBalance > 0 && cashbackCap <= 0 && (
+                  <div className="bg-secondary border border-border rounded-md p-3 text-xs text-muted-foreground">
+                    Você tem <span className="font-semibold text-foreground">{brl(cashbackBalance)}</span> de cashback, mas
+                    os itens deste carrinho não aceitam desconto de cashback.
+                  </div>
+                )}
+                {cashbackBalance > 0 && cashbackCap > 0 && (
                   <div className="bg-[#25D366]/10 border border-[#25D366]/40 rounded-md p-3 space-y-1.5">
                     <label className="flex items-start gap-2 cursor-pointer select-none">
                       <input
@@ -680,8 +716,13 @@ function CheckoutPage() {
                         className="mt-0.5 h-4 w-4 accent-[#25D366]"
                       />
                       <span className="text-xs">
-                        <span className="font-bold text-[#25D366]">Usar {brl(Math.min(cashbackBalance, total))} de cashback</span>
+                        <span className="font-bold text-[#25D366]">Usar {brl(cashbackCap)} de cashback</span>
                         <span className="block text-muted-foreground">Saldo disponível: {brl(cashbackBalance)}</span>
+                        {someItemBlocksCashback && (
+                          <span className="block text-[10px] text-muted-foreground">
+                            Alguns itens do carrinho não aceitam desconto de cashback — o abatimento vale só para os demais.
+                          </span>
+                        )}
                         {cashbackExpiry && (
                           <span className="block text-[10px] text-muted-foreground">
                             {brl(cashbackExpiry.amount)} expira em {expiresInDays} dia{expiresInDays === 1 ? "" : "s"}

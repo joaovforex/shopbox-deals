@@ -43,6 +43,7 @@ type Draft = {
   origem?: string;
   brand?: string;
   size?: string;
+  cashbackRedeemable?: boolean;
 };
 
 function loadDraft(productId: string | null): Draft | null {
@@ -80,6 +81,12 @@ export function ProductForm({
       (product ? (product.images?.length ? product.images : product.image_url ? [product.image_url] : []) : []),
   );
   const [active, setActive] = useState(draft?.active ?? product?.active ?? true);
+  // Cashback: true (padrão) = cliente pode abater saldo neste produto. false = não abate.
+  const [cashbackRedeemable, setCashbackRedeemable] = useState(
+    draft?.cashbackRedeemable ??
+      (product as unknown as { cashback_redeemable?: boolean } | null)?.cashback_redeemable ??
+      true,
+  );
   const [colorVariants, setColorVariants] = useState<ColorVariant[]>(
     draft?.colorVariants ?? (product?.color_variants ?? []),
   );
@@ -136,10 +143,10 @@ export function ProductForm({
     const d: Draft = {
       productId: product?.id ?? null,
       name, description, price, originalPrice, category, stock, images, active, colorVariants,
-      ncm, cest, unidadeComercial, origem, brand, size,
+      ncm, cest, unidadeComercial, origem, brand, size, cashbackRedeemable,
     };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch {}
-  }, [product?.id, name, description, price, originalPrice, category, stock, images, active, colorVariants, ncm, cest, unidadeComercial, origem, brand, size]);
+  }, [product?.id, name, description, price, originalPrice, category, stock, images, active, colorVariants, ncm, cest, unidadeComercial, origem, brand, size, cashbackRedeemable]);
 
   const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} };
 
@@ -327,6 +334,7 @@ export function ProductForm({
         image_url: images[0] ?? null,
         images,
         active,
+        cashback_redeemable: cashbackRedeemable,
         color_variants: cleanVariants.length > 0 ? cleanVariants : [],
         brand: brand.trim() || null,
         size: size.trim() || null,
@@ -680,6 +688,16 @@ export function ProductForm({
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="accent-primary h-4 w-4" />
           <span className="text-sm">Produto ativo (visível na loja)</span>
+        </label>
+
+        <label className="flex items-start gap-2 cursor-pointer">
+          <input type="checkbox" checked={cashbackRedeemable} onChange={(e) => setCashbackRedeemable(e.target.checked)} className="accent-primary h-4 w-4 mt-0.5" />
+          <span className="text-sm">
+            Permite usar cashback no preço
+            <span className="block text-xs text-muted-foreground">
+              Desmarque para que o cliente não possa abater saldo de cashback neste produto (ele continua gerando cashback ao ser comprado).
+            </span>
+          </span>
         </label>
 
 
