@@ -49,7 +49,13 @@ function SettingsPage() {
     setDesktopUrl(data.banner_desktop_url ?? "");
     setMobileUrl(data.banner_mobile_url ?? "");
     setStoreAddress(data.store_address ?? "");
-    setProvider(data.payment_provider === "asaas" ? "asaas" : "cielo");
+    setProvider(
+      data.payment_provider === "asaas"
+        ? "asaas"
+        : data.payment_provider === "mercadopago"
+          ? "mercadopago"
+          : "cielo",
+    );
   }, [data]);
 
   async function uploadImage(file: File, kind: "desktop" | "mobile"): Promise<string | null> {
@@ -253,13 +259,15 @@ function SettingsPage() {
         <section className="bg-card border-2 border-border rounded-lg p-5">
           <h2 className="display text-lg mb-2">Provedor de pagamento</h2>
           <p className="text-sm text-muted-foreground mb-3">
-            Define qual gateway processa o checkout da loja. A Asaas fica como reserva e pode ser
-            reativada a qualquer momento — os pedidos antigos continuam sendo consultados no provedor original.
+            Define qual gateway processa o checkout da loja. O provedor selecionado fica ativo; os
+            demais ficam como reserva e podem ser reativados a qualquer momento — os pedidos antigos
+            continuam sendo consultados no provedor original em que foram pagos.
           </p>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-3">
             {[
-              { id: "cielo", label: "Cielo", desc: "Checkout Cielo (ativo)" },
-              { id: "asaas", label: "Asaas", desc: "Backup — Pix, boleto e cartão" },
+              { id: "mercadopago", label: "Mercado Pago", desc: "Checkout Pro — Pix, cartão e boleto" },
+              { id: "cielo", label: "Cielo", desc: "Checkout Cielo" },
+              { id: "asaas", label: "Asaas", desc: "Pix, boleto e cartão" },
             ].map((opt) => (
               <button
                 key={opt.id}

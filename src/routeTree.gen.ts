@@ -49,6 +49,8 @@ import { Route as AuthenticatedAdminCaixaQrRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminAuditoriaRouteImport } from './routes/_authenticated/admin.auditoria'
 import { Route as AuthenticatedAdminAgendadorCanalRouteImport } from './routes/_authenticated/admin.agendador-canal'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
+import { Route as ApiPublicMercadopagoWebhookRouteImport } from './routes/api/public/mercadopago/webhook'
+import { Route as ApiPublicMercadopagoReconcileRouteImport } from './routes/api/public/mercadopago/reconcile'
 import { Route as ApiPublicMaisentregasPollRouteImport } from './routes/api/public/maisentregas/poll'
 import { Route as ApiPublicHooksCieloRefundRetryRouteImport } from './routes/api/public/hooks/cielo-refund-retry'
 import { Route as ApiPublicFeedGoogleDotxmlRouteImport } from './routes/api/public/feed/google[.]xml'
@@ -272,6 +274,18 @@ const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   path: '/.lovable/oauth/consent',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicMercadopagoWebhookRoute =
+  ApiPublicMercadopagoWebhookRouteImport.update({
+    id: '/api/public/mercadopago/webhook',
+    path: '/api/public/mercadopago/webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicMercadopagoReconcileRoute =
+  ApiPublicMercadopagoReconcileRouteImport.update({
+    id: '/api/public/mercadopago/reconcile',
+    path: '/api/public/mercadopago/reconcile',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicMaisentregasPollRoute =
   ApiPublicMaisentregasPollRouteImport.update({
     id: '/api/public/maisentregas/poll',
@@ -377,6 +391,8 @@ export interface FileRoutesByFullPath {
   '/api/public/feed/google.xml': typeof ApiPublicFeedGoogleDotxmlRoute
   '/api/public/hooks/cielo-refund-retry': typeof ApiPublicHooksCieloRefundRetryRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
+  '/api/public/mercadopago/reconcile': typeof ApiPublicMercadopagoReconcileRoute
+  '/api/public/mercadopago/webhook': typeof ApiPublicMercadopagoWebhookRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -428,6 +444,8 @@ export interface FileRoutesByTo {
   '/api/public/feed/google.xml': typeof ApiPublicFeedGoogleDotxmlRoute
   '/api/public/hooks/cielo-refund-retry': typeof ApiPublicHooksCieloRefundRetryRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
+  '/api/public/mercadopago/reconcile': typeof ApiPublicMercadopagoReconcileRoute
+  '/api/public/mercadopago/webhook': typeof ApiPublicMercadopagoWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -481,6 +499,8 @@ export interface FileRoutesById {
   '/api/public/feed/google.xml': typeof ApiPublicFeedGoogleDotxmlRoute
   '/api/public/hooks/cielo-refund-retry': typeof ApiPublicHooksCieloRefundRetryRoute
   '/api/public/maisentregas/poll': typeof ApiPublicMaisentregasPollRoute
+  '/api/public/mercadopago/reconcile': typeof ApiPublicMercadopagoReconcileRoute
+  '/api/public/mercadopago/webhook': typeof ApiPublicMercadopagoWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -534,6 +554,8 @@ export interface FileRouteTypes {
     | '/api/public/feed/google.xml'
     | '/api/public/hooks/cielo-refund-retry'
     | '/api/public/maisentregas/poll'
+    | '/api/public/mercadopago/reconcile'
+    | '/api/public/mercadopago/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -585,6 +607,8 @@ export interface FileRouteTypes {
     | '/api/public/feed/google.xml'
     | '/api/public/hooks/cielo-refund-retry'
     | '/api/public/maisentregas/poll'
+    | '/api/public/mercadopago/reconcile'
+    | '/api/public/mercadopago/webhook'
   id:
     | '__root__'
     | '/'
@@ -637,6 +661,8 @@ export interface FileRouteTypes {
     | '/api/public/feed/google.xml'
     | '/api/public/hooks/cielo-refund-retry'
     | '/api/public/maisentregas/poll'
+    | '/api/public/mercadopago/reconcile'
+    | '/api/public/mercadopago/webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -671,6 +697,8 @@ export interface RootRouteChildren {
   ApiPublicFeedGoogleDotxmlRoute: typeof ApiPublicFeedGoogleDotxmlRoute
   ApiPublicHooksCieloRefundRetryRoute: typeof ApiPublicHooksCieloRefundRetryRoute
   ApiPublicMaisentregasPollRoute: typeof ApiPublicMaisentregasPollRoute
+  ApiPublicMercadopagoReconcileRoute: typeof ApiPublicMercadopagoReconcileRoute
+  ApiPublicMercadopagoWebhookRoute: typeof ApiPublicMercadopagoWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -955,6 +983,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DotlovableOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/mercadopago/webhook': {
+      id: '/api/public/mercadopago/webhook'
+      path: '/api/public/mercadopago/webhook'
+      fullPath: '/api/public/mercadopago/webhook'
+      preLoaderRoute: typeof ApiPublicMercadopagoWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/mercadopago/reconcile': {
+      id: '/api/public/mercadopago/reconcile'
+      path: '/api/public/mercadopago/reconcile'
+      fullPath: '/api/public/mercadopago/reconcile'
+      preLoaderRoute: typeof ApiPublicMercadopagoReconcileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/maisentregas/poll': {
       id: '/api/public/maisentregas/poll'
       path: '/api/public/maisentregas/poll'
@@ -1117,6 +1159,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicFeedGoogleDotxmlRoute: ApiPublicFeedGoogleDotxmlRoute,
   ApiPublicHooksCieloRefundRetryRoute: ApiPublicHooksCieloRefundRetryRoute,
   ApiPublicMaisentregasPollRoute: ApiPublicMaisentregasPollRoute,
+  ApiPublicMercadopagoReconcileRoute: ApiPublicMercadopagoReconcileRoute,
+  ApiPublicMercadopagoWebhookRoute: ApiPublicMercadopagoWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

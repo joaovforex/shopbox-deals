@@ -11,6 +11,7 @@ import { brl } from "@/lib/format";
 import { installmentLabel, MAX_INSTALLMENTS, MIN_INSTALLMENT_VALUE } from "@/lib/installments";
 import { createAsaasPayment } from "@/lib/asaas.functions";
 import { createCieloPayment } from "@/lib/cielo.functions";
+import { createMercadoPagoPayment } from "@/lib/mercadopago.functions";
 import { getMyCashback } from "@/lib/cashback.functions";
 import { calculateCashback } from "@/lib/cashback-config";
 import { useSiteSettings } from "@/lib/site-settings";
@@ -117,11 +118,23 @@ function CheckoutPage() {
   const [redirecting, setRedirecting] = useState(false);
   const createAsaasCheckout = useServerFn(createAsaasPayment);
   const createCieloCheckout = useServerFn(createCieloPayment);
+  const createMpCheckout = useServerFn(createMercadoPagoPayment);
   const fetchCashback = useServerFn(getMyCashback);
   const { data: settings } = useSiteSettings();
-  const provider = settings?.payment_provider === "asaas" ? "asaas" : "cielo";
-  const createCheckout = provider === "asaas" ? createAsaasCheckout : createCieloCheckout;
-  const providerName = provider === "asaas" ? "Asaas" : "Cielo";
+  const provider =
+    settings?.payment_provider === "asaas"
+      ? "asaas"
+      : settings?.payment_provider === "mercadopago"
+        ? "mercadopago"
+        : "cielo";
+  const createCheckout =
+    provider === "asaas"
+      ? createAsaasCheckout
+      : provider === "mercadopago"
+        ? createMpCheckout
+        : createCieloCheckout;
+  const providerName =
+    provider === "asaas" ? "Asaas" : provider === "mercadopago" ? "Mercado Pago" : "Cielo";
 
   const cashbackRate = settings?.cashback_rate ?? 0.05;
 
