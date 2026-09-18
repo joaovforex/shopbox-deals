@@ -56,7 +56,6 @@ import { Route as ApiPublicHooksCieloRefundRetryRouteImport } from './routes/api
 import { Route as ApiPublicFeedGoogleDotxmlRouteImport } from './routes/api/public/feed/google[.]xml'
 import { Route as ApiPublicCieloWebhookRouteImport } from './routes/api/public/cielo/webhook'
 import { Route as ApiPublicCieloReconcileRouteImport } from './routes/api/public/cielo/reconcile'
-import { Route as ApiPublicCieloDiagRouteImport } from './routes/api/public/cielo/diag'
 import { Route as ApiPublicCashbackExpireRouteImport } from './routes/api/public/cashback/expire'
 import { Route as ApiPublicAsaasWebhookRouteImport } from './routes/api/public/asaas/webhook'
 import { Route as ApiPublicAsaasReconcileRouteImport } from './routes/api/public/asaas/reconcile'
@@ -314,11 +313,6 @@ const ApiPublicCieloReconcileRoute = ApiPublicCieloReconcileRouteImport.update({
   path: '/api/public/cielo/reconcile',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicCieloDiagRoute = ApiPublicCieloDiagRouteImport.update({
-  id: '/api/public/cielo/diag',
-  path: '/api/public/cielo/diag',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiPublicCashbackExpireRoute = ApiPublicCashbackExpireRouteImport.update({
   id: '/api/public/cashback/expire',
   path: '/api/public/cashback/expire',
@@ -385,7 +379,6 @@ export interface FileRoutesByFullPath {
   '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
   '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
-  '/api/public/cielo/diag': typeof ApiPublicCieloDiagRoute
   '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
   '/api/public/cielo/webhook': typeof ApiPublicCieloWebhookRoute
   '/api/public/feed/google.xml': typeof ApiPublicFeedGoogleDotxmlRoute
@@ -438,7 +431,6 @@ export interface FileRoutesByTo {
   '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
   '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
-  '/api/public/cielo/diag': typeof ApiPublicCieloDiagRoute
   '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
   '/api/public/cielo/webhook': typeof ApiPublicCieloWebhookRoute
   '/api/public/feed/google.xml': typeof ApiPublicFeedGoogleDotxmlRoute
@@ -493,7 +485,6 @@ export interface FileRoutesById {
   '/api/public/asaas/reconcile': typeof ApiPublicAsaasReconcileRoute
   '/api/public/asaas/webhook': typeof ApiPublicAsaasWebhookRoute
   '/api/public/cashback/expire': typeof ApiPublicCashbackExpireRoute
-  '/api/public/cielo/diag': typeof ApiPublicCieloDiagRoute
   '/api/public/cielo/reconcile': typeof ApiPublicCieloReconcileRoute
   '/api/public/cielo/webhook': typeof ApiPublicCieloWebhookRoute
   '/api/public/feed/google.xml': typeof ApiPublicFeedGoogleDotxmlRoute
@@ -548,7 +539,6 @@ export interface FileRouteTypes {
     | '/api/public/asaas/reconcile'
     | '/api/public/asaas/webhook'
     | '/api/public/cashback/expire'
-    | '/api/public/cielo/diag'
     | '/api/public/cielo/reconcile'
     | '/api/public/cielo/webhook'
     | '/api/public/feed/google.xml'
@@ -601,7 +591,6 @@ export interface FileRouteTypes {
     | '/api/public/asaas/reconcile'
     | '/api/public/asaas/webhook'
     | '/api/public/cashback/expire'
-    | '/api/public/cielo/diag'
     | '/api/public/cielo/reconcile'
     | '/api/public/cielo/webhook'
     | '/api/public/feed/google.xml'
@@ -655,7 +644,6 @@ export interface FileRouteTypes {
     | '/api/public/asaas/reconcile'
     | '/api/public/asaas/webhook'
     | '/api/public/cashback/expire'
-    | '/api/public/cielo/diag'
     | '/api/public/cielo/reconcile'
     | '/api/public/cielo/webhook'
     | '/api/public/feed/google.xml'
@@ -691,7 +679,6 @@ export interface RootRouteChildren {
   ApiPublicAsaasReconcileRoute: typeof ApiPublicAsaasReconcileRoute
   ApiPublicAsaasWebhookRoute: typeof ApiPublicAsaasWebhookRoute
   ApiPublicCashbackExpireRoute: typeof ApiPublicCashbackExpireRoute
-  ApiPublicCieloDiagRoute: typeof ApiPublicCieloDiagRoute
   ApiPublicCieloReconcileRoute: typeof ApiPublicCieloReconcileRoute
   ApiPublicCieloWebhookRoute: typeof ApiPublicCieloWebhookRoute
   ApiPublicFeedGoogleDotxmlRoute: typeof ApiPublicFeedGoogleDotxmlRoute
@@ -1032,13 +1019,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCieloReconcileRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/cielo/diag': {
-      id: '/api/public/cielo/diag'
-      path: '/api/public/cielo/diag'
-      fullPath: '/api/public/cielo/diag'
-      preLoaderRoute: typeof ApiPublicCieloDiagRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/cashback/expire': {
       id: '/api/public/cashback/expire'
       path: '/api/public/cashback/expire'
@@ -1153,7 +1133,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicAsaasReconcileRoute: ApiPublicAsaasReconcileRoute,
   ApiPublicAsaasWebhookRoute: ApiPublicAsaasWebhookRoute,
   ApiPublicCashbackExpireRoute: ApiPublicCashbackExpireRoute,
-  ApiPublicCieloDiagRoute: ApiPublicCieloDiagRoute,
   ApiPublicCieloReconcileRoute: ApiPublicCieloReconcileRoute,
   ApiPublicCieloWebhookRoute: ApiPublicCieloWebhookRoute,
   ApiPublicFeedGoogleDotxmlRoute: ApiPublicFeedGoogleDotxmlRoute,

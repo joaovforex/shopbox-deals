@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import desktopAsset from "@/assets/cashback-banner-wide.jpg.asset.json";
 import mobileAsset from "@/assets/cashback-banner-mobile.jpg.asset.json";
 import { useSiteSettings, formatCashbackLabel } from "@/lib/site-settings";
-import { useActiveBanners, isExternalBannerLink, type SiteBanner } from "@/lib/banners";
+import { useActiveBanners, isExternalBannerLink, isSafeBannerLink, type SiteBanner } from "@/lib/banners";
 import { trackBannerClick, trackBannerImpression } from "@/lib/analytics";
 
 const AUTOPLAY_MS = 6000;
@@ -75,7 +75,11 @@ function SlideFrame({
       destination: slide.link_url,
     });
 
-  if (!slide.link_url) return <div className="block w-full h-full">{children}</div>;
+  // Só emite href para links seguros (interno "/..." ou https). Qualquer coisa
+  // fora disso (ex.: javascript:) é renderizada sem link — defesa no render.
+  if (!slide.link_url || !isSafeBannerLink(slide.link_url)) {
+    return <div className="block w-full h-full">{children}</div>;
+  }
 
   if (isExternalBannerLink(slide.link_url)) {
     return (

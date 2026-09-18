@@ -65,6 +65,15 @@ export const createMercadoPagoPayment = createServerFn({ method: "POST" })
       }
       if (it.color != null && typeof it.color !== "string") throw new Error("Cor inválida");
     }
+    if (typeof data.customer_name !== "string" || data.customer_name.trim().length < 2 || data.customer_name.length > 120) {
+      throw new Error("Nome inválido");
+    }
+    const emailNorm = String(data.customer_email ?? "").trim();
+    if (emailNorm.length > 160 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNorm)) {
+      throw new Error("E-mail inválido");
+    }
+    const phoneNorm = String(data.customer_phone ?? "").replace(/\D/g, "");
+    if (phoneNorm.length < 10 || phoneNorm.length > 11) throw new Error("Telefone inválido");
     const cpf = (data.customer_cpf ?? "").replace(/\D/g, "");
     if (!isValidCpf(cpf)) throw new Error("CPF inválido");
     if (data.delivery_method === "delivery") {

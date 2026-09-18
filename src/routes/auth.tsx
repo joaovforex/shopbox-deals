@@ -79,7 +79,9 @@ function AuthPage() {
   const redirectTo = (() => {
     if (typeof window === "undefined") return "/";
     const r = new URLSearchParams(window.location.search).get("redirect");
-    if (r && r.startsWith("/") && !r.startsWith("//")) return r;
+    // Só aceita caminho interno absoluto. Rejeita "//host", "/\host" e "/%5chost"
+    // (o navegador trata "\" como "/" no host de URLs, virando redirect externo).
+    if (r && /^\/(?![/\\])/.test(r) && !/[\\]|%5c/i.test(r)) return r;
     return "/";
   })();
 

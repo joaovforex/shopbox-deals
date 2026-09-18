@@ -186,10 +186,22 @@ async function handleCieloNotification(request: Request): Promise<Outcome> {
     .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
     .limit(500);
   const charge = (charges ?? []).find((c) => normalizeKey((c as { id: string }).id) === key) as
-    | { id: string; status: string }
+    | { id: string; status: string; total: number | null }
     | undefined;
   if (charge) {
     if (mapped.order_action === "paid" && charge.status !== "paid") {
+      // SEGURANÇA: confere o valor cobrado (centavos) contra o total da cobrança.
+      const paidValue = tx.amount != null ? Number(tx.amount) / 100 : null;
+      const expectedTotal = Number(charge.total ?? 0);
+      if (paidValue == null || !(expectedTotal > 0) || Math.abs(paidValue - expectedTotal) > 0.02) {
+        console.warn("[cielo:webhook] caixa-qr valor divergente", { chargeId: charge.id, paidValue, expectedTotal });
+        await alertFailure(
+          "valor-divergente",
+          `Caixa QR: valor pago (${paidValue}) diferente do total (${expectedTotal}) — bloqueado`,
+          { chargeId: charge.id, paidValue, expectedTotal },
+        );
+        return finish({ stage: "caixa-qr", status: "error", detail: "valor divergente", key });
+      }
       await supabaseAdmin
         .from("pos_charges")
         .update({
@@ -260,6 +272,24 @@ async function handleCieloNotification(request: Request): Promise<Outcome> {
       { stage: "pedido", status: "ok", detail: `status ${mapped.cielo_status}`, orderId: order.id, key },
       order.id,
     );
+  }
+
+  // SEGURANÇA: confere o valor cobrado (centavos, sem frete) contra o total do
+  // pedido antes de confirmar. Mesma checagem da conciliação — evita marcar um
+  // pedido caro como pago com uma cobrança de valor menor.
+  const paidValue = tx.amount != null ? Number(tx.amount) / 100 : null;
+  const expectedTotal = Math.max(0, Number(order.total ?? 0) - Number(order.delivery_fee ?? 0));
+  if (paidValue == null || !(expectedTotal > 0) || Math.abs(paidValue - expectedTotal) > 0.02) {
+    const outcome: Outcome = { stage: "valor", status: "error", detail: "valor divergente", orderId: order.id, key };
+    console.warn("[cielo:webhook] valor divergente", { orderId: order.id, paidValue, expectedTotal });
+    await logEvent({ paymentId, changeType, orderId: order.id, cieloStatus: mapped.cielo_status, payload: body, outcome });
+    await alertFailure(
+      "valor-divergente",
+      `Valor pago (${paidValue}) diferente do esperado (${expectedTotal}) — confirmação bloqueada`,
+      { orderId: order.id, paidValue, expectedTotal },
+      order.id,
+    );
+    return outcome;
   }
 
   const { data: result, error: rpcErr } = await supabaseAdmin.rpc("confirm_order_paid" as never, {

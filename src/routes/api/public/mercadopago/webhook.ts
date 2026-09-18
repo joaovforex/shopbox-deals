@@ -107,7 +107,7 @@ async function handleMpNotification(request: Request): Promise<Outcome> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: order } = await supabaseAdmin
     .from("orders")
-    .select("id,status,payment_provider")
+    .select("id,status,payment_provider,total")
     .eq("id", orderId)
     .maybeSingle();
   if (!order) {
@@ -139,6 +139,21 @@ async function handleMpNotification(request: Request): Promise<Outcome> {
 
   if (mapped.order_action !== "paid" || (order as { status: string }).status === "paid") {
     return { stage: "pedido", status: "ok", detail: `status ${mapped.mp_status}`, orderId: order.id };
+  }
+
+  // SEGURANÇA: só confirma se o valor pago bater com o total do pedido. Impede que
+  // um pagamento de valor menor (ou de outra cobrança) com o mesmo external_reference
+  // marque um pedido caro como pago. Mesma checagem que a conciliação já faz.
+  const paidAmount = payment.amount;
+  const expectedTotal = Number((order as { total: number | null }).total ?? 0);
+  if (paidAmount == null || !(expectedTotal > 0) || Math.abs(paidAmount - expectedTotal) > 0.02) {
+    await alertFailure(
+      "valor-divergente",
+      `Valor pago (${paidAmount}) diferente do total do pedido (${expectedTotal}) — confirmação bloqueada`,
+      { type, id, paidAmount, expectedTotal },
+      order.id,
+    );
+    return { stage: "valor", status: "error", detail: "valor divergente", orderId: order.id };
   }
 
   const { data: result, error: rpcErr } = await supabaseAdmin.rpc("confirm_order_paid" as never, {

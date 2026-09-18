@@ -14,7 +14,11 @@ function RedirectingPage() {
 
   useEffect(() => {
     const to = typeof window !== "undefined" ? sessionStorage.getItem("mp_init_point") : null;
-    if (!to) {
+    // Só redireciona para URL https absoluta (gateway) ou caminho interno — nunca
+    // javascript:/data: nem outros esquemas (defesa contra redirect malicioso).
+    const isSafe = !!to && (/^https:\/\//i.test(to) || (to.startsWith("/") && !/^\/[/\\]/.test(to)));
+    if (!to || !isSafe) {
+      sessionStorage.removeItem("mp_init_point");
       navigate({ to: "/loja" });
       return;
     }
@@ -48,7 +52,7 @@ function RedirectingPage() {
           Abrindo o pagamento seguro{dots}
         </h1>
         <p className="text-muted-foreground text-sm md:text-base">
-          Você vai concluir com Pix, cartão de crédito ou débito no ambiente oficial da Cielo.
+          Você vai concluir com Pix, cartão de crédito ou débito no ambiente oficial de pagamento seguro.
         </p>
 
         {target && (
