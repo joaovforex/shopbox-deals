@@ -79,7 +79,7 @@ async function handleMpNotification(request: Request): Promise<Outcome> {
     return { stage: "parse", status: "ignored", detail: "notificação sem id" };
   }
 
-  const { getPayment, getMerchantOrder, mapMpStatus } = await import("@/lib/mercadopago.server");
+  const { getPayment, getMerchantOrder, mapMpStatus, mpPaymentTypeToMethod } = await import("@/lib/mercadopago.server");
 
   // Resolve o pagamento (direto ou via merchant_order).
   let payment: Awaited<ReturnType<typeof getPayment>> = null;
@@ -117,6 +117,13 @@ async function handleMpNotification(request: Request): Promise<Outcome> {
 
   const mapped = mapMpStatus(payment.status);
 
+  // Só classifica o meio de pagamento (pix/card/boleto) quando APROVADO — assim
+  // pedidos rejeitados/pendentes mantêm payment_method='mercadopago' (o retry
+  // depende disso) e os aprovados entram nos filtros/métricas do admin.
+  // Gravado no MESMO update do status (atômico).
+  const approvedMethod =
+    mapped.order_action === "paid" ? mpPaymentTypeToMethod(payment.paymentTypeId) : null;
+
   // Sempre grava o último status observado.
   await supabaseAdmin
     .from("orders")
@@ -126,6 +133,7 @@ async function handleMpNotification(request: Request): Promise<Outcome> {
       mp_payment_method_id: payment.paymentMethodId ?? null,
       mp_status_detail: payment.statusDetail ?? null,
       mp_last_attempt_at: new Date().toISOString(),
+      ...(approvedMethod ? { payment_method: approvedMethod } : {}),
     } as never)
     .eq("id", order.id);
 

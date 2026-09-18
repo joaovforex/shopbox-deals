@@ -172,6 +172,59 @@ export async function searchPaymentsByExternalReference(orderId: string): Promis
   }));
 }
 
+// ============ Estorno / devolução ============
+
+export type MpRefundResult = { id: string; status: string; amount?: number };
+
+/**
+ * Estorna (devolve) um pagamento no Mercado Pago.
+ * POST /v1/payments/{id}/refunds — sem `amount` = total; com `amount` = parcial.
+ * Pix e cartão são suportados; a devolução costuma nascer `approved`.
+ * Idempotência: usamos X-Idempotency-Key pra não duplicar se a chamada repetir.
+ */
+export async function refundPayment(paymentId: string, amountReais?: number): Promise<MpRefundResult> {
+  const isPartial = amountReais != null && Number.isFinite(amountReais) && amountReais > 0;
+  const body = isPartial ? JSON.stringify({ amount: Number(Number(amountReais).toFixed(2)) }) : "{}";
+  const idem = `refund-${paymentId}-${isPartial ? Number(amountReais).toFixed(2) : "full"}`;
+  const res = await mpFetch(`/v1/payments/${encodeURIComponent(paymentId)}/refunds`, {
+    method: "POST",
+    headers: { "X-Idempotency-Key": idem },
+    body,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error("[mp] refund error", res.status, text);
+    // Mensagem do MP costuma vir em { message, error, cause: [...] }
+    let detail = `HTTP ${res.status}`;
+    try {
+      const j = JSON.parse(text) as { message?: string; error?: string };
+      detail = j.message || j.error || detail;
+    } catch {
+      /* keep default */
+    }
+    throw new Error(detail);
+  }
+  const j = (await res.json()) as Record<string, unknown>;
+  return {
+    id: j.id != null ? String(j.id) : "",
+    status: String(j.status ?? "approved"),
+    amount: num(j.amount),
+  };
+}
+
+/**
+ * Traduz o tipo de pagamento do MP para o `payment_method` interno da loja
+ * ('pix' | 'card' | 'boleto'), usado pelos filtros e métricas do admin.
+ * Retorna null quando não dá pra classificar (mantém o valor atual).
+ */
+export function mpPaymentTypeToMethod(paymentTypeId?: string | null): "pix" | "card" | "boleto" | null {
+  const t = String(paymentTypeId ?? "").trim().toLowerCase();
+  if (t === "credit_card" || t === "debit_card" || t === "prepaid_card") return "card";
+  if (t === "bank_transfer" || t === "account_money") return "pix";
+  if (t === "ticket" || t === "atm") return "boleto";
+  return null;
+}
+
 // ============ Mapeamento de status ============
 
 /** Traduz o status do Mercado Pago para nossos estados internos. */

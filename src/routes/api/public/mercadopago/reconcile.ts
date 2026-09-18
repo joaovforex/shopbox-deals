@@ -35,7 +35,7 @@ export const Route = createFileRoute("/api/public/mercadopago/reconcile")({
           return new Response("config", { status: 500 });
         }
 
-        const { searchPaymentsByExternalReference, mapMpStatus } = await import("@/lib/mercadopago.server");
+        const { searchPaymentsByExternalReference, mapMpStatus, mpPaymentTypeToMethod } = await import("@/lib/mercadopago.server");
 
         let expired = 0;
         try {
@@ -103,6 +103,7 @@ export const Route = createFileRoute("/api/public/mercadopago/reconcile")({
               continue;
             }
 
+            const method = mpPaymentTypeToMethod(approved.paymentTypeId);
             await supabaseAdmin
               .from("orders")
               .update({
@@ -110,6 +111,7 @@ export const Route = createFileRoute("/api/public/mercadopago/reconcile")({
                 mp_payment_status: "approved",
                 mp_payment_method_id: approved.paymentMethodId ?? null,
                 mp_last_attempt_at: new Date().toISOString(),
+                ...(method ? { payment_method: method } : {}),
               } as never)
               .eq("id", o.id);
 

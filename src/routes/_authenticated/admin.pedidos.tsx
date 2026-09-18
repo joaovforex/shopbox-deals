@@ -956,7 +956,7 @@ function OrdersPanel() {
                               <button
                                 onClick={() => setRefundTarget(o)}
                                 disabled={busy}
-                                title="Estornar via Asaas"
+                                title="Estornar (devolve o dinheiro ao cliente)"
                                 className="min-h-9 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 px-2 py-1 rounded disabled:opacity-50 mr-1"
                               >
                                 <Undo2 className="h-3.5 w-3.5" /> Estornar

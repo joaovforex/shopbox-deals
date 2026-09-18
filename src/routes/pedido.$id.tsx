@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 import { resumeAsaasPayment } from "@/lib/asaas.functions";
 import { resumeCieloPayment } from "@/lib/cielo.functions";
+import { resumeMercadoPagoPayment } from "@/lib/mercadopago.functions";
 import { brl } from "@/lib/format";
 import { STORE_ADDRESS, STORE_HOURS } from "@/lib/whatsapp";
 import { mpStatusDetailMessage } from "@/lib/cpf";
@@ -298,7 +299,7 @@ function OrderPage() {
                 <div><strong className="text-foreground">Cliente:</strong> {data.order.customer_name}</div>
                 {data.order.customer_email && <div><strong className="text-foreground">Email:</strong> {data.order.customer_email}</div>}
                 {data.order.customer_phone && <div><strong className="text-foreground">WhatsApp:</strong> {data.order.customer_phone}</div>}
-                <div><strong className="text-foreground">Pagamento:</strong> {data.order.payment_method.toUpperCase()}</div>
+                <div><strong className="text-foreground">Pagamento:</strong> {paymentMethodLabel(data.order.payment_method)}</div>
               </div>
             </div>
           ) : isError ? (
@@ -393,11 +394,38 @@ function OrderPage() {
   );
 }
 
+function paymentMethodLabel(method: string | null | undefined): string {
+  switch (String(method ?? "").toLowerCase()) {
+    case "pix":
+      return "Pix";
+    case "card":
+    case "cartao":
+    case "cartão":
+      return "Cartão";
+    case "boleto":
+      return "Boleto";
+    case "cashback":
+      return "Cashback";
+    case "mercadopago":
+      return "Mercado Pago";
+    case "":
+      return "—";
+    default:
+      return String(method).toUpperCase();
+  }
+}
+
 function RetryPaymentButton({ orderId, paymentMethod }: { orderId: string; paymentMethod: string }) {
   const [loading, setLoading] = useState(false);
   const resumeAsaas = useServerFn(resumeAsaasPayment);
   const resumeCielo = useServerFn(resumeCieloPayment);
-  const resume = paymentMethod === "asaas" ? resumeAsaas : resumeCielo;
+  const resumeMp = useServerFn(resumeMercadoPagoPayment);
+  const resume =
+    paymentMethod === "mercadopago"
+      ? resumeMp
+      : paymentMethod === "asaas"
+        ? resumeAsaas
+        : resumeCielo;
   const onClick = async () => {
     setLoading(true);
     try {

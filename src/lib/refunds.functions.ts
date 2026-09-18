@@ -76,17 +76,22 @@ export const refundOrder = createServerFn({ method: "POST" })
     const provider = (order as { payment_provider?: string }).payment_provider ?? "asaas";
     const asaasPaymentId = (order as { asaas_payment_id?: string | null }).asaas_payment_id;
     const cieloPaymentId = (order as { cielo_payment_id?: string | null }).cielo_payment_id;
+    const mpPaymentId = (order as { mp_payment_id?: string | null }).mp_payment_id;
 
-    // Cielo é o gateway ativo: estorno REAL via API (void), com fila de
-    // retentativa automática quando a Cielo recusa por saldo insuficiente.
-    // Pedidos antigos da Asaas continuam usando a API da Asaas.
+    // Mercado Pago é o gateway ativo: estorno REAL via API (devolução), síncrono.
+    // Cielo (pedidos anteriores) usa void com fila de retentativa.
+    // Asaas (pedidos antigos) usa a API da Asaas.
     // Sem nenhum ID de gateway → reembolso manual (histórico apenas).
     const useCieloApi = !!cieloPaymentId;
     const useAsaasApi = !useCieloApi && !!asaasPaymentId;
-    const isManualLegacy = !useCieloApi && !useAsaasApi;
+    const useMpApi = !useCieloApi && !useAsaasApi && provider === "mercadopago" && !!mpPaymentId;
+    const isManualLegacy = !useCieloApi && !useAsaasApi && !useMpApi;
 
     if (useAsaasApi && !process.env.ASAAS_API_KEY) {
       throw new Error("Asaas não configurado");
+    }
+    if (useMpApi && !process.env.MP_ACCESS_TOKEN) {
+      throw new Error("Mercado Pago não configurado");
     }
 
 
@@ -250,8 +255,27 @@ export const refundOrder = createServerFn({ method: "POST" })
         }
         throw new Error(`Falha no estorno: ${rawMsg}`);
       }
+    } else if (useMpApi) {
+      // Mercado Pago: devolução REAL via API (síncrona). Pix e cartão voltam
+      // pro cliente; MP costuma responder status "approved" na hora.
+      try {
+        const { refundPayment: mpRefund } = await import("@/lib/mercadopago.server");
+        const refund = await mpRefund(mpPaymentId as string, isFull ? undefined : data.amount);
+        providerRefundId = refund.id || `mp-refund-${Date.now()}`;
+        providerStatus = refund.status;
+        refundStatus = refund.status === "approved" ? "confirmed" : "pending";
+      } catch (err) {
+        const rawMsg = err instanceof Error ? err.message : "Falha no estorno";
+        console.error("[refund] Mercado Pago API error", {
+          orderId: order.id, mpPaymentId, rawMsg,
+        });
+        throw new Error(
+          `Falha no estorno pelo Mercado Pago: ${rawMsg}. ` +
+          `Verifique o pagamento no painel do MP; se precisar, faça o Pix manual ao cliente e registre como reembolso manual.`,
+        );
+      }
     } else if (isManualLegacy) {
-      // Pedido antigo (Mercado Pago / Cielo): registra reembolso manual.
+      // Sem ID de gateway (pedido muito antigo): registra reembolso manual.
       // O operador devolve o dinheiro por fora (Pix/transferência).
       providerRefundId = `manual-${provider}-${Date.now()}`;
       refundStatus = "manual";
@@ -806,9 +830,15 @@ export const refundCieloOnCancel = createServerFn({ method: "POST" })
 
     const o = order as any;
     const cieloPaymentId: string | null = o.cielo_payment_id ?? null;
+    const mpPaymentId: string | null = o.mp_payment_id ?? null;
+    const provider: string = o.payment_provider ?? "cielo";
     const alreadyRefunded = o.refund_status === "refunded" || o.refund_status === "partially_refunded";
 
-    if (o.status !== "paid" || !cieloPaymentId || alreadyRefunded) {
+    const canCielo = o.status === "paid" && !!cieloPaymentId && !alreadyRefunded;
+    const canMp =
+      o.status === "paid" && !cieloPaymentId && provider === "mercadopago" && !!mpPaymentId && !alreadyRefunded;
+
+    if (!canCielo && !canMp) {
       return { skipped: true as const, refunded: false, queued: false, message: null as string | null };
     }
 
@@ -826,10 +856,74 @@ export const refundCieloOnCancel = createServerFn({ method: "POST" })
     const { data: prof } = await supabaseAdmin.from("profiles").select("full_name").eq("id", userId).maybeSingle();
     const operatorName = prof?.full_name || "—";
 
+    // ---- Mercado Pago (gateway ativo): devolução total síncrona ----
+    if (canMp) {
+      if (!process.env.MP_ACCESS_TOKEN) throw new Error("Mercado Pago não configurado");
+      let mpRefundId = "";
+      let mpStatus = "approved";
+      try {
+        const { refundPayment: mpRefund } = await import("@/lib/mercadopago.server");
+        const refund = await mpRefund(mpPaymentId as string); // total
+        mpRefundId = refund.id || `mp-refund-${Date.now()}`;
+        mpStatus = refund.status;
+      } catch (err) {
+        const rawMsg = err instanceof Error ? err.message : "Falha no estorno";
+        console.error("[refund] MP cancel refund error", { orderId: o.id, mpPaymentId, rawMsg });
+        throw new Error(
+          `Falha ao estornar no Mercado Pago: ${rawMsg}. O pedido NÃO foi excluído. ` +
+          `Verifique no painel do MP; se necessário, faça o Pix manual.`,
+        );
+      }
+
+      await supabaseAdmin.from("refunds").insert({
+        order_id: o.id,
+        mp_payment_id: mpPaymentId,
+        mp_refund_id: mpRefundId,
+        provider: "mercadopago",
+        provider_payment_id: mpPaymentId,
+        provider_status: mpStatus,
+        status: mpStatus === "approved" ? "confirmed" : "pending",
+        confirmed_at: mpStatus === "approved" ? new Date().toISOString() : null,
+        last_checked_at: new Date().toISOString(),
+        amount: total,
+        is_full: true,
+        reason: data.reason,
+        customer_name: o.customer_name,
+        customer_email: o.customer_email,
+        customer_phone: o.customer_phone,
+        customer_cpf: o.customer_cpf,
+        payment_method: o.payment_method,
+        order_total: total,
+        order_created_at: o.created_at,
+        items: itemsSnapshot,
+        operator_id: userId,
+        operator_name: operatorName,
+      } as never);
+
+      await supabaseAdmin
+        .from("orders")
+        .update({
+          refund_status: "refunded",
+          refunded_at: new Date().toISOString(),
+          refunded_amount: total,
+          refund_reason: data.reason,
+          refunded_by: userId,
+          refunded_by_name: operatorName,
+        } as never)
+        .eq("id", o.id);
+
+      return {
+        skipped: false as const,
+        refunded: true,
+        queued: false,
+        message: `Estorno de R$ ${total.toFixed(2)} enviado ao Mercado Pago — o dinheiro volta ao cliente.`,
+      };
+    }
+
     const { attemptCieloRefund } = await import("@/lib/cielo-refund.server");
     const outcome = await attemptCieloRefund({
       orderId: o.id,
-      cieloPaymentId,
+      cieloPaymentId: cieloPaymentId as string,
       amount: total,
       isFull: true,
       reason: data.reason,

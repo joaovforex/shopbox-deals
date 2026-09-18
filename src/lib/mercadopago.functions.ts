@@ -320,3 +320,64 @@ export const createMercadoPagoPayment = createServerFn({ method: "POST" })
       throw new Error(err instanceof Error ? err.message : "Falha ao iniciar pagamento");
     }
   });
+
+/**
+ * Retoma o pagamento de um pedido pendente no Mercado Pago (ex.: cartão recusado,
+ * cliente fechou a aba). Cria uma NOVA preferência com o mesmo `external_reference`
+ * (= orderId), então um novo pagamento aprovado confirma o pedido normalmente.
+ */
+export const resumeMercadoPagoPayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { orderId: string }) => {
+    if (!data?.orderId || !/^[0-9a-f-]{36}$/i.test(data.orderId)) throw new Error("Pedido inválido");
+    return data;
+  })
+  .handler(async ({ data, context }) => {
+    if (!process.env.MP_ACCESS_TOKEN) throw new Error("Mercado Pago não configurado");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { createPreference } = await import("@/lib/mercadopago.server");
+
+    const { data: order, error } = await supabaseAdmin
+      .from("orders")
+      .select("id,user_id,status,total,delivery_fee,customer_name,customer_email")
+      .eq("id", data.orderId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!order) throw new Error("Pedido não encontrado");
+    if (order.user_id && order.user_id !== context.userId) throw new Error("Sem permissão");
+    if (order.status !== "pending") throw new Error("Este pedido não está mais aguardando pagamento");
+
+    const total = Number(order.total ?? 0);
+    if (!(total > 0)) throw new Error("Pedido sem valor a pagar");
+    const shippingFee = Number(order.delivery_fee ?? 0);
+    const productsTotal = Math.max(0, total - shippingFee);
+
+    const origin = originFromRequest();
+    const callbackOrigin = isPublicHttpsOrigin(origin) ? origin : "https://shopboxonline.com";
+    const shortId = order.id.slice(0, 8).toUpperCase();
+    const items = [
+      { title: `Pedido shopbox ${shortId}`, quantity: 1, unitPrice: productsTotal },
+      ...(shippingFee > 0 ? [{ title: "Frete", quantity: 1, unitPrice: shippingFee }] : []),
+    ];
+
+    const { preferenceId, initPoint } = await createPreference({
+      orderId: order.id,
+      items,
+      payer: { name: order.customer_name ?? undefined, email: order.customer_email ?? undefined },
+      returnUrl: `${callbackOrigin}/pedido/${order.id}`,
+      notificationUrl: `${callbackOrigin}/api/public/mercadopago/webhook`,
+      maxInstallments: maxInstallmentsFor(total),
+      statementDescriptor: "SHOPBOX",
+    });
+
+    await supabaseAdmin
+      .from("orders")
+      .update({
+        mp_preference_id: preferenceId,
+        mp_init_point: initPoint,
+        mp_payment_status: "pending",
+      } as never)
+      .eq("id", order.id);
+
+    return { orderId: order.id, initPoint };
+  });
