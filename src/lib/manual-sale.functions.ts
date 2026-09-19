@@ -1,11 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { maxInstallmentsFor } from "@/lib/installments";
 
 type CartItemInput = { product_id: string; quantity: number; color?: string | null };
 
-export const MANUAL_PAYMENT_METHODS = ["cielo", "asaas", "pix", "card", "dinheiro"] as const;
+// Venda manual (presencial): o pagamento JÁ foi recebido — na maquininha
+// (crédito/débito), em dinheiro, Pix na hora, ou outro. Não existe mais link
+// externo; a venda entra direto como PAGA, registrando a forma escolhida.
+export const MANUAL_PAYMENT_METHODS = ["dinheiro", "pix", "credito", "debito", "outro"] as const;
 export type ManualPaymentMethod = (typeof MANUAL_PAYMENT_METHODS)[number];
 
 type CreateManualSaleInput = {
@@ -16,13 +17,6 @@ type CreateManualSaleInput = {
   items: CartItemInput[];
 };
 
-function originFromRequest(): string {
-  const req = getRequest();
-  const proto = req.headers.get("x-forwarded-proto") ?? "https";
-  const host = req.headers.get("host") ?? "localhost";
-  return `${proto}://${host}`;
-}
-
 export const createManualSale = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: CreateManualSaleInput) => {
@@ -31,7 +25,7 @@ export const createManualSale = createServerFn({ method: "POST" })
     const phone = (data.customer_phone ?? "").replace(/\D/g, "");
     if (!/^[0-9]{10,11}$/.test(phone)) throw new Error("Telefone inválido");
     if (!["pickup", "delivery"].includes(data.delivery_method)) throw new Error("Entrega inválida");
-    const pm = (data.payment_method ?? "cielo") as ManualPaymentMethod;
+    const pm = (data.payment_method ?? "dinheiro") as ManualPaymentMethod;
     if (!MANUAL_PAYMENT_METHODS.includes(pm)) throw new Error("Forma de pagamento inválida");
     if (!Array.isArray(data.items) || data.items.length === 0) throw new Error("Carrinho vazio");
     if (data.items.length > 50) throw new Error("Carrinho muito grande");
@@ -51,18 +45,10 @@ export const createManualSale = createServerFn({ method: "POST" })
     } as never);
     if (!isAdmin) throw new Error("Sem permissão");
 
-    const isCash = data.payment_method === "dinheiro";
-    // Asaas fica como backup: só é usada quando explicitamente escolhida.
-    const useAsaas = data.payment_method === "asaas";
-    const provider = useAsaas ? "asaas" : "cielo";
-
-    if (!isCash && useAsaas && !process.env.ASAAS_API_KEY) throw new Error("Asaas não configurada");
-    if (!isCash && !useAsaas && (!process.env.CIELO_CLIENT_ID || !process.env.CIELO_CLIENT_SECRET)) {
-      throw new Error("Cielo não configurada");
-    }
-
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
+    // Cria o pedido já baixando estoque. Passamos 'dinheiro' para o RPC porque é
+    // o método que ele reconhece como PAGO na hora (balcão); logo abaixo gravamos
+    // a forma real escolhida (dinheiro/pix/crédito/débito/outro) e marcamos o
+    // provedor como 'manual' — assim a venda aparece separada nas métricas.
     const { data: orderId, error: orderErr } = await context.supabase.rpc(
       "create_manual_order" as never,
       {
@@ -70,84 +56,19 @@ export const createManualSale = createServerFn({ method: "POST" })
         p_customer_phone: data.customer_phone,
         p_delivery_method: data.delivery_method,
         p_items: data.items,
-        p_payment_method: data.payment_method,
+        p_payment_method: "dinheiro",
       } as never,
     );
-    if (orderErr || !orderId) throw new Error(orderErr?.message ?? "Falha ao criar pedido");
+    if (orderErr || !orderId) throw new Error(orderErr?.message ?? "Falha ao registrar venda");
 
-    // Venda em dinheiro: concluída no balcão, sem gateway.
-    if (isCash) {
-      return {
-        orderId: orderId as string,
-        initPoint: null as string | null,
-        preferenceId: null as string | null,
-      };
-    }
-
-    await supabaseAdmin
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: updErr } = await supabaseAdmin
       .from("orders")
-      .update({ payment_provider: provider } as never)
+      .update({ payment_method: data.payment_method, payment_provider: "manual" } as never)
       .eq("id", orderId as string);
-
-    const { data: orderRow } = await supabaseAdmin
-      .from("orders")
-      .select("total, delivery_fee")
-      .eq("id", orderId as string)
-      .maybeSingle();
-    const total = Number((orderRow as { total?: number } | null)?.total ?? 0);
-    if (!(total > 0)) throw new Error("Pedido sem valor a cobrar");
-
-    const origin = originFromRequest();
-    const callbackOrigin = /^https:\/\/[^/]+\.[^/]+/.test(origin) ? origin : "https://shopboxonline.com";
-
-    try {
-      if (useAsaas) {
-        const { createPaymentLink } = await import("@/lib/asaas.server");
-        const link = await createPaymentLink({
-          name: `Venda shopbox ${(orderId as string).slice(0, 8).toUpperCase()}`,
-          value: total,
-          description: `Venda manual para ${data.customer_name.trim()}`,
-          maxInstallmentCount: maxInstallmentsFor(total),
-        });
-
-        await supabaseAdmin
-          .from("orders")
-          .update({
-            mp_preference_id: link.id,
-            mp_init_point: link.url,
-            asaas_invoice_url: link.url,
-          } as never)
-          .eq("id", orderId as string);
-
-        return { orderId: orderId as string, initPoint: link.url, preferenceId: link.id };
-      }
-
-      const { buildCieloCheckout } = await import("@/lib/cielo-checkout.server");
-      const checkoutUrl = await buildCieloCheckout({
-        orderId: orderId as string,
-        productsTotal: total,
-        shippingFee: 0,
-        shipping: null,
-        customer: {
-          name: data.customer_name.trim(),
-          phone: data.customer_phone,
-        },
-        returnUrl: `${callbackOrigin}/pedido/${orderId}`,
-      });
-
-      await supabaseAdmin
-        .from("orders")
-        .update({
-          cielo_checkout_url: checkoutUrl,
-          cielo_status: "pending",
-          mp_init_point: checkoutUrl,
-        } as never)
-        .eq("id", orderId as string);
-
-      return { orderId: orderId as string, initPoint: checkoutUrl, preferenceId: "" };
-    } catch (err) {
-      console.error(`[manual-sale] ${provider} payment link error`, err);
-      await supabaseAdmin.from("orders").update({ status: "cancelled" }).eq("id", orderId as string);
-      throw new Error(err instanceof Error ? err.message : "Falha ao gerar cobrança");
+    if (updErr) {
+      console.error("[manual-sale] falha ao gravar forma de pagamento", orderId, updErr.message);
     }
+
+    return { orderId: orderId as string, paymentMethod: data.payment_method };
   });

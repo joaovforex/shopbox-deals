@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Minus, Trash2, Search, Copy, ExternalLink, Crown } from "lucide-react";
+import { ArrowLeft, Plus, Minus, Trash2, Search, Crown } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { normalizeSearchTerm } from "@/lib/pgrst";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,12 +16,20 @@ export const Route = createFileRoute("/_authenticated/admin/venda-manual")({
 });
 
 const PAYMENT_OPTIONS: Array<{ value: ManualPaymentMethod; label: string }> = [
-  { value: "cielo", label: "Cielo (Pix/cartão)" },
-  { value: "asaas", label: "Asaas (backup)" },
-  { value: "pix", label: "Pix" },
-  { value: "card", label: "Cartão" },
   { value: "dinheiro", label: "Dinheiro" },
+  { value: "pix", label: "Pix" },
+  { value: "credito", label: "Crédito" },
+  { value: "debito", label: "Débito" },
+  { value: "outro", label: "Outro" },
 ];
+
+const PAYMENT_LABEL: Record<ManualPaymentMethod, string> = {
+  dinheiro: "Dinheiro",
+  pix: "Pix",
+  credito: "Cartão de crédito",
+  debito: "Cartão de débito",
+  outro: "Outro",
+};
 
 type ProductRow = {
   id: string;
@@ -52,9 +60,9 @@ function ManualSalePage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [delivery, setDelivery] = useState<"pickup" | "delivery">("pickup");
-  const [payment, setPayment] = useState<ManualPaymentMethod>("cielo");
+  const [payment, setPayment] = useState<ManualPaymentMethod>("dinheiro");
   const [generating, setGenerating] = useState(false);
-  const [result, setResult] = useState<{ orderId: string; initPoint: string | null } | null>(null);
+  const [result, setResult] = useState<{ orderId: string; paymentMethod: ManualPaymentMethod } | null>(null);
 
   const submit = useServerFn(createManualSale);
 
@@ -147,10 +155,10 @@ function ManualSalePage() {
           items: cart.map((l) => ({ product_id: l.product_id, quantity: l.quantity, color: l.color })),
         },
       });
-      setResult({ orderId: r.orderId, initPoint: r.initPoint });
-      toast.success(payment === "dinheiro" ? "Venda em dinheiro registrada!" : "Cobrança gerada!");
+      setResult({ orderId: r.orderId, paymentMethod: r.paymentMethod });
+      toast.success(`Venda registrada (${PAYMENT_LABEL[r.paymentMethod]})!`);
     } catch (e: any) {
-      toast.error(e.message ?? "Erro ao gerar cobrança");
+      toast.error(e.message ?? "Erro ao registrar venda");
     } finally {
       setGenerating(false);
     }
@@ -185,7 +193,8 @@ function ManualSalePage() {
             </div>
             <h1 className="display text-3xl">Venda manual</h1>
             <p className="text-sm text-muted-foreground">
-              Monte o pedido presencial, gere a cobrança na Asaas e envie o link/Pix ao cliente.
+              Registro de venda presencial: o pagamento já foi recebido (dinheiro, Pix, cartão na
+              maquininha). O pedido entra direto como <strong>PAGO</strong> e baixa o estoque.
             </p>
           </div>
           <Link
@@ -357,54 +366,22 @@ function ManualSalePage() {
                 disabled={generating || cart.length === 0}
                 className="w-full bg-primary text-primary-foreground font-semibold uppercase tracking-wide px-4 py-3 rounded-md shadow-deal disabled:opacity-50"
               >
-                {generating
-                  ? "Registrando..."
-                  : payment === "dinheiro"
-                    ? "Registrar venda em dinheiro"
-                    : "Gerar cobrança"}
+                {generating ? "Registrando..." : `Registrar venda (${PAYMENT_LABEL[payment]})`}
               </button>
               <p className="text-[11px] text-muted-foreground">
-                {payment === "dinheiro"
-                  ? "Venda no balcão: o pedido já entra como PAGO e o estoque é baixado na hora."
-                  : "O estoque é reservado e o pedido entra como pendente. Quando o cliente pagar, ele entra automaticamente em Expedição."}
+                O pagamento já foi recebido presencialmente. O pedido entra como <strong>PAGO</strong>,
+                o estoque é baixado na hora e a venda aparece nas métricas com a forma escolhida.
               </p>
             </div>
           ) : (
             <div className="bg-card border-2 border-primary rounded-lg p-4 space-y-3">
               <h2 className="font-semibold uppercase text-sm tracking-wider text-primary">
-                {result.initPoint ? "Cobrança pronta" : "Venda registrada"}
+                Venda registrada
               </h2>
-              {result.initPoint ? (
-                <>
-                  <p className="text-xs text-muted-foreground">
-                    Envie este link ao cliente. Ele pode pagar via Pix ou cartão.
-                  </p>
-                  <div className="bg-muted rounded p-2 text-xs break-all">{result.initPoint}</div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={async () => {
-                        await navigator.clipboard.writeText(result.initPoint ?? "");
-                        toast.success("Link copiado");
-                      }}
-                      className="inline-flex items-center justify-center gap-1 bg-primary text-primary-foreground px-3 py-2 rounded text-xs font-bold uppercase"
-                    >
-                      <Copy className="h-3 w-3" /> Copiar
-                    </button>
-                    <a
-                      href={result.initPoint}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center gap-1 border border-border px-3 py-2 rounded text-xs font-bold uppercase"
-                    >
-                      <ExternalLink className="h-3 w-3" /> Abrir
-                    </a>
-                  </div>
-                </>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Pagamento em dinheiro recebido no balcão. O pedido já está marcado como PAGO.
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground">
+                Pagamento recebido via <strong>{PAYMENT_LABEL[result.paymentMethod]}</strong>. O
+                pedido já está marcado como <strong>PAGO</strong> e o estoque foi baixado.
+              </p>
 
               <Link
                 to="/pedido/$id"

@@ -110,6 +110,29 @@ function startOf(period: Period): Date | null {
   return null;
 }
 
+// Rótulo amigável da forma de pagamento (online ou manual).
+function paymentMethodLabel(method: string | null | undefined): string {
+  switch (String(method ?? "").toLowerCase()) {
+    case "pix": return "Pix";
+    case "card": return "Cartão";
+    case "credito": return "Crédito";
+    case "debito": return "Débito";
+    case "dinheiro": return "Dinheiro";
+    case "cashback": return "Cashback";
+    case "outro": return "Outro";
+    case "mercadopago": return "Mercado Pago";
+    case "": return "—";
+    default: return String(method).toUpperCase();
+  }
+}
+
+// Linha do relatório: distingue venda manual (provider='manual') da venda online,
+// e mostra a forma escolhida. Ex.: "Venda manual · Crédito" / "Online · Pix".
+function paymentBreakdownLabel(method: string, provider: string): string {
+  const isManual = String(provider ?? "").toLowerCase() === "manual";
+  return `${isManual ? "Venda manual" : "Online"} · ${paymentMethodLabel(method)}`;
+}
+
 function OrdersPanel() {
   const [admin, setAdmin] = useState<boolean | null>(null);
   const [superAdmin, setSuperAdmin] = useState<boolean | null>(null);
@@ -121,7 +144,7 @@ function OrdersPanel() {
   const [busy, setBusy] = useState(false);
   const [searchCpf, setSearchCpf] = useState("");
   const [filterDelivery, setFilterDelivery] = useState<"all" | "delivery" | "pickup">("all");
-  const [filterPayment, setFilterPayment] = useState<"all" | "pix" | "card">("all");
+  const [filterPayment, setFilterPayment] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("paid");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
@@ -303,6 +326,15 @@ function OrdersPanel() {
     lines.push("");
     lines.push(`🧾 ${stats.ordersCount} pedidos · 📦 ${stats.unitsSold} itens · 💰 ${brl(stats.revenue)}`);
     lines.push(`🛵 Entrega: ${stats.deliveryCount} · 🏪 Retirada: ${stats.pickupCount}`);
+    lines.push("");
+    lines.push(`*FORMAS DE PAGAMENTO*`);
+    if (stats.byPayment.length === 0) {
+      lines.push("— sem vendas no período —");
+    } else {
+      for (const p of stats.byPayment) {
+        lines.push(`• ${paymentBreakdownLabel(p.method, p.provider)}: ${p.orders_count} ped · ${brl(p.revenue)}`);
+      }
+    }
     lines.push("");
     lines.push(`*VENDAS POR CATEGORIA*`);
     if (stats.categoryRanking.length === 0) {
@@ -845,7 +877,11 @@ function OrdersPanel() {
                   >
                     <option value="all">Todos os pagamentos</option>
                     <option value="pix">Pix</option>
-                    <option value="card">Cartão</option>
+                    <option value="card">Cartão (online)</option>
+                    <option value="dinheiro">Dinheiro (manual)</option>
+                    <option value="credito">Crédito (manual)</option>
+                    <option value="debito">Débito (manual)</option>
+                    <option value="outro">Outro (manual)</option>
                   </select>
                   <div className="flex flex-wrap gap-1.5 col-span-1 sm:col-span-2 lg:col-span-4">
                     {STATUS_FILTER_OPTIONS.map((opt) => (
@@ -948,7 +984,7 @@ function OrdersPanel() {
                             {o.delivery_method === "pickup" ? "Retirada" : "Entrega"}
                           </span>
                         </td>
-                        <td className="p-3 text-xs uppercase">{o.payment_method}</td>
+                        <td className="p-3 text-xs uppercase">{paymentMethodLabel(o.payment_method)}</td>
                         <td className="p-3 text-right font-bold text-price">{brl(Number(o.total))}</td>
                         {superAdmin && (
                           <td className="p-3 text-right whitespace-nowrap">
@@ -1042,7 +1078,7 @@ function OrdersPanel() {
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${o.delivery_method === "pickup" ? "bg-accent/20 text-accent" : "bg-primary/15 text-primary"}`}>
                         {o.delivery_method === "pickup" ? "Retirada" : "Entrega"}
                       </span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-secondary">{o.payment_method}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-secondary">{paymentMethodLabel(o.payment_method)}</span>
                       {o.refund_status && (
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${refundBadgeClass(o.refund_status)}`}>
                           {refundLabel(o.refund_status)}
