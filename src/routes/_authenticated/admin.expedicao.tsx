@@ -134,7 +134,10 @@ function paymentInfo(o: Pick<OrderRow, "payment_method" | "payment_provider" | "
   const pm = (o.payment_method || "").toLowerCase();
   if (pm === "pix") return { label: "PIX", Icon: QrCode, cls: "bg-[#25D366]/20 text-[#25D366]" };
   if (pm === "card" || pm === "credit_card") return { label: "Cartão", Icon: CreditCard, cls: "bg-accent/20 text-accent" };
+  if (pm === "credito") return { label: "Crédito", Icon: CreditCard, cls: "bg-accent/20 text-accent" };
+  if (pm === "debito") return { label: "Débito", Icon: CreditCard, cls: "bg-blue-500/15 text-blue-500" };
   if (pm === "dinheiro") return { label: "Dinheiro", Icon: Banknote, cls: "bg-emerald-500/15 text-emerald-600" };
+  if (pm === "outro") return { label: "Outro", Icon: Banknote, cls: "bg-secondary text-foreground" };
   if (pm === "cashback") return { label: "Cashback", Icon: Gift, cls: "bg-primary/15 text-primary" };
   // Sem detalhe da adquirente: mostra apenas o provedor.
   const provider = o.payment_provider || o.payment_method;

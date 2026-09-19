@@ -62,12 +62,32 @@ export const createManualSale = createServerFn({ method: "POST" })
     if (orderErr || !orderId) throw new Error(orderErr?.message ?? "Falha ao registrar venda");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error: updErr } = await supabaseAdmin
-      .from("orders")
-      .update({ payment_method: data.payment_method, payment_provider: "manual" } as never)
-      .eq("id", orderId as string);
-    if (updErr) {
-      console.error("[manual-sale] falha ao gravar forma de pagamento", orderId, updErr.message);
+    // Classifica a venda: forma real + provider='manual' (para as métricas
+    // separarem "Venda manual" do online). Tenta algumas vezes; se ainda assim
+    // falhar, registra um alerta no admin — nunca fica silenciosamente errado.
+    let classified = false;
+    for (let attempt = 0; attempt < 3 && !classified; attempt++) {
+      const { error: updErr } = await supabaseAdmin
+        .from("orders")
+        .update({ payment_method: data.payment_method, payment_provider: "manual" } as never)
+        .eq("id", orderId as string);
+      if (!updErr) {
+        classified = true;
+        break;
+      }
+      console.error(`[manual-sale] classificacao tentativa ${attempt + 1} falhou`, orderId, updErr.message);
+    }
+    if (!classified) {
+      try {
+        await supabaseAdmin.from("admin_notifications" as never).insert({
+          type: "manual_sale_unclassified",
+          title: "Venda manual sem classificação de pagamento",
+          body: `Pedido ${orderId} entrou como pago, mas não gravou a forma "${data.payment_method}". Ajuste a forma de pagamento manualmente.`,
+          order_id: orderId as string,
+        } as never);
+      } catch (err) {
+        console.error("[manual-sale] falha ao alertar classificacao pendente", err);
+      }
     }
 
     return { orderId: orderId as string, paymentMethod: data.payment_method };
