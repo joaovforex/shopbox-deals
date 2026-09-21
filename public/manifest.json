@@ -1,0 +1,14 @@
+{
+  "name": "shopbox · Super ofertas em Colombo",
+  "short_name": "shopbox",
+  "description": "Loja shopbox: produtos com super desconto, pagamento no Pix, cartão ou parcelado.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#facc15",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

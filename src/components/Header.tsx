@@ -121,9 +121,9 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b-4 border-primary">
-        <div className="container mx-auto px-3 sm:px-4 h-16 sm:h-20 grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4">
+        <div className="container mx-auto px-3 sm:px-4 h-20 sm:h-24 lg:h-28 grid grid-cols-[auto_1fr_auto] items-center gap-2 sm:gap-4">
           <Link to="/" className="flex items-center shrink-0">
-            <img src={logo} alt="shopbox" className="h-12 sm:h-16 lg:h-20 w-auto drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)] hover:scale-105 transition-transform" />
+            <img src={logo} alt="shopbox" className="h-16 sm:h-20 lg:h-24 w-auto drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)] hover:scale-105 transition-transform" />
           </Link>
 
           <nav className="hidden md:flex items-center justify-center gap-1 lg:gap-2 text-sm font-semibold uppercase tracking-wider min-w-0">
