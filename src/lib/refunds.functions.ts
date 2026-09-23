@@ -582,8 +582,9 @@ export const retryCieloRefundNow = createServerFn({ method: "POST" })
 // Verificação pós-estorno (original)
 
 // Para cada refund, confirma:
-//  - o pedido foi removido (fluxo padrão) OU não está mais em "cancelled"
-//  - existe o registro em refunds (por definição, sim)
+//  - o estorno total deixou o pedido em "cancelled" (fluxo atual) OU o pedido
+//    foi removido em fluxos antigos — ambos OK; existe o registro em refunds.
+//  - problema: estorno total registrado mas pedido ainda "paid" (não cancelou).
 // Também retorna pedidos INCONSISTENTES: status='cancelled' + mp_payment_status='approved' + sem refund.
 // ============================================================
 
@@ -628,14 +629,14 @@ export const getRefundConsistency = createServerFn({ method: "GET" })
     if (rErr) throw new Error("Falha ao buscar reembolsos: " + rErr.message);
 
     const orderIds = Array.from(new Set((refunds ?? []).map((r: any) => r.order_id)));
-    let ordersMap = new Map<string, { status: string | null; mp_payment_status: string | null }>();
+    let ordersMap = new Map<string, { status: string | null; mp_payment_status: string | null; refund_status: string | null }>();
     if (orderIds.length > 0) {
       const { data: os } = await supabaseAdmin
         .from("orders")
-        .select("id,status,mp_payment_status")
+        .select("id,status,mp_payment_status,refund_status")
         .in("id", orderIds);
       for (const o of os ?? []) {
-        ordersMap.set(o.id, { status: o.status, mp_payment_status: o.mp_payment_status });
+        ordersMap.set(o.id, { status: o.status, mp_payment_status: o.mp_payment_status, refund_status: o.refund_status });
       }
     }
 
@@ -644,14 +645,16 @@ export const getRefundConsistency = createServerFn({ method: "GET" })
       const orderExists = !!o;
       const orderStatus = o?.status ?? null;
       const mpPaymentStatus = o?.mp_payment_status ?? null;
+      const refundStatus = o?.refund_status ?? null;
       let ok = true;
       let issue: string | null = null;
-      if (orderExists && orderStatus === "cancelled" && mpPaymentStatus === "approved") {
+      // Estado CORRETO de um pedido com estorno total (fluxo atual): status='cancelled'
+      // com o registro em refunds (esta lista já é dos refunds). Pedidos antigos podiam
+      // ter sido removidos (orderExists=false) — também OK. Estorno parcial mantém 'paid'.
+      // Só é problema quando o estorno TOTAL foi registrado mas o pedido continua 'paid'.
+      if (orderExists && orderStatus === "paid" && mpPaymentStatus === "approved" && refundStatus === "refunded") {
         ok = false;
-        issue = "Pedido continua como 'cancelled' mesmo com pagamento aprovado.";
-      } else if (orderExists && orderStatus === "paid" && mpPaymentStatus === "approved") {
-        ok = false;
-        issue = "Pedido continua como 'paid' após estorno — investigue.";
+        issue = "Estorno total registrado mas o pedido continua 'paid' — deveria estar cancelado. Investigue.";
       }
       return {
         orderId: r.order_id,
@@ -903,6 +906,10 @@ export const refundCieloOnCancel = createServerFn({ method: "POST" })
       await supabaseAdmin
         .from("orders")
         .update({
+          // Reembolso total: cancela o pedido para sair da expedição e do
+          // faturamento (que só contam status='paid'), mantendo todo o
+          // histórico do estorno abaixo.
+          status: "cancelled",
           refund_status: "refunded",
           refunded_at: new Date().toISOString(),
           refunded_amount: total,
@@ -981,6 +988,10 @@ export const refundCieloOnCancel = createServerFn({ method: "POST" })
     await supabaseAdmin
       .from("orders")
       .update({
+        // Reembolso total: cancela o pedido para sair da expedição e do
+        // faturamento (que só contam status='paid'), mantendo todo o
+        // histórico do estorno abaixo.
+        status: "cancelled",
         refund_status: "refunded",
         refunded_at: new Date().toISOString(),
         refunded_amount: total,

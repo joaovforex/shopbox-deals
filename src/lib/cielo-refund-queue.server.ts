@@ -120,9 +120,20 @@ export async function processCieloRefundQueue(): Promise<{
           continue;
         }
 
-        // Remove itens e pedido (mesmo fluxo do refundOrder síncrono)
-        await supabaseAdmin.from("order_items").delete().eq("order_id", row.order_id);
-        await supabaseAdmin.from("orders").delete().eq("id", row.order_id);
+        // Mantém o pedido e os itens (histórico). Marca como cancelado +
+        // reembolsado — igual ao fluxo síncrono do refundOrder — para sair da
+        // expedição e do faturamento (que só contam status='paid') sem perder
+        // o vínculo do estorno. Estorno parcial não cancela o pedido.
+        const orderUpdate: Record<string, unknown> = {
+          refund_status: row.is_full ? "refunded" : "partially_refunded",
+          refunded_at: new Date().toISOString(),
+          refunded_amount: row.amount,
+          refund_reason: row.reason,
+          refunded_by: row.operator_id,
+          refunded_by_name: row.operator_name,
+        };
+        if (row.is_full) orderUpdate.status = "cancelled";
+        await supabaseAdmin.from("orders").update(orderUpdate as never).eq("id", row.order_id);
 
         await supabaseAdmin
           .from("cielo_refund_queue")
