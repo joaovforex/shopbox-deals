@@ -33,3 +33,8 @@ dist-ssr
 
 # Vercel build output
 .vercel/
+
+# Variáveis de ambiente (NÃO versionar — configurar na Vercel / localmente)
+.env
+.env.local
+.env.*.local
