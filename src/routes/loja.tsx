@@ -12,9 +12,87 @@ import { brl } from "@/lib/format";
 import { supabase } from "@/integrations/supabase/client";
 import { trackViewItemList, toAnalyticsItem } from "@/lib/analytics";
 
-import { Search, X, ChevronLeft, ChevronRight, Tag, LayoutGrid, ChevronDown, SlidersHorizontal } from "lucide-react";
+import { Search, X, ChevronLeft, ChevronRight, Tag, LayoutGrid, ChevronDown, SlidersHorizontal, ShieldAlert } from "lucide-react";
 
 type LojaSearch = { cat?: string; q?: string; focus?: number; min?: number; max?: number; page?: number; brand?: string; size?: string };
+
+/**
+ * Categoria de acesso restrito a maiores de 18 anos. A regra REAL é aplicada no
+ * servidor (RLS + RPCs + trigger no banco); este gate é só a experiência de tela.
+ * A idade considerada é SEMPRE a data de nascimento do cadastro (perfil).
+ */
+const ADULT_CATEGORY = "+18";
+
+/** Tela de bloqueio da categoria +18, com a mensagem certa por situação. */
+function AdultGate({ status }: { status: string | undefined }) {
+  const loading = status === undefined;
+  const anon = status === "anon";
+  const noBirthdate = status === "no_birthdate";
+  const underage = status === "underage";
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-1 container mx-auto px-4 py-16 sm:py-24 flex items-center justify-center">
+        <div className="max-w-md w-full rounded-2xl border border-border bg-card p-8 text-center">
+          <span className="mx-auto mb-4 grid h-14 w-14 place-items-center rounded-full bg-destructive/15 text-destructive">
+            <ShieldAlert className="h-7 w-7" aria-hidden />
+          </span>
+          <h1 className="display text-2xl mb-2">Conteúdo +18</h1>
+          {loading ? (
+            <p className="text-sm text-muted-foreground">Verificando seu acesso…</p>
+          ) : anon ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Esta categoria é exclusiva para maiores de 18 anos. Entre na sua conta e
+                informe sua data de nascimento no perfil para acessar.
+              </p>
+              <div className="mt-5 flex flex-col gap-2">
+                <Link to="/auth" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 font-black uppercase tracking-wider text-primary-foreground">
+                  Entrar / criar conta
+                </Link>
+                <Link to="/loja" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border px-4 text-sm font-bold hover:bg-secondary">
+                  Voltar para a loja
+                </Link>
+              </div>
+            </>
+          ) : noBirthdate ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Para acessar esta categoria, informe sua <strong>data de nascimento</strong> no
+                seu perfil. O acesso considera sempre a idade do seu cadastro.
+              </p>
+              <div className="mt-5 flex flex-col gap-2">
+                <Link to="/perfil" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 font-black uppercase tracking-wider text-primary-foreground">
+                  Completar meu perfil
+                </Link>
+                <Link to="/loja" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border px-4 text-sm font-bold hover:bg-secondary">
+                  Voltar para a loja
+                </Link>
+              </div>
+            </>
+          ) : underage ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Esta categoria é restrita para <strong>maiores de 18 anos</strong>. Seu cadastro
+                não atende à idade mínima.
+              </p>
+              <div className="mt-5">
+                <Link to="/loja" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 font-black uppercase tracking-wider text-primary-foreground">
+                  Voltar para a loja
+                </Link>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Acesso indisponível no momento.</p>
+          )}
+        </div>
+      </main>
+      <Footer />
+      <MobileBottomNav />
+    </div>
+  );
+}
 
 export const Route = createFileRoute("/loja")({
   validateSearch: (search: Record<string, unknown>): LojaSearch => ({
@@ -110,6 +188,20 @@ function Loja() {
   const availableBrands = filterOptions?.brands ?? [];
   const availableSizes = filterOptions?.sizes ?? [];
   useRealtimeProducts();
+
+  // Categoria +18: verifica a idade pela data de nascimento do cadastro (no servidor).
+  // 'anon' | 'no_birthdate' | 'underage' | 'ok'. Enquanto carrega, fica undefined.
+  const isAdultCat = (cat ?? "").trim().toLowerCase() === ADULT_CATEGORY;
+  const { data: adultStatus } = useQuery({
+    queryKey: ["adult-status"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("current_user_adult_status" as never);
+      if (error) return "anon";
+      return (data as string) ?? "anon";
+    },
+    enabled: isAdultCat,
+    staleTime: 60_000,
+  });
 
   const baseSearch = useMemo(
     () => ({
@@ -243,6 +335,11 @@ function Loja() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cat, qParam, page, products.length]);
 
+  // Bloqueio da categoria +18: só libera quem tem idade válida no cadastro.
+  // (Os produtos já vêm vazios do servidor para quem não pode ver; aqui é a mensagem.)
+  if (isAdultCat && adultStatus !== "ok") {
+    return <AdultGate status={adultStatus} />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
