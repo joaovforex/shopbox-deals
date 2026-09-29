@@ -4,8 +4,9 @@
  * Server-only — o sufixo .server.ts impede que entre no bundle do cliente.
  * Toda leitura de env é feita DENTRO das funções (Worker injeta env por request).
  *
- * Endereço de retirada (loja) é hard-coded aqui — a Mais Entregas exige um
- * endereço de origem na criação da corrida.
+ * Endereço de retirada (loja): lido de `site_settings` (pickup_*), editável em
+ * /admin/configuracoes. O valor abaixo é só o fallback quando a tabela ainda
+ * não tem os campos preenchidos.
  *
  * Documentação real (PDF do usuário):
  * - Base URL: https://api.maisentregas.com
@@ -20,18 +21,84 @@
 
 import process from "node:process";
 
-export const PICKUP_ADDRESS = {
+export type PickupAddress = {
+  zip: string;
+  cep: string;
+  street: string;
+  number: string;
+  complement: string;
+  district: string;
+  city: string;
+  state: string;
+  recipient_name: string;
+  recipient_phone: string;
+};
+
+export const PICKUP_ADDRESS: PickupAddress = {
   zip: "83408290",
   cep: "83408290",
   street: "Rua Emílio Gleber",
   number: "1118",
   complement: "",
-  district: "",
+  district: "Atuba",
   city: "Colombo",
   state: "PR",
   recipient_name: "Shopbox",
   recipient_phone: "",
 };
+
+// Cache curto do endereço de coleta (evita 1 SELECT por cotação).
+let cachedPickup: { value: PickupAddress; at: number } | null = null;
+const PICKUP_CACHE_MS = 60_000;
+
+/**
+ * Endereço/telefone de coleta usados em TODA corrida (cotação e criação).
+ * Lê `site_settings.pickup_*`; cada campo vazio cai no fallback acima.
+ */
+export async function getPickupAddress(): Promise<PickupAddress> {
+  const now = Date.now();
+  if (cachedPickup && now - cachedPickup.at < PICKUP_CACHE_MS) return cachedPickup.value;
+  let value: PickupAddress = { ...PICKUP_ADDRESS };
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("site_settings")
+      .select("pickup_zip, pickup_street, pickup_number, pickup_complement, pickup_district, pickup_city, pickup_state, pickup_phone, pickup_name")
+      .eq("id", 1)
+      .maybeSingle();
+    const d = (data ?? {}) as Record<string, string | null | undefined>;
+    const pick = (k: string, fallback: string) => (d[k] ?? "").toString().trim() || fallback;
+    const zip = pick("pickup_zip", PICKUP_ADDRESS.zip).replace(/\D/g, "") || PICKUP_ADDRESS.zip;
+    value = {
+      zip,
+      cep: zip,
+      street: pick("pickup_street", PICKUP_ADDRESS.street),
+      number: pick("pickup_number", PICKUP_ADDRESS.number),
+      complement: pick("pickup_complement", PICKUP_ADDRESS.complement),
+      district: pick("pickup_district", PICKUP_ADDRESS.district),
+      city: pick("pickup_city", PICKUP_ADDRESS.city),
+      state: pick("pickup_state", PICKUP_ADDRESS.state).toUpperCase(),
+      recipient_name: pick("pickup_name", PICKUP_ADDRESS.recipient_name),
+      recipient_phone: pick("pickup_phone", PICKUP_ADDRESS.recipient_phone).replace(/\D/g, ""),
+    };
+  } catch (err) {
+    console.warn("[maisentregas] getPickupAddress: usando fallback", err instanceof Error ? err.message : err);
+  }
+  cachedPickup = { value, at: now };
+  return value;
+}
+
+/**
+ * Erro de credencial GLOBAL (nosso e-mail/apikey recusados no /auth).
+ * Não é um problema do pedido — nunca deve marcar a corrida como
+ * "[sem-acesso]" (foi isso que travou 120 corridas em 01/09).
+ */
+export class MaisEntregasAuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "MaisEntregasAuthError";
+  }
+}
 
 const DEFAULT_APP_ID = "integration";
 const DEFAULT_BASE_URL = "https://api.maisentregas.com";
@@ -80,10 +147,10 @@ export async function authenticate(): Promise<string> {
   let json: { success?: boolean; access_token?: string; expire?: number; [k: string]: unknown } = {};
   try { json = text ? JSON.parse(text) : {}; } catch { /* ignore */ }
   if (!res.ok) {
-    throw new Error(`Mais Entregas /auth falhou: ${res.status} ${text.slice(0, 200)}`);
+    throw new MaisEntregasAuthError(`Mais Entregas /auth falhou: ${res.status} ${text.slice(0, 200)}`);
   }
   const token = json.access_token;
-  if (!token) throw new Error("Mais Entregas /auth: resposta sem access_token");
+  if (!token) throw new MaisEntregasAuthError("Mais Entregas /auth: resposta sem access_token");
   // expire é unix timestamp (segundos). Se não vier, assume 24h.
   const expiresAt = json.expire ? json.expire * 1000 : now + 24 * 60 * 60 * 1000;
   cachedToken = { token, expiresAt };
@@ -220,6 +287,7 @@ export type OrderStatusResponse = {
     data_conclusao?: string | null;
   }>;
   motoboy?: { id?: number; nome?: string; picture?: string; latitude?: number; longitude?: number; updated?: number };
+  estimate?: { distancia?: number; duracaoEstimadaMinutos?: number; horaTermino?: string };
   customMessage?: string;
   [k: string]: unknown;
 };
@@ -242,36 +310,44 @@ export async function cancelOrder(id: string, reason?: string): Promise<{ succes
 }
 
 // ---------------- Helpers de status ----------------
-const FINAL_STATUSES = new Set([
-  "servico_finalizado",
-  "serviço finalizado",
-  "finalizado",
-  "cancelado",
-  "cancelada",
-  "cancelled",
-  "canceled",
-]);
+// A lógica vive em `maisentregas-status.ts` (client-safe) — aqui só
+// mantemos os nomes antigos para quem já importava deste módulo.
+export {
+  normalizeMeStatus,
+  isMeDelivered as isDeliveredStatus,
+  isMeFinal as isFinalStatus,
+  meStatusLabel as statusLabel,
+} from "@/lib/maisentregas-status";
 
-export function isFinalStatus(s: string | null | undefined): boolean {
-  if (!s) return false;
-  return FINAL_STATUSES.has(s.toLowerCase().trim().replace(/_/g, " "));
-}
-
-export function isDeliveredStatus(s: string | null | undefined): boolean {
-  if (!s) return false;
-  const lower = s.toLowerCase().trim().replace(/_/g, " ");
-  return lower === "servico finalizado" || lower === "serviço finalizado" || lower === "finalizado";
-}
-
-export function statusLabel(s: string | null | undefined): string {
-  if (!s) return "Aguardando";
-  const map: Record<string, string> = {
-    "contatando_parceiro": "Procurando entregador",
-    "parceiro_confirmado": "Entregador confirmado",
-    "parceiro_a_caminho": "Entregador a caminho",
-    "servico_finalizado": "Entregue",
-    "pendente": "Pendente",
-    "aguardando_preparo": "Aguardando preparo",
+/**
+ * Extrai da resposta de status o que interessa gravar no pedido.
+ * O último endereço da lista é o ponto de ENTREGA (o primeiro é a coleta).
+ */
+export function extractStatusDetails(res: OrderStatusResponse): {
+  rawStatus: string | null;
+  arrivedAt: string | null;
+  concludedAt: string | null;
+  cancelReason: string | null;
+} {
+  const rawStatus = (res.ultimo_status_text ?? "").toString().trim() || null;
+  const enderecos = Array.isArray(res.enderecos) ? res.enderecos : [];
+  const dest = enderecos.length ? enderecos[enderecos.length - 1] : undefined;
+  const toIso = (v: string | null | undefined): string | null => {
+    if (!v) return null;
+    const d = new Date(v);
+    if (Number.isNaN(d.getTime())) {
+      // Formato brasileiro "dd/mm/aaaa hh:mm(:ss)"
+      const m = /^(\d{2})\/(\d{2})\/(\d{4})[ T](\d{2}):(\d{2})(?::(\d{2}))?/.exec(v);
+      if (!m) return null;
+      const d2 = new Date(`${m[3]}-${m[2]}-${m[1]}T${m[4]}:${m[5]}:${m[6] ?? "00"}-03:00`);
+      return Number.isNaN(d2.getTime()) ? null : d2.toISOString();
+    }
+    return d.toISOString();
   };
-  return map[s.toLowerCase().trim().replace(/ /g, "_")] || s.replace(/_/g, " ");
+  return {
+    rawStatus,
+    arrivedAt: toIso(dest?.data_chegada ?? null),
+    concludedAt: toIso(dest?.data_conclusao ?? null),
+    cancelReason: (res.motivo_cancelamento ?? "").toString().trim() || null,
+  };
 }

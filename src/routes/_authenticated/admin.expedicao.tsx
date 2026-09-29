@@ -18,6 +18,7 @@ import { createExchangeVoucher } from "@/lib/exchange-vouchers.functions";
 import { printVoucherReceipt } from "@/lib/voucherReceipt";
 import { openWhatsApp, orderReminderMessage, orderContactMessage, orderRecoveryMessage } from "@/lib/whatsapp";
 import { dispatchDelivery } from "@/lib/maisentregas.functions";
+import { meStatusLabel } from "@/lib/maisentregas-status";
 import { fetchUnidades, fetchMyUnidadeScope } from "@/lib/unidades";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -985,7 +986,7 @@ function FulfillmentPage() {
                         </div>
                         {o.maisentregas_status && (
                           <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                            Mais Entregas: {o.maisentregas_status.replace(/_/g, " ")}
+                            Mais Entregas: {meStatusLabel(o.maisentregas_status)}
                           </div>
                         )}
                       </>

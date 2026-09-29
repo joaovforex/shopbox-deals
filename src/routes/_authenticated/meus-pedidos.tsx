@@ -13,6 +13,7 @@ import { getMyCashback } from "@/lib/cashback.functions";
 import { DeliveryUpgradeButton } from "@/components/DeliveryUpgradeButton";
 import { RepurchaseButton } from "@/components/RepurchaseButton";
 import { currentUserId } from "@/lib/account-queries";
+import { meStatusLabel as statusLabel, normalizeMeStatus, isMeDelivered, isMeOnTheWay } from "@/lib/maisentregas-status";
 
 import { toast } from "sonner";
 
@@ -41,29 +42,16 @@ type Row = {
   order_items: OrderItem[] | null;
 };
 
-function statusLabel(s: string | null): string {
-  if (!s) return "Aguardando";
-  const map: Record<string, string> = {
-    "contatando_parceiro": "Procurando entregador",
-    "parceiro_confirmado": "Entregador confirmado",
-    "parceiro_a_caminho": "Em rota de entrega",
-    "servico_finalizado": "Entregue",
-    "pendente": "Pendente",
-    "aguardando_preparo": "Aguardando preparo",
-    "criado": "Pedido criado",
-  };
-  return map[s.toLowerCase().trim().replace(/ /g, "_")] || s.replace(/_/g, " ");
-}
-
 function statusBadge(o: Row): { label: string; cls: string; icon: React.ReactNode } {
   if (o.status === "cancelled") return { label: "Cancelado", cls: "bg-destructive/15 text-destructive", icon: <XCircle className="h-3.5 w-3.5" /> };
   if (o.status === "pending") return { label: "Aguardando pagamento", cls: "bg-muted text-muted-foreground", icon: <Clock className="h-3.5 w-3.5" /> };
   // paid
   if (o.delivery_method === "delivery") {
-    const s = (o.maisentregas_status ?? "").toLowerCase().trim();
-    if (s === "servico_finalizado" || o.fulfillment_status === "completed") return { label: "Entregue", cls: "bg-[#25D366]/20 text-[#25D366]", icon: <CheckCircle2 className="h-3.5 w-3.5" /> };
-    if (s === "parceiro_a_caminho") return { label: "Em rota de entrega", cls: "bg-primary text-primary-foreground", icon: <Truck className="h-3.5 w-3.5" /> };
-    if (s) return { label: statusLabel(o.maisentregas_status), cls: "bg-primary/15 text-primary", icon: <Truck className="h-3.5 w-3.5" /> };
+    const s = normalizeMeStatus(o.maisentregas_status) ?? "";
+    if (isMeDelivered(s) || o.fulfillment_status === "completed") return { label: "Entregue", cls: "bg-[#25D366]/20 text-[#25D366]", icon: <CheckCircle2 className="h-3.5 w-3.5" /> };
+    if (s === "cancelado") return { label: "Entrega cancelada", cls: "bg-destructive/15 text-destructive", icon: <XCircle className="h-3.5 w-3.5" /> };
+    if (isMeOnTheWay(s)) return { label: "Em rota de entrega", cls: "bg-primary text-primary-foreground", icon: <Truck className="h-3.5 w-3.5" /> };
+    if (s) return { label: statusLabel(s), cls: "bg-primary/15 text-primary", icon: <Truck className="h-3.5 w-3.5" /> };
     return { label: "Preparando envio", cls: "bg-accent/20 text-accent", icon: <Package className="h-3.5 w-3.5" /> };
   }
   if (o.fulfillment_status === "completed") return { label: "Entregue", cls: "bg-[#25D366]/20 text-[#25D366]", icon: <CheckCircle2 className="h-3.5 w-3.5" /> };
@@ -259,6 +247,21 @@ function MyOrdersPage() {
                   {o.status === "pending" && o.payment_method !== "cashback" && (
                     <ResumePaymentBlock orderId={o.id} createdAt={o.created_at} paymentMethod={o.payment_method} />
                   )}
+
+                  {o.status === "paid" &&
+                    o.delivery_method === "delivery" &&
+                    !!o.maisentregas_order_id &&
+                    o.fulfillment_status !== "completed" &&
+                    !isMeDelivered(o.maisentregas_status) &&
+                    normalizeMeStatus(o.maisentregas_status) !== "cancelado" && (
+                      <Link
+                        to="/rastreio/$id"
+                        params={{ id: o.id }}
+                        className="mt-2 inline-flex min-h-10 items-center gap-2 rounded-md bg-primary px-3 py-2 text-xs font-black uppercase tracking-wider text-primary-foreground hover:opacity-90"
+                      >
+                        <Truck className="h-3.5 w-3.5" /> Acompanhar entregador
+                      </Link>
+                    )}
 
                   {o.status === "paid" &&
                     o.delivery_method !== "delivery" &&

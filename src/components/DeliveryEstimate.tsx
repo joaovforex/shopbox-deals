@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Truck, Store, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { quoteDelivery } from "@/lib/maisentregas.functions";
+import { quoteDelivery, quoteDeliveryPublic } from "@/lib/maisentregas.functions";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuthUser, loginRedirectHref } from "@/lib/useAuthUser";
+import { useAuthUser } from "@/lib/useAuthUser";
 import { useStoreAddress } from "@/lib/store-address";
 import { brl } from "@/lib/format";
 import {
@@ -19,13 +19,17 @@ type Quote = { fee: number; distanceKm?: number; etaMinutes?: number };
 /**
  * "Calcular entrega" na página de produto.
  *
- * Reutiliza a MESMA server fn `quoteDelivery` (Mais Entregas/TBT) usada pelo
- * checkout: nenhum preço é calculado no cliente. Também reutiliza a mesma
- * lista de cobertura (Curitiba/RMC) e a mesma busca de CEP (ViaCEP) do
- * checkout, via `@/lib/delivery-area`. O valor exibido é informativo — o
- * checkout continua recotando e validando no servidor.
+ * Reutiliza a MESMA cotação (Mais Entregas/TBT) usada pelo checkout: nenhum
+ * preço é calculado no cliente. Também reutiliza a mesma lista de cobertura
+ * (Curitiba/RMC) e a mesma busca de CEP (ViaCEP) do checkout, via
+ * `@/lib/delivery-area`. O valor exibido é informativo — o checkout continua
+ * recotando e validando no servidor.
+ *
+ * Não exige login: visitante usa `quoteDeliveryPublic` (com limite por IP e
+ * cache no servidor); quem está logado usa `quoteDelivery` e já vê o
+ * endereço salvo do perfil preenchido.
  */
-export function DeliveryEstimate({ productPath }: { productPath?: string }) {
+export function DeliveryEstimate({ productPath: _productPath }: { productPath?: string }) {
   const user = useAuthUser();
   const storeAddress = useStoreAddress();
 
@@ -133,16 +137,17 @@ export function DeliveryEstimate({ productPath }: { productPath?: string }) {
     setError(null);
     setQuote(null);
     try {
-      const res = await quoteDelivery({
-        data: {
-          zip: z,
-          street: street.trim(),
-          number: number.trim(),
-          district: district.trim(),
-          complement: complement.trim(),
-          city: city.trim(),
-        },
-      });
+      const payload = {
+        zip: z,
+        street: street.trim(),
+        number: number.trim(),
+        district: district.trim(),
+        complement: complement.trim(),
+        city: city.trim(),
+      };
+      const res = user
+        ? await quoteDelivery({ data: payload })
+        : await quoteDeliveryPublic({ data: payload });
       setQuote({ fee: res.fee, distanceKm: res.distanceKm, etaMinutes: res.etaMinutes });
     } catch (e) {
       setError(
@@ -164,19 +169,7 @@ export function DeliveryEstimate({ productPath }: { productPath?: string }) {
         <Truck className="h-4 w-4 text-primary" /> Calcular entrega
       </h2>
 
-      {!user ? (
-        <div className="mt-3 space-y-2">
-          <p className="text-sm text-muted-foreground">
-            Entre na sua conta para calcular o valor real da entrega para o seu endereço.
-          </p>
-          <a
-            href={loginRedirectHref(productPath)}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-xs font-black uppercase tracking-wider text-primary-foreground hover:opacity-90"
-          >
-            Entrar e calcular a entrega
-          </a>
-        </div>
-      ) : (
+      {(
         <div className="mt-3 space-y-3">
           {hasSaved && !editing ? (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-secondary/60 px-3 py-2 text-sm">

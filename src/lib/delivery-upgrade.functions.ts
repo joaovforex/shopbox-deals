@@ -68,10 +68,22 @@ export const createDeliveryUpgrade = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data, context }) => {
-    if (!process.env.ASAAS_API_KEY) throw new Error("Asaas não configurado");
-
-
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Cobra pelo MESMO gateway ativo do checkout (/admin/configuracoes).
+    // Mercado Pago é o padrão; Asaas fica como reserva quando selecionado.
+    const { data: settings } = await supabaseAdmin
+      .from("site_settings")
+      .select("payment_provider")
+      .eq("id", 1)
+      .maybeSingle();
+    const configured = String((settings as { payment_provider?: string } | null)?.payment_provider ?? "mercadopago");
+    const gateway: "mercadopago" | "asaas" =
+      configured === "asaas" && process.env.ASAAS_API_KEY ? "asaas"
+      : process.env.MP_ACCESS_TOKEN ? "mercadopago"
+      : process.env.ASAAS_API_KEY ? "asaas"
+      : "mercadopago";
+    if (gateway === "mercadopago" && !process.env.MP_ACCESS_TOKEN) throw new Error("Mercado Pago não configurado");
 
     // 1) Valida elegibilidade do pedido
     const { data: order, error: orderErr } = await supabaseAdmin
@@ -153,15 +165,42 @@ export const createDeliveryUpgrade = createServerFn({ method: "POST" })
       upgradeId = (ins as { id: string }).id;
     }
 
-    // 3) Cria a cobrança do frete na Asaas
+    // 4) Cria a cobrança do frete no gateway ativo
     const origin = originFromRequest();
     const cpfDigits = String(order.customer_cpf ?? "").replace(/\D/g, "");
     const title = `Frete - Conversão do pedido ${data.order_id.slice(0, 8).toUpperCase()} para entrega`;
 
-    const { findOrCreateCustomer, createPayment, createPaymentLink } = await import("@/lib/asaas.server");
-
     let chargeId: string;
     let initPoint: string;
+
+    if (gateway === "mercadopago") {
+      const { createPreference } = await import("@/lib/mercadopago.server");
+      const callbackOrigin = isPublicHttpsOrigin(origin) ? origin : "https://shopboxonline.com";
+      try {
+        const pref = await createPreference({
+          orderId: data.order_id,
+          externalReference: `upgrade:${upgradeId}`,
+          items: [{ title: title.slice(0, 250), quantity: 1, unitPrice: fee }],
+          payer: { name: order.customer_name ?? undefined, email: order.customer_email ?? undefined },
+          returnUrl: `${callbackOrigin}/pedido/${data.order_id}`,
+          notificationUrl: `${callbackOrigin}/api/public/mercadopago/webhook`,
+          maxInstallments: 1,
+          statementDescriptor: "SHOPBOX",
+        });
+        chargeId = pref.preferenceId;
+        initPoint = pref.initPoint;
+      } catch (err) {
+        console.error("[delivery-upgrade] mercadopago error", err);
+        throw new Error(err instanceof Error ? err.message : "Falha ao iniciar pagamento do frete");
+      }
+      await supabaseAdmin
+        .from("delivery_upgrades")
+        .update({ mp_preference_id: chargeId, mp_init_point: initPoint, mp_status: "pending" } as never)
+        .eq("id", upgradeId);
+      return { upgradeId, initPoint, fee };
+    }
+
+    const { findOrCreateCustomer, createPayment, createPaymentLink } = await import("@/lib/asaas.server");
     try {
       if (cpfDigits.length === 11) {
         const customerId = await findOrCreateCustomer({

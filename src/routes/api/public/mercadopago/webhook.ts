@@ -104,6 +104,31 @@ async function handleMpNotification(request: Request): Promise<Outcome> {
     return { stage: "consulta-mp", status: "ignored", detail: "pagamento sem external_reference (provável cobrança fora da loja)" };
   }
 
+  const { mapMpStatus: mapStatus } = await import("@/lib/mercadopago.server");
+
+  // === Conversão retirada → entrega (frete cobrado à parte) ===
+  if (orderId.startsWith("upgrade:")) {
+    const upgradeId = orderId.slice("upgrade:".length);
+    const m = mapStatus(payment.status);
+    const { handleDeliveryUpgradePayment } = await import("@/lib/delivery-upgrade.server");
+    const r = await handleDeliveryUpgradePayment({
+      upgradeId,
+      paymentId: payment.id,
+      status: m.mp_status,
+      isPaid: m.order_action === "paid",
+      // Cartão recusado ("rejected") NÃO cancela: no Checkout Pro o cliente
+      // tenta de novo na mesma preferência. Só cancelamento/estorno encerra.
+      isCancel: ["cancelled", "canceled", "refunded", "charged_back"].includes(m.mp_status),
+      paidAmount: payment.amount ?? null,
+      source: "mercadopago",
+    });
+    if (!r.applied && r.reason && !/^status /.test(r.reason) && r.reason !== "cancelado") {
+      await alertFailure("upgrade-entrega", r.reason, { type, id, upgradeId });
+      return { stage: "upgrade-entrega", status: "error", detail: r.reason };
+    }
+    return { stage: "upgrade-entrega", status: "ok", detail: r.reason ?? "aplicado" };
+  }
+
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data: order } = await supabaseAdmin
     .from("orders")

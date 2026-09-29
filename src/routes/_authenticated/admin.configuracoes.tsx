@@ -2,7 +2,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, ImageIcon, Percent, Save, Upload, Trash2, ShieldAlert, Tag, RotateCcw, Check, Store, Plus } from "lucide-react";
+import { ArrowLeft, ImageIcon, Percent, Save, Upload, Trash2, ShieldAlert, Tag, RotateCcw, Check, Store, Plus, Truck } from "lucide-react";
 import { Header, Footer } from "@/components/Header";
 import { isSuperAdmin } from "@/lib/products";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +28,14 @@ const SIGNED_URL_TTL = 60 * 60 * 24 * 365;
 const DESKTOP_SPEC = { w: 1600, h: 500, label: "1600 × 500 px (proporção ~3.2:1)" };
 const MOBILE_SPEC = { w: 800, h: 800, label: "800 × 800 px (quadrado, ~1:1)" };
 
+type PickupForm = {
+  zip: string; street: string; number: string; complement: string;
+  district: string; city: string; state: string; phone: string; name: string;
+};
+const EMPTY_PICKUP: PickupForm = { zip: "", street: "", number: "", complement: "", district: "", city: "", state: "", phone: "", name: "" };
+const PICKUP_FIELD = "w-full bg-background border-2 border-border rounded-md px-3 py-2 text-sm";
+const PICKUP_LBL = "text-[11px] font-bold uppercase tracking-wider text-muted-foreground";
+
 function SettingsPage() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["site_settings"], queryFn: fetchSiteSettings });
@@ -37,6 +45,7 @@ function SettingsPage() {
   const [mobileUrl, setMobileUrl] = useState<string>("");
   const [storeAddress, setStoreAddress] = useState<string>("");
   const [provider, setProvider] = useState<string>("cielo");
+  const [pickup, setPickup] = useState<PickupForm>(EMPTY_PICKUP);
   const [saving, setSaving] = useState(false);
   const [uploadingDesk, setUploadingDesk] = useState(false);
   const [uploadingMob, setUploadingMob] = useState(false);
@@ -49,6 +58,17 @@ function SettingsPage() {
     setDesktopUrl(data.banner_desktop_url ?? "");
     setMobileUrl(data.banner_mobile_url ?? "");
     setStoreAddress(data.store_address ?? "");
+    setPickup({
+      zip: data.pickup_zip ?? "",
+      street: data.pickup_street ?? "",
+      number: data.pickup_number ?? "",
+      complement: data.pickup_complement ?? "",
+      district: data.pickup_district ?? "",
+      city: data.pickup_city ?? "",
+      state: data.pickup_state ?? "",
+      phone: data.pickup_phone ?? "",
+      name: data.pickup_name ?? "",
+    });
     setProvider(
       data.payment_provider === "asaas"
         ? "asaas"
@@ -124,6 +144,16 @@ function SettingsPage() {
       toast.error("Cashback inválido. Informe um valor entre 0 e 100 (%).");
       return;
     }
+    const pickupZip = pickup.zip.replace(/\D/g, "");
+    if (pickupZip && pickupZip.length !== 8) {
+      toast.error("CEP de coleta inválido (8 dígitos).");
+      return;
+    }
+    const pickupPhone = pickup.phone.replace(/\D/g, "");
+    if (pickupPhone && (pickupPhone.length < 10 || pickupPhone.length > 13)) {
+      toast.error("Telefone de coleta inválido (DDD + número).");
+      return;
+    }
     setSaving(true);
     const { error } = await supabase
       .from("site_settings")
@@ -133,6 +163,15 @@ function SettingsPage() {
         banner_mobile_url: mobileUrl || null,
         store_address: storeAddress.trim(),
         payment_provider: provider,
+        pickup_zip: pickupZip || null,
+        pickup_street: pickup.street.trim() || null,
+        pickup_number: pickup.number.trim() || null,
+        pickup_complement: pickup.complement.trim() || null,
+        pickup_district: pickup.district.trim() || null,
+        pickup_city: pickup.city.trim() || null,
+        pickup_state: pickup.state.trim().toUpperCase().slice(0, 2) || null,
+        pickup_phone: pickupPhone || null,
+        pickup_name: pickup.name.trim() || null,
       })
       .eq("id", 1);
     setSaving(false);
@@ -253,6 +292,30 @@ function SettingsPage() {
             placeholder="Rua, número — Bairro, Cidade / UF"
             className="w-full bg-background border-2 border-border rounded-md px-3 py-2 text-sm"
           />
+        </section>
+
+        {/* Coleta da TBT Express (Mais Entregas) */}
+        <section className="bg-card border-2 border-border rounded-lg p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <Truck className="h-5 w-5 text-primary" />
+            <h2 className="display text-xl">Coleta das entregas (TBT Express)</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-3">
+            Endereço e telefone que o entregador recebe para <strong>buscar</strong> os pedidos. Usado na
+            cotação do frete e na criação de cada corrida. O telefone é o contato que o motoboy liga ao
+            chegar na loja. Campos vazios usam o padrão (Rua Emílio Gleber, 1118 — Colombo).
+          </p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div><label className={PICKUP_LBL}>CEP</label><input className={PICKUP_FIELD} inputMode="numeric" placeholder="83408290" value={pickup.zip} onChange={(e) => setPickup((f) => ({ ...f, zip: e.target.value }))} /></div>
+            <div><label className={PICKUP_LBL}>Telefone da loja (DDD + número)</label><input className={PICKUP_FIELD} inputMode="tel" placeholder="41999999999" value={pickup.phone} onChange={(e) => setPickup((f) => ({ ...f, phone: e.target.value }))} /></div>
+            <div className="sm:col-span-2"><label className={PICKUP_LBL}>Rua</label><input className={PICKUP_FIELD} placeholder="Rua Emílio Gleber" value={pickup.street} onChange={(e) => setPickup((f) => ({ ...f, street: e.target.value }))} /></div>
+            <div><label className={PICKUP_LBL}>Número</label><input className={PICKUP_FIELD} placeholder="1118" value={pickup.number} onChange={(e) => setPickup((f) => ({ ...f, number: e.target.value }))} /></div>
+            <div><label className={PICKUP_LBL}>Complemento</label><input className={PICKUP_FIELD} placeholder="Loja / sala" value={pickup.complement} onChange={(e) => setPickup((f) => ({ ...f, complement: e.target.value }))} /></div>
+            <div><label className={PICKUP_LBL}>Bairro</label><input className={PICKUP_FIELD} placeholder="Atuba" value={pickup.district} onChange={(e) => setPickup((f) => ({ ...f, district: e.target.value }))} /></div>
+            <div><label className={PICKUP_LBL}>Cidade</label><input className={PICKUP_FIELD} placeholder="Colombo" value={pickup.city} onChange={(e) => setPickup((f) => ({ ...f, city: e.target.value }))} /></div>
+            <div><label className={PICKUP_LBL}>UF</label><input className={PICKUP_FIELD} placeholder="PR" maxLength={2} value={pickup.state} onChange={(e) => setPickup((f) => ({ ...f, state: e.target.value }))} /></div>
+            <div><label className={PICKUP_LBL}>Nome no ponto de coleta</label><input className={PICKUP_FIELD} placeholder="Shopbox" value={pickup.name} onChange={(e) => setPickup((f) => ({ ...f, name: e.target.value }))} /></div>
+          </div>
         </section>
 
         {/* Provedor de pagamento */}

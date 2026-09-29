@@ -36,7 +36,7 @@ export const Route = createFileRoute("/api/public/maisentregas/poll")({
 
         const { createDeliveryForOrder, pollOrderStatus } = await import("@/lib/maisentregas.functions");
 
-        const summary = { created: 0, polled: 0, errors: 0 };
+        const summary = { created: 0, polled: 0, errors: 0, authFailed: false };
 
         // 1) Pedidos pagos de delivery sem corrida criada — tenta criar agora.
         // Janela de 7 dias: pedidos convertidos de retirada para entrega podem
@@ -62,19 +62,31 @@ export const Route = createFileRoute("/api/public/maisentregas/poll")({
         }
 
         // 2) Pedidos com corrida ativa — atualiza status.
+        // O status é gravado NORMALIZADO ('entregue' / 'cancelado' / ...), então
+        // este filtro realmente exclui as corridas finalizadas. Ordena pelas
+        // consultadas há mais tempo para nenhuma corrida ficar sem atualização.
         const { data: active } = await supabaseAdmin
           .from("orders")
           .select("id, maisentregas_order_id")
           .not("maisentregas_order_id", "is", null)
-          .not("maisentregas_status", "in", "(entregue,cancelado,devolvido)")
-          // Ignora corridas que a API rejeita por falta de acesso (token de
+          .or("maisentregas_status.is.null,maisentregas_status.not.in.(entregue,cancelado,devolvido)")
+          // Ignora corridas que a API rejeita por falta de acesso (OS de
           // outra conta) — senão o mesmo pedido erra em todo cron.
           .or("maisentregas_last_error.is.null,maisentregas_last_error.not.ilike.[sem-acesso]%")
+          .order("maisentregas_last_check_at", { ascending: true, nullsFirst: true })
           .limit(100);
         for (const o of active ?? []) {
           try {
-            await pollOrderStatus(o.id, o.maisentregas_order_id!);
-            summary.polled++;
+            const r = await pollOrderStatus(o.id, o.maisentregas_order_id!);
+            if (r.ok) summary.polled++;
+            else summary.errors++;
+            if (r.authFailed) {
+              // Credencial global recusada: todas as demais também falhariam.
+              // Interrompe o lote e tenta de novo no próximo cron.
+              console.error("[me:poll] credencial da Mais Entregas recusada — lote interrompido");
+              summary.authFailed = true;
+              break;
+            }
           } catch (err) {
             summary.errors++;
             console.error("[me:poll] poll error", o.id, err);

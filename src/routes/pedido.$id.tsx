@@ -17,6 +17,7 @@ import { mpStatusDetailMessage } from "@/lib/cpf";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { trackPurchase } from "@/lib/analytics";
+import { normalizeMeStatus, meStatusLabel, isMeDelivered } from "@/lib/maisentregas-status";
 
 
 export const Route = createFileRoute("/pedido/$id")({
@@ -70,8 +71,13 @@ function OrderPage() {
   const isCancelled = status === "cancelled";
   const isPending = !isPaid && !isCancelled;
   const isDelivery = order?.delivery_method === "delivery";
-  const meStatus = (order?.maisentregas_status ?? "").toLowerCase();
-  const isDelivered = isPaid && isDelivery && meStatus.startsWith("entregue");
+  const meStatus = normalizeMeStatus(order?.maisentregas_status) ?? "";
+  const meLabel = meStatus ? meStatusLabel(meStatus) : "";
+  // A TBT devolve "Serviço Finalizado"; o banco guarda normalizado ('entregue').
+  // O cron também marca fulfillment_status='completed' ao entregar.
+  const isDelivered = isPaid && isDelivery && (isMeDelivered(meStatus) || fulfillment === "completed");
+  const hasRun = !!(order as { maisentregas_tracking_url?: string | null } | undefined)?.maisentregas_tracking_url;
+  const showTracking = isPaid && isDelivery && hasRun && !isDelivered && meStatus !== "cancelado";
   const isReady = isPaid && !isDelivery && (fulfillment === "ready" || fulfillment === "shipped");
   const isDone = isDelivered || (isPaid && !isDelivery && fulfillment === "completed");
   const isPreparing = isPaid && !isDelivery && (fulfillment === "pending" || fulfillment === "preparing");
@@ -153,7 +159,7 @@ function OrderPage() {
                         : isDone
                           ? "Obrigado pela compra! 💚"
                           : isDelivery
-                            ? (meStatus ? `Status atual: ${meStatus.replace(/_/g, " ")}` : "Estamos preparando seu envio.")
+                            ? (meLabel ? `Status atual: ${meLabel}` : "Estamos preparando seu envio.")
                             : isReady
                               ? "Seu pedido já está separado e te aguarda na loja."
                               : isPreparing
@@ -229,12 +235,26 @@ function OrderPage() {
                     {order.shipping_city}/{order.shipping_state ?? "PR"}
                   </p>
                 )}
-                {meStatus && (
+                {meLabel && (
                   <p className="text-muted-foreground mt-1">
-                    Status: <strong className="text-foreground capitalize">{meStatus.replace(/_/g, " ")}</strong>
+                    Status: <strong className="text-foreground">{meLabel}</strong>
                   </p>
                 )}
-                {isPaid && !isDelivered && (
+                {isDelivered && (
+                  <p className="mt-3 text-xs font-bold uppercase tracking-wider text-[#25D366] bg-[#25D366]/10 px-3 py-2 rounded inline-flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" /> Entregue{(order as { delivered_at?: string | null }).delivered_at ? ` em ${new Date((order as { delivered_at?: string | null }).delivered_at!).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
+                  </p>
+                )}
+                {showTracking && (
+                  <Link
+                    to="/rastreio/$id"
+                    params={{ id }}
+                    className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-4 py-2 text-xs font-black uppercase tracking-wider text-primary-foreground hover:opacity-90"
+                  >
+                    <Truck className="h-4 w-4" /> Acompanhar entregador
+                  </Link>
+                )}
+                {isPaid && !isDelivered && !hasRun && (
                   <p className="mt-3 text-xs font-bold uppercase tracking-wider text-accent bg-accent/10 px-3 py-2 rounded">
                     🚚 Seu pedido está sendo preparado para a coleta do entregador. Acompanhe o status em Meus Pedidos.
                   </p>
@@ -359,11 +379,11 @@ function OrderPage() {
                 ) : (
                   <div><strong className="text-foreground">Retirada:</strong> {STORE_ADDRESS}</div>
                 )}
-                {owned.maisentregas_tracking_url && (
+                {owned.maisentregas_tracking_url && showTracking && (
                   <div>
-                    <a href={owned.maisentregas_tracking_url} target="_blank" rel="noreferrer" className="text-primary font-bold hover:underline">
+                    <Link to="/rastreio/$id" params={{ id }} className="text-primary font-bold hover:underline">
                       Acompanhar entregador
-                    </a>
+                    </Link>
                   </div>
                 )}
               </div>

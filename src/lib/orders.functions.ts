@@ -42,7 +42,7 @@ export const getPublicOrder = createServerFn({ method: "GET" })
     const { data: order, error } = await supabaseAdmin
       .from("orders")
       .select(
-        "id, status, fulfillment_status, total, customer_name, customer_email, customer_phone, payment_method, delivery_method, created_at, shipping_city, shipping_state, maisentregas_status, maisentregas_tracking_url, mp_payment_status, mp_status_detail, mp_payment_method_id",
+        "id, status, fulfillment_status, total, customer_name, customer_email, customer_phone, payment_method, delivery_method, created_at, shipping_city, shipping_state, maisentregas_status, maisentregas_tracking_url, delivered_at, mp_payment_status, mp_status_detail, mp_payment_method_id",
       )
       .eq("id", data.id)
       .maybeSingle();
@@ -71,6 +71,7 @@ export const getPublicOrder = createServerFn({ method: "GET" })
       shipping_state: order.shipping_state ?? null,
       maisentregas_status: order.maisentregas_status ?? null,
       maisentregas_tracking_url: order.maisentregas_tracking_url ?? null,
+      delivered_at: order.delivered_at ?? null,
       mp_payment_status: order.mp_payment_status ?? null,
       mp_status_detail: order.mp_status_detail ?? null,
       mp_payment_method_id: order.mp_payment_method_id ?? null,

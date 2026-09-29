@@ -289,83 +289,14 @@ async function handleOrder(
 }
 
 async function handleUpgrade(
-  admin: any,
+  _admin: any,
   upgradeId: string,
   paymentId: string,
   status: string,
   isPaid: boolean,
   isCancel: boolean,
 ): Promise<void> {
-  if (!upgradeId) return;
-  await admin
-    .from("delivery_upgrades")
-    .update({ mp_status: status, mp_payment_id: paymentId || null })
-    .eq("id", upgradeId);
-
-  if (isPaid) {
-    const { data: result, error } = await admin.rpc("apply_delivery_upgrade", {
-      p_upgrade_id: upgradeId,
-      p_mp_payment_id: paymentId || upgradeId,
-    });
-    if (error) {
-      console.error("[asaas:webhook] apply_delivery_upgrade error", error);
-      return;
-    }
-    console.info("[asaas:webhook] delivery upgrade applied", { upgradeId, result });
-
-    // Pedido já separado/pronto passa a ser entrega: cria a corrida na TBT Express.
-    try {
-      const { data: upRow } = await admin
-        .from("delivery_upgrades")
-        .select("order_id")
-        .eq("id", upgradeId)
-        .maybeSingle();
-      if (upRow?.order_id) {
-        const { createDeliveryForOrder } = await import("@/lib/maisentregas.functions");
-        await createDeliveryForOrder(upRow.order_id);
-      }
-    } catch (err) {
-      console.error("[asaas:webhook] maisentregas upgrade dispatch error", upgradeId, err);
-    }
-
-
-    try {
-      const { data: up } = await admin
-        .from("delivery_upgrades")
-        .select("order_id, fee, shipping_street, shipping_number, shipping_district, shipping_city")
-        .eq("id", upgradeId)
-        .maybeSingle();
-      if (up?.order_id) {
-        const { data: ord } = await admin
-          .from("orders")
-          .select("id, customer_name, customer_phone, total")
-          .eq("id", up.order_id)
-          .maybeSingle();
-        const name = ord?.customer_name ?? "Cliente";
-        const shortId = String(up.order_id).slice(0, 8).toUpperCase();
-        const street = [up.shipping_street, up.shipping_number].filter(Boolean).join(", ");
-        const addrParts = [street, up.shipping_district, up.shipping_city].filter(Boolean);
-        await admin.from("admin_notifications").insert({
-          type: "delivery_upgrade_paid",
-          title: `Upgrade para entrega confirmado #${shortId}`,
-          body: `${name} pagou o frete e o pedido foi movido para entrega.${addrParts.length ? ` Endereço: ${addrParts.join(", ")}.` : ""}`,
-          order_id: up.order_id,
-          metadata: {
-            upgrade_id: upgradeId,
-            asaas_payment_id: paymentId || null,
-            customer_phone: ord?.customer_phone ?? null,
-            total: ord?.total ?? null,
-          },
-        });
-      }
-    } catch (notifErr) {
-      console.warn("[asaas:webhook] admin notification insert failed", notifErr);
-    }
-  } else if (isCancel) {
-    await admin
-      .from("delivery_upgrades")
-      .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
-      .eq("id", upgradeId)
-      .eq("status", "pending");
-  }
+  // Regra compartilhada com o webhook do Mercado Pago.
+  const { handleDeliveryUpgradePayment } = await import("@/lib/delivery-upgrade.server");
+  await handleDeliveryUpgradePayment({ upgradeId, paymentId, status, isPaid, isCancel, source: "asaas" });
 }

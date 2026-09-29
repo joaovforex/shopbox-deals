@@ -1507,6 +1507,15 @@ export type Database = {
           global_discount_percent: number
           id: number
           payment_provider: string
+          pickup_city: string | null
+          pickup_complement: string | null
+          pickup_district: string | null
+          pickup_name: string | null
+          pickup_number: string | null
+          pickup_phone: string | null
+          pickup_state: string | null
+          pickup_street: string | null
+          pickup_zip: string | null
           store_address: string
           updated_at: string
           updated_by: string | null
@@ -1518,6 +1527,15 @@ export type Database = {
           global_discount_percent?: number
           id?: number
           payment_provider?: string
+          pickup_city?: string | null
+          pickup_complement?: string | null
+          pickup_district?: string | null
+          pickup_name?: string | null
+          pickup_number?: string | null
+          pickup_phone?: string | null
+          pickup_state?: string | null
+          pickup_street?: string | null
+          pickup_zip?: string | null
           store_address?: string
           updated_at?: string
           updated_by?: string | null
@@ -1529,6 +1547,15 @@ export type Database = {
           global_discount_percent?: number
           id?: number
           payment_provider?: string
+          pickup_city?: string | null
+          pickup_complement?: string | null
+          pickup_district?: string | null
+          pickup_name?: string | null
+          pickup_number?: string | null
+          pickup_phone?: string | null
+          pickup_state?: string | null
+          pickup_street?: string | null
+          pickup_zip?: string | null
           store_address?: string
           updated_at?: string
           updated_by?: string | null

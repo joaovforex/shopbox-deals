@@ -23,6 +23,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RastreioIdRouteImport } from './routes/rastreio.$id'
 import { Route as ProdutoIdRouteImport } from './routes/produto.$id'
 import { Route as PedidoIdRouteImport } from './routes/pedido.$id'
 import { Route as EtiquetaQrcodeRouteImport } from './routes/etiqueta.qrcode'
@@ -128,6 +129,11 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RastreioIdRoute = RastreioIdRouteImport.update({
+  id: '/rastreio/$id',
+  path: '/rastreio/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProdutoIdRoute = ProdutoIdRouteImport.update({
@@ -359,6 +365,7 @@ export interface FileRoutesByFullPath {
   '/etiqueta/qrcode': typeof EtiquetaQrcodeRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
+  '/rastreio/$id': typeof RastreioIdRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
@@ -411,6 +418,7 @@ export interface FileRoutesByTo {
   '/etiqueta/qrcode': typeof EtiquetaQrcodeRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
+  '/rastreio/$id': typeof RastreioIdRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
   '/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
@@ -465,6 +473,7 @@ export interface FileRoutesById {
   '/etiqueta/qrcode': typeof EtiquetaQrcodeRoute
   '/pedido/$id': typeof PedidoIdRoute
   '/produto/$id': typeof ProdutoIdRoute
+  '/rastreio/$id': typeof RastreioIdRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/_authenticated/admin/agendador-canal': typeof AuthenticatedAdminAgendadorCanalRoute
   '/_authenticated/admin/auditoria': typeof AuthenticatedAdminAuditoriaRoute
@@ -519,6 +528,7 @@ export interface FileRouteTypes {
     | '/etiqueta/qrcode'
     | '/pedido/$id'
     | '/produto/$id'
+    | '/rastreio/$id'
     | '/.lovable/oauth/consent'
     | '/admin/agendador-canal'
     | '/admin/auditoria'
@@ -571,6 +581,7 @@ export interface FileRouteTypes {
     | '/etiqueta/qrcode'
     | '/pedido/$id'
     | '/produto/$id'
+    | '/rastreio/$id'
     | '/.lovable/oauth/consent'
     | '/admin/agendador-canal'
     | '/admin/auditoria'
@@ -624,6 +635,7 @@ export interface FileRouteTypes {
     | '/etiqueta/qrcode'
     | '/pedido/$id'
     | '/produto/$id'
+    | '/rastreio/$id'
     | '/.lovable/oauth/consent'
     | '/_authenticated/admin/agendador-canal'
     | '/_authenticated/admin/auditoria'
@@ -673,6 +685,7 @@ export interface RootRouteChildren {
   EtiquetaQrcodeRoute: typeof EtiquetaQrcodeRoute
   PedidoIdRoute: typeof PedidoIdRoute
   ProdutoIdRoute: typeof ProdutoIdRoute
+  RastreioIdRoute: typeof RastreioIdRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   ApiCheckoutAsaasCardRoute: typeof ApiCheckoutAsaasCardRoute
   ApiPublicAsaasNotificationsCleanupRoute: typeof ApiPublicAsaasNotificationsCleanupRoute
@@ -786,6 +799,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/rastreio/$id': {
+      id: '/rastreio/$id'
+      path: '/rastreio/$id'
+      fullPath: '/rastreio/$id'
+      preLoaderRoute: typeof RastreioIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/produto/$id': {
@@ -1126,6 +1146,7 @@ const rootRouteChildren: RootRouteChildren = {
   EtiquetaQrcodeRoute: EtiquetaQrcodeRoute,
   PedidoIdRoute: PedidoIdRoute,
   ProdutoIdRoute: ProdutoIdRoute,
+  RastreioIdRoute: RastreioIdRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   ApiCheckoutAsaasCardRoute: ApiCheckoutAsaasCardRoute,
   ApiPublicAsaasNotificationsCleanupRoute:

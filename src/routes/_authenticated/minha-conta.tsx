@@ -10,6 +10,7 @@ import { getMyCashback } from "@/lib/cashback.functions";
 import { RepurchaseButton } from "@/components/RepurchaseButton";
 import { currentUserId } from "@/lib/account-queries";
 import { getRoleSummary } from "@/lib/products";
+import { normalizeMeStatus, isMeDelivered, isMeOnTheWay } from "@/lib/maisentregas-status";
 
 import { brl } from "@/lib/format";
 
@@ -41,9 +42,10 @@ function orderStateLabel(o: LastOrder): string {
   if (o.status === "cancelled") return "Cancelado";
   if (o.status === "pending") return "Aguardando pagamento";
   if (o.delivery_method === "delivery") {
-    const s = (o.maisentregas_status ?? "").toLowerCase().trim();
-    if (s === "servico_finalizado" || o.fulfillment_status === "completed") return "Entregue";
-    if (s === "parceiro_a_caminho") return "Em rota de entrega";
+    const s = normalizeMeStatus(o.maisentregas_status) ?? "";
+    if (isMeDelivered(s) || o.fulfillment_status === "completed") return "Entregue";
+    if (s === "cancelado") return "Entrega cancelada";
+    if (isMeOnTheWay(s)) return "Em rota de entrega";
     return "Preparando envio";
   }
   if (o.fulfillment_status === "completed") return "Entregue";

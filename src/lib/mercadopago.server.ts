@@ -42,6 +42,8 @@ export type CreatePreferenceInput = {
   notificationUrl: string; // webhook
   maxInstallments: number;
   statementDescriptor?: string;
+  /** Sobrescreve o external_reference (padrão: orderId). Ex.: "upgrade:<id>". */
+  externalReference?: string;
 };
 
 export type CreatePreferenceResult = { preferenceId: string; initPoint: string };
@@ -59,7 +61,7 @@ export async function createPreference(input: CreatePreferenceInput): Promise<Cr
       name: input.payer.name || undefined,
       email: input.payer.email || undefined,
     },
-    external_reference: input.orderId,
+    external_reference: input.externalReference ?? input.orderId,
     back_urls: {
       success: input.returnUrl,
       pending: input.returnUrl,
