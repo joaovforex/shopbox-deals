@@ -6,7 +6,9 @@ import { ArrowLeft, ImageIcon, Percent, Save, Upload, Trash2, ShieldAlert, Tag, 
 import { Header, Footer } from "@/components/Header";
 import { isSuperAdmin } from "@/lib/products";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchSiteSettings, formatCashbackLabel } from "@/lib/site-settings";
+import { fetchSiteSettings, formatCashbackLabel, fetchCarDeliverySettings } from "@/lib/site-settings";
+import { RMC_CITIES } from "@/lib/delivery-area";
+import { cityKey } from "@/lib/delivery-vehicle";
 import { PRODUCT_CATEGORIES } from "@/lib/categories";
 import { fetchUnidades, saveUnidade, unidadeEndereco, type Unidade } from "@/lib/unidades";
 import { BannerManager } from "@/components/admin/BannerManager";
@@ -317,6 +319,9 @@ function SettingsPage() {
             <div><label className={PICKUP_LBL}>Nome no ponto de coleta</label><input className={PICKUP_FIELD} placeholder="Shopbox" value={pickup.name} onChange={(e) => setPickup((f) => ({ ...f, name: e.target.value }))} /></div>
           </div>
         </section>
+
+        {/* Entrega de carro (Fiorino) para produtos grandes */}
+        <CarDeliverySection />
 
         {/* Provedor de pagamento */}
         <section className="bg-card border-2 border-border rounded-lg p-5">
@@ -802,5 +807,149 @@ function UnidadeForm({ unidade, onCancel, onSaved }: { unidade: Unidade | null; 
         </AdminButton>
       </AdminActionBar>
     </div>
+  );
+}
+
+
+function CarDeliverySection() {
+  const { data, isLoading, error } = useQuery({ queryKey: ["car_delivery_settings"], queryFn: fetchCarDeliverySettings, retry: false });
+  const [enabled, setEnabled] = useState(true);
+  const [meCity, setMeCity] = useState("");
+  const [meExtra, setMeExtra] = useState("");
+  const [fees, setFees] = useState<Record<string, string>>({});
+  const [feeDefault, setFeeDefault] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!data) return;
+    setEnabled(data.car_delivery_enabled);
+    setMeCity(data.car_me_city ?? "");
+    setMeExtra(data.car_me_extra ? JSON.stringify(data.car_me_extra) : "");
+    const f: Record<string, string> = {};
+    for (const c of RMC_CITIES) {
+      const v = data.car_fee_table[cityKey(c)];
+      f[c] = v ? String(v).replace(".", ",") : "";
+    }
+    setFees(f);
+    setFeeDefault(data.car_fee_default ? String(data.car_fee_default).replace(".", ",") : "");
+  }, [data]);
+
+  const toNum = (v: string) => {
+    const t = String(v).trim();
+    // "1.234,56" / "60,50" (pt-BR) ou "60.50"
+    const n = Number(t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t);
+    return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
+  };
+
+  async function save() {
+    let extra: Record<string, unknown> | null = null;
+    if (meExtra.trim()) {
+      try {
+        const parsed = JSON.parse(meExtra);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error();
+        extra = parsed as Record<string, unknown>;
+      } catch {
+        toast.error('Campos extras: use JSON, ex.: {"vehicle": "CARRO"}');
+        return;
+      }
+    }
+    const table: Record<string, number> = {};
+    for (const c of RMC_CITIES) {
+      const n = toNum(fees[c] ?? "");
+      if (n) table[cityKey(c)] = n;
+    }
+    setSaving(true);
+    const { error: err } = await supabase
+      .from("site_settings")
+      .update({
+        car_delivery_enabled: enabled,
+        car_me_city: meCity.trim() || null,
+        car_me_extra: extra as never,
+        car_fee_table: table as never,
+        car_fee_default: toNum(feeDefault),
+      })
+      .eq("id", 1);
+    setSaving(false);
+    if (err) return toast.error(`Falha ao salvar: ${err.message}`);
+    toast.success("Entrega de carro atualizada (vale em até 1 minuto).");
+  }
+
+  const field = "w-full bg-background border-2 border-border rounded-md px-3 py-2 text-sm";
+  const lbl = "text-[11px] font-bold uppercase tracking-wider text-muted-foreground";
+
+  return (
+    <section className="bg-card border-2 border-border rounded-lg p-5 space-y-4">
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <Truck className="h-5 w-5 text-primary" />
+          <h2 className="display text-xl">Entrega de carro (Fiorino)</h2>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Para produtos marcados como <strong>"Precisa de carro"</strong>. Se o carrinho tiver um deles, a entrega do
+          pedido inteiro é de carro.
+        </p>
+      </div>
+
+      {isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
+      {error && (
+        <p className="text-sm text-destructive">
+          Rode o SQL "migracao_entrega_carro.sql" no Supabase para liberar esta configuração.
+        </p>
+      )}
+
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="accent-primary h-4 w-4" />
+        <span className="text-sm">Oferecer entrega de carro (desmarcado = produto grande só pode ser retirado na loja)</span>
+      </label>
+
+      <div className="rounded-md border border-border p-3 space-y-3">
+        <p className="text-sm font-bold">1. Automático pela TBT (quando a TBT informar)</p>
+        <p className="text-xs text-muted-foreground">
+          Código do serviço/cidade de <strong>carro</strong> na conta da TBT (a moto usa <code>pr/curitiba</code>).
+          Preenchido, o frete de carro é cotado pela API e a corrida de carro é criada sozinha ao marcar "Pronto".
+        </p>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div>
+            <label className={lbl}>Código do serviço de carro</label>
+            <input className={field} placeholder="ex.: pr/curitiba-carro" value={meCity} onChange={(e) => setMeCity(e.target.value)} />
+          </div>
+          <div>
+            <label className={lbl}>Campos extras (JSON, opcional)</label>
+            <input className={field} placeholder='ex.: {"vehicle": "CARRO"}' value={meExtra} onChange={(e) => setMeExtra(e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-md border border-border p-3 space-y-3">
+        <p className="text-sm font-bold">2. Tabela de frete de carro (usada enquanto o item 1 estiver vazio)</p>
+        <p className="text-xs text-muted-foreground">
+          Valor cobrado do cliente por cidade. Cidade em branco usa o valor padrão; sem nenhum valor, a entrega de carro
+          fica indisponível para aquela cidade. Na expedição, você abre a corrida de carro no painel da TBT e cola o nº
+          da OS no pedido.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {RMC_CITIES.map((c) => (
+            <div key={c}>
+              <label className={lbl}>{c} (R$)</label>
+              <input
+                className={field}
+                inputMode="decimal"
+                placeholder="—"
+                value={fees[c] ?? ""}
+                onChange={(e) => setFees((f) => ({ ...f, [c]: e.target.value }))}
+              />
+            </div>
+          ))}
+          <div>
+            <label className={lbl}>Padrão (R$)</label>
+            <input className={field} inputMode="decimal" placeholder="—" value={feeDefault} onChange={(e) => setFeeDefault(e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      <AdminButton variant="primary" icon={<Save className="h-4 w-4" />} onClick={save} loading={saving} disabled={saving || !!error}>
+        {saving ? "Salvando…" : "Salvar entrega de carro"}
+      </AdminButton>
+    </section>
   );
 }

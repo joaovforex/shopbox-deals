@@ -217,22 +217,28 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
     );
     // Frete real cotado na TBT/Mais Entregas (nunca confiar em valor do cliente).
     let shippingFee = 0;
+    let deliveryVehicle: "moto" | "carro" = "moto";
+    let deliveryFeeSource: "api" | "tabela" | null = null;
     if (data.delivery_method === "delivery") {
       if (!data.shipping) throw new Error("Endereço de entrega obrigatório");
-      const { quoteDeliveryFee } = await import("@/lib/maisentregas.functions");
+      const { quoteDeliveryForProducts } = await import("@/lib/maisentregas.functions");
       try {
-        const q = await quoteDeliveryFee({
+        const q = await quoteDeliveryForProducts({
           zip: data.shipping.zip,
           street: data.shipping.street,
           number: String(data.shipping.number),
           district: data.shipping.district ?? undefined,
           complement: data.shipping.complement ?? undefined,
           city: data.shipping.city ?? "Curitiba",
-        });
+        }, orderItems.map((it) => String(it.product_id ?? "")));
         shippingFee = q.fee;
+        deliveryVehicle = q.vehicle;
+        deliveryFeeSource = q.source;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error("[checkout] cotação de frete falhou", { orderId, msg });
+        // Mensagens da entrega de carro (produto grande) já são para o cliente.
+        if (/carro|Fiorino|produto grande/i.test(msg)) throw new Error(msg);
         throw new Error("Não conseguimos calcular o frete para este endereço. Escolha retirada na loja ou revise o endereço.");
       }
     }
@@ -256,6 +262,8 @@ export const createAsaasPayment = createServerFn({ method: "POST" })
       .from("orders")
       .update({
         delivery_fee: shippingFee,
+        delivery_vehicle: deliveryVehicle,
+        delivery_fee_source: deliveryFeeSource,
         total: grandTotal,
         cashback_used: cashbackUsed,
       } as never)

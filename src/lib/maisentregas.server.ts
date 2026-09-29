@@ -88,6 +88,48 @@ export async function getPickupAddress(): Promise<PickupAddress> {
   return value;
 }
 
+// ---------------- Entrega de CARRO (Fiorino) ----------------
+export type CarDeliveryConfig = {
+  enabled: boolean;
+  /** Código do serviço/cidade de carro na TBT. Vazio = sem automação pela API. */
+  meCity: string | null;
+  /** Campos extras mesclados no payload das corridas de carro. */
+  meExtra: Record<string, unknown> | null;
+  feeTable: Record<string, number>;
+  feeDefault: number | null;
+};
+
+let cachedCarCfg: { value: CarDeliveryConfig; at: number } | null = null;
+
+export async function getCarDeliveryConfig(): Promise<CarDeliveryConfig> {
+  const now = Date.now();
+  if (cachedCarCfg && now - cachedCarCfg.at < PICKUP_CACHE_MS) return cachedCarCfg.value;
+  const { parseCarFeeTable } = await import("@/lib/delivery-vehicle");
+  let value: CarDeliveryConfig = { enabled: true, meCity: null, meExtra: null, feeTable: {}, feeDefault: null };
+  try {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("site_settings")
+      .select("car_delivery_enabled, car_me_city, car_me_extra, car_fee_table, car_fee_default")
+      .eq("id", 1)
+      .maybeSingle();
+    const d = (data ?? {}) as Record<string, unknown>;
+    const extra = d.car_me_extra;
+    const def = Number(d.car_fee_default);
+    value = {
+      enabled: d.car_delivery_enabled !== false,
+      meCity: String(d.car_me_city ?? "").trim() || null,
+      meExtra: extra && typeof extra === "object" && !Array.isArray(extra) ? (extra as Record<string, unknown>) : null,
+      feeTable: parseCarFeeTable(d.car_fee_table),
+      feeDefault: Number.isFinite(def) && def > 0 ? def : null,
+    };
+  } catch (err) {
+    console.warn("[maisentregas] getCarDeliveryConfig: usando padrão", err instanceof Error ? err.message : err);
+  }
+  cachedCarCfg = { value, at: now };
+  return value;
+}
+
 /**
  * Erro de credencial GLOBAL (nosso e-mail/apikey recusados no /auth).
  * Não é um problema do pedido — nunca deve marcar a corrida como

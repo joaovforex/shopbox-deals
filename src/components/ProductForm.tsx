@@ -44,6 +44,7 @@ type Draft = {
   brand?: string;
   size?: string;
   cashbackRedeemable?: boolean;
+  requiresCar?: boolean;
 };
 
 function loadDraft(productId: string | null): Draft | null {
@@ -86,6 +87,12 @@ export function ProductForm({
     draft?.cashbackRedeemable ??
       (product as unknown as { cashback_redeemable?: boolean } | null)?.cashback_redeemable ??
       true,
+  );
+  // Produto grande: não cabe na moto, a entrega vai de carro (Fiorino).
+  const [requiresCar, setRequiresCar] = useState(
+    draft?.requiresCar ??
+      (product as unknown as { requires_car?: boolean } | null)?.requires_car ??
+      false,
   );
   const [colorVariants, setColorVariants] = useState<ColorVariant[]>(
     draft?.colorVariants ?? (product?.color_variants ?? []),
@@ -143,10 +150,10 @@ export function ProductForm({
     const d: Draft = {
       productId: product?.id ?? null,
       name, description, price, originalPrice, category, stock, images, active, colorVariants,
-      ncm, cest, unidadeComercial, origem, brand, size, cashbackRedeemable,
+      ncm, cest, unidadeComercial, origem, brand, size, cashbackRedeemable, requiresCar,
     };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch {}
-  }, [product?.id, name, description, price, originalPrice, category, stock, images, active, colorVariants, ncm, cest, unidadeComercial, origem, brand, size, cashbackRedeemable]);
+  }, [product?.id, name, description, price, originalPrice, category, stock, images, active, colorVariants, ncm, cest, unidadeComercial, origem, brand, size, cashbackRedeemable, requiresCar]);
 
   const clearDraft = () => { try { sessionStorage.removeItem(DRAFT_KEY); } catch {} };
 
@@ -335,6 +342,9 @@ export function ProductForm({
         images,
         active,
         cashback_redeemable: cashbackRedeemable,
+        // Só envia quando marcado ou quando o produto já tem a coluna (evita
+        // apagar a marcação ao editar a partir de uma listagem parcial).
+        ...(requiresCar || (product && "requires_car" in (product as object)) ? { requires_car: requiresCar } : {}),
         color_variants: cleanVariants.length > 0 ? cleanVariants : [],
         brand: brand.trim() || null,
         size: size.trim() || null,
@@ -696,6 +706,16 @@ export function ProductForm({
             Permite usar cashback no preço
             <span className="block text-xs text-muted-foreground">
               Desmarque para que o cliente não possa abater saldo de cashback neste produto (ele continua gerando cashback ao ser comprado).
+            </span>
+          </span>
+        </label>
+
+        <label className="flex items-start gap-2 cursor-pointer">
+          <input type="checkbox" checked={requiresCar} onChange={(e) => setRequiresCar(e.target.checked)} className="accent-primary h-4 w-4 mt-0.5" />
+          <span className="text-sm">
+            🚐 Precisa de carro (Fiorino) para entregar
+            <span className="block text-xs text-muted-foreground">
+              Marque para produtos grandes que não cabem na moto. Se o carrinho tiver este produto, a entrega é feita de carro, com o frete de carro.
             </span>
           </span>
         </label>

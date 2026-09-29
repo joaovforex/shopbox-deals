@@ -739,6 +739,8 @@ export type Database = {
       }
       orders: {
         Row: {
+          delivery_vehicle: string
+          delivery_fee_source: string | null
           asaas_checkout_id: string | null
           asaas_customer_id: string | null
           asaas_invoice_url: string | null
@@ -840,6 +842,8 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          delivery_vehicle?: string
+          delivery_fee_source?: string | null
           asaas_checkout_id?: string | null
           asaas_customer_id?: string | null
           asaas_invoice_url?: string | null
@@ -941,6 +945,8 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          delivery_vehicle?: string
+          delivery_fee_source?: string | null
           asaas_checkout_id?: string | null
           asaas_customer_id?: string | null
           asaas_invoice_url?: string | null
@@ -1172,6 +1178,7 @@ export type Database = {
       }
       products: {
         Row: {
+          requires_car: boolean
           active: boolean
           brand: string | null
           cashback_redeemable: boolean
@@ -1204,6 +1211,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          requires_car?: boolean
           active?: boolean
           brand?: string | null
           cashback_redeemable?: boolean
@@ -1236,6 +1244,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          requires_car?: boolean
           active?: boolean
           brand?: string | null
           cashback_redeemable?: boolean
@@ -1501,6 +1510,11 @@ export type Database = {
       }
       site_settings: {
         Row: {
+          car_delivery_enabled: boolean
+          car_fee_default: number | null
+          car_fee_table: Json
+          car_me_city: string | null
+          car_me_extra: Json | null
           banner_desktop_url: string | null
           banner_mobile_url: string | null
           cashback_rate: number
@@ -1521,6 +1535,11 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          car_delivery_enabled?: boolean
+          car_fee_default?: number | null
+          car_fee_table?: Json
+          car_me_city?: string | null
+          car_me_extra?: Json | null
           banner_desktop_url?: string | null
           banner_mobile_url?: string | null
           cashback_rate?: number
@@ -1541,6 +1560,11 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          car_delivery_enabled?: boolean
+          car_fee_default?: number | null
+          car_fee_table?: Json
+          car_me_city?: string | null
+          car_me_extra?: Json | null
           banner_desktop_url?: string | null
           banner_mobile_url?: string | null
           cashback_rate?: number
@@ -1793,6 +1817,10 @@ export type Database = {
       }
       apply_category_discount: {
         Args: { categories: string[]; pct: number }
+        Returns: number
+      }
+      admin_set_products_requires_car: {
+        Args: { p_ids: string[]; p_value: boolean }
         Returns: number
       }
       apply_delivery_upgrade: {

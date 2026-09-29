@@ -583,7 +583,11 @@ function ProductPage() {
               </div>
             )}
 
-            <DeliveryEstimate productPath={`/produto/${product.id}`} />
+            <DeliveryEstimate
+              productPath={`/produto/${product.id}`}
+              productId={product.id}
+              requiresCar={!!(product as { requires_car?: boolean }).requires_car}
+            />
 
             <ProductTrustBlock />
 

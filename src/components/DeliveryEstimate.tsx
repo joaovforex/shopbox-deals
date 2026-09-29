@@ -14,7 +14,7 @@ import {
   outOfCoverageMessage,
 } from "@/lib/delivery-area";
 
-type Quote = { fee: number; distanceKm?: number; etaMinutes?: number };
+type Quote = { fee: number; distanceKm?: number; etaMinutes?: number; vehicle?: "moto" | "carro" };
 
 /**
  * "Calcular entrega" na página de produto.
@@ -29,7 +29,7 @@ type Quote = { fee: number; distanceKm?: number; etaMinutes?: number };
  * cache no servidor); quem está logado usa `quoteDelivery` e já vê o
  * endereço salvo do perfil preenchido.
  */
-export function DeliveryEstimate({ productPath: _productPath }: { productPath?: string }) {
+export function DeliveryEstimate({ productPath: _productPath, productId, requiresCar }: { productPath?: string; productId?: string; requiresCar?: boolean }) {
   const user = useAuthUser();
   const storeAddress = useStoreAddress();
 
@@ -144,11 +144,12 @@ export function DeliveryEstimate({ productPath: _productPath }: { productPath?: 
         district: district.trim(),
         complement: complement.trim(),
         city: city.trim(),
+        product_ids: productId ? [productId] : [],
       };
       const res = user
         ? await quoteDelivery({ data: payload })
         : await quoteDeliveryPublic({ data: payload });
-      setQuote({ fee: res.fee, distanceKm: res.distanceKm, etaMinutes: res.etaMinutes });
+      setQuote({ fee: res.fee, distanceKm: res.distanceKm, etaMinutes: res.etaMinutes, vehicle: res.vehicle });
     } catch (e) {
       setError(
         e instanceof Error
@@ -168,6 +169,11 @@ export function DeliveryEstimate({ productPath: _productPath }: { productPath?: 
       <h2 className="flex items-center gap-2 text-sm font-black uppercase tracking-wider">
         <Truck className="h-4 w-4 text-primary" /> Calcular entrega
       </h2>
+      {requiresCar && (
+        <p className="mt-2 rounded-md bg-accent/10 px-3 py-2 text-xs font-bold text-accent">
+          🚐 Produto grande: a entrega é feita de carro (Fiorino), com frete de carro.
+        </p>
+      )}
 
       {(
         <div className="mt-3 space-y-3">
@@ -265,7 +271,9 @@ export function DeliveryEstimate({ productPath: _productPath }: { productPath?: 
 
           {quote && (
             <div className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm">
-              <div className="font-bold">Entrega: {brl(quote.fee)}</div>
+              <div className="font-bold">
+                Entrega{quote.vehicle === "carro" ? " de carro (Fiorino)" : ""}: {brl(quote.fee)}
+              </div>
               {(quote.distanceKm || quote.etaMinutes) && (
                 <div className="text-xs text-muted-foreground">
                   {quote.distanceKm ? `${quote.distanceKm.toFixed(1).replace(".", ",")} km` : null}

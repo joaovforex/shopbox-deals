@@ -191,6 +191,7 @@ function TrackingPage() {
 
             {/* Resumo */}
             <div className="rounded-xl border-2 border-border bg-card p-5 text-sm space-y-1 text-muted-foreground">
+              {t.vehicle === "carro" && <div><strong className="text-foreground">Veículo:</strong> carro (Fiorino) — produto grande</div>}
               {t.city && <div><strong className="text-foreground">Entrega em:</strong> {t.city}</div>}
               {t.distanceKm != null && t.distanceKm > 0 && <div><strong className="text-foreground">Distância da loja:</strong> {t.distanceKm.toFixed(1).replace(".", ",")} km</div>}
               {t.runCreatedAt && <div><strong className="text-foreground">Entregador chamado:</strong> {fmtDateTime(t.runCreatedAt)}</div>}

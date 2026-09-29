@@ -17,7 +17,7 @@ import { refundOrder, listCieloRefundQueue, retryCieloRefundNow, type CieloRefun
 import { createExchangeVoucher } from "@/lib/exchange-vouchers.functions";
 import { printVoucherReceipt } from "@/lib/voucherReceipt";
 import { openWhatsApp, orderReminderMessage, orderContactMessage, orderRecoveryMessage } from "@/lib/whatsapp";
-import { dispatchDelivery } from "@/lib/maisentregas.functions";
+import { dispatchDelivery, linkManualDeliveryRun } from "@/lib/maisentregas.functions";
 import { meStatusLabel } from "@/lib/maisentregas-status";
 import { fetchUnidades, fetchMyUnidadeScope } from "@/lib/unidades";
 import { Calendar } from "@/components/ui/calendar";
@@ -59,6 +59,9 @@ type OrderRow = {
   label_printed_by_name?: string | null;
   maisentregas_order_id?: string | null;
   maisentregas_status?: string | null;
+  maisentregas_last_error?: string | null;
+  delivery_vehicle?: string | null;
+  delivery_fee_source?: string | null;
   delivery_fee?: number | null;
   delivery_quote_distance_km?: number | null;
   delivery_quote_eta_minutes?: number | null;
@@ -546,7 +549,10 @@ function FulfillmentPage() {
     if (ns === "ready" && o.delivery_method === "delivery" && !o.maisentregas_order_id) {
       try {
         const r = await dispatchFn({ data: { orderId: o.id } });
-        if (r?.ok) toast.success("Entrega enviada para a TBT Express.");
+        if (r?.ok) toast.success(o.delivery_vehicle === "carro" ? "Entrega de CARRO enviada para a TBT Express." : "Entrega enviada para a TBT Express.");
+        else if (r?.reason === "car_manual") {
+          toast.warning("Pedido de CARRO (Fiorino): abra a corrida de carro no painel da TBT e cole o nº da OS no pedido.", { duration: 10000 });
+        }
         else toast.error(`Não foi possível despachar a entrega: ${r?.reason ?? "erro"}`);
       } catch (e: any) {
         toast.error(e?.message || "Falha ao despachar entrega.");
@@ -966,12 +972,18 @@ function FulfillmentPage() {
                   <div className="text-xs text-muted-foreground border-y border-border py-2 space-y-1">
                     {o.delivery_method === "delivery" ? (
                       <>
-                        <div><strong className="text-foreground inline-flex items-center gap-1"><Truck className="h-3 w-3" /> Entrega motoboy:</strong> {o.shipping_address}</div>
+                        {o.delivery_vehicle === "carro" && (
+                          <div className="inline-flex items-center gap-1 bg-accent text-accent-foreground px-2 py-1 rounded text-[11px] font-black uppercase tracking-wider">
+                            🚐 Carro / Fiorino — produto grande
+                          </div>
+                        )}
+                        <div><strong className="text-foreground inline-flex items-center gap-1"><Truck className="h-3 w-3" /> {o.delivery_vehicle === "carro" ? "Entrega de carro:" : "Entrega motoboy:"}</strong> {o.shipping_address}</div>
                         <div className="flex flex-wrap items-center gap-1">
                           <span className="inline-flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-foreground">
-                            Frete TBT: {Number(o.delivery_fee ?? 0) > 0
+                            Frete {o.delivery_vehicle === "carro" ? "carro" : "TBT"}: {Number(o.delivery_fee ?? 0) > 0
                               ? `R$ ${Number(o.delivery_fee).toFixed(2).replace(".", ",")}`
                               : "não cotado"}
+                            {o.delivery_fee_source === "tabela" ? " (tabela)" : ""}
                           </span>
                           {o.delivery_quote_distance_km != null && (
                             <span className="inline-flex items-center gap-1 bg-muted px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-foreground">
@@ -987,7 +999,11 @@ function FulfillmentPage() {
                         {o.maisentregas_status && (
                           <div className="inline-flex items-center gap-1 bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
                             Mais Entregas: {meStatusLabel(o.maisentregas_status)}
+                            {o.maisentregas_order_id ? ` · OS ${o.maisentregas_order_id}` : ""}
                           </div>
+                        )}
+                        {o.status === "paid" && !o.maisentregas_order_id && (o.fulfillment_status === "ready" || o.fulfillment_status === "shipped") && (
+                          <LinkRunForm orderId={o.id} isCar={o.delivery_vehicle === "carro"} onLinked={() => qc.invalidateQueries({ queryKey: ["fulfillment-orders"] })} />
                         )}
                       </>
                     ) : (
@@ -1927,6 +1943,57 @@ function DeliveryConfirmModal({ order, onCancel, onConfirm }: { order: OrderRow;
           </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+
+/**
+ * Vincula uma corrida aberta direto no painel da TBT (ex.: entrega de carro
+ * sem serviço configurado na API). Com a OS vinculada, o rastreio do cliente
+ * e a atualização automática de status passam a funcionar.
+ */
+function LinkRunForm({ orderId, isCar, onLinked }: { orderId: string; isCar: boolean; onLinked: () => void }) {
+  const linkFn = useServerFn(linkManualDeliveryRun);
+  const [os, setOs] = useState("");
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    const v = os.trim();
+    if (!v) return toast.error("Informe o número da OS da TBT.");
+    setBusy(true);
+    try {
+      const r = await linkFn({ data: { orderId, meOrderId: v } });
+      toast.success(`OS ${v} vinculada (${r.status ?? "criado"}). O cliente já pode acompanhar.`);
+      setOs("");
+      onLinked();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Falha ao vincular a OS.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className={`mt-1 rounded border px-2 py-2 ${isCar ? "border-accent bg-accent/10" : "border-border bg-muted/40"}`}>
+      <p className="text-[11px] font-bold text-foreground">
+        {isCar ? "Abra a corrida de CARRO no painel da TBT e cole o nº da OS:" : "Corrida aberta direto na TBT? Cole o nº da OS:"}
+      </p>
+      <div className="mt-1 flex gap-1">
+        <input
+          value={os}
+          onChange={(e) => setOs(e.target.value)}
+          inputMode="numeric"
+          placeholder="Nº da OS"
+          className="min-w-0 flex-1 rounded border border-border bg-background px-2 py-1 text-xs"
+        />
+        <button
+          type="button"
+          onClick={() => void submit()}
+          disabled={busy}
+          className="rounded bg-primary px-2 py-1 text-[11px] font-black uppercase tracking-wider text-primary-foreground disabled:opacity-60"
+        >
+          {busy ? "..." : "Vincular"}
+        </button>
+      </div>
     </div>
   );
 }

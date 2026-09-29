@@ -229,7 +229,9 @@ function OrderPage() {
                 <Truck className="h-5 w-5" />
               </div>
               <div className="text-sm flex-1">
-                <p className="font-bold text-foreground mb-1">Entrega em casa</p>
+                <p className="font-bold text-foreground mb-1">
+                  {(order as { delivery_vehicle?: string | null }).delivery_vehicle === "carro" ? "🚐 Entrega de carro (Fiorino)" : "Entrega em casa"}
+                </p>
                 {order.shipping_city && (
                   <p className="text-foreground font-semibold">
                     {order.shipping_city}/{order.shipping_state ?? "PR"}

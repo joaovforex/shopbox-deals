@@ -104,15 +104,20 @@ export const createDeliveryUpgrade = createServerFn({ method: "POST" })
     const s = data.shipping;
 
     // 2) Cotação real do frete (mesmo cálculo do checkout convencional).
-    const { quoteDeliveryFee } = await import("@/lib/maisentregas.functions");
-    const quote = await quoteDeliveryFee({
+    // Veículo pelos itens do pedido: produto grande vai de carro (Fiorino).
+    const { data: upItems } = await supabaseAdmin
+      .from("order_items")
+      .select("product_id")
+      .eq("order_id", data.order_id);
+    const { quoteDeliveryForProducts } = await import("@/lib/maisentregas.functions");
+    const quote = await quoteDeliveryForProducts({
       zip: s.zip.replace(/\D/g, ""),
       street: s.street.trim(),
       number: String(s.number).trim(),
       district: s.district?.trim() || undefined,
       complement: s.complement?.trim() || undefined,
       city: s.city.trim(),
-    });
+    }, (upItems ?? []).map((i) => String((i as { product_id: string | null }).product_id ?? "")));
     const fee = quote.fee;
 
     // 3) Já existe upgrade pendente com o MESMO endereço e valor? Reutiliza.

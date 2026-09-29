@@ -79,3 +79,35 @@ export function useSiteSettings() {
 export function formatCashbackLabel(rate: number): string {
   return `${Math.round(rate * 100)}%`;
 }
+
+
+// ---------------- Entrega de carro (Fiorino) — só o painel usa ----------------
+export type CarDeliverySettings = {
+  car_delivery_enabled: boolean;
+  car_me_city: string | null;
+  car_me_extra: Record<string, unknown> | null;
+  car_fee_table: Record<string, number>;
+  car_fee_default: number | null;
+};
+
+export async function fetchCarDeliverySettings(): Promise<CarDeliverySettings> {
+  const { parseCarFeeTable } = await import("@/lib/delivery-vehicle");
+  const { data, error } = await supabase
+    .from("site_settings")
+    .select("car_delivery_enabled, car_me_city, car_me_extra, car_fee_table, car_fee_default")
+    .eq("id", 1)
+    .maybeSingle();
+  if (error) throw error;
+  const c = (data ?? {}) as Record<string, unknown>;
+  const def = Number(c.car_fee_default);
+  return {
+    car_delivery_enabled: c.car_delivery_enabled !== false,
+    car_me_city: (c.car_me_city as string | null) ?? null,
+    car_me_extra:
+      c.car_me_extra && typeof c.car_me_extra === "object" && !Array.isArray(c.car_me_extra)
+        ? (c.car_me_extra as Record<string, unknown>)
+        : null,
+    car_fee_table: parseCarFeeTable(c.car_fee_table),
+    car_fee_default: Number.isFinite(def) && def > 0 ? def : null,
+  };
+}

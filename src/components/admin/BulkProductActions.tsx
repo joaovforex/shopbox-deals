@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { Percent, Boxes, Tag, Replace, Eye, EyeOff, Download, Upload, X, Loader2 } from "lucide-react";
+import { Percent, Boxes, Tag, Replace, Eye, EyeOff, Download, Upload, X, Loader2, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { logAudit } from "@/lib/audit";
 import { cn } from "@/lib/utils";
@@ -128,6 +128,17 @@ export function BulkProductActions({
     );
   };
 
+  const setRequiresCar = (value: boolean) => {
+    if (!confirm(value
+      ? `Marcar ${n} produto(s) como "precisa de carro (Fiorino)"? A entrega destes produtos passa a ser de carro.`
+      : `Desmarcar "precisa de carro" em ${n} produto(s)? Eles voltam a ser entregues de moto.`)) return;
+    void run(
+      value ? "Marcados: entrega de carro (Fiorino)" : "Desmarcados: voltam para moto",
+      () => supabase.rpc("admin_set_products_requires_car" as never, { p_ids: selectedIds, p_value: value } as never),
+      { action: value ? "produtos.carro_marcar" : "produtos.carro_desmarcar", details: {} },
+    );
+  };
+
   const exportCsv = () => {
     const list = hasSel ? products.filter((p) => selectedIds.includes(p.id)) : products;
     if (list.length === 0) return toast.error("Nada para exportar.");
@@ -195,6 +206,12 @@ export function BulkProductActions({
         </button>
         <button type="button" className={btn} disabled={!hasSel || busy} onClick={() => toggleVisibility(true)}>
           <Eye className="h-4 w-4" /> Mostrar
+        </button>
+        <button type="button" className={btn} disabled={!hasSel || busy} onClick={() => setRequiresCar(true)} title="Produto grande: entrega de carro (Fiorino)">
+          <Truck className="h-4 w-4" /> Precisa de carro
+        </button>
+        <button type="button" className={btn} disabled={!hasSel || busy} onClick={() => setRequiresCar(false)} title="Volta a ser entregue de moto">
+          <Truck className="h-4 w-4" /> Vai de moto
         </button>
         <span className="mx-1 hidden sm:block h-6 w-px bg-border" />
         <button type="button" className={btn} disabled={busy} onClick={exportCsv}>

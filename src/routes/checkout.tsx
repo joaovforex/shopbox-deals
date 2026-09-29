@@ -197,6 +197,24 @@ function CheckoutPage() {
     return () => { cancelled = true; };
   }, [items]);
 
+  // Produtos grandes (requires_car) no carrinho → entrega de carro (Fiorino).
+  // Só para exibir; o servidor decide o veículo e o frete.
+  const [cartNeedsCar, setCartNeedsCar] = useState(false);
+  useEffect(() => {
+    const ids = Array.from(new Set(items.map((i) => i.id)));
+    if (ids.length === 0) { setCartNeedsCar(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await supabase.from("products").select("id").in("id", ids).eq("requires_car", true).limit(1);
+        if (!cancelled) setCartNeedsCar((data ?? []).length > 0);
+      } catch {
+        if (!cancelled) setCartNeedsCar(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [items]);
+
   // Subtotal elegível a abatimento de cashback (exclui itens bloqueados).
   const cashbackEligibleSubtotal = items.reduce(
     (acc, i) => acc + (cashbackBlockedIds.has(i.id) ? 0 : i.price * i.quantity),
@@ -222,6 +240,7 @@ function CheckoutPage() {
   const [cepError, setCepError] = useState<string | null>(null);
   const [coverageOk, setCoverageOk] = useState<null | boolean>(null);
   const [shippingQuote, setShippingQuote] = useState<number | null>(null);
+  const [shippingVehicle, setShippingVehicle] = useState<"moto" | "carro" | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [coverageMsg, setCoverageMsg] = useState<string | null>(null);
   const [hasSavedAddress, setHasSavedAddress] = useState(false);
@@ -334,20 +353,25 @@ function CheckoutPage() {
             district: district.trim(),
             complement: complement.trim(),
             city: city.trim() || "Curitiba",
+            product_ids: items.map((i) => i.id),
           },
         });
         if (cancelled) return;
         setShippingQuote(res.fee);
+        setShippingVehicle(res.vehicle);
         setCoverageOk(true);
         setCoverageMsg(
-          `Entrega disponível${res.etaMinutes ? ` · aprox. ${res.etaMinutes} min de rota` : ""}.`,
+          res.vehicle === "carro"
+            ? "Entrega de carro (Fiorino) disponível — seu pedido tem produto grande que não vai de moto."
+            : `Entrega disponível${res.etaMinutes ? ` · aprox. ${res.etaMinutes} min de rota` : ""}.`,
         );
       } catch (err) {
         if (cancelled) return;
         setShippingQuote(null);
+        setShippingVehicle(null);
         setCoverageOk(false);
         setCoverageMsg(
-          err instanceof Error && /cobertura|frete/i.test(err.message)
+          err instanceof Error && /cobertura|frete|carro|Fiorino/i.test(err.message)
             ? err.message
             : "Não conseguimos calcular o frete para este endereço. Revise os dados ou escolha retirada na loja.",
         );
@@ -356,7 +380,7 @@ function CheckoutPage() {
       }
     }, 700);
     return () => { cancelled = true; clearTimeout(t); };
-  }, [delivery, cep, street, number, district, complement, city, cepError]);
+  }, [delivery, cep, street, number, district, complement, city, cepError, items]);
 
 
   if (user === undefined || user === null) {
@@ -563,13 +587,21 @@ function CheckoutPage() {
                 <div className="bg-accent/10 border border-accent/30 text-accent rounded-md px-3 py-2 text-xs font-bold uppercase tracking-wider">
                   🚚 Entregamos somente em Curitiba e região metropolitana
                 </div>
+                {(cartNeedsCar || shippingVehicle === "carro") && (
+                  <div className="bg-secondary border-2 border-primary/40 rounded-md px-3 py-2 text-xs">
+                    <strong className="text-foreground">🚐 Entrega de carro (Fiorino)</strong>
+                    <span className="block text-muted-foreground">
+                      Seu carrinho tem produto grande que não cabe na moto. A entrega é feita de carro e o frete é o de carro.
+                    </span>
+                  </div>
+                )}
                 <div className="bg-primary/10 border border-primary/30 text-primary rounded-md px-3 py-2 text-xs font-bold uppercase tracking-wider flex items-center gap-2">
                   <span>🚚</span>
                   <span>
                     {quoting
                       ? "Calculando frete..."
                       : shippingQuote != null
-                        ? `Frete ${brl(shippingQuote)} para este endereço`
+                        ? `Frete${shippingVehicle === "carro" ? " de carro" : ""} ${brl(shippingQuote)} para este endereço`
                         : "Frete calculado pelo endereço · Curitiba e região metropolitana"}
                   </span>
                 </div>
@@ -645,7 +677,7 @@ function CheckoutPage() {
                   </div>
                 )}
                 <p className="text-[11px] text-muted-foreground">
-                  Após a confirmação do pagamento, o pedido é separado e um entregador parceiro da Mais Entregas faz a coleta. Acompanhe cada etapa em "Meus pedidos".
+                  Após a confirmação do pagamento, o pedido é separado e {shippingVehicle === "carro" || cartNeedsCar ? "um carro da transportadora" : "um entregador parceiro da Mais Entregas"} faz a coleta. Acompanhe cada etapa em "Meus pedidos".
                 </p>
               </div>
             )}
@@ -752,7 +784,7 @@ function CheckoutPage() {
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{delivery === "pickup" ? "Retirada" : "Entrega"}</span>
+                  <span className="text-muted-foreground">{delivery === "pickup" ? "Retirada" : shippingVehicle === "carro" ? "Entrega de carro" : "Entrega"}</span>
                   <span className="font-semibold">
                     {delivery === "pickup"
                       ? "Grátis"

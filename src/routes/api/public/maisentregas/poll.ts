@@ -43,14 +43,19 @@ export const Route = createFileRoute("/api/public/maisentregas/poll")({
         // ficar dias em preparo antes de ficarem prontos para despacho.
         const sinceIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-        const { data: pendingCreate } = await supabaseAdmin
+        // Entrega de CARRO sem serviço configurado na API é manual (a
+        // expedição vincula a OS) — não ocupa vaga no lote.
+        const me = await import("@/lib/maisentregas.server");
+        const carCfg = await me.getCarDeliveryConfig();
+        let pendingQuery = supabaseAdmin
           .from("orders")
           .select("id")
           .eq("status", "paid")
           .eq("delivery_method", "delivery")
           .is("maisentregas_order_id", null)
-          .gte("created_at", sinceIso)
-          .limit(50);
+          .gte("created_at", sinceIso);
+        if (!carCfg.meCity) pendingQuery = pendingQuery.neq("delivery_vehicle", "carro");
+        const { data: pendingCreate } = await pendingQuery.limit(50);
         for (const o of pendingCreate ?? []) {
           try {
             const r = await createDeliveryForOrder(o.id);

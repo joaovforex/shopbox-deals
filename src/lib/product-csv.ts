@@ -17,6 +17,7 @@ export const CSV_COLUMNS = [
   "original_price",
   "stock",
   "active",
+  "requires_car",
 ] as const;
 
 export type CsvColumn = (typeof CSV_COLUMNS)[number];
@@ -33,7 +34,7 @@ export function productsToCsv(products: Product[]): string {
   const rows = products.map((p) =>
     CSV_COLUMNS.map((c) => {
       const v = (p as unknown as Record<string, unknown>)[c];
-      if (c === "active") return v ? "sim" : "nao";
+      if (c === "active" || c === "requires_car") return v ? "sim" : "nao";
       return escapeCell(v);
     }).join(";"),
   );
@@ -150,6 +151,14 @@ export function buildCsvDiff(rows: CsvRow[], products: Product[]): { diffs: CsvD
     cmpText("size", (p as unknown as Record<string, unknown>).size ?? null);
     cmpNum("price", p.price);
     cmpNum("original_price", p.original_price);
+    // requires_car: "sim"/"nao" (também aceita 1/0, true/false, s/n).
+    const rc = (row.requires_car ?? "").trim().toLowerCase();
+    if (rc) {
+      const next = ["sim", "s", "1", "true", "x", "yes"].includes(rc) ? true
+        : ["nao", "não", "n", "0", "false", "no"].includes(rc) ? false : null;
+      const current = !!(p as unknown as { requires_car?: boolean }).requires_car;
+      if (next !== null && next !== current) changes.push({ field: "requires_car", from: current, to: next });
+    }
     const stock = parseNumber(row.stock);
     if (stock !== null && Math.round(stock) !== p.stock) {
       changes.push({ field: "stock", from: p.stock, to: Math.round(stock) });
