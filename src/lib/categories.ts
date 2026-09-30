@@ -1,4 +1,7 @@
 export const PRODUCT_CATEGORIES = [
+  // Restrita: só aparece/vende para quem tem 18+ pela data de nascimento do
+  // cadastro (regras no banco: is_adult_category / can_view_adult / RLS).
+  "+18",
   "Automotivo",
   "Banheiro",
   "Bebês",
