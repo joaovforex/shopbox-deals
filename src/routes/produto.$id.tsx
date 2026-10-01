@@ -1,4 +1,5 @@
-import { createFileRoute, Link, notFound, useNavigate, useRouter } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useRouter } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -35,11 +36,13 @@ export const Route = createFileRoute("/produto/$id")({
       getRequestOrigin(),
       context.queryClient.ensureQueryData(reviewsSummaryQuery(params.id)).catch(() => ({ count: 0, average: 0 })),
     ]);
-    if (!product) throw notFound();
-    return { product, origin, reviews };
+    // Produto +18 não vem na renderização do servidor (lá não há sessão do
+    // cliente e a RLS esconde). Não damos "não encontrado" aqui: a tela tenta
+    // de novo no navegador, já com o login, e explica o motivo se continuar oculto.
+    return { product: product ?? null, origin, reviews };
   },
   head: ({ loaderData }) => {
-    if (!loaderData) {
+    if (!loaderData || !(loaderData as { product?: unknown }).product) {
       return {
         meta: [
           { title: "Produto — Shopbox" },
@@ -176,15 +179,26 @@ function ProductPage() {
   const { data: reviewSummary } = useQuery(reviewsSummaryQuery(id));
   const { data: settings } = useSiteSettings();
   const cashbackRate = settings?.cashback_rate ?? 0.05;
-  const { data: product, isLoading } = useQuery({
+  const { data: product, isLoading, isFetched, refetch: refetchProduct } = useQuery({
     queryKey: ["product", id],
-    initialData: loaderProduct,
+    initialData: loaderProduct ?? undefined,
+    queryFn: () => fetchProduct(id),
+  });
+  // Produto oculto para esta sessão (ex.: link de produto +18): descobre o motivo.
+  const hidden = isFetched && !product;
+  const { data: accessStatus } = useQuery({
+    queryKey: ["product-access", id],
+    enabled: hidden,
     queryFn: async () => {
-      const p = await fetchProduct(id);
-      if (!p) throw notFound();
-      return p;
+      const { data, error } = await supabase.rpc("product_access_status" as never, { p_id: id } as never);
+      if (error) return "not_found";
+      return String(data ?? "not_found");
     },
   });
+  // Pode ver (logado e 18+ ou equipe), mas o servidor não trouxe: busca de novo já com a sessão.
+  useEffect(() => {
+    if (hidden && accessStatus === "ok") void refetchProduct();
+  }, [hidden, accessStatus, refetchProduct]);
   const { data: admin = false } = useQuery({
     queryKey: ["can-share-admin"],
     queryFn: async () => {
@@ -210,6 +224,10 @@ function ProductPage() {
     window.location.href = loginRedirectHref(target);
     return true;
   };
+
+  if (hidden && accessStatus) {
+    return <HiddenProduct status={accessStatus} productId={id} />;
+  }
 
   if (isLoading || !product) {
     return (
@@ -685,6 +703,44 @@ function ProductPage() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+
+/** Tela quando o produto não aparece para esta sessão (link compartilhado). */
+function HiddenProduct({ status, productId }: { status: string; productId: string }) {
+  const back = `/produto/${productId}`;
+  const msg =
+    status === "anon"
+      ? { title: "Produto para maiores de 18 anos", text: "Entre na sua conta para ver este produto.", cta: { href: loginRedirectHref(back), label: "Entrar" } }
+      : status === "no_birthdate"
+        ? { title: "Produto para maiores de 18 anos", text: "Informe sua data de nascimento no seu perfil para ver este produto.", cta: { href: "/perfil", label: "Completar perfil" } }
+        : status === "underage"
+          ? { title: "Produto para maiores de 18 anos", text: "Este produto só pode ser visto por maiores de 18 anos.", cta: null }
+          : status === "ok"
+            ? { title: "Carregando produto...", text: "Atualize a página se não abrir em alguns segundos.", cta: null }
+            : { title: "Produto não encontrado", text: "Este produto não está mais disponível.", cta: null };
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="text-center max-w-md">
+          <h1 className="display text-3xl md:text-4xl mb-2">{msg.title}</h1>
+          <p className="text-muted-foreground mb-5">{msg.text}</p>
+          <div className="flex flex-wrap justify-center gap-3">
+            {msg.cta && (
+              <a href={msg.cta.href} className="inline-flex items-center rounded-md bg-primary px-5 py-2.5 text-sm font-black uppercase tracking-wider text-primary-foreground hover:opacity-90">
+                {msg.cta.label}
+              </a>
+            )}
+            <Link to="/loja" className="inline-flex items-center rounded-md bg-secondary px-5 py-2.5 text-sm font-bold uppercase tracking-wider hover:bg-muted">
+              Voltar para a loja
+            </Link>
+          </div>
+        </div>
+      </div>
+      <Footer />
     </div>
   );
 }
