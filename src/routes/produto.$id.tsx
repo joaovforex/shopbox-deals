@@ -225,6 +225,39 @@ function ProductPage() {
     return true;
   };
 
+  // Hooks que dependem do produto ficam ANTES dos returns antecipados: o
+  // produto +18 chega só no navegador (depois do esqueleto) e o React exige
+  // a mesma quantidade de hooks em todo render (erro #310).
+  const stockForClamp = (() => {
+    if (!product) return 0;
+    const vs = (product.color_variants ?? []) as Array<{ color: string; stock: number }>;
+    if (vs.length === 0) return product.stock;
+    return vs.find((v) => v.color === selectedColor)?.stock ?? 0;
+  })();
+
+  // Clamp quantity whenever the selected color (or its stock) changes
+  useEffect(() => {
+    if (!product) return;
+    setQty((q) => {
+      if (stockForClamp <= 0) return 1;
+      return Math.min(Math.max(1, q), stockForClamp);
+    });
+  }, [product?.id, selectedColor, stockForClamp]);
+
+  // Analytics: view_item (sem dados pessoais)
+  useEffect(() => {
+    if (!product) return;
+    trackViewItem(
+      toAnalyticsItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        category: product.category,
+        brand: product.brand,
+      }),
+    );
+  }, [product?.id, product?.name, product?.price, product?.category, product?.brand]);
+
   if (hidden && accessStatus) {
     return <HiddenProduct status={accessStatus} productId={id} />;
   }
@@ -253,28 +286,6 @@ function ProductPage() {
   const needsColorChoice = hasVariants && !selectedColor;
   const variantOut = hasVariants && !!selectedColor && effectiveStock <= 0;
   const allColorsOut = hasVariants && variants.every((v) => v.stock <= 0);
-
-  // Clamp quantity whenever the selected color (or its stock) changes
-  useEffect(() => {
-    setQty((q) => {
-      if (effectiveStock <= 0) return 1;
-      return Math.min(Math.max(1, q), effectiveStock);
-    });
-  }, [selectedColor, effectiveStock]);
-
-  // Analytics: view_item (sem dados pessoais)
-  useEffect(() => {
-    trackViewItem(
-      toAnalyticsItem({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        category: product.category,
-        brand: product.brand,
-      }),
-    );
-  }, [product.id, product.name, product.price, product.category, product.brand]);
-
 
   const off = discountPct(product.original_price, product.price);
   const url = typeof window !== "undefined" ? window.location.href : "";
