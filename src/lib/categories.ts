@@ -33,3 +33,8 @@ export const PRODUCT_CATEGORIES = [
 
 export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
 
+
+/** Mesma regra do banco (public.is_adult_category): categoria restrita +18. */
+export function isAdultCategory(cat: string | null | undefined): boolean {
+  return (cat ?? "").trim().toLowerCase() === "+18";
+}

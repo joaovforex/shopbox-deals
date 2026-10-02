@@ -10,6 +10,7 @@ import { Barcode } from "@/components/Barcode";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import shopboxLogo from "@/assets/shopbox-logo.png";
+import { isAdultCategory } from "@/lib/categories";
 
 export const Route = createFileRoute("/etiqueta/$id")({
   head: () => ({ meta: [{ title: "Etiqueta · shopbox" }] }),
@@ -61,7 +62,19 @@ function LabelPage() {
       const { data: order, error } = await supabase.from("orders").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
       const { data: items } = await supabase.from("order_items").select("*").eq("order_id", id);
-      return { order, items: items ?? [] };
+      // Privacidade: item +18 não tem o nome impresso na etiqueta. Vale a
+      // categoria gravada no item OU a categoria atual do produto.
+      const productIds = [...new Set((items ?? []).map((it: any) => it.product_id).filter(Boolean))];
+      const adultIds = new Set<string>();
+      if (productIds.length) {
+        const { data: prods } = await supabase.from("products").select("id, category").in("id", productIds);
+        for (const p of prods ?? []) if (isAdultCategory(p.category)) adultIds.add(p.id);
+      }
+      const labelItems = (items ?? []).map((it: any) => ({
+        ...it,
+        discreet: isAdultCategory(it.category) || (it.product_id ? adultIds.has(it.product_id) : false),
+      }));
+      return { order, items: labelItems };
     },
   });
 
@@ -311,8 +324,16 @@ function PickupLabel({ o, items }: { o: any; items: any[] }) {
           {items.map((it: any, i: number) => (
             <li key={i} className="flex justify-between gap-2">
               <span>
-                <strong>{it.quantity}x</strong> {it.product_name}
-                {it.variant_color && <span className="ml-1 text-[10px] font-black uppercase">· {it.variant_color}</span>}
+                <strong>{it.quantity}x</strong>{" "}
+                {it.discreet ? (
+                  // +18: sem nome nem cor — só uma referência para a conferência.
+                  <>Produto · ref. {String(it.product_id ?? it.id ?? "").replace(/-/g, "").slice(0, 6).toUpperCase()}</>
+                ) : (
+                  <>
+                    {it.product_name}
+                    {it.variant_color && <span className="ml-1 text-[10px] font-black uppercase">· {it.variant_color}</span>}
+                  </>
+                )}
               </span>
               <span className="text-[11px] whitespace-nowrap">{brl(it.unit_price * it.quantity)}</span>
             </li>
